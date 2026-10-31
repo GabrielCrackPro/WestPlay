@@ -27,7 +27,9 @@ import { nearestCity } from './destination'
 import { useNowPlaying } from './useNowPlaying'
 import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
-import { EMPTY, useDestinationView, useGuided } from './widgetState'
+import { FuelGlyph } from './FuelGlyph'
+import { JobGlyph } from './JobGlyph'
+import { EMPTY, useDestinationView, useFuelView, useGuided, useJobView, weatherFits } from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -116,7 +118,7 @@ const WIDGET_BACKDROPS: Record<Look, Backdrop> = {
 /**
  * Now Playing's music: a source's track, tinted by its album art (a blurred copy behind the glass). Track
  * changes animate (the new cover waited for, the text sliding, cover and tint crossfading). The track opens
- * its app (if WestPlay has one for it); the controls work in place, on what's playing now. Over a cover the
+ * its app (if CabinPlay has one for it); the controls work in place, on what's playing now. Over a cover the
  * look's words wouldn't read on, the other look's (a light cover: dark words); the glass and tint stay.
  */
 function MusicWidget({
@@ -214,14 +216,68 @@ export function DestinationWidget() {
   )
 }
 
-/** How many widgets the column holds at most: the weather comes in only where there's room. */
-const COLUMN = 3
+/**
+ * The job: what the truck carries, what it pays, and the time and distance left to deliver it (job.ts). The
+ * destination card says where it goes; this one says what the work is worth and how long there is. Folded
+ * away without a job, like the destination's card.
+ */
+export function JobWidget() {
+  const text = useText()
+  const view = useJobView()
+  const shown = useCabin((state) => state.dashboardWidgets.job) && view !== null
+  return (
+    <div className={`widget-slot${shown ? ' open' : ''}`}>
+      {shown && view && (
+        <article className="widget glass job" aria-label={text.job}>
+          <div className="kicker">{text.job}</div>
+          <JobGlyph size={84} />
+          <div className="destination">{view.cargo}</div>
+          <div className="place">{view.pay}</div>
+          <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>
+        </article>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Fuel: what's left in the tank and how far it goes, on the job card's own layout (kicker, a big line, a line
+ * under it) so the column's cards read alike. Folded away without either — no game, or a truck whose tank the
+ * game hasn't read (widgetState.ts) — as the destination folds away without a job.
+ */export function FuelWidget() {
+  const text = useText()
+  const view = useFuelView()
+  const shown = useCabin((state) => state.dashboardWidgets.fuel) && view !== null
+  return (
+    <div className={`widget-slot${shown ? ' open' : ''}`}>
+      {shown && view && (
+        <article className="widget glass job fuel" aria-label={text.fuel}>
+          <div className="fuel-text">
+            <div className="kicker">{text.fuel}</div>
+            {view.range ? (
+              <>
+                <div className="destination">{view.range}</div>
+                <div className="place">{view.litres}</div>
+              </>
+            ) : (
+              <div className="destination">{view.litres}</div>
+            )}
+          </div>
+          <FuelGlyph size={GLYPH} />
+        </article>
+      )}
+    </div>
+  )
+}
+
+/** The pump's size on the card, as the weather's symbol (dashboard.css shrinks both on a short column). */
+const GLYPH = 84
 
 /**
  * The weather where the truck is, as CarPlay's weather widget (weather.ts): the nearest city, the weather
- * and its symbol. The column holds three widgets: it comes in where there's room (turn-by-turn, Now Playing
- * or the destination not showing: no route, no job, or turned off in Settings), as they come and go; and
- * not without the weather (no game, or one whose weather isn't read), or turned off itself.
+ * and its symbol. It comes in only where there's room (widgetState.ts): three widgets fill the column, four
+ * with the fuel card up — so a full column without fuel holds what it always did, and nothing goes without
+ * the weather (no game, or one whose weather isn't read), or turned off itself.
  */
 export function WeatherWidget() {
   const text = useText()
@@ -229,8 +285,17 @@ export function WeatherWidget() {
   const widgets = useCabin((state) => state.dashboardWidgets)
   const guided = useGuided()
   const destination = useDestinationView()
-  const others = [guided, widgets.nowPlaying, widgets.destination && destination !== EMPTY].filter(Boolean).length
-  const room = widgets.weather && others < COLUMN
+  const job = useJobView()
+  const fuel = useFuelView()
+  const fuelShown = widgets.fuel && fuel !== null
+  const others = [
+    guided,
+    widgets.nowPlaying,
+    widgets.destination && destination !== EMPTY,
+    widgets.job && job !== null,
+    fuelShown,
+  ].filter(Boolean).length
+  const room = widgets.weather && weatherFits(others, fuelShown)
   const weather = useLive((state) => state.weather)
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : 0))
   const place = useLive((state) => {
