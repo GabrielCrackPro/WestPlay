@@ -27,6 +27,7 @@ import { nearestCity } from './destination'
 import { useNowPlaying } from './useNowPlaying'
 import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
+import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { FuelGlyph } from './FuelGlyph'
 import { JobGlyph } from './JobGlyph'
@@ -283,10 +284,13 @@ export function FuelWidget() {
 
 /**
  * Diagnostics: the engine's coolant and the brake air on one card — the two readings a driver watches while
-driving — on the fuel card's layout. A reading out of its range takes the tone, so a glance says whether
- * it's worth opening the app. Folded away without the game, like the fuel card.
+driving — on the fuel card's layout, with the battery, the AdBlue, the oil's pressure, the fuel it burns and the trailer's tires under them. A
+ * reading out of its range takes the tone, so a glance says whether it's worth opening the app. Folded away
+ * without the game, like the fuel card.
  */
 export function DiagnosticsWidget() {
+  const text = useText()
+  const words = text.diagnostics
   const view = useDiagnosticsView()
   const shown = useCabin((state) => state.dashboardWidgets.diagnostics) && view !== null
   return (
@@ -294,7 +298,7 @@ export function DiagnosticsWidget() {
       {shown && view && (
         <button
           type="button"
-          className="widget glass job diagnostics"
+          className="widget glass job fuel diagnostics"
           aria-label={view.kicker}
           onClick={() => go({ type: 'openApp', app: 'diagnostics' })}
         >
@@ -302,11 +306,33 @@ export function DiagnosticsWidget() {
             <div className="kicker">{view.kicker}</div>
             <div className={`destination ${view.coolantState}`}>{view.coolant}</div>
             <div className={`place ${view.airState}`}>{view.air}</div>
+            <div className="diag-extra">
+              <Extra label={words.battery} value={view.battery} state={view.batteryState} />
+              <Extra label={words.adblue} value={view.adblue} state={view.adblueState} />
+              <Extra label={words.oil} value={view.oilPressure} state={view.oilPressureState} />
+              <Extra
+                label={words.trailer}
+                value={view.trailer ?? '—'}
+                state={view.trailer === null ? 'ok' : view.trailerState}
+              />
+              <Extra wide label={words.consumption} value={view.economy} state={view.economyState} />
+            </div>
           </div>
           <DiagnosticsGlyph size={GLYPH} />
         </button>
       )}
     </div>
+  )
+}
+
+/** One of the diagnostics card's smaller readings: its name, then its value, in the card's muted lines. The
+ * wide one takes the card's whole width (a value too long for a half). */
+function Extra({ label, value, state, wide = false }: { label: string; value: string; state: State; wide?: boolean }) {
+  return (
+    <span className={`diag-extra-item ${state}${wide ? ' wide' : ''}`}>
+      <span className="diag-extra-label">{label}</span>
+      <span className="diag-extra-value">{value}</span>
+    </span>
   )
 }
 

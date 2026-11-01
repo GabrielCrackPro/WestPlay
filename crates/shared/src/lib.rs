@@ -30,7 +30,7 @@ pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
 /// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
 /// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
 /// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings.
-pub const BRIDGE_VERSION: u32 = 25;
+pub const BRIDGE_VERSION: u32 = 27;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -602,6 +602,34 @@ pub struct Telemetry {
     pub wear_engine: f32,
     /// Wear of the wheels, 0 (new) to 1 (worn out): the game's average across them, the tires' own wear.
     pub wear_wheels: f32,
+    /// Wear of the transmission, the cab and the chassis, 0 (new) to 1 (worn out).
+    pub wear_transmission: f32,
+    pub wear_cabin: f32,
+    pub wear_chassis: f32,
+    /// The engine oil's pressure, psi (the SDK's `truck.oil.pressure`).
+    pub oil_pressure: f32,
+    /// The battery's voltage, volts (the SDK's `truck.battery.voltage`): about 24 at rest, 27 to 28 while
+    /// the alternator charges.
+    pub battery_voltage: f32,
+    /// The AdBlue in the tank, litres (the SDK's `truck.adblue`), and whether the game warns it runs low.
+    pub adblue: f32,
+    pub adblue_warning: bool,
+    /// The truck's average fuel consumption, litres per 100 km (the game reports litres per kilometre).
+    pub fuel_average: f32,
+    /// The odometer, km (the SDK's `truck.odometer`).
+    pub odometer: f32,
+    /// The retarder's level: 0 for off, up to the truck's steps (the SDK's `truck.brake.retarder`).
+    pub retarder_level: i32,
+    /// Whether a trailer is hitched, and the wear of its wheels, 0 (new) to 1 (worn out).
+    pub trailer_attached: bool,
+    pub trailer_wear_wheels: f32,
+    /// The game's own warnings, as the truck's dash shows them (the SDK's `*.warning` channels): the battery
+    /// not charging, the oil pressure low, the brake air low, the fuel low. The cab raises them on its own
+    /// readings rather than trusting a threshold of its own.
+    pub battery_warning: bool,
+    pub oil_pressure_warning: bool,
+    pub brake_air_warning: bool,
+    pub fuel_warning: bool,
 }
 
 /// Identity of the current truck, from the SDK's "truck" configuration.

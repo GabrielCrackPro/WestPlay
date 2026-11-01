@@ -42,6 +42,27 @@ export const brakeTemperature = (celsius: number) => scale({ min: 0, max: 600, w
 /** Wear, 0 (new) to 1 (worn out): half worn is worth watching, four fifths worn wants a garage. */
 export const wear = (fraction: number) => scale({ min: 0, max: 1, warn: 0.5, alarm: 0.8 }, fraction)
 
+/** The oil's pressure, psi: a warm diesel holds 30 to 60; under 25 it's losing oil, under 15 it has. */
+export const oilPressure = (psi: number) => scale({ min: 0, max: 100, warn: 25, alarm: 15, low: true }, psi)
+
+/** The battery, volts: 24 at rest, 27 to 28 charging; under 24 it isn't charging, under 22 it won't start. */
+export const battery = (volts: number) => scale({ min: 20, max: 30, warn: 24, alarm: 22, low: true }, volts)
+
+/** AdBlue, litres of a 60 litre tank: a fifth left is worth filling, under a tenth it limits the engine. */
+export const adblue = (litres: number) => scale({ min: 0, max: 60, warn: 12, alarm: 6, low: true }, litres)
+
+/** Fuel consumption, litres per 100 km: a loaded truck runs in the 25 to 40s; over it, something's wrong. */
+export const consumption = (per100: number) => scale({ min: 0, max: 60, warn: 42, alarm: 50 }, per100)
+
+/**
+ * A reading with the game's own warning over it: when the truck's dash says the battery, the oil pressure, the
+ * brake air or the fuel is wrong (the SDK's `*.warning` channels), the gauge is an alarm whatever its value —
+ * thresholds of our own are a guess, the game's warning is what the driver is already being told.
+ */
+export function warned(read: Reading, warning: boolean): Reading {
+  return warning && read.state !== 'alarm' ? { ...read, state: 'alarm' } : read
+}
+
 /** The more serious of two states, for a card that shows more than one reading. */
 export function worst(first: State, second: State): State {
   const rank: Record<State, number> = { ok: 0, warn: 1, alarm: 2 }

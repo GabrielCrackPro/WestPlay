@@ -56,6 +56,32 @@ export interface Telemetry {
   wearEngine: number
   /** Wear of the wheels, 0 (new) to 1 (worn out): the tires' own wear. */
   wearWheels: number
+  /** Wear of the transmission, the cab and the chassis, 0 (new) to 1 (worn out). */
+  wearTransmission: number
+  wearCabin: number
+  wearChassis: number
+  /** The engine oil's pressure, psi. */
+  oilPressure: number
+  /** The battery's voltage, volts (about 24 at rest, 27 to 28 while charging). */
+  batteryVoltage: number
+  /** The AdBlue in the tank, litres (the SDK's `truck.adblue`), and whether the game warns it runs low. */
+  adblue: number
+  adblueWarning: boolean
+  /** Average fuel consumption, litres per 100 km. */
+  fuelAverage: number
+  /** km. */
+  odometer: number
+  /** The retarder's level: 0 for off, up to the truck's steps. */
+  retarderLevel: number
+  /** Whether a trailer is hitched, and the wear of its wheels, 0 (new) to 1 (worn out). */
+  trailerAttached: boolean
+  trailerWearWheels: number
+  /** The game's own warnings, as the truck's dash shows them: battery not charging, oil pressure low, brake
+   * air low, fuel low. */
+  batteryWarning: boolean
+  oilPressureWarning: boolean
+  brakeAirWarning: boolean
+  fuelWarning: boolean
 }
 
 /** The time the cab's clock shows (minutes since day 0, 00:00): the game's, or in a Convoy session the

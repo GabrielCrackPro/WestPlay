@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { formatGameTime } from '../../shared/format'
+import { useEffect, useState } from 'react'
+import { formatGameTime, formatRealTime } from '../../shared/format'
 import { logoSources } from '../boot/brand'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
 import { type AppId, APPS } from '../state/apps'
@@ -12,20 +12,26 @@ import { cabClock } from '../../shared/host'
 /**
  * The CarPlay sidebar: the truck's brand and clock, the recent apps (the open one on top), and at the bottom
  * the truck button (back to the truck's own screen, like CarPlay's car button) and the Home button.
+ *
+ * The clock is the player's own time or the game's, as Settings › Dashboard has it; the player's is their PC's,
+ * so it keeps time while the game is paused.
  */
 export function Sidebar() {
   const recents = useCabin((state) => state.navigation.recents)
   const route = useCabin((state) => state.navigation.route)
   const homeTarget = useCabin((state) => homeButtonTarget(state.navigation))
+  const clock = useCabin((state) => state.clock)
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
+  const realTime = useRealTime()
   const shown = useScreenProfile().recents ?? 3
+  const time = clock === 'real' ? formatRealTime(realTime) : gameTime === null ? null : formatGameTime(gameTime)
 
   return (
     // Its own transition name: it stays put while screens change (shell/transitions.css).
     <aside className="sidebar glass" style={{ viewTransitionName: 'sidebar' }}>
       <div className="status">
         <BrandMark />
-        <div className="time">{gameTime === null ? '--:--' : formatGameTime(gameTime)}</div>
+        <div className="time">{time ?? '--:--'}</div>
       </div>
       <nav className="recent" aria-label="Recent apps">
         {recents.slice(0, shown).map((app) => (
@@ -54,6 +60,24 @@ export function Sidebar() {
       </div>
     </aside>
   )
+}
+
+/**
+ * Now, for the player's own clock, ticked as the minute turns (a timer set for the next minute's start, then the
+ * one after it) rather than on an interval that drifts: the sidebar shows the minute the player's PC is on.
+ */
+function useRealTime(): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    let timer = 0
+    const tick = () => {
+      setNow(Date.now())
+      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    }
+    timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000))
+    return () => window.clearTimeout(timer)
+  }, [])
+  return now
 }
 
 /**

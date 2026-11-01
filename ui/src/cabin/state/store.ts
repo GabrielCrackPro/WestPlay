@@ -67,6 +67,9 @@ export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'diagnostics',
 ]
 
+/** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
+export type Clock = 'game' | 'real'
+
 /**
  * Cabin state that the UI renders from. Telemetry lives in its own store (`useLive`) because it updates
  * up to 20 times a second; components subscribe to just the fields they need.
@@ -77,6 +80,8 @@ interface CabinState {
   wallpaperId: string
   /** The Dashboard's widgets shown (Settings, Dashboard). */
   dashboardWidgets: Record<DashboardWidget, boolean>
+  /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
+  clock: Clock
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
   albumArt: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
@@ -97,6 +102,7 @@ interface CabinState {
   setAppearanceMode(mode: AppearanceMode): void
   setWallpaper(id: string): void
   setDashboardWidget(widget: DashboardWidget, shown: boolean): void
+  setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
   /** One band of the curve, set in Settings › Equalizer (choosing Custom): played by every player, and kept with
@@ -116,7 +122,7 @@ interface CabinState {
 /** What survives a restart of the app: where you were and your choices, never the power state. */
 type Persisted = Pick<
   CabinState,
-  'navigation' | 'appearanceMode' | 'wallpaperId' | 'dashboardWidgets' | 'albumArt' | 'textSize'
+  'navigation' | 'appearanceMode' | 'wallpaperId' | 'dashboardWidgets' | 'clock' | 'albumArt' | 'textSize'
 >
 
 /** The widgets a new player starts with: all of them on. */
@@ -136,6 +142,7 @@ export const useCabin = create<CabinState>()(
       appearanceMode: 'auto',
       wallpaperId: DEFAULT_WALLPAPER_ID,
       dashboardWidgets: ALL_WIDGETS,
+      clock: 'real',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
       oemMode: 'auto',
@@ -151,6 +158,7 @@ export const useCabin = create<CabinState>()(
       },
       setDashboardWidget: (widget, shown) =>
         set((state) => ({ dashboardWidgets: { ...state.dashboardWidgets, [widget]: shown } })),
+      setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
       setEqualizerBand: (band, db) => {
@@ -200,6 +208,7 @@ export const useCabin = create<CabinState>()(
         appearanceMode: state.appearanceMode,
         wallpaperId: state.wallpaperId,
         dashboardWidgets: state.dashboardWidgets,
+        clock: state.clock,
         albumArt: state.albumArt,
         textSize: state.textSize,
       }),
@@ -232,6 +241,7 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
       DASHBOARD_WIDGETS.map((widget) => [widget, widgets[widget] !== false]),
     ) as Record<DashboardWidget, boolean>
   }
+  if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
   return result

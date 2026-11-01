@@ -92,10 +92,64 @@ button.widget:active {
   color: var(--apple-red);
 }
 
-/* Its gauge, in the card's own colour like the fuel pump's. */
+/* The card is a button, and the shell's buttons take no padding: the fuel card's, given back (the card's
+   words were flush against its edge without this). */
+.widget.fuel.diagnostics {
+  padding: 14px 20px;
+}
+
+/* Its gauge, in the fuel pump's own soft colour. */
 .diagnostics-glyph {
   flex: none;
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+/* The card's other readings, on one muted line under the two big ones like the job card's deadline: the
+   battery, the AdBlue, the oil's pressure, the fuel it burns and the trailer's tires, wrapped as room runs
+   out. */
+.widget.diagnostics .diag-extra {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+  margin-top: calc(2px * var(--text-scale, 1));
+  font-size: calc(11.5px * var(--text-scale, 1));
+  line-height: 1.25;
+}
+
+.widget.diagnostics .diag-extra-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(4px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+/* A reading whose value is too long for half the card: the whole row. */
+.widget.diagnostics .diag-extra-item.wide {
+  grid-column: 1 / -1;
+}
+
+.widget.diagnostics .diag-extra-label {
   color: var(--text-dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget.diagnostics .diag-extra-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.widget.diagnostics .diag-extra-item.warn .diag-extra-value {
+  color: var(--apple-orange);
+}
+
+.widget.diagnostics .diag-extra-item.alarm .diag-extra-value {
+  color: var(--apple-red);
 }
 
 /* The column's gap between the cards that are up: a card that folds away takes its gap with it (the slots
@@ -356,6 +410,45 @@ button.widget:active {
 .appearance-dark .fuel {
   --glass: rgb(16 18 24 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.22);
+}
+
+/* A column too short even for the tightened cards (every widget on at once, at a truck screen's scale): the
+   cards and the gap between them give a little more, so the diagnostics card's readings still fit. */
+@container widgets (max-height: 690px) {
+  .widgets .widget {
+    padding: 6px 16px;
+  }
+
+  .widgets .widget.fuel.diagnostics {
+    padding: 6px 16px;
+  }
+
+  .widget-slot.open:has(~ .widget-slot.open) {
+    margin-bottom: 10px;
+  }
+
+  .widgets .now-playing .art {
+    width: 48px;
+    height: 48px;
+  }
+
+  .widgets .now-playing .controls button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .widgets .job .destination {
+    font-size: calc(23px * var(--text-scale, 1));
+  }
+
+  .widgets .job .place,
+  .widgets .job .deadline {
+    font-size: calc(17px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .diag-extra {
+    font-size: calc(11px * var(--text-scale, 1));
+  }
 }
 
 /* A column too short for the cards at their full size (a 720p screen with the job and fuel cards up): they

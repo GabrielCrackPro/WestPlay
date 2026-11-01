@@ -10,6 +10,12 @@ export function formatGameTime(gameTime: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
 }
 
+/** The player's own time at `at` (ms since the epoch), as the sidebar shows it: "14:22". */
+export function formatRealTime(at: number): string {
+  const date = new Date(at)
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
 /** "Thu 14:22" */
 export function formatGameClock(gameTime: number): string {
   return `${DAYS[Math.floor(gameTime / 1440) % 7]} ${formatGameTime(gameTime)}`

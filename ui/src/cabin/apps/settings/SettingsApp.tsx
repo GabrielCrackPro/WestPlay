@@ -308,11 +308,14 @@ function WallpaperThumbnail({ src }: { src: string }) {
 /** Twice a thumbnail's width on the screen, so it stays sharp. */
 const THUMBNAIL_WIDTH = 600
 
-/** Which widgets the Dashboard shows (turn-by-turn always does while there's a route). */
+/** Which widgets the Dashboard shows (turn-by-turn always does while there's a route), and which clock the
+ * sidebar keeps: the player's own time or the game's. */
 function DashboardPage() {
   const text = useText()
   const widgets = useCabin((state) => state.dashboardWidgets)
   const setWidget = useCabin((state) => state.setDashboardWidget)
+  const clock = useCabin((state) => state.clock)
+  const setClock = useCabin((state) => state.setClock)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -327,6 +330,13 @@ function DashboardPage() {
         {DASHBOARD_WIDGETS.map((widget) => (
           <SwitchRow key={widget} label={names[widget]} on={widgets[widget]} onToggle={(on) => setWidget(widget, on)} />
         ))}
+      </Group>
+      <Group footer={text.settings.clockFooter}>
+        <SwitchRow
+          label={text.settings.realClock}
+          on={clock === 'real'}
+          onToggle={(on) => setClock(on ? 'real' : 'game')}
+        />
       </Group>
     </Page>
   )

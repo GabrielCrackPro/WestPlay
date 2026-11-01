@@ -1,6 +1,16 @@
 import { useShallow } from 'zustand/react/shallow'
 import { cabClock } from '../../shared/host'
-import { brakeAir, coolant, type State } from '../apps/diagnostics/readings'
+import {
+  adblue,
+  battery,
+  brakeAir,
+  consumption,
+  coolant,
+  oilPressure as oilPressureReading,
+  warned,
+  wear,
+  type State,
+} from '../apps/diagnostics/readings'
 import { guidanceOf } from '../maps/guidance'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
@@ -90,7 +100,8 @@ export function useFuelView(): FuelView | null {
   )
 }
 
-/** The diagnostics card's readings: the coolant, the brake air, and how serious each is. */
+/** The diagnostics card's readings: the coolant and the brake air, then the battery, the AdBlue, the oil's
+pressure, the fuel it burns and the trailer's tires, and how serious each is. */
 export interface DiagnosticsView {
   /** "Diagnostics". */
   kicker: string
@@ -98,14 +109,30 @@ export interface DiagnosticsView {
   coolant: string
   /** "118 psi". */
   air: string
+  /** "27.6 V". */
+  battery: string
+  /** "38 l". */
+  adblue: string
+  /** "42 psi". */
+  oilPressure: string
+  /** "31.4 l/100 km". */
+  economy: string
+  /** The trailer's tires, "34%", or null with no trailer on. */
+  trailer: string | null
   coolantState: State
   airState: State
+  batteryState: State
+  adblueState: State
+  oilPressureState: State
+  economyState: State
+  trailerState: State
 }
 
 /**
- * The Dashboard's diagnostics widget, from the game's own telemetry: the two readings worth watching while
-driving, the engine's coolant and the brake air. Without the game there's nothing to read, so it folds away
-as the fuel card does.
+ * The Dashboard's diagnostics widget, from the game's own telemetry: the readings worth watching while
+driving, the engine's coolant and the brake air, and under them the battery, the AdBlue in its tank (the
+game's own warning when it comes on), the oil's pressure, the average fuel it burns and the wear of the
+trailer's tires. Without the game there's nothing to read, so it folds away as the fuel card does.
  */
 export function useDiagnosticsView(): DiagnosticsView | null {
   const text = useText()
@@ -115,12 +142,27 @@ export function useDiagnosticsView(): DiagnosticsView | null {
       if (!telemetry) return null
       const heat = coolant(telemetry.coolantTemperature)
       const air = brakeAir(telemetry.brakeAirPressure)
+      const volts = warned(battery(telemetry.batteryVoltage), telemetry.batteryWarning)
+      const urea = warned(adblue(telemetry.adblue), telemetry.adblueWarning)
+      const pressure = warned(oilPressureReading(telemetry.oilPressure), telemetry.oilPressureWarning)
+      const economy = consumption(telemetry.fuelAverage)
+      const tires = wear(telemetry.trailerWearWheels)
       return {
         kicker: text.apps.diagnostics,
         coolant: `${text.number(Math.round(heat.value))} ${text.diagnostics.celsius}`,
         air: `${text.number(Math.round(air.value))} ${text.diagnostics.psi}`,
+        battery: `${text.number(Math.round(telemetry.batteryVoltage * 10) / 10)} ${text.diagnostics.volts}`,
+        adblue: `${text.number(Math.round(telemetry.adblue))} ${text.diagnostics.litres}`,
+        oilPressure: `${text.number(Math.round(pressure.value))} ${text.diagnostics.psi}`,
+        economy: `${text.number(Math.round(economy.value * 10) / 10)} ${text.diagnostics.lPer100}`,
+        trailer: telemetry.trailerAttached ? `${text.number(Math.round(tires.value * 100))}%` : null,
         coolantState: heat.state,
         airState: air.state,
+        batteryState: volts.state,
+        adblueState: urea.state,
+        oilPressureState: pressure.state,
+        economyState: economy.state,
+        trailerState: tires.state,
       }
     }),
   )

@@ -1,26 +1,268 @@
-/* The Diagnostics app (DiagnosticsApp.tsx): the truck's own readings, a card each, on the app's background. */
+/* The Diagnostics app (DiagnosticsApp.tsx): the truck's health as the game reports it: the truck itself on top,
+   then a card each for the engine, the brakes, the fuel and AdBlue, the chassis and the trailer. Every card
+   carries one tone, from the worst of its readings: green, orange, red. */
 
 .diagnostics-app {
   display: flex;
   align-items: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
 }
 
-.diag-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: calc(18px * var(--text-scale, 1));
-  min-width: 0;
-  width: 100%;
+.diagnostics-app::-webkit-scrollbar {
+  display: none;
 }
 
-.diag-card {
+/* The panel scrolls; the column's parts keep their height. Without this they're flex items of a column
+   that's taller than the panel, and the hero (whose `overflow: hidden` lets a flex item shrink to nothing)
+   is crushed down to its padding: an empty strip above the cards. */
+.diag-scroll {
   display: flex;
   flex-direction: column;
   gap: calc(16px * var(--text-scale, 1));
   min-width: 0;
-  padding: calc(22px * var(--text-scale, 1));
+  width: 100%;
+}
+
+.diag-scroll > * {
+  flex: none;
+}
+
+/* On top: the truck turning on its disc, its speed, and the four readings a driver watches without thinking. */
+.diag-overview {
+  --diag-tone: var(--apple-green);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: calc(6px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1))
+    calc(6px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: var(--panel-radius);
+  background:
+    radial-gradient(120% 130% at 6% 0%, color-mix(in srgb, var(--diag-tone) 20%, transparent), transparent 64%),
+    var(--apple-card);
+  overflow: hidden;
+}
+
+.diag-overview.warn {
+  --diag-tone: var(--apple-orange);
+}
+
+.diag-overview.alarm {
+  --diag-tone: var(--apple-red);
+}
+
+/* A faint grid over the panel, like the screen a gauge is drawn on. */
+.diag-overview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--apple-separator) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--apple-separator) 1px, transparent 1px);
+  background-size: calc(30px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1));
+  opacity: 0.28;
+  mask-image: radial-gradient(130% 100% at 18% 8%, black, transparent 72%);
+  pointer-events: none;
+}
+
+/* Where the 3D truck draws itself (TruckModel.tsx). */
+.diag-art {
+  position: relative;
+  align-self: stretch;
+  min-height: calc(190px * var(--text-scale, 1));
+}
+
+.truck-view {
+  position: absolute;
+  inset: 0;
+}
+
+.truck-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* No WebGL: the panel's glow stands in for the truck. */
+.truck-view.unavailable::before {
+  content: '';
+  position: absolute;
+  inset: 22% 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--diag-tone) 30%, transparent), transparent);
+}
+
+.diag-main {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.diag-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.diag-model {
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diag-speed {
+  display: flex;
+  align-items: baseline;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.diag-speed-value {
+  font-size: calc(66px * var(--text-scale, 1));
+  font-weight: 750;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-speed-unit {
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.diag-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.diag-tag {
+  display: flex;
+  align-items: baseline;
+  gap: calc(6px * var(--text-scale, 1));
+  padding: calc(5px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: 999px;
+  font-size: calc(13px * var(--text-scale, 1));
+}
+
+.diag-tag-label {
+  color: var(--text-dim);
+}
+
+.diag-tag-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(10px * var(--text-scale, 1));
+  margin-top: calc(2px * var(--text-scale, 1));
+}
+
+.diag-quick-item {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.diag-quick-label {
+  font-size: calc(12.5px * var(--text-scale, 1));
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diag-quick-value {
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.diag-quick-unit {
+  margin-left: calc(3px * var(--text-scale, 1));
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.diag-quick-meter {
+  height: calc(4px * var(--text-scale, 1));
+  margin-top: calc(3px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill);
+  overflow: hidden;
+}
+
+.diag-quick-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--apple-green);
+  transition: width 300ms var(--motion-ease);
+}
+
+.diag-quick-item.warn .diag-quick-meter span {
+  background: var(--apple-orange);
+}
+
+.diag-quick-item.alarm .diag-quick-meter span {
+  background: var(--apple-red);
+}
+
+/* The cards under it. */
+.diag-cards {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: calc(16px * var(--text-scale, 1));
+}
+
+.diag-card {
+  --diag-tone: var(--apple-green);
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--text-scale, 1));
+  min-width: 0;
+  padding: calc(20px * var(--text-scale, 1));
+  border: 1px solid transparent;
   border-radius: var(--panel-radius);
   background: var(--apple-card);
+}
+
+.diag-card.span-4 {
+  grid-column: span 4;
+}
+
+.diag-card.span-6 {
+  grid-column: span 6;
+}
+
+.diag-card.span-12 {
+  grid-column: span 12;
+}
+
+.diag-card.warn {
+  --diag-tone: var(--apple-orange);
+  border-color: color-mix(in srgb, var(--apple-orange) 24%, transparent);
+}
+
+.diag-card.alarm {
+  --diag-tone: var(--apple-red);
+  border-color: color-mix(in srgb, var(--apple-red) 28%, transparent);
 }
 
 .diag-head {
@@ -31,39 +273,29 @@
 }
 
 .diag-name {
-  font-size: calc(18px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 650;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-/* What the card's reading says: normal, or the one word it's worth knowing. */
+/* What a card's readings say: normal, or the one word worth knowing. */
 .diag-pill {
   flex: none;
   padding: calc(4px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
   border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(12.5px * var(--text-scale, 1));
   font-weight: 650;
-  color: var(--text-dim);
+  color: var(--diag-tone);
 }
 
-.diag-card.warn .diag-pill {
-  border-color: transparent;
-  color: var(--apple-orange);
-}
-
-.diag-card.alarm .diag-pill {
-  border-color: transparent;
-  color: var(--apple-red);
-}
-
-/* The card's reading, big, over its gauge. */
-.diag-hero {
+/* The reading a card is about. */
+.diag-lead {
   display: flex;
   flex-direction: column;
-  gap: calc(4px * var(--text-scale, 1));
+  gap: calc(2px * var(--text-scale, 1));
 }
 
 .diag-reading {
@@ -73,26 +305,27 @@
 }
 
 .diag-value {
-  font-size: calc(46px * var(--text-scale, 1));
+  font-size: calc(38px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .diag-unit {
-  font-size: calc(19px * var(--text-scale, 1));
+  font-size: calc(17px * var(--text-scale, 1));
   font-weight: 600;
   color: var(--text-dim);
 }
 
 .diag-label {
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
   font-weight: 500;
   color: var(--text-dim);
 }
 
 .diag-meter {
-  height: calc(8px * var(--text-scale, 1));
+  height: calc(7px * var(--text-scale, 1));
   margin-top: calc(6px * var(--text-scale, 1));
   border-radius: 999px;
   background: var(--apple-fill);
@@ -103,19 +336,69 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--apple-green);
+  background: var(--diag-tone);
   transition: width 300ms var(--motion-ease);
 }
 
-.diag-card.warn .diag-meter span {
-  background: var(--apple-orange);
+/* The reading's last minute and a half as a line, under its gauge. */
+.diag-spark {
+  width: 100%;
+  height: calc(26px * var(--text-scale, 1));
+  margin-top: calc(4px * var(--text-scale, 1));
+  color: var(--diag-tone);
+  opacity: 0.85;
 }
 
-.diag-card.alarm .diag-meter span {
-  background: var(--apple-red);
+/* The trip computer: four figures, and the button that starts it again, across the card. */
+.diag-trip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: calc(14px * var(--text-scale, 1)) calc(26px * var(--text-scale, 1));
 }
 
-/* The card's other readings, under the one it draws: its name on the left, its value on the right. */
+.diag-stat {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.diag-stat-label {
+  font-size: calc(13px * var(--text-scale, 1));
+  color: var(--text-dim);
+}
+
+.diag-stat-value {
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.diag-stat.warn .diag-stat-value {
+  color: var(--apple-orange);
+}
+
+.diag-stat.alarm .diag-stat-value {
+  color: var(--apple-red);
+}
+
+.diag-reset {
+  margin-left: auto;
+  padding: calc(7px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: 999px;
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.diag-reset:active {
+  background: var(--apple-fill);
+}
+
+/* The card's other readings: their names on the left, their values on the right. */
 .diag-rows {
   display: flex;
   flex-direction: column;
@@ -126,22 +409,28 @@
   display: flex;
   align-items: center;
   gap: calc(8px * var(--text-scale, 1));
-  padding: calc(10px * var(--text-scale, 1)) 0;
+  padding: calc(9px * var(--text-scale, 1)) 0;
   border-top: 1px solid var(--apple-separator);
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
+  min-width: 0;
 }
 
 .diag-row-label {
   color: var(--text-dim);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .diag-row-value {
   margin-left: auto;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* A reading worth watching: its dot takes the tone its gauge would. */
+/* A reading worth watching: its dot takes the tone its card does. */
 .diag-dot {
   flex: none;
   width: calc(8px * var(--text-scale, 1));
@@ -158,6 +447,39 @@
   background: var(--apple-red);
 }
 
+/* The truck's parts and how worn they are: a bar each, from new to worn out. */
+.diag-wear {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  margin-top: auto;
+}
+
+.diag-wear-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.diag-wear-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: calc(14px * var(--text-scale, 1));
+  color: var(--text-dim);
+}
+
+.diag-wear-head b {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-empty {
+  margin: auto 0;
+  font-size: calc(15px * var(--text-scale, 1));
+  color: var(--text-dim);
+}
+
 /* No telemetry yet (the game isn't running, or hasn't sent a frame). */
 .diag-unavailable {
   margin: auto;
@@ -165,4 +487,35 @@
   font-weight: 500;
   color: var(--text-dim);
   text-align: center;
+}
+
+/* A screen too narrow for five across: the hero stacks, the cards take halves, then all of it. */
+@media (max-width: 1120px) {
+  .diag-overview {
+    grid-template-columns: minmax(0, 1fr);
+    padding: calc(6px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  }
+
+  .diag-art {
+    min-height: calc(170px * var(--text-scale, 1));
+  }
+
+  .diag-card.span-4 {
+    grid-column: span 6;
+  }
+
+  .diag-card.span-6 {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 720px) {
+  .diag-card.span-4,
+  .diag-card.span-6 {
+    grid-column: span 12;
+  }
+
+  .diag-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
