@@ -5,6 +5,7 @@ import { useLanguage, useText } from '../../state/text'
 import {
   addToLibrary,
   type AppleMusicItem,
+  type AppleMusicLibrary,
   type AppleMusicSection,
   type AppleMusicShelf,
   type AppleMusicTrack,
@@ -682,13 +683,14 @@ function LibraryShelfPage({
   const matches = (name: string, by: string) =>
     !wanted || name.toLocaleLowerCase().includes(wanted) || by.toLocaleLowerCase().includes(wanted)
   const favourites = look.filter === 'favorites'
-  const items = (found?.items ?? []).filter((item) => (!favourites || item.favorite) && matches(item.name, item.by))
-  const songs = (found?.songs ?? []).filter((song) => (!favourites || song.favorite) && matches(song.name, song.artist))
+  const library = found as AppleMusicLibrary | undefined
+  const items = (library?.items ?? []).filter((item) => (!favourites || item.favorite) && matches(item.name, item.by))
+  const songs = (library?.songs ?? []).filter((song) => (!favourites || song.favorite) && matches(song.name, song.artist))
   return (
     <Scroll>
       <div className="am-page-head">
         <h1 className="am-title">{title}</h1>
-        <LibraryControls shelf={shelf} look={look} sorts={found?.sorts ?? []} sort={found?.sort ?? null} />
+        <LibraryControls shelf={shelf} look={look} sorts={library?.sorts ?? []} sort={library?.sort ?? null} />
       </div>
       <div className="am-find">
         <TextField

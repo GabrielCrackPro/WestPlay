@@ -1,4 +1,5 @@
 import type { CustomWallpaper, IconSet } from './customize'
+import type { Language } from '../cabin/state/strings'
 
 /**
  * Messages from the WestPlay host to the cabin page (WebView2 web messages). Mirrors the Rust side:
@@ -582,7 +583,7 @@ export type AppleMusicQuestion =
   | { ask: 'search'; query: string }
   | { ask: 'collection'; id: string }
   | { ask: 'artist'; id: string }
-  | { ask: 'library'; shelf: AppleMusicShelf; sort?: string; folder?: string; language?: 'en' | 'tr' }
+  | { ask: 'library'; shelf: AppleMusicShelf; sort?: string; folder?: string; language?: Language }
   | { ask: 'lyrics'; id: string }
 
 export interface AppleMusicAnswers {

@@ -9,6 +9,31 @@ export const GAME_BRANDS = ['daf', 'iveco', 'man', 'mercedes', 'renault', 'scani
 const MOD_BRANDS: Readonly<Record<string, string>> = { t16shd: 'mercedes', setra516hd: 'setra', setradt531: 'setra' }
 
 /**
+ * The files to try for a truck's brand logo, in order: its own brand id first, then the game's brand a modded
+ * truck is a version of (`logoBrands`). `mono` tries the silhouette files first, for places that draw the
+ * mark in the cabin's own colour (the sidebar and the boot splash) rather than the maker's.
+ */
+export interface LogoSource {
+  src: string
+  /** The file is a maker's colour logo (`*.color.svg/png`); otherwise it's already a silhouette. */
+  color: boolean
+}
+
+export function logoSources(brandId: string, brand: string, { mono = false } = {}): LogoSource[] {
+  return logoBrands(brandId, brand).flatMap((id) => {
+    const color: LogoSource[] = [
+      { src: `/brand-logos/${id}.color.svg`, color: true },
+      { src: `/brand-logos/${id}.color.png`, color: true },
+    ]
+    const silhouette: LogoSource[] = [
+      { src: `/brand-logos/${id}.svg`, color: false },
+      { src: `/brand-logos/${id}.png`, color: false },
+    ]
+    return mono ? [...silhouette, ...color] : [...color, ...silhouette]
+  })
+}
+
+/**
  * The brand ids to look for a truck's logo under, in order: its own (`brandId`, the game's or a mod's), the
  * brand of a mod vehicle that doesn't name it (`MOD_BRANDS`), then the game's brand a mod's truck is a version
  * of, found as a word in its brand id or its brand's name (a modded DAF XG+ reports `new_daf` and "DAF"; a

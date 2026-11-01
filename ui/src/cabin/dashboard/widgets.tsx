@@ -217,7 +217,7 @@ export function DestinationWidget() {
 }
 
 /**
- * The job: what the truck carries, what it pays, and the time and distance left to deliver it (job.ts). The
+ * The job: what the truck carries, what it pays, and the deadline (or the pickup still to make). The
  * destination card says where it goes; this one says what the work is worth and how long there is. Folded
  * away without a job, like the destination's card.
  */
@@ -228,12 +228,14 @@ export function JobWidget() {
   return (
     <div className={`widget-slot${shown ? ' open' : ''}`}>
       {shown && view && (
-        <article className="widget glass job" aria-label={text.job}>
-          <div className="kicker">{text.job}</div>
-          <JobGlyph size={84} />
-          <div className="destination">{view.cargo}</div>
-          <div className="place">{view.pay}</div>
-          <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>
+        <article className="widget glass job job-card" aria-label={text.job}>
+          <div className="job-text">
+            <div className="kicker">{text.job}</div>
+            <div className="destination">{view.cargo}</div>
+            <div className="place">{view.pay}</div>
+            <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>
+          </div>
+          <JobGlyph size={GLYPH} />
         </article>
       )}
     </div>
@@ -244,16 +246,16 @@ export function JobWidget() {
  * Fuel: what's left in the tank and how far it goes, on the job card's own layout (kicker, a big line, a line
  * under it) so the column's cards read alike. Folded away without either — no game, or a truck whose tank the
  * game hasn't read (widgetState.ts) — as the destination folds away without a job.
- */export function FuelWidget() {
-  const text = useText()
+ */
+export function FuelWidget() {
   const view = useFuelView()
   const shown = useCabin((state) => state.dashboardWidgets.fuel) && view !== null
   return (
     <div className={`widget-slot${shown ? ' open' : ''}`}>
       {shown && view && (
-        <article className="widget glass job fuel" aria-label={text.fuel}>
+        <article className="widget glass job fuel" aria-label={view.kicker}>
           <div className="fuel-text">
-            <div className="kicker">{text.fuel}</div>
+            <div className="kicker">{view.kicker}</div>
             {view.range ? (
               <>
                 <div className="destination">{view.range}</div>
@@ -270,8 +272,8 @@ export function JobWidget() {
   )
 }
 
-/** The pump's size on the card, as the weather's symbol (dashboard.css shrinks both on a short column). */
-const GLYPH = 84
+/** The job and fuel cards' glyphs, the weather symbol's size. */
+const GLYPH = 72
 
 /**
  * The weather where the truck is, as CarPlay's weather widget (weather.ts): the nearest city, the weather
@@ -287,15 +289,16 @@ export function WeatherWidget() {
   const destination = useDestinationView()
   const job = useJobView()
   const fuel = useFuelView()
-  const fuelShown = widgets.fuel && fuel !== null
+  const hasJob = job !== null
+  const hasFuel = fuel !== null
   const others = [
     guided,
     widgets.nowPlaying,
     widgets.destination && destination !== EMPTY,
-    widgets.job && job !== null,
-    fuelShown,
+    widgets.job && hasJob,
+    widgets.fuel && hasFuel,
   ].filter(Boolean).length
-  const room = widgets.weather && weatherFits(others, fuelShown)
+  const room = widgets.weather && weatherFits(others)
   const weather = useLive((state) => state.weather)
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : 0))
   const place = useLive((state) => {

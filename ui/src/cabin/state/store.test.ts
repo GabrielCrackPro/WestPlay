@@ -24,7 +24,13 @@ describe('the saved Settings choices', () => {
       savedStorage({ dashboardWidgets: { nowPlaying: false, destination: true, weather: false }, albumArt: false }),
     )
     const { useCabin } = await import('./store')
-    expect(useCabin.getState().dashboardWidgets).toEqual({ nowPlaying: false, destination: true, weather: false })
+    expect(useCabin.getState().dashboardWidgets).toEqual({
+      nowPlaying: false,
+      destination: true,
+      job: true,
+      fuel: true,
+      weather: false,
+    })
     expect(useCabin.getState().albumArt).toBe(false)
   })
 
@@ -34,7 +40,13 @@ describe('the saved Settings choices', () => {
       savedStorage({ dashboardWidgets: { weather: false, nowPlaying: 'no' }, albumArt: 'off' }),
     )
     const { useCabin } = await import('./store')
-    expect(useCabin.getState().dashboardWidgets).toEqual({ nowPlaying: true, destination: true, weather: false })
+    expect(useCabin.getState().dashboardWidgets).toEqual({
+      nowPlaying: true,
+      destination: true,
+      job: true,
+      fuel: true,
+      weather: false,
+    })
     expect(useCabin.getState().albumArt).toBe(true)
   })
 

@@ -317,6 +317,8 @@ function DashboardPage() {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
     weather: text.apps.weather,
+    job: text.job,
+    fuel: text.fuel,
   }
   return (
     <Page title={text.settings.dashboard}>

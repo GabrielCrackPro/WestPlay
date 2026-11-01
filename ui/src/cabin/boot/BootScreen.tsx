@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from
 import { postToHost } from '../../shared/host'
 import type { PowerPhase } from '../state/power'
 import { useLive } from '../state/store'
-import { logoBrands } from './brand'
+import { logoSources } from './brand'
 import './boot.css'
 
 /**
@@ -20,26 +20,6 @@ export function BootScreen({ phase }: { phase: Exclude<PowerPhase, 'on'> }) {
   )
 }
 
-interface LogoSource {
-  src: string
-  /** Shown in its own colours; otherwise drawn as a white silhouette, like most truck boot screens. */
-  color: boolean
-}
-
-/**
- * Files tried in order for a truck's logo, named by brand id (its own, then the game's brand a modded truck
- * is a version of: `logoBrands`): `scania.color.png` keeps its colours (for logos whose detail is colour,
- * like Scania's griffin); `daf.svg` or `daf.png` is drawn white.
- */
-function logoSources(brandId: string, brand: string): LogoSource[] {
-  return logoBrands(brandId, brand).flatMap((id) => [
-    { src: `/brand-logos/${id}.color.svg`, color: true },
-    { src: `/brand-logos/${id}.color.png`, color: true },
-    { src: `/brand-logos/${id}.svg`, color: false },
-    { src: `/brand-logos/${id}.png`, color: false },
-  ])
-}
-
 /**
  * The truck brand's logo. Logos are their makers' trademarks, so they live outside the repository
  * (`public/brand-logos`, git-ignored); when a brand has none, its name is shown as a wordmark instead.
@@ -53,13 +33,13 @@ function BrandSplash() {
   }, [truck])
   if (!truck) return null
 
-  const sources = logoSources(truck.brandId, truck.brand)
+  const sources = logoSources(truck.brandId, truck.brand, { mono: true })
   return (
     <div className="boot-brand">
       {attempt < sources.length ? (
         <img
           key={sources[attempt].src}
-          className={sources[attempt].color ? 'boot-brand-logo color' : 'boot-brand-logo'}
+          className="boot-brand-logo"
           src={sources[attempt].src}
           alt=""
           onError={() => setAttempt((current) => current + 1)}

@@ -56,9 +56,9 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'job' | 'fuel'
 
-export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = ['nowPlaying', 'destination', 'weather']
+export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = ['nowPlaying', 'destination', 'weather', 'job', 'fuel']
 
 /**
  * Cabin state that the UI renders from. Telemetry lives in its own store (`useLive`) because it updates
@@ -112,7 +112,14 @@ type Persisted = Pick<
   'navigation' | 'appearanceMode' | 'wallpaperId' | 'dashboardWidgets' | 'albumArt' | 'textSize'
 >
 
-const ALL_WIDGETS: Record<DashboardWidget, boolean> = { nowPlaying: true, destination: true, weather: true }
+/** The widgets a new player starts with: all of them on. */
+const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
+  nowPlaying: true,
+  destination: true,
+  weather: true,
+  job: true,
+  fuel: true,
+}
 
 export const useCabin = create<CabinState>()(
   persist(

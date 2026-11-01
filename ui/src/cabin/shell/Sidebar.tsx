@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { formatGameTime } from '../../shared/format'
+import { logoSources } from '../boot/brand'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
 import { type AppId, APPS } from '../state/apps'
 import { LAUNCH_STYLE, useCarriesLaunch } from '../state/launch'
@@ -8,8 +10,8 @@ import { useText } from '../state/text'
 import { cabClock } from '../../shared/host'
 
 /**
- * The CarPlay sidebar: clock and signal, the recent apps (the open one on top), and at the bottom the truck
- * button (back to the truck's own screen, like CarPlay's car button) and the Home button.
+ * The CarPlay sidebar: the truck's brand and clock, the recent apps (the open one on top), and at the bottom
+ * the truck button (back to the truck's own screen, like CarPlay's car button) and the Home button.
  */
 export function Sidebar() {
   const recents = useCabin((state) => state.navigation.recents)
@@ -22,11 +24,8 @@ export function Sidebar() {
     // Its own transition name: it stays put while screens change (shell/transitions.css).
     <aside className="sidebar glass" style={{ viewTransitionName: 'sidebar' }}>
       <div className="status">
+        <BrandMark />
         <div className="time">{gameTime === null ? '--:--' : formatGameTime(gameTime)}</div>
-        {/* Placeholder until the phone remote (planned) reports the real phone. */}
-        <div className="signal">
-          <SignalBars /> 5G
-        </div>
       </div>
       <nav className="recent" aria-label="Recent apps">
         {recents.slice(0, shown).map((app) => (
@@ -134,20 +133,33 @@ function TruckGlyph() {
   )
 }
 
-function SignalBars() {
+/** The truck's brand in the status area, keyed by the brand so a new truck tries its own logo afresh. */
+function BrandMark() {
+  const truck = useLive((state) => state.truck)
+  if (!truck) return null
+  return <TruckBrand key={`${truck.brandId} ${truck.brand}`} brandId={truck.brandId} brand={truck.brand} />
+}
+
+/**
+ * The truck's brand, above the clock: the same mark the boot screen shows, in the sidebar's own colour (the
+ * logos are their makers' trademarks, so they live outside the repository: `public/brand-logos`). Its name
+ * stands in where the brand has no logo.
+ */
+function TruckBrand({ brandId, brand }: { brandId: string; brand: string }) {
+  const sources = logoSources(brandId, brand, { mono: true })
+  const [attempt, setAttempt] = useState(0)
   return (
-    <svg viewBox="0 0 20 14" width="26" height="18" aria-hidden>
-      {[0, 1, 2, 3].map((bar) => (
-        <rect
-          key={bar}
-          x={bar * 5.5}
-          y={10 - bar * 3.3}
-          width="3.6"
-          height={4 + bar * 3.3}
-          rx="1"
-          fill="currentColor"
+    <div className="brand" role="img" aria-label={brand}>
+      {attempt < sources.length ? (
+        <img
+          key={sources[attempt].src}
+          src={sources[attempt].src}
+          alt=""
+          onError={() => setAttempt((current) => current + 1)}
         />
-      ))}
-    </svg>
+      ) : (
+        <span className="brand-wordmark">{brand}</span>
+      )}
+    </div>
   )
 }

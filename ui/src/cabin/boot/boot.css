@@ -23,13 +23,9 @@
   width: calc(560px * var(--text-scale, 1));
   max-height: calc(260px * var(--text-scale, 1));
   object-fit: contain;
-  /* Truck boot screens show the logo white on black, whatever colour the logo file uses. */
+  /* The same mark the sidebar shows, white on black as truck boot screens have it, whatever the logo file's
+     own colour. */
   filter: brightness(0) invert(1);
-}
-
-/* Logos whose detail is colour (*.color.svg/png) keep it. */
-.boot-brand-logo.color {
-  filter: none;
 }
 
 .boot-brand-wordmark {

@@ -37,7 +37,7 @@
   /* Every panel's corners, the same (owner 2026-10-27: "make it consistent", the widgets' looked right): the
      sidebar, the widgets, the map, the apps' windows, the keyboard. A short screen's are smaller (below). */
   --panel-radius: 30px;
-  /* The sidebar's clock and signal at one size, whatever the Text Size (owner 2026-10-26: following it broke CarPlay's
+  /* The sidebar's clock and brand at one size, whatever the Text Size (owner 2026-10-26: following it broke CarPlay's
      look): the size they had at the default Text Size, 1.24. The sidebar as wide as the clock needs (118 units at 1,
      the clock 89 of them), and the screens starting after it and a gap. */
   --sidebar-scale: 1.24;
@@ -292,7 +292,7 @@ body,
   }
 }
 
-/* Sidebar: clock + signal, recent apps, Home button. */
+/* Sidebar: clock + brand, recent apps, Home button. */
 .sidebar {
   position: absolute;
   left: var(--edge);
@@ -311,10 +311,15 @@ body,
 }
 
 .status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0 calc(12px * var(--sidebar-scale));
   text-align: center;
 }
 
-/* The clock and the signal at the sidebar's own scale (--sidebar-scale), the sidebar as wide as they need. */
+/* The clock under the brand, at the sidebar's own scale (--sidebar-scale), the sidebar as wide as it needs. */
 .time {
   font-size: calc(34px * var(--sidebar-scale));
   font-weight: 600;
@@ -322,14 +327,67 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
-.signal {
+/* The truck's mark above the clock, drawn like the rest of the sidebar: a soft mark in the sidebar's own text
+   colour rather than the maker's colours (the boot splash shows the same one), at the weight of --text-dim and
+   with the same gentle shadow the app icons carry, so it sits with them on the glass. */
+.brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  margin-top: 4px;
-  font-size: calc(24px * var(--sidebar-scale));
-  font-weight: 600;
+  width: 100%;
+  height: calc(30px * var(--sidebar-scale));
+  margin-bottom: calc(7px * var(--sidebar-scale));
+  animation: brand-in 700ms var(--motion-ease) both;
+}
+
+@keyframes brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.97);
+  }
+}
+
+.brand img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  /* A white mark on the dark glass, a dark one on the light; the colour files' own colours aren't wanted at
+     this size (the boot splash shows the same silhouette large). Never brighter than the words around it,
+     never flat either: the shadow is the icons' own, faint at this size, so the logo feels raised from the
+     glass with them. */
+  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgb(0 0 0 / 0.28));
+  opacity: 0.86;
+  transition:
+    filter 260ms var(--motion-ease),
+    opacity 260ms var(--motion-ease);
+}
+
+.shell.appearance-light .brand img {
+  filter: brightness(0) drop-shadow(0 1px 2px rgb(0 0 0 / 0.12));
+  opacity: 0.76;
+}
+
+/* Over an app whose cover is light or dark (contrast.ts), the sidebar's words flip with it: so does the mark. */
+.shell:has(.words-light) .sidebar .brand img {
+  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgb(0 0 0 / 0.28));
+  opacity: 0.86;
+}
+
+.shell:has(.words-dark) .sidebar .brand img {
+  filter: brightness(0) drop-shadow(0 1px 2px rgb(0 0 0 / 0.12));
+  opacity: 0.76;
+}
+
+.brand-wordmark {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-dim);
 }
 
 .recent {
@@ -484,13 +542,21 @@ body,
     padding: 22px 0 18px;
   }
 
+  .status {
+    padding: 0 calc(7px * var(--sidebar-scale));
+  }
+
   .time {
     font-size: calc(26px * var(--sidebar-scale));
   }
 
-  .signal {
-    margin-top: 2px;
-    font-size: calc(18px * var(--sidebar-scale));
+  .brand {
+    height: calc(22px * var(--sidebar-scale));
+    margin-bottom: calc(4px * var(--sidebar-scale));
+  }
+
+  .brand-wordmark {
+    font-size: calc(11px * var(--sidebar-scale));
   }
 
   .recent {

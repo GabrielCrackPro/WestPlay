@@ -17,8 +17,16 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--tile-gap, 18px) - 2px);
   container: widgets / size;
+  /* A small screen, or every widget turned on: the cards keep their own size and the column scrolls rather
+     than clipping them (the scrollbar itself is hidden: the truck's screen has no room for one). */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.widgets::-webkit-scrollbar {
+  display: none;
 }
 
 /* No widget to show (Dashboard.tsx): the map takes the whole width. */
@@ -33,6 +41,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -40,8 +49,8 @@
    comes (the other widgets making room) and gives the room back as it goes; the column's gap goes with it. */
 .widget-slot {
   flex: 0 1 0;
+  min-width: 0;
   min-height: 0;
-  margin-bottom: calc(2px - var(--tile-gap, 18px));
   display: flex;
   /* While it grows, the card shows only as far as the slot reaches, within its rounded corners. */
   overflow: hidden;
@@ -52,8 +61,13 @@
 }
 
 .widget-slot.open {
-  flex-grow: 1;
-  margin-bottom: 0;
+  flex: 1 0 auto;
+}
+
+/* The column's gap between the cards that are up: a card that folds away takes its gap with it (the slots
+   themselves are stacked, so the gap is the space under every open card but the last). */
+.widget-slot.open:has(~ .widget-slot.open) {
+  margin-bottom: calc(var(--tile-gap, 18px) - 2px);
 }
 
 .guidance-widget {
@@ -212,6 +226,61 @@
   color: #ff453a;
 }
 
+/* The job and fuel cards: their words on the left, a glyph beside them, as the weather card has its symbol.
+   They're denser than the destination card, so the column still fits every widget the player turns on. */
+.job-card,
+.fuel {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+}
+
+.job-card .job-text,
+.fuel .fuel-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.job-card .kicker,
+.fuel .kicker {
+  font-size: calc(15px * var(--text-scale, 1));
+}
+
+.job-card .destination,
+.fuel .destination {
+  font-size: calc(22px * var(--text-scale, 1));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-card .place,
+.job-card .deadline,
+.fuel .place {
+  font-size: calc(18px * var(--text-scale, 1));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The job and fuel glyphs in the weather symbol's soft colour. */
+.job-glyph,
+.fuel-glyph {
+  flex: none;
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+.appearance-dark .job-glyph,
+.appearance-dark .fuel-glyph {
+  color: color-mix(in srgb, var(--text) 85%, transparent);
+}
+
 /* The weather: where, and the weather, beside its symbol. */
 .weather {
   justify-content: space-between;
@@ -249,16 +318,96 @@
 
 /* Neutral widgets get smoky glass in dark mode, so text stays readable over bright wallpaper areas. */
 .appearance-dark .weather,
-.appearance-dark .job {
+.appearance-dark .job,
+.appearance-dark .fuel {
   --glass: rgb(16 18 24 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.22);
 }
 
-/* A narrow or short column (a small screen's, its UI scaled up): the widgets compact, so all three fit. */
+/* A column too short for the cards at their full size (a 720p screen with the job and fuel cards up): they
+   tighten up so the ones turned on still fit, without the column having to scroll. */
+@container widgets (max-height: 700px) {
+  .widget {
+    padding: 10px 20px;
+  }
+
+  .now-playing {
+    gap: 4px;
+  }
+
+  .now-playing .art {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  .now-playing .title {
+    font-size: calc(21px * var(--text-scale, 1));
+  }
+
+  .now-playing .artist {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .now-playing .controls button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .job .kicker {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .job .destination {
+    font-size: calc(25px * var(--text-scale, 1));
+  }
+
+  .job .place,
+  .job .deadline {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .job-card .kicker,
+  .fuel .kicker {
+    font-size: calc(13px * var(--text-scale, 1));
+  }
+
+  .job-card .destination,
+  .fuel .destination {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .job-card .place,
+  .job-card .deadline,
+  .fuel .place {
+    font-size: calc(17px * var(--text-scale, 1));
+  }
+
+  .job-glyph,
+  .fuel-glyph {
+    width: 56px;
+    height: 56px;
+  }
+
+  .weather .place {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .weather .condition {
+    font-size: calc(28px * var(--text-scale, 1));
+  }
+
+  .weather .weather-glyph {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* A narrow or short column (a small screen's, its UI scaled up): the widgets compact, so all of them fit. */
 @container widgets (max-width: 300px) or (max-height: 520px) {
   .widget {
-    padding: 10px 14px;
-    gap: 10px;
+    padding: 8px 12px;
+    gap: 8px;
   }
 
   .now-playing {
@@ -266,21 +415,21 @@
   }
 
   .now-playing .np-top {
-    gap: 10px;
+    gap: 8px;
   }
 
   .now-playing .art {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
   }
 
   .now-playing .title {
-    font-size: calc(19px * var(--text-scale, 1));
+    font-size: calc(18px * var(--text-scale, 1));
   }
 
   .now-playing .artist {
-    font-size: calc(16px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
   }
 
   .now-playing .controls {
@@ -288,34 +437,61 @@
   }
 
   .now-playing .controls button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 
   .job .kicker {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(13px * var(--text-scale, 1));
   }
 
   .job .destination {
-    font-size: calc(21px * var(--text-scale, 1));
+    font-size: calc(19px * var(--text-scale, 1));
   }
 
   .job .place,
   .job .deadline {
-    font-size: calc(17px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .job-card .kicker,
+  .fuel .kicker {
+    font-size: calc(12px * var(--text-scale, 1));
+  }
+
+  .job-card .destination,
+  .fuel .destination {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  /* The fuel's line is the longest ("1,241 km of range"): a size down and it still fits the narrow column. */
+  .fuel .destination {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .job-card .place,
+  .job-card .deadline,
+  .fuel .place {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .job-glyph,
+  .fuel-glyph {
+    width: 40px;
+    height: 40px;
   }
 
   .weather .place {
-    font-size: calc(17px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
   }
 
   .weather .condition {
-    font-size: calc(24px * var(--text-scale, 1));
+    font-size: calc(21px * var(--text-scale, 1));
   }
 
   .weather .weather-glyph {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
   /* Turn-by-turn: the distance and its instruction each on a line of the narrow column (owner 2026-10-21:

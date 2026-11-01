@@ -1,0 +1,69 @@
+/* Diagnostics app styles */
+
+/* The diagnostics app panel */
+.app-panel.diagnostics-app {
+  background: var(--app-background);
+  color: var(--text);
+}
+
+/* Diagnostics grid */
+.diag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+/* Individual diagnostics card */
+.diag-card {
+  background: var(--glass);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+/* Diagnostics title */
+.diag-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-dim);
+}
+
+/* Diagnostics value */
+.diag-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* Progress bar container */
+.diag-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+/* Progress bar fill */
+.diag-fill {
+  height: 100%;
+  background: var(--text);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Make the progress bars color-coded */
+.diag-bar.engine .diag-fill {
+  background: #ff4757; /* red for engine */
+}
+
+.diag-bar.tires .diag-fill {
+  background: #ffa502; /* orange for tires */
+}
+
+.diag-bar.brakes .diag-fill {
+  background: #2ed573; /* green for brakes */
+}

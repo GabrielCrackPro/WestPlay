@@ -1,9 +1,10 @@
 import { useShallow } from 'zustand/react/shallow'
+import { cabClock } from '../../shared/host'
 import { guidanceOf } from '../maps/guidance'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
-import { destinationView } from './destination'
+import { destinationView, formatDeadline } from './destination'
 
 /* What the Dashboard's widget column shows, for the widgets (widgets.tsx) and the Dashboard itself. */
 
@@ -28,8 +29,17 @@ export function useAnyWidget(): boolean {
   const widgets = useCabin((state) => state.dashboardWidgets)
   const guided = useGuided()
   const destination = useDestinationView() !== EMPTY
+  const job = useJobView() !== null
+  const fuel = useFuelView() !== null
   const weather = useLive((state) => state.weather !== null)
-  return guided || widgets.nowPlaying || (widgets.destination && destination) || (widgets.weather && weather)
+  return (
+    guided ||
+    widgets.nowPlaying ||
+    (widgets.destination && destination) ||
+    (widgets.job && job) ||
+    (widgets.fuel && fuel) ||
+    (widgets.weather && weather)
+  )
 }
 
 /** Whether turn-by-turn shows: while the route has a step to show (as GuidanceCard decides). */
@@ -41,4 +51,81 @@ export function useGuided(): boolean {
       guidanceOf(route.distances, route.maneuvers, routeNext, telemetry?.navigationDistance ?? 0) !== null
     )
   })
+}
+
+/** Whether there's room for the weather card: three widgets fill the column, four with the fuel card up. */
+export function weatherFits(others: number): boolean {
+  return others < 4
+}
+
+/** The fuel card's words: what it is, how far the tank goes and what's in it. */
+export interface FuelView {
+  /** "Fuel". */
+  kicker: string
+  /** "1,240 km of range"; null when the game gives no range (an empty tank, or a truck that doesn't report). */
+  range: string | null
+  /** "540 L". */
+  litres: string
+}
+
+/**
+ * The Dashboard's fuel widget, from the game's own telemetry (`Telemetry.fuel`, litres, and `fuelRange`, km).
+ * Without the game there's nothing to read, so it folds away as the destination does without a job.
+ */
+export function useFuelView(): FuelView | null {
+  const text = useText()
+  return useLive(
+    useShallow((state) => {
+      const telemetry = state.telemetry
+      if (!telemetry) return null
+      return {
+        kicker: text.fuel,
+        range:
+          telemetry.fuelRange > 0
+            ? text.range(`${text.number(Math.round(telemetry.fuelRange))} km`)
+            : null,
+        litres: `${text.number(Math.round(telemetry.fuel))} L`,
+      }
+    }),
+  )
+}
+
+/** The job card's words: what it carries, what it pays, and the deadline (or the pickup still to make). */
+export interface JobView {
+  /** "Cement · 24.0 t". */
+  cargo: string
+  /** "Income 52,000". */
+  pay: string
+  /** "Arrive by 18:40", "Late", or "Pickup". */
+  detail: string
+  /** Past the delivery deadline. */
+  late: boolean
+}
+
+/** The Dashboard's job widget, from the game's job (`JobInfo`); null without one, so the card folds away. */
+export function useJobView(): JobView | null {
+  const text = useText()
+  return useLive(
+    useShallow((state) => {
+      const { job, telemetry, clockShift } = state
+      if (!job) return null
+      const tonnes = (job.cargoMass / 1000).toFixed(1).replace('.', text.decimal)
+      const now = telemetry?.gameTime ?? 0
+      const clock = telemetry ? cabClock(telemetry, clockShift) : 0
+      const late = job.deliveryTime > 0 && now > job.deliveryTime
+      let detail = text.delivery
+      if (!job.cargoLoaded) detail = text.pickup
+      else if (job.deliveryTime > 0) {
+        detail = late
+          ? text.late
+          : text.arriveBy(formatDeadline(job.deliveryTime + (clock - now), clock, text.days))
+      }
+      return {
+        cargo: job.cargo ? `${job.cargo} · ${tonnes} t` : `${tonnes} t`,
+        pay: `${text.income} ${text.number(job.income)}`,
+        detail,
+        late,
+      }
+    }),
+  )
 }

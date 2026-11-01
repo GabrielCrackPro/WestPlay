@@ -5,16 +5,17 @@ import type { DestinationKind } from '../maps/places'
 import type { AppId } from './apps'
 
 /**
- * The cabin's own words, in English and Turkish for now (every one of the game's 43 languages later):
- * Turkish when the game plays in Turkish, English otherwise. Place names on the map come from the game's
- * own text in its language (crates/mapdata locale.rs), not from here.
+ * The cabin's own words, in English and Turkish, with Spanish translations where available. Place names on
+ * the map come from the game's own text in its language (crates/mapdata locale.rs), not from here.
  */
 
-export type Language = 'en' | 'tr'
+export type Language = 'en' | 'tr' | 'es'
 
 export interface Strings {
   /** The decimal separator: "9.4 km", "9,4 km". */
   decimal: string
+  /** A whole number using the language's thousands separator. */
+  number: (value: number) => string
   /** The trip pill: "15:40 arrival · 12 min · 9.4 km". */
   arrival: string
   minutes: (minutes: number) => string
@@ -105,6 +106,10 @@ export interface Strings {
   openMusicApp: string
   nothingLoaded: string
   playing: string
+  job: string
+  fuel: string
+  income: string
+  range: (distance: string) => string
   /** The Dashboard's destination widget: the job's pickup or delivery, or where the route ends. */
   delivery: string
   pickup: string
@@ -468,9 +473,9 @@ export interface Strings {
 
 const ENGLISH_ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
 
-export const STRINGS: Record<Language, Strings> = {
-  en: {
+const ENGLISH_STRINGS: Strings = {
     decimal: '.',
+    number: (value) => new Intl.NumberFormat('en-US').format(value),
     arrival: 'arrival',
     minutes: (minutes) => `${minutes} min`,
     hours: (hours, minutes) => `${hours}:${minutes} hrs`,
@@ -578,6 +583,10 @@ export const STRINGS: Record<Language, Strings> = {
     openMusicApp: 'Open Apple Music, Spotify or YouTube Music on your PC.',
     nothingLoaded: 'Nothing loaded',
     playing: 'Playing',
+    job: 'Job',
+    fuel: 'Fuel',
+    income: 'Income',
+    range: (distance) => `${distance} range`,
     delivery: 'Delivery',
     pickup: 'Pickup',
     destination: 'Destination',
@@ -950,9 +959,11 @@ export const STRINGS: Record<Language, Strings> = {
       settings: 'Settings',
     },
     notBuiltYet: 'Not built yet',
-  },
-  tr: {
+}
+
+const TURKISH_STRINGS: Strings = {
     decimal: ',',
+    number: (value) => new Intl.NumberFormat('tr-TR').format(value),
     arrival: 'varış',
     minutes: (minutes) => `${minutes} dk`,
     hours: (hours, minutes) => `${hours}:${minutes} sa`,
@@ -1060,6 +1071,10 @@ export const STRINGS: Record<Language, Strings> = {
     openMusicApp: 'Bilgisayarınızda Apple Music, Spotify veya YouTube Music’i açın.',
     nothingLoaded: 'Hiçbir şey yüklenmedi',
     playing: 'Çalıyor',
+    job: 'İş',
+    fuel: 'Yakıt',
+    income: 'Kazanç',
+    range: (distance) => `${distance} menzil`,
     delivery: 'Teslimat',
     pickup: 'Yükleme',
     destination: 'Hedef',
@@ -1436,10 +1451,33 @@ export const STRINGS: Record<Language, Strings> = {
       settings: 'Ayarlar',
     },
     notBuiltYet: 'Henüz hazır değil',
+}
+
+export const STRINGS: Record<Language, Strings> = {
+  en: ENGLISH_STRINGS,
+  tr: TURKISH_STRINGS,
+  es: {
+    ...ENGLISH_STRINGS,
+    decimal: ',',
+    number: (value) => new Intl.NumberFormat('es-ES').format(value),
+    roundabout: (exit) => `En la rotonda, toma la ${exit}.ª salida`,
+    job: 'Trabajo',
+    fuel: 'Combustible',
+    income: 'Ingresos',
+    range: (distance) => `${distance} de autonomía`,
+    delivery: 'Entrega',
+    pickup: 'Recogida',
+    destination: 'Destino',
+    mapPoint: 'Punto del mapa',
+    arriveBy: (time) => `Llega antes de ${time}`,
+    days: ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'],
+    weather: { clear: 'Despejado', rain: 'Lluvia' },
+    weatherTurning: { clear: 'Despejándose', rain: 'Empezando a llover' },
   },
 }
 
 /** The cabin's language for the game's (its `g_lang_init`, e.g. `tr_tr`; `null` until known). */
 export function languageOf(gameLanguage: string | null): Language {
-  return gameLanguage?.toLowerCase().startsWith('tr') ? 'tr' : 'en'
+  const language = gameLanguage?.toLowerCase().slice(0, 2)
+  return language === 'tr' || language === 'es' ? language : 'en'
 }
