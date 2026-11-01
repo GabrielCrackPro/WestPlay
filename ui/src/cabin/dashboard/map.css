@@ -83,6 +83,11 @@
   padding: 10px 24px;
   border-radius: 999px;
   white-space: nowrap;
+  /* A narrow tile: one line still, giving up the tail rather than growing over the map, and smaller text before
+     it does (a long distance and a split stop time at the biggest Text Size). */
+  max-width: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: calc(24px * var(--text-scale, 1));
   font-weight: 500;
   color: #fff;
@@ -153,10 +158,22 @@
   background: rgb(255 255 255 / 0.85);
 }
 
-/* Faster than the limit: the speed turns red, as on Apple's. */
+/* Faster than the limit: the speed turns red, as on Apple's, and the badge gives two rings to say so (once,
+   when the limit is first crossed, not continuously: the class coming and going restarts it). */
 .speed-badge.over,
 .appearance-light .speed-badge.over {
   color: #ff453a;
+  animation: speed-over 900ms var(--motion-ease) 2;
+}
+
+@keyframes speed-over {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 69 58 / 0);
+  }
+  40% {
+    box-shadow: 0 0 0 calc(8px * var(--text-scale, 1)) rgb(255 69 58 / 0.35);
+  }
 }
 
 /* A map WestPlay doesn't allow: the tile says so instead of showing it (MapView). */

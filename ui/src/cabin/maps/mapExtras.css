@@ -1,0 +1,232 @@
+/* Additions to the map's furniture (StopsStrip.tsx, MapView's arrival card, MapControls' whole-route button,
+   Destinations' recents clearing), and the tile's warm-up.
+
+   The stops the player still has ahead, over the map: a glass strip just above the arrival pill, the next few
+   in order. On the Dashboard (compact) it's one smaller line. */
+.map-stops {
+  position: absolute;
+  left: 50%;
+  bottom: calc(78px * var(--text-scale, 1));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  max-width: calc(100% - 48px);
+  padding: calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(20 22 26 / 0.55);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.appearance-light .map-stops {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.78);
+}
+
+.map-stop {
+  display: flex;
+  align-items: baseline;
+  gap: calc(7px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+/* A stop's own marker, ahead of its name. */
+.map-stop-number {
+  display: grid;
+  place-items: center;
+  min-width: calc(22px * var(--text-scale, 1));
+  height: calc(22px * var(--text-scale, 1));
+  padding: 0 calc(6px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: #0a84ff;
+  color: #fff;
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.map-stop-time {
+  font-weight: 650;
+}
+
+.map-stop-distance,
+.map-stop-left {
+  color: inherit;
+  opacity: 0.72;
+  font-size: calc(15px * var(--text-scale, 1));
+}
+
+/* A stop's time left, on the app's strip only. */
+.map-stops.compact {
+  bottom: calc(72px * var(--text-scale, 1));
+  gap: calc(10px * var(--text-scale, 1));
+  padding: calc(5px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
+}
+
+.map-stops.compact .map-stop-number {
+  min-width: calc(18px * var(--text-scale, 1));
+  height: calc(18px * var(--text-scale, 1));
+  font-size: calc(11px * var(--text-scale, 1));
+}
+
+.map-stops.compact .map-stop-distance {
+  font-size: calc(13px * var(--text-scale, 1));
+}
+
+/* The end of the drive (MapView's arrival card): over the middle of the map for a few seconds. */
+.map-arrived {
+  position: absolute;
+  left: 50%;
+  top: calc(24px * var(--text-scale, 1));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2px * var(--text-scale, 1));
+  padding: calc(12px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+  color: #fff;
+  background: rgb(20 22 26 / 0.62);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.28);
+  animation: map-arrived-in 420ms var(--motion-ease);
+}
+
+.appearance-light .map-arrived {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.82);
+}
+
+.map-arrived-title {
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.map-arrived-detail {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes map-arrived-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(-8px * var(--text-scale, 1));
+  }
+}
+
+/* The whole route at once (MapControls.tsx), beside the zoom pair: there when the game's GPS has a route. */
+.map-overview {
+  border-radius: 50%;
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+  transition:
+    opacity 220ms var(--motion-ease),
+    scale 300ms var(--motion-ease);
+}
+
+.map-overview.shown {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+/* Destinations' recents heading, with the button that empties them. */
+.destinations-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.destinations-clear {
+  padding: calc(6px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill);
+  color: var(--text-dim);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.destinations-clear:hover {
+  color: var(--text);
+}
+
+/* The turn-by-turn banner on the Dashboard's map (MapView's tile is narrower than the Maps app's, and the widget
+   column takes more of it): the same card, a size down, so it covers less of the road ahead. The glyph, the
+   distance, the instruction and the "then" row each step down with it. */
+.map-tile.dashboard .guidance-banner {
+  left: calc(14px * var(--text-scale, 1));
+  top: calc(14px * var(--text-scale, 1));
+  max-width: min(420px, 64%);
+  padding: calc(11px * var(--text-scale, 1)) calc(17px * var(--text-scale, 1));
+  border-radius: calc(23px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-step {
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-banner .maneuver-glyph {
+  width: calc(46px * var(--text-scale, 1));
+  height: calc(46px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-distance {
+  font-size: calc(31px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-instruction {
+  font-size: calc(18px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-then {
+  gap: calc(7px * var(--text-scale, 1));
+  margin-top: calc(7px * var(--text-scale, 1));
+  padding-top: calc(7px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+.map-tile.dashboard .guidance-then .maneuver-glyph {
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
+}
+
+/* The map at the game's night (Settings › Maps): dimmed so a bright map doesn't glare in a dark cab. Only the
+   map itself, never the pills and buttons over it. */
+.map-tile.night .road-map-host,
+.map-tile.night .map-plane {
+  filter: brightness(0.82) saturate(0.92);
+}
+
+/* The map while it warms up (its tiles still loading): the tile's own ground, breathing, rather than a blank
+   pane; the stand-in drawing comes when there's no map at all. */
+.map-warm {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    rgb(120 132 148 / 0.2) 25%,
+    rgb(150 162 178 / 0.32) 37%,
+    rgb(120 132 148 / 0.2) 63%
+  );
+  background-size: 400% 100%;
+  animation: map-warm 1.6s linear infinite;
+}
+
+@keyframes map-warm {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}

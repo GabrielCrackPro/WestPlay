@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { formatGameTime, formatTripDistance, formatTripTime, speedKmh } from '../../shared/format'
 import { hvtMapMessage } from '../maps/blockedMap'
@@ -5,9 +6,10 @@ import { GuidanceCard } from '../maps/GuidanceCard'
 import { DashboardMapControls, MapControls } from '../maps/MapControls'
 import { MapSearch } from '../maps/MapSearch'
 import { nextStop } from '../maps/nextStop'
+import { StopsStrip } from '../maps/StopsStrip'
 import { useMapData } from '../maps/mapData'
 import { RoadMap } from '../maps/RoadMap'
-import { useLive } from '../state/store'
+import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import './map.css'
 import { cabClock } from '../../shared/host'
@@ -27,6 +29,8 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
   const data = useMapData()
   const hvtMap = useLive((state) => state.hvtMap)
   const text = useText()
+  const arrived = useArrival()
+  const night = useNightMap()
 
   if (hvtMap) {
     return (
@@ -41,24 +45,27 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
   }
 
   return (
-    <div className="map-tile">
+    <div className={`map-tile${interactive ? '' : ' dashboard'}${night ? ' night' : ''}`}>
       {data ? (
         <RoadMap data={data} interactive={interactive} />
+      ) : data === undefined ? (
+        // Still loading (the map's tiles warm up): a breathing tile, not a blank pane.
+        <div className="map-warm" aria-hidden />
       ) : (
-        data === null && (
-          <>
-            <div className="map-plane map-dark" />
-            <div className="map-plane map-light" />
-            <div className="puck" aria-hidden>
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path d="M12 3 19 20l-7-4-7 4Z" fill="#fff" />
-              </svg>
-            </div>
-          </>
-        )
+        <>
+          <div className="map-plane map-dark" />
+          <div className="map-plane map-light" />
+          <div className="puck" aria-hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path d="M12 3 19 20l-7-4-7 4Z" fill="#fff" />
+            </svg>
+          </div>
+        </>
       )}
       <div className="map-shade" />
       <TripPill />
+      <StopsStrip compact={!interactive} />
+      <ArrivalCard arrived={arrived} />
       <div className="speed-stack">
         {limit > 0 && (
           <div className="speed-limit" aria-label={text.speedLimit(limit)}>
@@ -67,10 +74,77 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
         )}
         {speed > 0 && <div className={`speed-badge${limit > 0 && speed > limit ? ' over' : ''}`}>{speed}</div>}
       </div>
-      {interactive && <GuidanceCard variant="banner" />}
+      {/* Turn-by-turn, over the map on both screens (the Dashboard has no card of its own for it). */}
+      <GuidanceCard />
       {data && interactive && <MapControls />}
       {data && !interactive && <DashboardMapControls />}
       {data && interactive && <MapSearch />}
+    </div>
+  )
+}
+
+/**
+ * Whether the map is dimmed for the game's night (Settings › Maps): after eight in the evening and before six,
+ * on the game's clock (the one the cabin's clocks count in), so the bright map doesn't glare in a dark cab.
+ */
+function useNightMap(): boolean {
+  const on = useCabin((state) => state.mapNight)
+  const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
+  if (!on || clock === null) return false
+  const minute = ((clock % 1440) + 1440) % 1440
+  return minute >= 20 * 60 || minute < 6 * 60
+}
+
+/** How long the arrival card stays up, ms: long enough to be read at the wheel. */
+const ARRIVED_MS = 8000
+
+interface Arrival {
+  id: number
+  /** The trip as it stood just before the end: its time and its distance, already worded. */
+  time: string
+  distance: string
+}
+
+/**
+ * The moment the route is done, as the game says it (its distance left reaches nothing): the trip's time and
+ * distance as they stood a moment before, so the end of a long drive is said out loud. Only while a map is
+ * open. A new route (the next job) starts it over.
+ */
+function useArrival(): Arrival | null {
+  const text = useText()
+  const distance = useLive((state) => state.telemetry?.navigationDistance ?? 0)
+  const time = useLive((state) => state.telemetry?.navigationTime ?? 0)
+  const last = useRef({ distance: 0, time: 0 })
+  const [arrived, setArrived] = useState<Arrival | null>(null)
+  useEffect(() => {
+    const before = last.current
+    if (before.distance > 0 && before.time > 0 && distance <= 0) {
+      setArrived({
+        id: Date.now(),
+        time: formatTripTime(before.time / 60, text),
+        distance: formatTripDistance(before.distance, text.decimal),
+      })
+    }
+    if (distance > 0) last.current = { distance, time }
+  }, [distance, time, text])
+  useEffect(() => {
+    if (!arrived) return
+    const timer = setTimeout(() => setArrived(null), ARRIVED_MS)
+    return () => clearTimeout(timer)
+  }, [arrived])
+  return arrived
+}
+
+/** The end of the drive: where it was going and what it took, over the map for a few seconds. */
+function ArrivalCard({ arrived }: { arrived: Arrival | null }) {
+  const text = useText()
+  if (!arrived) return null
+  return (
+    <div key={arrived.id} className="map-arrived glass" role="status">
+      <span className="map-arrived-title">{text.destinations.arrived}</span>
+      <span className="map-arrived-detail">
+        {arrived.time} · {arrived.distance}
+      </span>
     </div>
   )
 }

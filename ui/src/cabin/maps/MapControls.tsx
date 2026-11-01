@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLive } from '../state/store'
 import { useText } from '../state/text'
-import { followBearing, northUpLiveMap, recentreLiveMap, useMapBrowsing, zoomLiveMap } from './liveMap'
+import { followBearing, northUpLiveMap, overviewLiveMap, recentreLiveMap, useMapBrowsing, zoomLiveMap } from './liveMap'
 
 /**
  * The Maps app's buttons over the map, like CarPlay's: zoom in and out; the compass right over the zoom pair,
@@ -10,6 +11,7 @@ import { followBearing, northUpLiveMap, recentreLiveMap, useMapBrowsing, zoomLiv
  */
 export function MapControls() {
   const browsing = useMapBrowsing((state) => state.browsing)
+  const routed = useLive((state) => state.route !== null)
   const text = useText()
   return (
     <div className="map-controls">
@@ -25,6 +27,20 @@ export function MapControls() {
           <path d="M20.5 3.5 3.8 10.6c-.8.4-.7 1.6.2 1.8l6.6 1.1 1.1 6.6c.2.9 1.4 1 1.8.2Z" fill="currentColor" />
         </svg>
       </button>
+      {routed && (
+        <button
+          type="button"
+          className="map-control map-overview glass shown"
+          aria-label={text.destinations.wholeRoute}
+          onClick={overviewLiveMap}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.5 17.5c4.5-10 12.5-10 17 0" />
+            <circle cx="3.5" cy="17.5" r="2.1" />
+            <circle cx="20.5" cy="17.5" r="2.1" />
+          </svg>
+        </button>
+      )}
       <MapCompass label={text.northUp} />
       <MapZoom />
     </div>

@@ -9,6 +9,8 @@ interface Recents {
   /** The places last gone to or added as a stop, newest first. */
   places: Destination[]
   remember(place: Destination): void
+  /** Empties them (Destinations' Clear). */
+  clear(): void
 }
 
 /** The places the player last chose in Destinations (kept on this PC, like the rest of the cabin's state). */
@@ -20,6 +22,7 @@ export const useRecents = create<Recents>()(
         set((state) => ({
           places: [place, ...state.places.filter((other) => other.node !== place.node)].slice(0, RECENTS),
         })),
+      clear: () => set({ places: [] }),
     }),
     {
       name: 'westplay.recents',

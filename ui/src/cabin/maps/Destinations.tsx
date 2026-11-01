@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { formatTripDistance, formatTripTime } from '../../shared/format'
 import type { PlannedRoute, RouteAction, RouteAnswer } from '../../shared/host'
 import { useKeyboard } from '../keyboard/store'
+import { usePlacePick } from './placePick'
 import { useLive } from '../state/store'
 import { type Strings, useText } from '../state/text'
 import { placesAhead } from './alongRoute'
-import { liveRouteProgress, showOfferedRoutes, showTraffic } from './liveMap'
+import { liveRouteProgress, showNearbyPins, showOfferedRoutes, showTraffic } from './liveMap'
 import { PlaceBadge } from './PlaceBadge'
 import {
   type Destination,
@@ -81,6 +82,16 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
   const along = ahead ? new Map(ahead.map(({ place, along }) => [place, along])) : undefined
   const [kind, setKind] = useState<DestinationKind | null>(null)
   const [chosen, setChosen] = useState<Destination | null>(null)
+  // A place tapped on the map (MapSearch opened the panel for it): its card, right away.
+  const picked = usePlacePick((state) => state.picked)
+  const clearPick = usePlacePick((state) => state.clear)
+  useEffect(() => {
+    if (!picked) return
+    useKeyboard.getState().detach(field)
+    setChosen(picked.place)
+    setKind(null)
+    clearPick()
+  }, [picked, clearPick, field])
   // Choosing a list or a place puts the keyboard away, as on the iPhone: what's chosen has the room.
   const choose = (place: Destination) => {
     useKeyboard.getState().detach(field)
@@ -101,8 +112,11 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
     setShown({ view, depth, direction })
   }
 
+  // The places the list shows, as pins over the map (nothing on Home: the list is what's being looked at).
   let content
+  let pins: Destination[] = []
   if (chosen) {
+    pins = [chosen]
     content = (
       <PlaceCard place={chosen} from={from} along={along?.get(chosen)} onBack={() => setChosen(null)} onDone={onDone} />
     )
@@ -114,6 +128,7 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
     const found = along
       ? searchPlaces([...along.keys()], query, from, text.destinations.kinds, (place) => along.get(place) ?? 0)
       : searchPlaces(places, query, from, text.destinations.kinds)
+    pins = found
     content =
       found.length === 0 ? (
         <p className="destinations-note">{text.destinations.noResults}</p>
@@ -121,30 +136,34 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
         <PlaceList places={found} from={from} along={along} onChoose={choose} />
       )
   } else if (kind) {
+    const listed = ahead
+      ? ahead
+          .filter(({ place }) => place.kind === kind)
+          .map(({ place }) => place)
+          .slice(0, AHEAD_RESULTS)
+      : nearestOfKind(places, kind, from)
+    pins = listed
     content = (
       <>
         <button type="button" className="destinations-back" onClick={() => setKind(null)}>
           <BackGlyph />
           {text.destinations.nearby[kind]}
         </button>
-        <PlaceList
-          places={
-            ahead
-              ? ahead
-                  .filter(({ place }) => place.kind === kind)
-                  .map(({ place }) => place)
-                  .slice(0, AHEAD_RESULTS)
-              : nearestOfKind(places, kind, from)
-          }
-          from={from}
-          along={along}
-          onChoose={choose}
-        />
+        <PlaceList places={listed} from={from} along={along} onChoose={choose} />
       </>
     )
   } else {
     content = <Home places={places} from={from} onKind={open} onChoose={choose} onDone={onDone} />
   }
+  // Pinned as the list changes (a new list, a place opened), cleared when the panel closes.
+  const pinKey = pins.map((place) => place.node).join(',')
+  const pinned = useRef<Destination[]>(pins)
+  pinned.current = pins
+  useEffect(() => {
+    showNearbyPins(pinned.current)
+  }, [pinKey])
+  useEffect(() => () => showNearbyPins([]), [])
+
   return (
     <div key={view} className={`destinations-view ${shown.direction}`}>
       {content}
@@ -169,6 +188,7 @@ function Home({
   const owned = useLive((state) => state.ownedGarages)
   const headquarters = useLive((state) => state.headquarters)
   const recents = useRecents((state) => state.places)
+  const clearRecents = useRecents((state) => state.clear)
   const { job, route } = useRouteState()
   const garages = ownGarages(places, owned, headquarters)
   const [ending, setEnding] = useState<string | null>(null)
@@ -216,7 +236,12 @@ function Home({
       </section>
       {recents.length > 0 && (
         <section>
-          <h3>{text.destinations.recents}</h3>
+          <div className="destinations-heading">
+            <h3>{text.destinations.recents}</h3>
+            <button type="button" className="destinations-clear" onClick={clearRecents}>
+              {text.destinations.clearRecents}
+            </button>
+          </div>
           <PlaceList places={recents} from={from} onChoose={onChoose} />
         </section>
       )}

@@ -31,7 +31,7 @@ import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { JobGlyph } from './JobGlyph'
-import { EMPTY, useDestinationView, useDiagnosticsView, useGuided, useJobView, weatherFits } from './widgetState'
+import { EMPTY, useDestinationView, useDiagnosticsView, useJobView, weatherFits } from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -329,13 +329,11 @@ export function WeatherWidget() {
   const text = useText()
   const labels = useMapData()?.labels
   const widgets = useCabin((state) => state.dashboardWidgets)
-  const guided = useGuided()
   const destination = useDestinationView()
   const job = useJobView()
   const diagnostics = useDiagnosticsView()
   const hasJob = job !== null
   const others = [
-    guided,
     widgets.nowPlaying,
     widgets.destination && destination !== EMPTY,
     widgets.job && hasJob,

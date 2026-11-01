@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { cabClock } from '../../shared/host'
+import { formatGameTime } from '../../shared/format'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
 import { useNotes } from './notesShown'
@@ -38,6 +39,25 @@ function useGameAlerts() {
   const clockShift = useLive((state) => state.clockShift)
   // The readings that have already had their note (cleared as each goes right again).
   const raised = useRef(new Set<string>())
+  // The game's route as the store has it: a new one while driving (its own reroute, a stop added, a waypoint
+  // reached) gets a note, with the arrival it now has, so a changed ETA isn't a mystery.
+  const routeId = useLive((state) => state.route?.id ?? null)
+  const routed = useRef<number | null>(null)
+  useEffect(() => {
+    const before = routed.current
+    routed.current = routeId
+    if (before === null || routeId === null) return
+    const state = useLive.getState()
+    const current = state.telemetry
+    if (!current || current.navigationDistance <= 0) return
+    const arrival = formatGameTime(Math.round(cabClock(current, state.clockShift) + current.navigationTime / 60))
+    useNotes.getState().push({
+      key: 'reroute',
+      title: text.destinations.routeChanged,
+      detail: `${arrival} ${text.arrival}`,
+      tone: 'warn',
+    })
+  }, [routeId, text])
 
   useEffect(() => {
     if (!telemetry) {

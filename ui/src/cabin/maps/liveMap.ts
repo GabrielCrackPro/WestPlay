@@ -5,10 +5,10 @@ import { mapFrameDue } from './frameCap'
 import { create as createStore } from 'zustand'
 import type { Telemetry } from '../../shared/host'
 import type { Appearance } from '../state/appearance'
-import { type LiveState, useCabin, useLive } from '../state/store'
+import { type LiveState, type MapDetail, useCabin, useLive } from '../state/store'
+import { MAP_FPS } from './frameCap'
 import { textScale } from '../state/textSize'
 import {
-  AUTO_RECENTRE_MS,
   bearingOf,
   blendPose,
   type CameraPose,
@@ -44,10 +44,13 @@ import {
   snapToRoute,
   type Spans,
 } from './route'
+import { guidanceOf } from './guidance'
+import { type PinPlace, pinFeatures } from './nearbyPins'
 import {
   BUILDING_LAYER,
   MAP_SOURCE,
   mapStyle,
+  NEARBY_SOURCE,
   OFFERED_SOURCE,
   PLAYERS_SOURCE,
   paintFor,
@@ -171,6 +174,8 @@ interface LiveMap {
   /** The view as last kept (mapView.ts), and when it was last looked at. */
   kept: string
   keptAt: number
+  /** The Map detail and layer choices last applied (Settings › Maps). */
+  settingsShown: string
 }
 
 /** Whether the map is browsing (moved away from the truck): the Maps app shows its recentre button. */
@@ -334,6 +339,7 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     labelsPlacedFor: null,
     kept: '',
     keptAt: 0,
+    settingsShown: '',
   }
   // Place icons are drawn when the map first needs each (placeIcons.ts), and again once the type for their
   // names is in.
@@ -370,6 +376,47 @@ function create(data: MapData, appearance: Appearance): LiveMap {
 
 /** How often the view is looked at to be kept, ms. */
 const KEEP_EVERY_MS = 500
+
+/** The frames a second each Map detail draws (Settings › Maps): the game takes no more than 60 (frameCap.ts). */
+const DETAIL_FPS: Record<MapDetail, number> = { high: MAP_FPS, balanced: 45, low: 30 }
+
+/**
+ * The settings the map draws by (Settings › Maps): the buildings (and the 3D canopies over them) off on Low, and
+ * the other players' trucks and the traffic shown or not. Retried each frame until the style has loaded.
+ */
+function syncMapSettings(target: LiveMap) {
+  const { mapDetail, mapTrucks, mapTraffic } = useCabin.getState()
+  const key = `${mapDetail}:${mapTrucks}:${mapTraffic}`
+  if (target.settingsShown === key) return
+  // Nothing is applied to a style still loading (and nothing is marked as applied): the next frame tries again.
+  if (!target.map.isStyleLoaded()) return
+  const show = (layer: string, visible: boolean) => {
+    if (target.map.getLayer(layer)) {
+      target.map.setLayoutProperty(layer, 'visibility', visible ? 'visible' : 'none')
+    }
+  }
+  // The buildings' own layer only exists once the map has its data, and the traffic's and the players' too.
+  show(BUILDING_LAYER, mapDetail !== 'low')
+  show('players', mapTrucks)
+  show('traffic', mapTraffic)
+  target.settingsShown = key
+}
+
+/** How near (m, as the game counts) a turn makes the camera ease out so the junction is seen before it's on. */
+const JUNCTION_WITHIN = 250
+/** How much further out (zoom levels) the camera goes at a junction. */
+const JUNCTION_ZOOM_OUT = 1.1
+
+/** Whether the route's next step is a turn close ahead (Settings › Maps: Zoom Out at Junctions). */
+function nearJunction(): boolean {
+  if (!useCabin.getState().mapJunction) return false
+  const { route, routeNext, telemetry } = useLive.getState()
+  if (!route || !telemetry || telemetry.navigationDistance <= 0) return false
+  const guidance = guidanceOf(route.distances, route.maneuvers, routeNext, telemetry.navigationDistance)
+  return (
+    guidance !== null && guidance.step.kind === 'turn' && guidance.distance > 0 && guidance.distance < JUNCTION_WITHIN
+  )
+}
 
 /** The view the player left the map in, kept from before (a hot reload, a reload, a restart): their
  * follow zoom, and where they'd browsed to (with the full while to look again before it glides back). */
@@ -430,9 +477,19 @@ function listen(target: LiveMap) {
   map.on('rotatestart', leave)
   // The compass (MapControls.tsx) turns with the map.
   map.on('rotate', () => tellBearing(map.getBearing()))
-  // A route offered tapped (Directions): picked, as its row on the card is.
+  // A route offered tapped (Directions): picked, as its row on the card is. Otherwise a tap looks for the place
+  // it landed on (a pin, or one of the map's own place icons) and opens its card.
   map.on('click', (event) => {
-    if (target.interactive && target.offeredPick) pickOffered(target, event.point, target.offeredPick)
+    if (!target.interactive) return
+    if (target.offeredPick) {
+      pickOffered(target, event.point, target.offeredPick)
+      return
+    }
+    if (!placeTap) return
+    const { lng, lat } = map.unproject(event.point)
+    // What a pixel covers here (Web Mercator's ground resolution), so a tap reaches round the badge it's on.
+    const perPixel = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / 2 ** (map.getZoom() + 8)
+    placeTap(fromLngLat(lng, lat), Math.max(PICK_MIN_M, PICK_PIXELS * perPixel))
   })
   map.on('move', (event) => {
     if (event.originalEvent) target.touched = performance.now()
@@ -703,13 +760,16 @@ function place() {
       frame = requestAnimationFrame(step)
       // At most 60 a second (frameCap.ts): the game is handed no more, and each frame drawn here redraws every 3D
       // building in view (a player's log, 2026-10-27: the cab page's share up to 4x in towns).
-      const next = mapFrameDue(now, due)
+      // Nothing is drawn while the page is hidden: the game keeps its GPU, and the map catches up on return.
+      if (document.hidden) return
+      const next = mapFrameDue(now, due, DETAIL_FPS[useCabin.getState().mapDetail])
       if (next === null) return
       due = next
       const dt = Math.min(now - lastFrame, 100)
       lastFrame = now
       syncAppearance(current)
       syncGarages(current)
+      syncMapSettings(current)
       syncPlayers(current, now)
       syncRouteTraffic(current, now)
       syncRoute(current, now)
@@ -810,6 +870,34 @@ export function showOfferedRoutes(lines: Point[][], picked: number | null, onPic
   })
 }
 
+/** How near (px) a tap finds a place: a finger's width round the badge it lands near. */
+const PICK_PIXELS = 34
+/** The least (m) a tap reaches, however far out the map is: a badge at a whole country's view is a few pixels. */
+const PICK_MIN_M = 15
+
+/** Called with where a tap landed and how far round it counts, for the place it was meant for. `true`: taken. */
+type PlaceTap = (at: Point, within: number) => boolean
+
+let placeTap: PlaceTap | null = null
+
+/**
+ * Where a tap on the map goes to find the place it was meant for (Destinations, through MapSearch): the Maps app
+ * only. `null` when the search panel isn't there to open a card.
+ */
+export function setPlaceTap(handler: PlaceTap | null) {
+  placeTap = handler
+}
+
+/**
+ * The pins of a list of places (Destinations' Find nearby and its search): each place's badge over the map, so
+ * the list is seen in place before one is chosen. Called with the list shown, and with none when it closes.
+ */
+export function showNearbyPins(places: readonly PinPlace[]) {
+  const source = live?.map.getSource<GeoJSONSource>(NEARBY_SOURCE)
+  if (!live || !source) return
+  source.setData(pinFeatures(places))
+}
+
 /** The route as the map draws it, and where the truck is along it this frame (`null`: no route, or the
  * truck not placed on it yet). */
 export function liveRouteProgress(): { spans: Spans; progress: Progress } | null {
@@ -822,6 +910,52 @@ export function setLiveMapAppearance(appearance: Appearance) {
   if (!live) return
   live.wanted = appearance
   syncAppearance(live)
+}
+
+/**
+ * Shows the whole route ahead at once, from above (the Maps app's button): the player checks its shape, then
+ * the arrow brings the chase view back. Nothing without a route drawn.
+ */
+export function overviewLiveMap() {
+  const shown = live?.routeShown
+  if (!live || !shown) return
+  const points = shown.spans.flat()
+  if (points.length < 2) return
+  if (!live.overview) {
+    browse(live)
+    live.overview = true
+  }
+  fitPoints(live, points)
+}
+
+/** Back onto the truck, behind it: from the whole route's view, or from a map the player moved. */
+export function followRouteLiveMap() {
+  if (!live) return
+  live.overview = false
+  recentreLiveMap()
+}
+
+/** Frames `points` ([x, z] m) in the part of the map the search panel leaves free, from above. */
+function fitPoints(target: LiveMap, points: readonly Point[]) {
+  let [x0, x1, z0, z1] = [Infinity, -Infinity, Infinity, -Infinity]
+  for (const [x, z] of points) {
+    ;[x0, x1, z0, z1] = [Math.min(x0, x), Math.max(x1, x), Math.min(z0, z), Math.max(z1, z)]
+  }
+  if (!(x0 < x1) && !(z0 < z1)) return
+  const [lng0, lat0] = toLngLat(x0, z1)
+  const [lng1, lat1] = toLngLat(x1, z0)
+  target.map.fitBounds(
+    [
+      [lng0, lat0],
+      [lng1, lat1],
+    ],
+    {
+      padding: { top: 60, right: 60, bottom: 60, left: panelCover(target.map) + 40 },
+      pitch: 0,
+      bearing: 0,
+      duration: 900,
+    },
+  )
 }
 
 /** Glides the map back onto the truck, behind it (the arrow): from a map moved away, or from north up. */
@@ -1066,11 +1200,17 @@ function updateCamera(target: LiveMap, now: number, dt: number) {
   if (!puck.getElement().isConnected) puck.addTo(map)
 
   if (target.mode === 'browse') {
-    if (!target.pressed && !target.overview && now - target.touched > AUTO_RECENTRE_MS) recentreLiveMap()
+    const seconds = useCabin.getState().mapRecentre
+    if (!target.pressed && !target.overview && seconds > 0 && now - target.touched > seconds * 1000) {
+      recentreLiveMap()
+    }
     return
   }
 
-  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomForSpeed(truck.speed) + target.zoomOffset))
+  const zoom = Math.min(
+    MAX_ZOOM,
+    Math.max(MIN_ZOOM, zoomForSpeed(truck.speed) + target.zoomOffset - (nearJunction() ? JUNCTION_ZOOM_OUT : 0)),
+  )
   const height = map.getContainer().clientHeight
   // Behind the truck: facing its way, tilted, the truck low on the screen. North up: from above, the truck in
   // the middle.

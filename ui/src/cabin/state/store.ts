@@ -79,6 +79,19 @@ export type DiagnosticsPage = 'overview' | 'engine' | 'driver' | 'chassis'
 export const DIAGNOSTICS_PAGES: readonly DiagnosticsPage[] = ['overview', 'engine', 'driver', 'chassis']
 
 /**
+ * How much the live map draws (Settings › Maps): High keeps the 3D buildings at 60 frames a second, Balanced
+ * draws fewer frames, Low drops the buildings and halves the work: for the PCs that share the game's GPU.
+ */
+export type MapDetail = 'high' | 'balanced' | 'low'
+
+export const MAP_DETAILS: readonly MapDetail[] = ['high', 'balanced', 'low']
+
+/** How long (s) a map the player moved stays put before it comes back to the truck; 0 never. */
+export type MapRecentre = 5 | 15 | 30 | 0
+
+export const MAP_RECENTRES: readonly MapRecentre[] = [5, 15, 30, 0]
+
+/**
  * Cabin state that the UI renders from. Telemetry lives in its own store (`useLive`) because it updates
  * up to 20 times a second; components subscribe to just the fields they need.
  */
@@ -96,6 +109,14 @@ interface CabinState {
   textSize: number
   /** The Diagnostics app's page last opened, so its tabs come back where the player left them. */
   diagnosticsPage: DiagnosticsPage
+  /** The live map's own settings (Settings › Maps): how much it draws, how it behaves at night and at
+   * junctions, whose trucks it shows, and when it comes back to the truck. */
+  mapDetail: MapDetail
+  mapNight: boolean
+  mapJunction: boolean
+  mapTrucks: boolean
+  mapTraffic: boolean
+  mapRecentre: MapRecentre
   /** The truck's own strip: kept (`auto`) or not, as set in the companion window (the host sends it). */
   oemMode: OemMode
   /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or the speakers as tuned
@@ -116,6 +137,12 @@ interface CabinState {
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
   setDiagnosticsPage(page: DiagnosticsPage): void
+  setMapDetail(detail: MapDetail): void
+  setMapNight(on: boolean): void
+  setMapJunction(on: boolean): void
+  setMapTrucks(on: boolean): void
+  setMapTraffic(on: boolean): void
+  setMapRecentre(seconds: MapRecentre): void
   /** One band of the curve, set in Settings › Equalizer (choosing Custom): played by every player, and kept with
    * WestPlay's settings. */
   setEqualizerBand(band: keyof Equalizer, db: number): void
@@ -141,6 +168,12 @@ type Persisted = Pick<
   | 'albumArt'
   | 'textSize'
   | 'diagnosticsPage'
+  | 'mapDetail'
+  | 'mapNight'
+  | 'mapJunction'
+  | 'mapTrucks'
+  | 'mapTraffic'
+  | 'mapRecentre'
 >
 
 /** The widgets a new player starts with: all of them on. */
@@ -163,6 +196,13 @@ export const useCabin = create<CabinState>()(
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
       diagnosticsPage: 'overview',
+      // Balanced: the buildings still, a little less often than the game, for the PCs that share its GPU.
+      mapDetail: 'balanced',
+      mapNight: true,
+      mapJunction: true,
+      mapTrucks: true,
+      mapTraffic: true,
+      mapRecentre: 15,
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
@@ -180,6 +220,12 @@ export const useCabin = create<CabinState>()(
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
       setDiagnosticsPage: (diagnosticsPage) => set({ diagnosticsPage }),
+      setMapDetail: (mapDetail) => set({ mapDetail }),
+      setMapNight: (mapNight) => set({ mapNight }),
+      setMapJunction: (mapJunction) => set({ mapJunction }),
+      setMapTrucks: (mapTrucks) => set({ mapTrucks }),
+      setMapTraffic: (mapTraffic) => set({ mapTraffic }),
+      setMapRecentre: (mapRecentre) => set({ mapRecentre }),
       setEqualizerBand: (band, db) => {
         const equalizer = toEqualizer({ ...useCabin.getState().equalizer, [band]: db })
         set({ equalizer, equalizerCustom: true })
@@ -231,6 +277,12 @@ export const useCabin = create<CabinState>()(
         albumArt: state.albumArt,
         textSize: state.textSize,
         diagnosticsPage: state.diagnosticsPage,
+        mapDetail: state.mapDetail,
+        mapNight: state.mapNight,
+        mapJunction: state.mapJunction,
+        mapTrucks: state.mapTrucks,
+        mapTraffic: state.mapTraffic,
+        mapRecentre: state.mapRecentre,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -267,6 +319,12 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (DIAGNOSTICS_PAGES.includes(stored.diagnosticsPage as DiagnosticsPage)) {
     result.diagnosticsPage = stored.diagnosticsPage
   }
+  if (MAP_DETAILS.includes(stored.mapDetail as MapDetail)) result.mapDetail = stored.mapDetail
+  if (typeof stored.mapNight === 'boolean') result.mapNight = stored.mapNight
+  if (typeof stored.mapJunction === 'boolean') result.mapJunction = stored.mapJunction
+  if (typeof stored.mapTrucks === 'boolean') result.mapTrucks = stored.mapTrucks
+  if (typeof stored.mapTraffic === 'boolean') result.mapTraffic = stored.mapTraffic
+  if (MAP_RECENTRES.includes(stored.mapRecentre as MapRecentre)) result.mapRecentre = stored.mapRecentre
   return result
 }
 

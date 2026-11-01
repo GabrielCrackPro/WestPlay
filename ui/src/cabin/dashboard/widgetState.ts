@@ -1,7 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 import { cabClock } from '../../shared/host'
 import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } from '../apps/diagnostics/readings'
-import { guidanceOf } from '../maps/guidance'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
@@ -24,34 +23,21 @@ export function useDestinationView() {
 /** No destination (one object, so the store's shallow comparison sees "still nothing"). */
 export const EMPTY = { kicker: '', title: '', subtitle: null, detail: '', late: false }
 
-/** Whether the column has a widget to show: turn-by-turn, or one turned on in Settings with something to
- * show (Now Playing always has). */
+/** Whether the column has a widget to show: one turned on in Settings with something to show (Now Playing
+ * always has). Turn-by-turn isn't one of them: it's over the map (MapView). */
 export function useAnyWidget(): boolean {
   const widgets = useCabin((state) => state.dashboardWidgets)
-  const guided = useGuided()
   const destination = useDestinationView() !== EMPTY
   const job = useJobView() !== null
   const diagnostics = useDiagnosticsView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
-    guided ||
     widgets.nowPlaying ||
     (widgets.destination && destination) ||
     (widgets.job && job) ||
     (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
-}
-
-/** Whether turn-by-turn shows: while the route has a step to show (as GuidanceCard decides). */
-export function useGuided(): boolean {
-  return useLive((state) => {
-    const { route, routeNext, telemetry } = state
-    return (
-      route !== null &&
-      guidanceOf(route.distances, route.maneuvers, routeNext, telemetry?.navigationDistance ?? 0) !== null
-    )
-  })
 }
 
 /** Whether there's room for the weather card: three widgets fill the column. */

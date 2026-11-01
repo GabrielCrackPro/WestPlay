@@ -47,6 +47,25 @@ export interface Strings {
     /** "Find nearby" on a route: the places offered are along it. */
     alongRoute: string
     recents: string
+    /** The Maps app's button: the whole route at once, from above. */
+    wholeRoute: string
+    /** Settings › Maps: how much the map draws, and how it behaves. */
+    mapDetail: string
+    mapBalanced: string
+    mapNight: string
+    mapJunction: string
+    mapTrucks: string
+    mapTraffic: string
+    mapRecentre: string
+    mapNever: string
+    /** A stop on the map's strip: which of the player's stops it is. */
+    stopNumber: (number: number) => string
+    /** Destinations' button that empties the recents. */
+    clearRecents: string
+    /** The cab's note when the game's route changes under the truck. */
+    routeChanged: string
+    /** The card at the end of a drive. */
+    arrived: string
     kinds: Record<DestinationKind, string>
     nearby: Partial<Record<DestinationKind, string>>
     straightLine: (distance: string) => string
@@ -604,6 +623,19 @@ const ENGLISH_STRINGS: Strings = {
     findNearby: 'Find nearby',
     alongRoute: 'Along the route',
     recents: 'Recents',
+    wholeRoute: 'Whole route',
+    mapDetail: 'Detail',
+    mapBalanced: 'Balanced',
+    mapNight: 'Dim at Night',
+    mapJunction: 'Zoom Out at Junctions',
+    mapTrucks: 'Other Drivers',
+    mapTraffic: 'Traffic',
+    mapRecentre: 'Return to the Truck',
+    mapNever: 'Never',
+    stopNumber: (number) => `Stop ${number}`,
+    clearRecents: 'Clear',
+    routeChanged: 'Route changed',
+    arrived: 'You have arrived',
     kinds: {
       fuel: 'Fuel',
       service: 'Service',
@@ -1182,6 +1214,19 @@ const TURKISH_STRINGS: Strings = {
     findNearby: 'Yakındakiler',
     alongRoute: 'Rota üzerinde',
     recents: 'Son kullanılanlar',
+    wholeRoute: 'Tüm rota',
+    mapDetail: 'Detay',
+    mapBalanced: 'Dengeli',
+    mapNight: 'Gece Karart',
+    mapJunction: 'Kavşaklarda Uzaklaş',
+    mapTrucks: 'Diğer Sürücüler',
+    mapTraffic: 'Trafik',
+    mapRecentre: 'Kamyona Dön',
+    mapNever: 'Asla',
+    stopNumber: (number) => `${number}. durak`,
+    clearRecents: 'Temizle',
+    routeChanged: 'Rota değişti',
+    arrived: 'Vardınız',
     kinds: {
       fuel: 'Akaryakıt',
       service: 'Servis',
@@ -1768,6 +1813,19 @@ const SPANISH_STRINGS: Strings = {
     findNearby: 'Buscar cerca',
     alongRoute: 'En la ruta',
     recents: 'Recientes',
+    wholeRoute: 'Ruta completa',
+    mapDetail: 'Detalle',
+    mapBalanced: 'Equilibrado',
+    mapNight: 'Atenuar de Noche',
+    mapJunction: 'Alejar en los Cruces',
+    mapTrucks: 'Otros Conductores',
+    mapTraffic: 'Tráfico',
+    mapRecentre: 'Volver al Camión',
+    mapNever: 'Nunca',
+    stopNumber: (number) => `Parada ${number}`,
+    clearRecents: 'Borrar',
+    routeChanged: 'Ruta cambiada',
+    arrived: 'Has llegado',
     kinds: {
       fuel: 'Gasolinera',
       service: 'Taller',

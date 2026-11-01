@@ -477,6 +477,9 @@ export const OFFERED_SOURCE = 'westplay-offered'
 export const TRAFFIC_SOURCE = 'westplay-traffic'
 /** TruckersMP's other players (truckersmp.ts): points. */
 export const PLAYERS_SOURCE = 'westplay-players'
+/** The places a list offers (Destinations' Find nearby and its search, nearbyPins.ts): points, drawn as the
+ * badge of their kind, over the map's own places. */
+export const NEARBY_SOURCE = 'westplay-nearby'
 
 /** The traffic over the route previewed: yellow where it's slow, red where it's jammed, as Apple's. The
  * same colours in light and dark. */
@@ -599,6 +602,28 @@ const SIGN_SPRITE = 'signs'
 const SIGN_MIN_ZOOM = 10
 
 /**
+ * The pins of a list of places (nearbyPins.ts): their kind's badge, at the place, over the map's own places so
+ * a result is found among them. Upright to the screen whatever the tilt, the first of the list drawn last.
+ */
+function nearbyLayers(): LayerSpecification[] {
+  return [
+    {
+      id: 'nearby-pin',
+      type: 'symbol',
+      source: NEARBY_SOURCE,
+      layout: {
+        'icon-image': ['concat', PLACE_ICON_PREFIX, ['get', 'kind']],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.75, 14, 1],
+        'icon-padding': 4,
+        'icon-pitch-alignment': 'viewport',
+        'icon-rotation-alignment': 'viewport',
+        'symbol-sort-key': ['get', 'rank'],
+      },
+    },
+  ]
+}
+
+/**
  * Road numbers where the game shows them, as the game's own signs (each country's own: Germany's blue A,
  * France's red, the green E roads): upright to the screen whatever the tilt, growing a little as the map
  * comes closer, under the places (which win where they'd meet) and never over one another.
@@ -652,6 +677,7 @@ export function mapStyle(appearance: Appearance, data: MapData | null): StyleSpe
           [OFFERED_SOURCE]: { type: 'geojson', data: NO_LINE },
           [TRAFFIC_SOURCE]: { type: 'geojson', data: NO_LINE },
           [PLAYERS_SOURCE]: { type: 'geojson', data: NO_LINE },
+          [NEARBY_SOURCE]: { type: 'geojson', data: NO_LINE },
         }
       : {},
     layers: [
@@ -690,6 +716,7 @@ export function mapStyle(appearance: Appearance, data: MapData | null): StyleSpe
       ...(data ? [...offeredLayers(palette), ...trafficLayers(), ...playerLayers()] : []),
       signLayer(),
       ...placeLayers(),
+      ...(data ? nearbyLayers() : []),
     ],
   }
 }

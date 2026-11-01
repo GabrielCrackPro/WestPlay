@@ -6,7 +6,15 @@ import { useWallpapers } from '../../state/looks'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import { DASHBOARD_WIDGETS, type DashboardWidget, useCabin, useLive } from '../../state/store'
+import {
+  DASHBOARD_WIDGETS,
+  type DashboardWidget,
+  MAP_DETAILS,
+  MAP_RECENTRES,
+  type MapDetail,
+  useCabin,
+  useLive,
+} from '../../state/store'
 import { useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
 import {
@@ -54,6 +62,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <WallpaperPage />
     case 'dashboard':
       return <DashboardPage />
+    case 'map':
+      return <MapPage />
     case 'nowPlaying':
       return <NowPlayingPage />
     case 'sound':
@@ -102,6 +112,7 @@ function ListPage() {
           label={text.settings.dashboard}
           onOpen={() => open('dashboard')}
         />
+        <NavRow tile="var(--apple-green)" icon={<MapGlyph />} label={text.apps.maps} onOpen={() => open('map')} />
         <NavRow
           tile="var(--apple-pink)"
           icon={<NowPlayingGlyph />}
@@ -338,6 +349,71 @@ function DashboardPage() {
         />
       </Group>
     </Page>
+  )
+}
+
+/**
+ * The live map's own settings (Settings › Maps): how much it draws (the 3D buildings and the frames a second),
+ * whether it dims for the game's night, eases out at junctions, shows the other drivers and the traffic, and
+ * how long a map the player moved stays put before it comes back to the truck.
+ */
+function MapPage() {
+  const text = useText()
+  const words = text.destinations
+  const detail = useCabin((state) => state.mapDetail)
+  const setDetail = useCabin((state) => state.setMapDetail)
+  const night = useCabin((state) => state.mapNight)
+  const setNight = useCabin((state) => state.setMapNight)
+  const junction = useCabin((state) => state.mapJunction)
+  const setJunction = useCabin((state) => state.setMapJunction)
+  const trucks = useCabin((state) => state.mapTrucks)
+  const setTrucks = useCabin((state) => state.setMapTrucks)
+  const traffic = useCabin((state) => state.mapTraffic)
+  const setTraffic = useCabin((state) => state.setMapTraffic)
+  const recentre = useCabin((state) => state.mapRecentre)
+  const setRecentre = useCabin((state) => state.setMapRecentre)
+  // High and Low are the Equalizer's words already (the map draws the same two ends of a scale).
+  const details: Record<MapDetail, string> = {
+    high: text.settings.high,
+    balanced: words.mapBalanced,
+    low: text.settings.low,
+  }
+  return (
+    <Page title={text.apps.maps}>
+      <Group header={words.mapDetail}>
+        {MAP_DETAILS.map((each) => (
+          <CheckRow key={each} label={details[each]} on={detail === each} onPick={() => setDetail(each)} />
+        ))}
+      </Group>
+      <Group>
+        <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
+        <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
+      </Group>
+      <Group>
+        <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
+        <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
+      </Group>
+      <Group header={words.mapRecentre}>
+        {MAP_RECENTRES.map((seconds) => (
+          <CheckRow
+            key={seconds}
+            label={seconds === 0 ? words.mapNever : `${seconds} s`}
+            on={recentre === seconds}
+            onPick={() => setRecentre(seconds)}
+          />
+        ))}
+      </Group>
+    </Page>
+  )
+}
+
+/** The Maps row's tile glyph: the map's own folds, in white on the green tile. */
+function MapGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="#fff" strokeWidth="1.7" aria-hidden>
+      <path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5Z" strokeLinejoin="round" />
+      <path d="M9 4v13.5M15 6.5V20" />
+    </svg>
   )
 }
 

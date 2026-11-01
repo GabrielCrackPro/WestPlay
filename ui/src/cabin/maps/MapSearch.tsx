@@ -6,6 +6,10 @@ import { useLive } from '../state/store'
 import { useText } from '../state/text'
 import { Destinations } from './Destinations'
 import { guidanceOf } from './guidance'
+import { setPlaceTap } from './liveMap'
+import { usePlacePick } from './placePick'
+import { usePlaces } from './places'
+import { nearestPlace } from './tapPick'
 
 /** How long the word that the game took a change stays over the map, ms. */
 const CONFIRMATION_MS = 2500
@@ -32,6 +36,23 @@ export function MapSearch() {
       guidanceOf(route.distances, route.maneuvers, routeNext, telemetry?.navigationDistance ?? 0) !== null
     )
   })
+
+  // A tap on the map: the place it landed on, its card. The panel opens for it and Destinations shows it (the
+  // card is where a place is added to the route, so a tap on the map is a way to route somewhere, as on a phone).
+  const places = usePlaces()
+  const picked = usePlacePick((state) => state.picked)
+  useEffect(() => {
+    setPlaceTap((at, within) => {
+      const place = nearestPlace(places, at, within)
+      if (!place) return false
+      usePlacePick.getState().pick(place)
+      return true
+    })
+    return () => setPlaceTap(null)
+  }, [places])
+  useEffect(() => {
+    if (picked) setPhase('open')
+  }, [picked])
 
   useEffect(() => {
     if (!confirmation) return

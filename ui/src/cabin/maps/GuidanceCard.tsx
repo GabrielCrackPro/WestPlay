@@ -99,24 +99,23 @@ function useKept<T>(value: T | null): T | null {
 
 /**
  * Turn-by-turn, CarPlay's way: the next step's arrow, how far it is and what to do, and the step right
- * after it when it's close behind. On the Dashboard it's the top widget; in the Maps app, a banner over
- * the map. Nothing without a route.
+ * after it when it's close behind. A banner over the map, on the Dashboard and in the Maps app alike (owner
+ * 2026-11-01: guidance belongs on the map, not on a card of its own). Nothing without a route.
  *
  * In motion with Apple's curves: the card springs in when a route starts and fades away when it ends; a
- * step done slides up and away as the next rises in its place; the "then" row opens and closes; and on
- * the Dashboard the widgets below make room for the card, and take it back, as it comes and goes.
+ * step done slides up and away as the next rises in its place; and the "then" row opens and closes.
  */
-export function GuidanceCard({ variant }: { variant: 'widget' | 'banner' }) {
+export function GuidanceCard() {
   const text = useText()
   const { step, distance, then } = useGuidance()
   const current = useMemo(() => (step ? { key: keyOf(step), step, distance, then } : null), [step, distance, then])
   const { shown, leaving, closing } = useStepChange(current)
   const thenShown = useKept(shown?.then ?? null)
-  const glyphSize = variant === 'widget' ? 62 : 70
+  const glyphSize = 70
 
   const card = shown && (
     <article
-      className={`guidance guidance-${variant} glass${variant === 'widget' ? ' widget' : ''}${closing ? ' closing' : ''}`}
+      className={`guidance guidance-banner glass${closing ? ' closing' : ''}`}
       aria-label={`${shown.distance} ${instructionFor(shown.step, text)}`}
     >
       <div className="guidance-steps">
@@ -139,10 +138,6 @@ export function GuidanceCard({ variant }: { variant: 'widget' | 'banner' }) {
       </div>
     </article>
   )
-  // On the Dashboard the card sits in a slot that grows into the column as it comes and shrinks as it goes.
-  if (variant === 'widget') {
-    return <div className={`widget-slot${shown && !closing ? ' open' : ''}`}>{card}</div>
-  }
   return card
 }
 
