@@ -58,6 +58,36 @@ export interface Strings {
     mapTraffic: string
     mapRecentre: string
     mapNever: string
+    /** The route, the truck's marker and the map's furniture, each as the player likes it. */
+    routeColour: string
+    routeBlue: string
+    routeTeal: string
+    routePurple: string
+    routeAmber: string
+    routeWeight: string
+    weightThin: string
+    weightStandard: string
+    weightBold: string
+    marker: string
+    markerArrow: string
+    markerDot: string
+    markerTruck: string
+    markerSize: string
+    sizeSmall: string
+    sizeMedium: string
+    sizeLarge: string
+    mapNorth: string
+    mapLimit: string
+    mapOver: string
+    mapCompass: string
+    mapScale: string
+    mapNightFrom: string
+    pinStyle: string
+    pinFilled: string
+    pinOutlined: string
+    pinsFuel: string
+    pinsParking: string
+    pinsService: string
     /** A stop on the map's strip: which of the player's stops it is. */
     stopNumber: (number: number) => string
     /** Destinations' button that empties the recents. */
@@ -469,6 +499,16 @@ export interface Strings {
     /** Text Size's own text, shown at the size chosen (iOS's). */
     textSizeAbout: string
     wallpaper: string
+    /** App Icons: the page's name and the look's; then Reduce Motion, the switch and what it does. */
+    icons: string
+    iconStyle: string
+    reduceMotion: string
+    reduceMotionFooter: string
+    /** The Dashboard's own order (Auto order, and moving a widget up or down it). */
+    autoOrder: string
+    autoOrderFooter: string
+    moveUp: string
+    moveDown: string
     dashboard: string
     widgets: string
     /** The sidebar's clock: the player's own time, or the game's. */
@@ -478,6 +518,9 @@ export interface Strings {
     /** Sound, and in it the Equalizer: the speakers as tuned (Recommended) or the player's own tone (Custom), what
      * it does, its three bands under the graph, and the curve set back. */
     sound: string
+    /** The cabin's own sounds (presses, notes, the volume): what they do, in a line. */
+    uiSounds: string
+    uiSoundsFooter: string
     equalizer: string
     recommended: string
     custom: string
@@ -520,6 +563,9 @@ export interface Strings {
     oilPressure: string
     brakeAir: string
     adblue: string
+    /** The worst readings since the engine came on (the trip's span), and how many ways the game warned. */
+    sinceStart: string
+    warnings: string
     consumption: string
     odometer: string
     retarder: string
@@ -561,6 +607,8 @@ export interface Strings {
     parkingLight: string
     lowBeam: string
     highBeam: string
+    indicatorLeft: string
+    indicatorRight: string
     on: string
     trailerType: string
     plate: string
@@ -632,6 +680,35 @@ const ENGLISH_STRINGS: Strings = {
     mapTraffic: 'Traffic',
     mapRecentre: 'Return to the Truck',
     mapNever: 'Never',
+    routeColour: 'Route Colour',
+    routeBlue: 'Blue',
+    routeTeal: 'Teal',
+    routePurple: 'Purple',
+    routeAmber: 'Amber',
+    routeWeight: 'Route Line',
+    weightThin: 'Thin',
+    weightStandard: 'Standard',
+    weightBold: 'Bold',
+    marker: 'Vehicle Marker',
+    markerArrow: 'Arrow',
+    markerDot: 'Dot',
+    markerTruck: 'Truck',
+    markerSize: 'Marker Size',
+    sizeSmall: 'Small',
+    sizeMedium: 'Medium',
+    sizeLarge: 'Large',
+    mapNorth: 'North Up',
+    mapLimit: 'Speed Limit Sign',
+    mapOver: 'Warn When Over',
+    mapCompass: 'Compass',
+    mapScale: 'Scale Bar',
+    mapNightFrom: 'Dim From',
+    pinStyle: 'Map Pins',
+    pinFilled: 'Filled',
+    pinOutlined: 'Outlined',
+    pinsFuel: 'Fuel Stations',
+    pinsParking: 'Rest Places',
+    pinsService: 'Service & Repairs',
     stopNumber: (number) => `Stop ${number}`,
     clearRecents: 'Clear',
     routeChanged: 'Route changed',
@@ -1056,12 +1133,24 @@ const ENGLISH_STRINGS: Strings = {
     textSize: 'Text Size',
     textSizeAbout: 'Cabin Play’s apps will adjust to your preferred reading size below.',
     wallpaper: 'Wallpaper',
+    icons: 'App Icons',
+    iconStyle: 'Icon Look',
+    reduceMotion: 'Reduce Motion',
+    reduceMotionFooter: 'Cabin Play changes screens in place, without the slides and zooms, and its apps open at once.',
+    autoOrder: 'Auto Order',
+    autoOrderFooter:
+      'The column puts what the drive needs first: a warning, then a delivery deadline closing in. Turned off, it keeps your order.',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
     dashboard: 'Dashboard',
     widgets: 'Widgets',
     realClock: 'Real Time',
     clockFooter: 'The sidebar’s clock: your own time, or the game’s.',
     showAlbumArt: 'Show Album Art',
     sound: 'Sound',
+    uiSounds: 'Interface Sounds',
+    uiSoundsFooter:
+      'A soft tick when you press something, a gentle chime when the truck has something to say, and a quiet pip for the volume.',
     equalizer: 'Equalizer',
     recommended: 'Recommended',
     custom: 'Custom',
@@ -1103,6 +1192,8 @@ const ENGLISH_STRINGS: Strings = {
     oilPressure: 'Oil pressure',
     brakeAir: 'Brake air',
     adblue: 'AdBlue',
+    sinceStart: 'Since Engine Start',
+    warnings: 'Warnings',
     consumption: 'Consumption',
     odometer: 'Odometer',
     retarder: 'Retarder',
@@ -1144,6 +1235,8 @@ const ENGLISH_STRINGS: Strings = {
     parkingLight: 'Parking lights',
     lowBeam: 'Low beam',
     highBeam: 'High beam',
+    indicatorLeft: 'Left indicator',
+    indicatorRight: 'Right indicator',
     on: 'On',
     trailerType: 'Type',
     plate: 'Plate',
@@ -1223,6 +1316,35 @@ const TURKISH_STRINGS: Strings = {
     mapTraffic: 'Trafik',
     mapRecentre: 'Kamyona Dön',
     mapNever: 'Asla',
+    routeColour: 'Güzergâh Rengi',
+    routeBlue: 'Mavi',
+    routeTeal: 'Turkuaz',
+    routePurple: 'Mor',
+    routeAmber: 'Amber',
+    routeWeight: 'Güzergâh Çizgisi',
+    weightThin: 'İnce',
+    weightStandard: 'Standart',
+    weightBold: 'Kalın',
+    marker: 'Araç İşareti',
+    markerArrow: 'Ok',
+    markerDot: 'Nokta',
+    markerTruck: 'Kamyon',
+    markerSize: 'İşaret Boyutu',
+    sizeSmall: 'Küçük',
+    sizeMedium: 'Orta',
+    sizeLarge: 'Büyük',
+    mapNorth: 'Kuzey Yukarı',
+    mapLimit: 'Hız Limiti Levhası',
+    mapOver: 'Aşınca Uyar',
+    mapCompass: 'Pusula',
+    mapScale: 'Ölçek Çubuğu',
+    mapNightFrom: 'Karartma Saati',
+    pinStyle: 'Harita İğneleri',
+    pinFilled: 'Dolgulu',
+    pinOutlined: 'Kenarlı',
+    pinsFuel: 'Yakıt İstasyonları',
+    pinsParking: 'Dinlenme Yerleri',
+    pinsService: 'Servis ve Onarım',
     stopNumber: (number) => `${number}. durak`,
     clearRecents: 'Temizle',
     routeChanged: 'Rota değişti',
@@ -1651,12 +1773,25 @@ const TURKISH_STRINGS: Strings = {
     textSize: 'Metin Boyutu',
     textSizeAbout: 'Cabin Play’in uygulamaları aşağıda seçtiğin okuma boyutuna göre ayarlanır.',
     wallpaper: 'Duvar Kâğıdı',
+    icons: 'Uygulama Simgeleri',
+    iconStyle: 'Simge Görünümü',
+    reduceMotion: 'Hareketi Azalt',
+    reduceMotionFooter:
+      'Cabin Play ekranları kaydırma ve yakınlaştırma olmadan, yerinde değiştirir; uygulamalar anında açılır.',
+    autoOrder: 'Otomatik Sıralama',
+    autoOrderFooter:
+      'Sütun, sürüşün neye ihtiyacı varsa onu öne alır: önce bir uyarı, sonra yaklaşan teslim saati. Kapatınca senin sıran korunur.',
+    moveUp: 'Yukarı taşı',
+    moveDown: 'Aşağı taşı',
     dashboard: 'Gösterge Paneli',
     widgets: 'Widget’lar',
     realClock: 'Gerçek Saat',
     clockFooter: 'Kenar çubuğundaki saat: kendi saatiniz ya da oyunun saati.',
     showAlbumArt: 'Albüm Kapağını Göster',
     sound: 'Ses',
+    uiSounds: 'Arayüz Sesleri',
+    uiSoundsFooter:
+      'Bir şeye bastığında yumuşak bir tık, aracın söyleyecek bir şeyi olduğunda hafif bir zil ve ses seviyesi için kısa bir pip.',
     equalizer: 'Ekolayzır',
     recommended: 'Önerilen',
     custom: 'Özel',
@@ -1698,6 +1833,8 @@ const TURKISH_STRINGS: Strings = {
     oilPressure: 'Yağ basıncı',
     brakeAir: 'Fren havası',
     adblue: 'AdBlue',
+    sinceStart: 'Motor Çalıştığından Beri',
+    warnings: 'Uyarılar',
     consumption: 'Tüketim',
     odometer: 'Kilometre sayacı',
     retarder: 'Retarder',
@@ -1739,6 +1876,8 @@ const TURKISH_STRINGS: Strings = {
     parkingLight: 'Park lambaları',
     lowBeam: 'Kısa far',
     highBeam: 'Uzun far',
+    indicatorLeft: 'Sol sinyal',
+    indicatorRight: 'Sağ sinyal',
     on: 'Açık',
     trailerType: 'Tip',
     plate: 'Plaka',
@@ -1822,6 +1961,35 @@ const SPANISH_STRINGS: Strings = {
     mapTraffic: 'Tráfico',
     mapRecentre: 'Volver al Camión',
     mapNever: 'Nunca',
+    routeColour: 'Color de la Ruta',
+    routeBlue: 'Azul',
+    routeTeal: 'Turquesa',
+    routePurple: 'Morado',
+    routeAmber: 'Ámbar',
+    routeWeight: 'Grosor de la Ruta',
+    weightThin: 'Fino',
+    weightStandard: 'Estándar',
+    weightBold: 'Grueso',
+    marker: 'Marcador del Vehículo',
+    markerArrow: 'Flecha',
+    markerDot: 'Punto',
+    markerTruck: 'Camión',
+    markerSize: 'Tamaño del Marcador',
+    sizeSmall: 'Pequeño',
+    sizeMedium: 'Mediano',
+    sizeLarge: 'Grande',
+    mapNorth: 'Norte Arriba',
+    mapLimit: 'Señal de Límite',
+    mapOver: 'Avisar al Superar',
+    mapCompass: 'Brújula',
+    mapScale: 'Barra de Escala',
+    mapNightFrom: 'Atenuar Desde',
+    pinStyle: 'Marcadores del Mapa',
+    pinFilled: 'Rellenos',
+    pinOutlined: 'Contorno',
+    pinsFuel: 'Gasolineras',
+    pinsParking: 'Áreas de Descanso',
+    pinsService: 'Talleres',
     stopNumber: (number) => `Parada ${number}`,
     clearRecents: 'Borrar',
     routeChanged: 'Ruta cambiada',
@@ -2257,12 +2425,25 @@ const SPANISH_STRINGS: Strings = {
     textSize: 'Tamaño del texto',
     textSizeAbout: 'Las apps de Cabin Play se ajustarán al tamaño de lectura que elijas abajo.',
     wallpaper: 'Fondo de pantalla',
+    icons: 'Iconos de apps',
+    iconStyle: 'Aspecto de iconos',
+    reduceMotion: 'Reducir movimiento',
+    reduceMotionFooter:
+      'Cabin Play cambia de pantalla en el sitio, sin deslizamientos ni zooms, y sus apps se abren al instante.',
+    autoOrder: 'Orden automático',
+    autoOrderFooter:
+      'La columna pone delante lo que pide la conducción: primero un aviso, luego una entrega que se acerca. Desactivado, mantiene tu orden.',
+    moveUp: 'Subir',
+    moveDown: 'Bajar',
     dashboard: 'Panel',
     widgets: 'Widgets',
     realClock: 'Hora real',
     clockFooter: 'El reloj de la barra lateral: tu hora o la del juego.',
     showAlbumArt: 'Mostrar carátula del álbum',
     sound: 'Sonido',
+    uiSounds: 'Sonidos de la Interfaz',
+    uiSoundsFooter:
+      'Un clic suave al pulsar, un tintineo amable cuando el camión tiene algo que decir y un pitido corto para el volumen.',
     equalizer: 'Ecualizador',
     recommended: 'Recomendado',
     custom: 'Personalizado',
@@ -2304,6 +2485,8 @@ const SPANISH_STRINGS: Strings = {
     oilPressure: 'Presión de aceite',
     brakeAir: 'Aire de frenos',
     adblue: 'AdBlue',
+    sinceStart: 'Desde que arrancó el motor',
+    warnings: 'Avisos',
     consumption: 'Consumo',
     odometer: 'Odómetro',
     retarder: 'Ralentizador',
@@ -2345,6 +2528,8 @@ const SPANISH_STRINGS: Strings = {
     parkingLight: 'Luces de posición',
     lowBeam: 'Cortas',
     highBeam: 'Largas',
+    indicatorLeft: 'Intermitente izquierdo',
+    indicatorRight: 'Intermitente derecho',
     on: 'Encendido',
     trailerType: 'Tipo',
     plate: 'Matrícula',

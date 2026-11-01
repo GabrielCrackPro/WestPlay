@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Pavadink kiekvieną piktogramą pagal jos programėlę: {names}. PNG, WebP, JPG arba SVG. Praleista programėlė išlaiko Cabin Play piktogramą.',
     looksNote:
       'Kad piktograma keistųsi tarp šviesaus ir tamsaus režimo, pridėk tamsią versiją su .dark pavadinime, pvz., maps.dark.png šalia maps.png.',
-    style: { title: 'Piktogramų išvaizda', auto: 'Auto', light: 'Šviesi', dark: 'Tamsi' },
+    style: { title: 'Piktogramų išvaizda', auto: 'Auto', light: 'Šviesi', dark: 'Tamsi', android: 'Android Auto' },
     remove: 'Pašalinti',
     pickWallpapers: 'Pasirink fonus',
     pickWallpaperFolder: 'Pasirink fonų aplanką',

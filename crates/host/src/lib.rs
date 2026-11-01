@@ -826,6 +826,17 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         (config.on_settings)(&settings);
                     }
                 }
+                Some(PageMessage::Icons { icon_set, icon_style }) => {
+                    let mut settings = config.settings.get();
+                    // A set's name is a folder's in the player's `customize` folder: one that's gone is no set.
+                    let icon_set = icon_set.filter(|name| name.len() <= 200);
+                    if settings.look.icon_set != icon_set || settings.look.icon_style != icon_style {
+                        settings.look.icon_set = icon_set;
+                        settings.look.icon_style = icon_style;
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
                 Some(PageMessage::Youtube { command }) => {
                     if command == youtube::Command::Close {
                         if let Some(closing) = youtube.take() {
@@ -2005,6 +2016,13 @@ enum PageMessage {
     Westplay { open: bool },
     /// The wallpaper chosen in the cab's Settings (an id: `wallpapers.ts`), to keep with the settings.
     Wallpaper { id: String },
+    /// The app icons chosen in the cab's Settings (App Icons): the player's icon set by name (`None`: WestPlay's
+    /// own), and which of its looks shows.
+    Icons {
+        #[serde(default)]
+        icon_set: Option<String>,
+        icon_style: settings::IconStyle,
+    },
     /// The truck's information bar beside WestPlay, kept or not, chosen in the cab's Settings (Appearance).
     TruckStrip { strip: settings::TruckStrip },
     /// The players' tone, set in the cab's Settings (Equalizer): the player's curve (bass, mid and treble, dB

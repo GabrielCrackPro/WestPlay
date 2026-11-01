@@ -1,5 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HostMessage, PageMessage, Telemetry } from '../../shared/host'
+
+/** A stand-in for the page's storage: this suite runs in Node, where `localStorage` isn't there, and the cabin's
+ * settings are saved through it (store.ts's persist). */
+function stubbedStorage() {
+  const kept = new Map<string, string>()
+  return {
+    getItem: (key: string) => kept.get(key) ?? null,
+    setItem: (key: string, value: string) => void kept.set(key, value),
+    removeItem: (key: string) => void kept.delete(key),
+  }
+}
 
 /** A stand-in for WebView2's `chrome.webview`: what the page posts, and a way to send it host messages. */
 function fakeWebView() {
@@ -16,6 +27,10 @@ function fakeWebView() {
     },
   }
 }
+
+beforeEach(() => {
+  vi.stubGlobal('localStorage', stubbedStorage())
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()

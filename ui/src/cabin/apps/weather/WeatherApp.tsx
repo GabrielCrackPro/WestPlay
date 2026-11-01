@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { formatGameTime, formatTripTime } from '../../../shared/format'
+import { sparklinePoints } from '../diagnostics/trip'
 import { nearestCity } from '../../dashboard/destination'
 import { isNight, nextChange, roads, weatherView } from '../../dashboard/weather'
 import { WeatherGlyph } from '../../dashboard/WeatherGlyph'
@@ -23,6 +24,9 @@ const SKIES: readonly Sky[] = ['day', 'night', 'rain-day', 'rain-night']
 export function WeatherApp() {
   const text = useText()
   const weather = useLive((state) => state.weather)
+  // The truck's own wipers: on a wet road it rains in the app before the game's sky turns (the sky takes about a
+  // minute either way).
+  const wipers = useLive((state) => state.telemetry?.wipers ?? false)
   // Changes once a game minute: the clock of the next change, and night or day.
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
   const labels = useMapData()?.labels
@@ -30,6 +34,9 @@ export function WeatherApp() {
     const t = state.telemetry
     return t && labels ? nearestCity([t.x, t.z], labels) : null
   })
+  // How the roads have been: the game knows the wetness now, so the app keeps a short history of it as it runs.
+  // Sampled before the early return below (a hook is called on every render, a return or not).
+  const trend = useWetness(typeof weather?.wetness === 'number' ? weather.wetness : null)
 
   if (!weather || gameTime === null) {
     return (
@@ -40,8 +47,8 @@ export function WeatherApp() {
     )
   }
 
-  const view = weatherView(weather, gameTime, place, text)
-  const rain = weather.now === 'rain' || weather.coming === 'rain'
+  const view = weatherView(weather, gameTime, place, text, wipers)
+  const rain = wipers || weather.now === 'rain' || weather.coming === 'rain'
   const night = isNight(gameTime)
   const sky: Sky = rain ? (night ? 'rain-night' : 'rain-day') : night ? 'night' : 'day'
   const next = nextChange(gameTime, weather.changeIn)
@@ -49,7 +56,7 @@ export function WeatherApp() {
 
   return (
     <section className="app-panel weather-app" aria-label={text.apps.weather}>
-      <SkyLayers sky={sky} rain={weather.now === 'rain'} />
+      <SkyLayers sky={sky} rain={rain} />
       <div className="wx-content">
         <header className="wx-hero">
           {place && <div className="wx-label">{text.weatherApp.myLocation}</div>}
@@ -71,12 +78,42 @@ export function WeatherApp() {
                 <span style={{ width: `${road.wetness}%` }} />
               </div>
               {road.trend && <div className="wx-note">{text.weatherApp.roadTrends[road.trend]}</div>}
+              {trend.length > 1 && (
+                <svg className="wx-trend" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden>
+                  <polyline points={sparklinePoints(trend)} />
+                </svg>
+              )}
             </Card>
           )}
         </div>
       </div>
     </section>
   )
+}
+
+/** A sample of the roads' wetness every 20 seconds: eight minutes of them on the card. */
+const WETNESS_EVERY_MS = 20_000
+const WETNESS_SAMPLES = 24
+
+/**
+ * The roads' wetness over the last few minutes, sampled while the app is open (the game reports the wetness as it
+ * is, not its history): the card's line, so a driver sees whether the roads are still drying or getting wetter.
+ */
+function useWetness(wetness: number | null): number[] {
+  const latest = useRef<number | null>(wetness)
+  const [samples, setSamples] = useState<number[]>([])
+  const reading = wetness !== null
+  useEffect(() => {
+    latest.current = wetness
+  }, [wetness])
+  useEffect(() => {
+    if (!reading) return
+    const take = () => setSamples((kept) => [...kept, latest.current ?? 0].slice(-WETNESS_SAMPLES))
+    take()
+    const timer = setInterval(take, WETNESS_EVERY_MS)
+    return () => clearInterval(timer)
+  }, [reading])
+  return samples
 }
 
 /** Every sky, the one of the moment shown: a change fades from one to the next. Rain falls over it. */

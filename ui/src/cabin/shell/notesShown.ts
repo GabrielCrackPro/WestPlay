@@ -33,6 +33,20 @@ export interface NoteRecord extends Note {
 /** The next history entry's id: past the ones already kept, so a saved note and a new one never share it. */
 let lastId = 0
 
+/**
+ * Each pill's timer, by the reading it's about. A note raised again stands the earlier timer down: without that,
+ * a reading pushed out of the stack (a fourth note trims the oldest) and raised again a moment later was taken down
+ * early by the first push's timer, after a second or two instead of its own six.
+ */
+const timers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function stopTimer(key: string): void {
+  const timer = timers.get(key)
+  if (timer === undefined) return
+  clearTimeout(timer)
+  timers.delete(key)
+}
+
 /** How many of the history the player hasn't looked at yet: the badge Home puts over the app's icon. */
 export function unreadCount(history: NoteRecord[], seen: number): number {
   return history.filter((note) => note.id > seen).length
@@ -76,9 +90,19 @@ export const useNotes = create<{
           notes: [...state.notes, note].slice(-MAX_NOTES),
           history: [record, ...state.history].slice(0, MAX_HISTORY),
         }))
-        setTimeout(() => get().dismiss(note.key), NOTE_SHOWN_MS)
+        stopTimer(note.key)
+        timers.set(
+          note.key,
+          setTimeout(() => {
+            timers.delete(note.key)
+            get().dismiss(note.key)
+          }, NOTE_SHOWN_MS),
+        )
       },
-      dismiss: (key) => set((state) => ({ notes: state.notes.filter((note) => note.key !== key) })),
+      dismiss: (key) => {
+        stopTimer(key)
+        set((state) => ({ notes: state.notes.filter((note) => note.key !== key) }))
+      },
       clearHistory: () => set({ history: [] }),
       // Opened: everything raised while the driver was on the road is read now.
       markSeen: () => set((state) => ({ seen: Math.max(state.seen, ...state.history.map((note) => note.id)) })),

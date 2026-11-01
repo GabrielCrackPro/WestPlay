@@ -78,12 +78,13 @@ pub struct LookSettings {
     /// One of the player's icon sets, by name. None: WestPlay's own icons.
     #[serde(deserialize_with = "lenient")]
     pub icon_set: Option<String>,
-    /// Light or dark icons, or (`auto`) as the screen is.
+    /// Light or dark icons, (`auto`) as the screen is, or (`android`) as Android Auto draws them.
     #[serde(deserialize_with = "lenient")]
     pub icon_style: IconStyle,
 }
 
-/// Which of an icon's looks the screen shows: as the screen is (light or dark), or always one.
+/// Which of an icon's looks the screen shows: as the screen is (light or dark), always one, or Android Auto's,
+/// which are WestPlay's own (an icon set's files are a light or a dark one).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum IconStyle {
@@ -91,6 +92,7 @@ pub enum IconStyle {
     Auto,
     Light,
     Dark,
+    Android,
 }
 
 /// Using the truck screen: hold the interaction key (or press it, toggled), and the mouse moves a cursor on

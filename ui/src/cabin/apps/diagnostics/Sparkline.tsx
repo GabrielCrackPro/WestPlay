@@ -9,7 +9,15 @@ export function Sparkline({ values }: { values: number[] }) {
   if (!points) return null
   return (
     <svg className="diag-spark" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden>
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      {/* pathLength 1, so the stroke's dash is the whole line: the CSS draws it on as the card comes in. */}
+      <polyline
+        points={points}
+        pathLength={1}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
 }

@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Đặt tên mỗi biểu tượng theo ứng dụng của nó: {names}. PNG, WebP, JPG hoặc SVG. Ứng dụng bị thiếu vẫn giữ biểu tượng của Cabin Play.',
     looksNote:
       'Muốn biểu tượng đổi theo chế độ sáng và tối, hãy thêm bản tối có .dark trong tên, ví dụ maps.dark.png cạnh maps.png.',
-    style: { title: 'Kiểu biểu tượng', auto: 'Tự động', light: 'Sáng', dark: 'Tối' },
+    style: { title: 'Kiểu biểu tượng', auto: 'Tự động', light: 'Sáng', dark: 'Tối', android: 'Android Auto' },
     remove: 'Xóa',
     pickWallpapers: 'Chọn hình nền',
     pickWallpaperFolder: 'Chọn thư mục hình nền',

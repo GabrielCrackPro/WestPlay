@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'თითოეულ ხატულას დაარქვით მისი აპის სახელი: {names}. PNG, WebP, JPG ან SVG. გამოტოვებულ აპს Cabin Play-ის ხატულა რჩება.',
     looksNote:
       'ხატულისთვის, რომელიც ღია და მუქ რეჟიმს შორის იცვლება, დაამატეთ მუქი ვერსია, რომლის სახელშიც .dark წერია, მაგალითად maps.dark.png maps.png-ის გვერდით.',
-    style: { title: 'ხატულების იერი', auto: 'ავტო', light: 'ღია', dark: 'მუქი' },
+    style: { title: 'ხატულების იერი', auto: 'ავტო', light: 'ღია', dark: 'მუქი', android: 'Android Auto' },
     remove: 'წაშლა',
     pickWallpapers: 'აირჩიეთ ფონები',
     pickWallpaperFolder: 'აირჩიეთ ფონების საქაღალდე',

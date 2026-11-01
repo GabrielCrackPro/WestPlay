@@ -257,7 +257,7 @@ export const words: CompanionWords = {
       'Her simgeye uygulamasının adını ver: {names}. PNG, WebP, JPG ya da SVG olabilir. Simgesini eklemediğin uygulamalarda Cabin Play’in simgesi kalır.',
     looksNote:
       'Açık ve Koyu modda değişen bir simge için adında .dark olan koyu hâlini de ekle; örneğin maps.png’nin yanına maps.dark.png.',
-    style: { title: 'Simge Görünümü', auto: 'Otomatik', light: 'Açık', dark: 'Koyu' },
+    style: { title: 'Simge Görünümü', auto: 'Otomatik', light: 'Açık', dark: 'Koyu', android: 'Android Auto' },
     remove: 'Kaldır',
     pickWallpapers: 'Duvar kâğıtlarını seç',
     pickWallpaperFolder: 'Duvar kâğıdı klasörü seç',

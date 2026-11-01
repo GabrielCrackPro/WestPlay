@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       '各アイコンにはアプリの名前を付けてください: {names}。PNG、WebP、JPG、SVG に対応。アイコンがないアプリには Cabin Play のアイコンが使われます。',
     looksNote:
       'ライトとダークで切り替わるアイコンにするには、名前に .dark を付けたダーク版を追加します（例：maps.png の隣に maps.dark.png）。',
-    style: { title: 'アイコンの外観', auto: '自動', light: 'ライト', dark: 'ダーク' },
+    style: { title: 'アイコンの外観', auto: '自動', light: 'ライト', dark: 'ダーク', android: 'Android Auto' },
     remove: '削除',
     pickWallpapers: '壁紙を選択',
     pickWallpaperFolder: '壁紙のフォルダを選択',

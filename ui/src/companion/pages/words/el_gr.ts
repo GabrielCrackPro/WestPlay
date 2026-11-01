@@ -265,7 +265,13 @@ export const words: CompanionWords = {
       'Ονόμασε κάθε εικονίδιο όπως την εφαρμογή του: {names}. PNG, WebP, JPG ή SVG. Μια εφαρμογή που λείπει κρατά το εικονίδιο του Cabin Play.',
     looksNote:
       'Για εικονίδιο που αλλάζει ανάμεσα σε φωτεινή και σκοτεινή εμφάνιση, πρόσθεσε μια σκοτεινή εκδοχή με .dark στο όνομα, π.χ. maps.dark.png δίπλα στο maps.png.',
-    style: { title: 'Εμφάνιση εικονιδίων', auto: 'Αυτόμ.', light: 'Φωτεινό', dark: 'Σκοτεινό' },
+    style: {
+      title: 'Εμφάνιση εικονιδίων',
+      auto: 'Αυτόμ.',
+      light: 'Φωτεινό',
+      dark: 'Σκοτεινό',
+      android: 'Android Auto',
+    },
     remove: 'Αφαίρεση',
     pickWallpapers: 'Διάλεξε ταπετσαρίες',
     pickWallpaperFolder: 'Διάλεξε φάκελο με ταπετσαρίες',

@@ -258,7 +258,7 @@ export const words: CompanionWords = {
     addZip: '从 .zip 添加',
     iconsNote: '用应用的名字给每个图标命名：{names}。支持 PNG、WebP、JPG 或 SVG。缺少的应用保留 Cabin Play 的图标。',
     looksNote: '想要随浅色和深色切换的图标，就添加一个名字里带 .dark 的深色版本，例如 maps.png 旁边的 maps.dark.png。',
-    style: { title: '图标外观', auto: '自动', light: '浅色', dark: '深色' },
+    style: { title: '图标外观', auto: '自动', light: '浅色', dark: '深色', android: 'Android Auto' },
     remove: '移除',
     pickWallpapers: '选择壁纸',
     pickWallpaperFolder: '选择壁纸文件夹',

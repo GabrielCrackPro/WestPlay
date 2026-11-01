@@ -46,6 +46,14 @@ export function transitionKind(launch: Launch | null): TransitionKind {
   return launch?.direction ?? 'switch'
 }
 
+/**
+ * Whether the screen changes without motion (Settings › Appearance's Reduce Motion, or the PC's own): then a
+ * navigation is just the new screen, with no view transition to snap between the two.
+ */
+function motionReduced(): boolean {
+  return document.documentElement.dataset.motion === 'reduced'
+}
+
 /** The transition name shared by the morphing icon and app window. */
 const APP_WINDOW = 'app-window'
 
@@ -71,6 +79,17 @@ export function carriesLaunch(state: LaunchState, app: AppId, role: LaunchRole):
   const iconPhase = launch.direction === 'open' ? 'from' : 'to'
   if (role.kind === 'icon') return role.origin === launch.origin && phase === iconPhase
   return phase !== iconPhase
+}
+
+/**
+ * Whether a launch is animating now, read once rather than subscribed to: a screen that mounts for one (Home as
+ * an app closes into its icon, an app opening) doesn't run its own entrance animation, which would be caught
+ * half-finished in the transition's snapshot. Read at mount, because a subscribed flag turns true to false as the
+ * transition ends, and the entrance it was holding back would then start — a flash of the whole screen a moment
+ * after it settled.
+ */
+export function launchingNow(): boolean {
+  return useLaunch.getState().launch !== null
 }
 
 /** Whether this element is the morphing one in the snapshot being prepared (see `carriesLaunch`). */
@@ -120,7 +139,7 @@ export function whenTransitionEnds(next: () => void): void {
  * it begins from the current screen.
  */
 export function animateNavigation(launch: Launch | null, update: () => void): void {
-  if (typeof document.startViewTransition !== 'function') {
+  if (typeof document.startViewTransition !== 'function' || motionReduced()) {
     update()
     return
   }
@@ -173,7 +192,11 @@ function intoSidebar(root: HTMLElement): void {
  */
 export function animateAppearance(update: () => void): void {
   const root = document.documentElement
-  if (typeof document.startViewTransition !== 'function' || (running && root.dataset.transition !== 'appearance')) {
+  if (
+    motionReduced() ||
+    typeof document.startViewTransition !== 'function' ||
+    (running && root.dataset.transition !== 'appearance')
+  ) {
     update()
     return
   }

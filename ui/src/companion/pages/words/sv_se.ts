@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Döp varje symbol efter sin app: {names}. PNG, WebP, JPG eller SVG. En app som saknas behåller Cabin Plays symbol.',
     looksNote:
       'För en symbol som växlar mellan ljust och mörkt lägger du till en mörk version med .dark i namnet, t.ex. maps.dark.png bredvid maps.png.',
-    style: { title: 'Symbolernas utseende', auto: 'Auto', light: 'Ljus', dark: 'Mörk' },
+    style: { title: 'Symbolernas utseende', auto: 'Auto', light: 'Ljus', dark: 'Mörk', android: 'Android Auto' },
     remove: 'Ta bort',
     pickWallpapers: 'Välj bakgrunder',
     pickWallpaperFolder: 'Välj en mapp med bakgrunder',

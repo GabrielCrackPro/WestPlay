@@ -139,3 +139,52 @@
   border-radius: 10px;
   font-size: calc(19px * var(--text-scale, 1));
 }
+
+/* Home's icons come in one after another (Home.tsx hands each its own delay): a short lift and fade, Apple's
+   curve. Reduce Motion cuts it to a blink (shell.css). */
+.home-pages .app {
+  animation: app-in 340ms var(--motion-ease) both;
+}
+
+@keyframes app-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+}
+
+/* Pressed, the icon itself gives a little, as an iOS app's does. */
+.app-icon {
+  transition: scale 160ms var(--motion-ease);
+}
+
+.app:active .app-icon {
+  scale: 0.93;
+}
+
+/* The page's dot: the one shown a little larger as well as brighter. */
+.home-dot::before {
+  transition:
+    opacity 240ms var(--motion-ease),
+    transform 240ms var(--motion-ease);
+}
+
+.home-dot.shown::before {
+  transform: scale(1.3);
+}
+
+/* Mounting as an app closes into its icon: the icons belong to the launch's transition, not to Home's own
+   entrance (Home.tsx's launchingNow, read once at mount). */
+.home-pages.no-enter .app {
+  animation: none;
+}
+
+/* A drag at the grid's edge turns its own page; it doesn't carry on into the page behind (the screen). */
+.home-pages {
+  overscroll-behavior-x: contain;
+}
+
+/* Under the mouse (the cab's cursor), an icon lifts a little: it's what the click opens. */
+.app:hover .app-icon {
+  scale: 1.035;
+}

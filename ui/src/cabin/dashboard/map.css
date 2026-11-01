@@ -263,3 +263,101 @@
     width: 24px;
   }
 }
+
+/* The trip pill's tail (MapView.tsx): the next rest the game asks for, and the tank's range when it doesn't reach
+   the destination (the one thing in the pill to act on, so it takes the amber). The pill's width is the map's;
+   these ride its line, and give way to it as it runs out of room. */
+.eta-rest {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  font-weight: 600;
+}
+
+.eta-range {
+  color: var(--apple-orange);
+  font-weight: 650;
+}
+
+/* How much of the route is behind the truck: a line along the bottom of the pill, the bar growing as it goes. */
+.eta-bar {
+  display: block;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.22);
+  overflow: hidden;
+}
+
+.eta-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transition: width 600ms var(--motion-ease);
+}
+
+/* The arrival and the time roll in as they change (MapView keys them), as the sidebar's clock does. */
+.eta-pill b,
+.eta-time {
+  display: inline-block;
+  animation: eta-roll 260ms var(--motion-ease) both;
+}
+
+@keyframes eta-roll {
+  from {
+    opacity: 0;
+    transform: translateY(-30%);
+  }
+}
+
+/* The truck's wipers are on (MapView.tsx): rain runs down the map as it runs down the windscreen, over the map and
+   under the pill, the speeds and the turn-by-turn. Screen-blended so it reads on the dark map; a grey wash on the
+   daytime one, where white streaks would vanish. */
+.map-rain {
+  position: absolute;
+  inset: 0;
+  /* No z-index: it takes its place in the tile's own order, under the pill and the speeds drawn after it. */
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(96deg, rgb(255 255 255 / 0.22) 0 1.5px, transparent 1.5px 9px);
+  background-size: 200px 200px;
+  mix-blend-mode: screen;
+  animation: map-rain-fall 900ms linear infinite;
+}
+
+.appearance-light .map-rain {
+  mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(96deg, rgb(92 116 140 / 0.5) 0 1.5px, transparent 1.5px 9px);
+}
+
+@keyframes map-rain-fall {
+  to {
+    background-position: -40px 200px;
+  }
+}
+
+/* Reduce Motion (Settings › Appearance): the rain lies still on the map rather than falling. */
+html[data-motion='reduced'] .map-rain {
+  animation: none;
+}
+
+/* How hard it comes down (MapView.tsx, from the game's road wetness): a drizzle as the roads damp, a downpour once
+   they're soaked — denser streaks, a fuller wash and a faster fall. */
+.map-rain.light {
+  opacity: 0.34;
+  background-size: 160px 160px;
+  animation-duration: 1100ms;
+}
+
+.map-rain.medium {
+  opacity: 0.5;
+}
+
+.map-rain.heavy {
+  opacity: 0.66;
+  background-size: 240px 240px;
+  animation-duration: 620ms;
+}

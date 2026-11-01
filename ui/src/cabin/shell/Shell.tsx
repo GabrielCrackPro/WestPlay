@@ -1,5 +1,5 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
-import { isInHost } from '../../shared/host'
+import { cabClock, isInHost } from '../../shared/host'
 import { useLook, useLookChanges, useOemStrip, useScreenProfile } from '../state/hooks'
 import { usePreparedIcons } from '../state/looks'
 import { frameInsets, NO_INSETS, OEM_STRIPS } from '../state/oem'
@@ -81,6 +81,8 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
   // Over a video full screen, pointing at the left edge brings the sidebar back (shell/sidebarPeek.ts).
   const carplay = useRef<HTMLDivElement>(null)
   const peek = useSidebarPeek(watching, carplay)
+  // Night in the truck: the screen dims as a head unit's does (Shell.tsx `useNightDim`).
+  const nightDim = useNightDim()
   useEffect(() => {
     // Brought back, it goes again as soon as it's left, without the wait it has as YouTube opens.
     if (peek) useYouTube.setState({ holdSidebar: false })
@@ -106,6 +108,8 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
           <Keyboard />
           <VolumeHud />
           <Notifications />
+          {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
+          {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>
       </div>
       {/* What's drawn over the video where it shows through the CarPlay area (apps/youtube/VideoHole.tsx). */}
@@ -127,6 +131,23 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
       {profile.rim && <div className="screen-rim" style={{ color: profile.rim }} aria-hidden />}
     </main>
   )
+}
+
+/**
+ * How far the screen dims for the truck's night, and from when to when (game time): the cab's screen glows as a
+ * head unit's does in a dark cab instead of glaring at full brightness. Low enough to read everything by, and
+ * gone by day unless the lights are on (a tunnel, a storm).
+ */
+const NIGHT_DIM = 0.16
+const NIGHT_FROM = 20 * 60
+const NIGHT_TO = 6 * 60
+
+function useNightDim(): number {
+  const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
+  const lit = useLive((state) => Boolean(state.telemetry?.lowBeam || state.telemetry?.highBeam))
+  if (clock === null) return 0
+  const minute = ((clock % 1440) + 1440) % 1440
+  return lit || minute >= NIGHT_FROM || minute < NIGHT_TO ? NIGHT_DIM : 0
 }
 
 /** A mask showing everything but a rounded rectangle, through which what's under the page shows. */

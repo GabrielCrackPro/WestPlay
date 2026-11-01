@@ -685,7 +685,9 @@ function LibraryShelfPage({
   const favourites = look.filter === 'favorites'
   const library = found as AppleMusicLibrary | undefined
   const items = (library?.items ?? []).filter((item) => (!favourites || item.favorite) && matches(item.name, item.by))
-  const songs = (library?.songs ?? []).filter((song) => (!favourites || song.favorite) && matches(song.name, song.artist))
+  const songs = (library?.songs ?? []).filter(
+    (song) => (!favourites || song.favorite) && matches(song.name, song.artist),
+  )
   return (
     <Scroll>
       <div className="am-page-head">

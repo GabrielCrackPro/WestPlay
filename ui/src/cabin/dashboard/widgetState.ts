@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { cabClock } from '../../shared/host'
+import type { DashboardWidget } from '../state/store'
 import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } from '../apps/diagnostics/readings'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
@@ -40,9 +42,44 @@ export function useAnyWidget(): boolean {
   )
 }
 
-/** Whether there's room for the weather card: three widgets fill the column. */
-export function weatherFits(others: number): boolean {
-  return others < 4
+/**
+ * The Dashboard's widgets in the order the column shows them: the player's own (Settings › Dashboard), or, with Auto
+ * order on, by what the drive needs now — a warning first, then a job's deadline closing, then a late delivery,
+ * the rest after them. A tie keeps the player's order.
+ */
+export function useWidgetOrder(): DashboardWidget[] {
+  const order = useCabin((state) => state.dashboardOrder)
+  const enabled = useCabin((state) => state.dashboardWidgets)
+  const auto = useCabin((state) => state.autoOrder)
+  const { late, soon, warn } = useLive(
+    useShallow((state) => {
+      const telemetry = state.telemetry
+      const job = state.job
+      const clock = telemetry?.gameTime ?? 0
+      const late = job !== null && job.deliveryTime > 0 && clock > job.deliveryTime
+      const soon = job !== null && job.deliveryTime > 0 && !late && job.deliveryTime - clock <= 20
+      const warn =
+        telemetry !== null &&
+        (telemetry.fuelWarning ||
+          telemetry.adblueWarning ||
+          telemetry.batteryWarning ||
+          telemetry.oilPressureWarning ||
+          telemetry.brakeAirWarning)
+      return { late, soon, warn }
+    }),
+  )
+  return useMemo(() => {
+    const ids = order.filter((id) => enabled[id])
+    if (!auto) return ids
+    const score: Record<DashboardWidget, number> = {
+      diagnostics: warn ? 100 : 20,
+      destination: late ? 96 : 25,
+      job: late ? 95 : soon ? 90 : 30,
+      nowPlaying: 10,
+      weather: 0,
+    }
+    return [...ids].sort((a, b) => score[b] - score[a] || order.indexOf(a) - order.indexOf(b))
+  }, [order, enabled, auto, late, soon, warn])
 }
 
 /** The diagnostics card's readings: the coolant and the brake air, then the fuel left in the tank, the AdBlue

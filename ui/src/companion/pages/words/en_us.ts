@@ -256,7 +256,7 @@ export const words: CompanionWords = {
     iconsNote: 'Name each icon after its app: {names}. PNG, WebP, JPG or SVG. An app left out keeps Cabin Play’s icon.',
     looksNote:
       'For an icon that switches between Light and Dark, add a dark version with .dark in its name, like maps.dark.png next to maps.png.',
-    style: { title: 'Icon Look', auto: 'Auto', light: 'Light', dark: 'Dark' },
+    style: { title: 'Icon Look', auto: 'Auto', light: 'Light', dark: 'Dark', android: 'Android Auto' },
     remove: 'Remove',
     pickWallpapers: 'Choose wallpapers',
     pickWallpaperFolder: 'Choose a folder of wallpapers',

@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Dai a ogni icona il nome della sua app: {names}. PNG, WebP, JPG o SVG. Un’app mancante mantiene l’icona di Cabin Play.',
     looksNote:
       'Per un’icona che cambia tra chiaro e scuro, aggiungi una versione scura con .dark nel nome, ad esempio maps.dark.png accanto a maps.png.',
-    style: { title: 'Aspetto icone', auto: 'Auto', light: 'Chiaro', dark: 'Scuro' },
+    style: { title: 'Aspetto icone', auto: 'Auto', light: 'Chiaro', dark: 'Scuro', android: 'Android Auto' },
     remove: 'Rimuovi',
     pickWallpapers: 'Scegli gli sfondi',
     pickWallpaperFolder: 'Scegli una cartella di sfondi',

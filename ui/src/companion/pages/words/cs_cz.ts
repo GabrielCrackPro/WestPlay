@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Pojmenujte každou ikonu podle její aplikace: {names}. PNG, WebP, JPG nebo SVG. Vynechaná aplikace si ponechá ikonu Cabin Play.',
     looksNote:
       'Aby se ikona měnila mezi světlým a tmavým režimem, přidejte její tmavou verzi s .dark v názvu, třeba maps.dark.png vedle maps.png.',
-    style: { title: 'Vzhled ikon', auto: 'Auto', light: 'Světlý', dark: 'Tmavý' },
+    style: { title: 'Vzhled ikon', auto: 'Auto', light: 'Světlý', dark: 'Tmavý', android: 'Android Auto' },
     remove: 'Odstranit',
     pickWallpapers: 'Vyberte tapety',
     pickWallpaperFolder: 'Vyberte složku s tapetami',

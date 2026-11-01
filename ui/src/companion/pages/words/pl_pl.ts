@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Nazwij każdą ikonę jak jej aplikację: {names}. PNG, WebP, JPG lub SVG. Pominięta aplikacja zachowa ikonę Cabin Play.',
     looksNote:
       'Aby ikona zmieniała się między trybem jasnym a ciemnym, dodaj jej ciemną wersję z .dark w nazwie, np. maps.dark.png obok maps.png.',
-    style: { title: 'Wygląd ikon', auto: 'Auto', light: 'Jasny', dark: 'Ciemny' },
+    style: { title: 'Wygląd ikon', auto: 'Auto', light: 'Jasny', dark: 'Ciemny', android: 'Android Auto' },
     remove: 'Usuń',
     pickWallpapers: 'Wybierz tapety',
     pickWallpaperFolder: 'Wybierz folder z tapetami',

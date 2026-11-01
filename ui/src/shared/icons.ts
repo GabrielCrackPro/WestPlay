@@ -5,7 +5,12 @@
  * WestPlay's own icons (public/icons/westplay), each in a light and a dark look: drawn in the logo's style, and
  * for the music services their companies' own marks, from their official files (on their own background in the
  * light look, on WestPlay's dark card in the dark look).
+ *
+ * Each also has an `android` look: Android Auto's, the flat tinted tile with a white mark, which the companion's
+ * Customize offers beside Light and Dark.
  */
+export type IconLook = 'light' | 'dark' | 'android'
+
 export type AppIconRole =
   | 'maps'
   | 'music'
@@ -36,7 +41,7 @@ const FILES: Record<AppIconRole, string> = {
   notifications: 'notifications',
 }
 
-/** WestPlay's own icon for `role`, for a light or a dark screen. */
-export function appIcon(role: AppIconRole, look: 'light' | 'dark' = 'light'): string {
+/** WestPlay's own icon for `role`: for a light or a dark screen, or as Android Auto draws it. */
+export function appIcon(role: AppIconRole, look: IconLook = 'light'): string {
   return `/icons/westplay/${FILES[role]}.${look}.svg`
 }

@@ -2,7 +2,22 @@ import { type CSSProperties, type PointerEvent, type ReactNode, useEffect, useRe
 import { NoteGlyph, PauseGlyph, PlayGlyph } from '../music/glyphs'
 import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
 import { smoothThrough } from './curve'
-import { useWallpapers } from '../../state/looks'
+import { setIcons, useLooks, useWallpapers } from '../../state/looks'
+import { fileUrl, type IconSet, type IconStyle } from '../../../shared/customize'
+import { type AppIconRole, appIcon, type IconLook } from '../../../shared/icons'
+import {
+  MAP_MARKERS,
+  MAP_MARKER_SIZES,
+  MAP_NIGHT_STARTS,
+  MAP_PIN_STYLES,
+  MAP_ROUTE_COLOURS,
+  MAP_ROUTE_WEIGHTS,
+  type MapMarker,
+  type MapMarkerSize,
+  type MapPinStyle,
+  type MapRouteColour,
+  type MapRouteWeight,
+} from '../../maps/routeLook'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
@@ -22,6 +37,7 @@ import {
   CheckGlyph,
   ChevronGlyph,
   DashboardGlyph,
+  IconsGlyph,
   NowPlayingGlyph,
   SoundGlyph,
   WallpaperGlyph,
@@ -41,8 +57,18 @@ export function SettingsApp() {
   const text = useText()
   const page = useSettings((state) => state.page)
   const went = useSettings((state) => state.went)
+  const back = useSettings((state) => state.back)
   // Opened again, the page it was left on comes with the window, without a slide of its own.
   useEffect(() => () => useSettings.setState({ went: 'none' }), [])
+  // Escape goes back a page, as its button does: the cab is driven by mouse, but the keyboard walks these too.
+  useEffect(() => {
+    if (page === 'list') return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') back()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [page, back])
   return (
     <section className="app-panel settings-app" aria-label={text.apps.settings}>
       <div key={page} className={`settings-page went-${went}`}>
@@ -60,6 +86,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <AppearancePage />
     case 'wallpaper':
       return <WallpaperPage />
+    case 'icons':
+      return <IconsPage />
     case 'dashboard':
       return <DashboardPage />
     case 'map':
@@ -103,6 +131,12 @@ function ListPage() {
           icon={<WallpaperGlyph />}
           label={text.settings.wallpaper}
           onOpen={() => open('wallpaper')}
+        />
+        <NavRow
+          tile="var(--apple-purple)"
+          icon={<IconsGlyph />}
+          label={text.settings.icons}
+          onOpen={() => open('icons')}
         />
       </Group>
       <Group>
@@ -173,6 +207,13 @@ function AppearancePage() {
       <Group>
         <NavRow label={text.settings.textSize} onOpen={() => open('textSize')} />
       </Group>
+      <Group footer={text.settings.reduceMotionFooter}>
+        <SwitchRow
+          label={text.settings.reduceMotion}
+          on={useCabin((state) => state.reduceMotion)}
+          onToggle={useCabin((state) => state.setReduceMotion)}
+        />
+      </Group>
       {hasBar && (
         <Group footer={text.settings.vehicleBarFooter}>
           <SwitchRow
@@ -221,6 +262,7 @@ function TextSizeSlider() {
     if (nearest !== step) setStep(nearest)
   }
   const at = (index: number) => `${(index / last) * 100}%`
+  const goTo = (index: number) => setStep(Math.max(0, Math.min(last, index)))
   return (
     <div className="text-size-row">
       <span className="text-size-a small" aria-hidden>
@@ -235,6 +277,18 @@ function TextSizeSlider() {
         aria-valuemin={0}
         aria-valuemax={last}
         aria-valuenow={step}
+        aria-valuetext={`${step + 1} / ${last + 1}`}
+        // Reached by Tab, the arrow keys step it as the finger's drag does.
+        tabIndex={0}
+        onKeyDown={(event) => {
+          const key = event.key
+          if (key === 'ArrowLeft' || key === 'ArrowDown') goTo(step - 1)
+          else if (key === 'ArrowRight' || key === 'ArrowUp') goTo(step + 1)
+          else if (key === 'Home') goTo(0)
+          else if (key === 'End') goTo(last)
+          else return
+          event.preventDefault()
+        }}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId)
           follow(event)
@@ -319,6 +373,116 @@ function WallpaperThumbnail({ src }: { src: string }) {
 /** Twice a thumbnail's width on the screen, so it stays sharp. */
 const THUMBNAIL_WIDTH = 600
 
+/** The apps an icon set's row shows: enough of them to tell one set's look from another's. */
+const ICON_STRIP: readonly AppIconRole[] = ['maps', 'music', 'spotify', 'youtube', 'youtubeMusic']
+
+/**
+ * App Icons (Settings › App Icons): the look the icons show in (Automatic, Light or Dark), and which icons — Cabin
+ * Play's own (with Android Auto's flat tiles as a choice of their own, under them as in the companion) or one of the
+ * player's sets, its row showing what it changes. Chosen here, it shows at once and is kept with Cabin Play's
+ * settings, where the companion's Customize sees it.
+ */
+function IconsPage() {
+  const text = useText()
+  const { appearance } = useLook()
+  const iconSet = useLooks((state) => state.iconSet)
+  const iconStyle = useLooks((state) => state.iconStyle)
+  const sets = useLooks((state) => state.custom.iconSets)
+  const base = useLooks((state) => state.base)
+  const android = iconStyle === 'android'
+  // What the rows' strips show: the look chosen, or the screen's own.
+  const look: IconLook = android ? 'android' : iconStyle === 'auto' ? appearance : iconStyle
+  const choose = (next: { iconSet: string | null; iconStyle: IconStyle }) => {
+    setIcons(next)
+    if (isInHost()) postToHost({ type: 'icons', ...next })
+  }
+  return (
+    <Page title={text.settings.icons}>
+      <Group header={text.settings.iconStyle} radio={text.settings.iconStyle}>
+        {(
+          [
+            { id: 'auto', label: text.settings.automatic },
+            { id: 'light', label: text.settings.light },
+            { id: 'dark', label: text.settings.dark },
+          ] as const
+        ).map((style) => (
+          <CheckRow
+            key={style.id}
+            label={style.label}
+            on={!android && iconStyle === style.id}
+            onPick={() => choose({ iconSet, iconStyle: style.id })}
+          />
+        ))}
+      </Group>
+      <Group radio={text.settings.icons}>
+        <IconSetRow
+          name="Cabin Play"
+          icons={null}
+          chosen={!android && !iconSet}
+          look={look}
+          base={base}
+          onPick={() => choose({ iconSet: null, iconStyle: android ? 'auto' : iconStyle })}
+        />
+        <IconSetRow
+          name="Android Auto"
+          icons={null}
+          chosen={android}
+          look="android"
+          base={base}
+          onPick={() => choose({ iconSet: null, iconStyle: 'android' })}
+        />
+        {sets.map((set) => (
+          <IconSetRow
+            key={set.name}
+            name={set.name}
+            icons={set}
+            chosen={!android && iconSet === set.name}
+            look={look}
+            base={base}
+            onPick={() => choose({ iconSet: set.name, iconStyle: 'auto' })}
+          />
+        ))}
+      </Group>
+    </Page>
+  )
+}
+
+/** An icon set's row: its name, a strip of the icons it changes, and a tick when it's the one shown. */
+function IconSetRow({
+  name,
+  icons,
+  chosen,
+  look,
+  base,
+  onPick,
+}: {
+  name: string
+  /** `null`: Cabin Play's own icons in `look` (its own set's, or Android Auto's). */
+  icons: IconSet | null
+  chosen: boolean
+  look: IconLook
+  base: string
+  onPick(): void
+}) {
+  return (
+    <button type="button" role="radio" aria-checked={chosen} className="settings-row icon-set-row" onClick={onPick}>
+      <span className="settings-label">{name}</span>
+      <span className="icon-strip" aria-hidden>
+        {ICON_STRIP.map((role) => {
+          // A set has a light and a dark file per app; Android Auto's tiles are Cabin Play's own.
+          const path = look === 'android' ? null : icons?.icons[role]?.[look]
+          return <img key={role} src={path ? fileUrl(base, path) : appIcon(role, look)} alt="" />
+        })}
+      </span>
+      {chosen && (
+        <span className="settings-check">
+          <CheckGlyph />
+        </span>
+      )}
+    </button>
+  )
+}
+
 /** Which widgets the Dashboard shows (turn-by-turn always does while there's a route), and which clock the
  * sidebar keeps: the player's own time or the game's. */
 function DashboardPage() {
@@ -327,6 +491,10 @@ function DashboardPage() {
   const setWidget = useCabin((state) => state.setDashboardWidget)
   const clock = useCabin((state) => state.clock)
   const setClock = useCabin((state) => state.setClock)
+  const autoOrder = useCabin((state) => state.autoOrder)
+  const setAutoOrder = useCabin((state) => state.setAutoOrder)
+  const order = useCabin((state) => state.dashboardOrder)
+  const moveWidget = useCabin((state) => state.moveWidget)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -340,6 +508,34 @@ function DashboardPage() {
         {DASHBOARD_WIDGETS.map((widget) => (
           <SwitchRow key={widget} label={names[widget]} on={widgets[widget]} onToggle={(on) => setWidget(widget, on)} />
         ))}
+      </Group>
+      <Group footer={text.settings.autoOrderFooter}>
+        <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
+        {/* The player's own order, top to bottom, while Auto order leaves it alone. */}
+        {!autoOrder &&
+          order.map((widget, index) => (
+            <div key={widget} className="settings-row settings-order">
+              <span className="settings-label">{names[widget]}</span>
+              <span className="settings-order-buttons">
+                <button
+                  type="button"
+                  aria-label={`${text.settings.moveUp} ${names[widget]}`}
+                  disabled={index === 0}
+                  onClick={() => moveWidget(widget, -1)}
+                >
+                  <span aria-hidden>▲</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${text.settings.moveDown} ${names[widget]}`}
+                  disabled={index === order.length - 1}
+                  onClick={() => moveWidget(widget, 1)}
+                >
+                  <span aria-hidden>▼</span>
+                </button>
+              </span>
+            </div>
+          ))}
       </Group>
       <Group footer={text.settings.clockFooter}>
         <SwitchRow
@@ -372,6 +568,56 @@ function MapPage() {
   const setTraffic = useCabin((state) => state.setMapTraffic)
   const recentre = useCabin((state) => state.mapRecentre)
   const setRecentre = useCabin((state) => state.setMapRecentre)
+  const route = useCabin((state) => state.mapRoute)
+  const setRoute = useCabin((state) => state.setMapRoute)
+  const weight = useCabin((state) => state.mapWeight)
+  const setWeight = useCabin((state) => state.setMapWeight)
+  const north = useCabin((state) => state.mapNorth)
+  const setNorth = useCabin((state) => state.setMapNorth)
+  const marker = useCabin((state) => state.mapMarker)
+  const setMarker = useCabin((state) => state.setMapMarker)
+  const markerSize = useCabin((state) => state.mapMarkerSize)
+  const setMarkerSize = useCabin((state) => state.setMapMarkerSize)
+  const limit = useCabin((state) => state.mapLimit)
+  const setLimit = useCabin((state) => state.setMapLimit)
+  const over = useCabin((state) => state.mapOver)
+  const setOver = useCabin((state) => state.setMapOver)
+  const compass = useCabin((state) => state.mapCompass)
+  const setCompass = useCabin((state) => state.setMapCompass)
+  const scale = useCabin((state) => state.mapScale)
+  const setScale = useCabin((state) => state.setMapScale)
+  const nightStart = useCabin((state) => state.mapNightStart)
+  const setNightStart = useCabin((state) => state.setMapNightStart)
+  const pins = useCabin((state) => state.mapPins)
+  const setPins = useCabin((state) => state.setMapPins)
+  const pinFuel = useCabin((state) => state.mapPinFuel)
+  const setPinFuel = useCabin((state) => state.setMapPinFuel)
+  const pinParking = useCabin((state) => state.mapPinParking)
+  const setPinParking = useCabin((state) => state.setMapPinParking)
+  const pinService = useCabin((state) => state.mapPinService)
+  const setPinService = useCabin((state) => state.setMapPinService)
+  const colourNames: Record<MapRouteColour, string> = {
+    blue: words.routeBlue,
+    teal: words.routeTeal,
+    purple: words.routePurple,
+    amber: words.routeAmber,
+  }
+  const weightNames: Record<MapRouteWeight, string> = {
+    thin: words.weightThin,
+    standard: words.weightStandard,
+    bold: words.weightBold,
+  }
+  const markerNames: Record<MapMarker, string> = {
+    arrow: words.markerArrow,
+    dot: words.markerDot,
+    truck: words.markerTruck,
+  }
+  const sizeNames: Record<MapMarkerSize, string> = {
+    small: words.sizeSmall,
+    medium: words.sizeMedium,
+    large: words.sizeLarge,
+  }
+  const pinNames: Record<MapPinStyle, string> = { filled: words.pinFilled, outlined: words.pinOutlined }
   // High and Low are the Equalizer's words already (the map draws the same two ends of a scale).
   const details: Record<MapDetail, string> = {
     high: text.settings.high,
@@ -380,7 +626,7 @@ function MapPage() {
   }
   return (
     <Page title={text.apps.maps}>
-      <Group header={words.mapDetail}>
+      <Group header={words.mapDetail} radio={words.mapDetail}>
         {MAP_DETAILS.map((each) => (
           <CheckRow key={each} label={details[each]} on={detail === each} onPick={() => setDetail(each)} />
         ))}
@@ -393,13 +639,60 @@ function MapPage() {
         <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
         <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
       </Group>
-      <Group header={words.mapRecentre}>
+      <Group header={words.mapRecentre} radio={words.mapRecentre}>
         {MAP_RECENTRES.map((seconds) => (
           <CheckRow
             key={seconds}
             label={seconds === 0 ? words.mapNever : `${seconds} s`}
             on={recentre === seconds}
             onPick={() => setRecentre(seconds)}
+          />
+        ))}
+      </Group>
+      <Group header={words.routeColour} radio={words.routeColour}>
+        {MAP_ROUTE_COLOURS.map((each) => (
+          <CheckRow key={each} label={colourNames[each]} on={route === each} onPick={() => setRoute(each)} />
+        ))}
+      </Group>
+      <Group header={words.routeWeight} radio={words.routeWeight}>
+        {MAP_ROUTE_WEIGHTS.map((each) => (
+          <CheckRow key={each} label={weightNames[each]} on={weight === each} onPick={() => setWeight(each)} />
+        ))}
+      </Group>
+      <Group header={words.marker} radio={words.marker}>
+        {MAP_MARKERS.map((each) => (
+          <CheckRow key={each} label={markerNames[each]} on={marker === each} onPick={() => setMarker(each)} />
+        ))}
+      </Group>
+      <Group header={words.markerSize} radio={words.markerSize}>
+        {MAP_MARKER_SIZES.map((each) => (
+          <CheckRow key={each} label={sizeNames[each]} on={markerSize === each} onPick={() => setMarkerSize(each)} />
+        ))}
+      </Group>
+      <Group header={words.pinStyle} radio={words.pinStyle}>
+        {MAP_PIN_STYLES.map((each) => (
+          <CheckRow key={each} label={pinNames[each]} on={pins === each} onPick={() => setPins(each)} />
+        ))}
+      </Group>
+      <Group>
+        <SwitchRow label={words.pinsFuel} on={pinFuel} onToggle={setPinFuel} />
+        <SwitchRow label={words.pinsParking} on={pinParking} onToggle={setPinParking} />
+        <SwitchRow label={words.pinsService} on={pinService} onToggle={setPinService} />
+      </Group>
+      <Group>
+        <SwitchRow label={words.mapNorth} on={north} onToggle={setNorth} />
+        <SwitchRow label={words.mapLimit} on={limit} onToggle={setLimit} />
+        <SwitchRow label={words.mapOver} on={over} onToggle={setOver} />
+        <SwitchRow label={words.mapCompass} on={compass} onToggle={setCompass} />
+        <SwitchRow label={words.mapScale} on={scale} onToggle={setScale} />
+      </Group>
+      <Group header={words.mapNightFrom} radio={words.mapNightFrom}>
+        {MAP_NIGHT_STARTS.map((hour) => (
+          <CheckRow
+            key={hour}
+            label={`${String(hour).padStart(2, '0')}:00`}
+            on={nightStart === hour}
+            onPick={() => setNightStart(hour)}
           />
         ))}
       </Group>
@@ -431,13 +724,18 @@ function NowPlayingPage() {
   )
 }
 
-/** Sound: the Equalizer (more of the sound's settings may come here). */
+/** Sound: the cabin's own interface sounds, and the Equalizer (the speakers' tone, per truck). */
 function SoundPage() {
   const text = useText()
   const open = useSettings((state) => state.open)
   const custom = useCabin((state) => state.equalizerCustom)
+  const sounds = useCabin((state) => state.uiSounds)
+  const setSounds = useCabin((state) => state.setUiSounds)
   return (
     <Page title={text.settings.sound}>
+      <Group footer={text.settings.uiSoundsFooter}>
+        <SwitchRow label={text.settings.uiSounds} on={sounds} onToggle={setSounds} />
+      </Group>
       <Group>
         <NavRow
           label={text.settings.equalizer}
@@ -469,7 +767,7 @@ function EqualizerPage() {
   }, [])
   return (
     <Page title={text.settings.equalizer}>
-      <Group footer={text.settings.equalizerFooter}>
+      <Group footer={text.settings.equalizerFooter} radio={text.settings.equalizer}>
         <CheckRow label={text.settings.recommended} on={!custom} onPick={() => choose(false)} />
         <CheckRow label={text.settings.custom} on={custom} onPick={() => choose(true)} />
       </Group>
@@ -563,6 +861,9 @@ function EqualizerGraph() {
     const kept = Math.max(-EQUALIZER_MOST, Math.min(EQUALIZER_MOST, db))
     if (kept !== curve[band] || !custom) setBand(band, kept)
   }
+  // A band moved from the keyboard: the same whole dB a finger's drag picks, within the scale.
+  const nudge = (band: keyof Equalizer, by: number) =>
+    setBand(band, Math.max(-EQUALIZER_MOST, Math.min(EQUALIZER_MOST, curve[band] + by)))
   const shown = custom ? curve : { bass: 0, mid: 0, treble: 0 }
   const points: [number, number][] = [
     [0, heightOf(shown.bass)],
@@ -622,6 +923,20 @@ function EqualizerGraph() {
               aria-valuemin={-EQUALIZER_MOST}
               aria-valuemax={EQUALIZER_MOST}
               aria-valuenow={curve[band]}
+              aria-orientation="vertical"
+              // Reached by Tab, each band's arrow keys move it as the finger does.
+              tabIndex={0}
+              onKeyDown={(event) => {
+                const key = event.key
+                if (key === 'ArrowUp' || key === 'ArrowRight') nudge(band, 1)
+                else if (key === 'ArrowDown' || key === 'ArrowLeft') nudge(band, -1)
+                else if (key === 'PageUp') nudge(band, 3)
+                else if (key === 'PageDown') nudge(band, -3)
+                else if (key === 'Home') nudge(band, -EQUALIZER_MOST)
+                else if (key === 'End') nudge(band, EQUALIZER_MOST)
+                else return
+                event.preventDefault()
+              }}
             />
           ))}
         </>
@@ -704,11 +1019,24 @@ function Page({ title, list = false, children }: { title: string; list?: boolean
 /** How far the list scrolls before its large title is under the bar (settings.css: .settings-large-title). */
 const LARGE_TITLE_HEIGHT = 56
 
-function Group({ header, footer, children }: { header?: string; footer?: string; children: ReactNode }) {
+function Group({
+  header,
+  footer,
+  radio,
+  children,
+}: {
+  header?: string
+  footer?: string
+  /** The rows are one choice between them (a tick on the one picked): the card is a radio group, named by this. */
+  radio?: string
+  children: ReactNode
+}) {
   return (
     <div className="settings-group">
       {header && <h2 className="settings-group-header">{header}</h2>}
-      <div className="settings-card">{children}</div>
+      <div className="settings-card" role={radio ? 'radiogroup' : undefined} aria-label={radio}>
+        {children}
+      </div>
       {footer && <p className="settings-group-footer">{footer}</p>}
     </div>
   )

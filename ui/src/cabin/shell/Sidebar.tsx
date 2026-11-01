@@ -8,6 +8,7 @@ import { homeButtonTarget } from '../state/navigation'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { cabClock } from '../../shared/host'
+import { unreadCount, useNotes } from './notesShown'
 
 /**
  * The CarPlay sidebar: the truck's brand and clock, the recent apps (the open one on top), and at the bottom
@@ -24,6 +25,9 @@ export function Sidebar() {
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
   const realTime = useRealTime()
   const shown = useScreenProfile().recents ?? 3
+  // What the Notifications app has that the driver hasn't looked at: its recent carries the count, as Home's icon
+  // does, so a note raised while driving is still found from any screen.
+  const unread = useNotes((state) => unreadCount(state.history, state.seen))
   const time = clock === 'real' ? formatRealTime(realTime) : gameTime === null ? null : formatGameTime(gameTime)
 
   return (
@@ -31,11 +35,19 @@ export function Sidebar() {
     <aside className="sidebar glass" style={{ viewTransitionName: 'sidebar' }}>
       <div className="status">
         <BrandMark />
-        <div className="time">{time ?? '--:--'}</div>
+        {/* Keyed by the minute: a new one rolls in (shell.css), as a car's clock does. */}
+        <div className="time" key={time ?? '--:--'}>
+          {time ?? '--:--'}
+        </div>
       </div>
       <nav className="recent" aria-label="Recent apps">
         {recents.slice(0, shown).map((app) => (
-          <RecentApp key={app} app={app} current={route.kind === 'app' && route.app === app} />
+          <RecentApp
+            key={app}
+            app={app}
+            current={route.kind === 'app' && route.app === app}
+            badge={app === 'notifications' ? unread : 0}
+          />
         ))}
       </nav>
       <div className="sidebar-actions">
@@ -85,7 +97,7 @@ function useRealTime(): number {
  * changes, pushing the others along (like moving an icon on iOS). When it opens its app, the window grows
  * out of a copy laid exactly over it for that moment, so the icon itself is still free to slide to the top.
  */
-function RecentApp({ app, current }: { app: AppId; current: boolean }) {
+function RecentApp({ app, current, badge }: { app: AppId; current: boolean; badge: number }) {
   const launching = useCarriesLaunch(app, { kind: 'icon', origin: 'sidebar' })
   const icon = useAppIcon(APPS[app].icon)
   const text = useText()
@@ -97,6 +109,11 @@ function RecentApp({ app, current }: { app: AppId; current: boolean }) {
       onClick={() => go({ type: 'openApp', app }, 'sidebar')}
     >
       <img src={icon} alt="" style={{ viewTransitionName: `recent-${app}`, viewTransitionClass: 'recent' }} />
+      {badge > 0 && (
+        <span className="recent-badge" aria-label={text.notificationsApp.summary(badge)}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
       {launching && <img className="launch-copy" src={icon} alt="" style={LAUNCH_STYLE} />}
     </button>
   )

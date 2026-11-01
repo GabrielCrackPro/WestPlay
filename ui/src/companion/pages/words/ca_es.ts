@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Anomena cada icona com la seva app: {names}. PNG, WebP, JPG o SVG. Una app que falti conserva la icona del Cabin Play.',
     looksNote:
       'Per a una icona que canviï entre clar i fosc, afegeix una versió fosca amb .dark al nom, per exemple maps.dark.png al costat de maps.png.',
-    style: { title: 'Aspecte de les icones', auto: 'Auto', light: 'Clar', dark: 'Fosc' },
+    style: { title: 'Aspecte de les icones', auto: 'Auto', light: 'Clar', dark: 'Fosc', android: 'Android Auto' },
     remove: 'Elimina',
     pickWallpapers: 'Tria fons de pantalla',
     pickWallpaperFolder: 'Tria una carpeta de fons de pantalla',

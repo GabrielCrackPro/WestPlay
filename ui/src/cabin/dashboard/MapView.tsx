@@ -10,6 +10,7 @@ import { StopsStrip } from '../maps/StopsStrip'
 import { useMapData } from '../maps/mapData'
 import { RoadMap } from '../maps/RoadMap'
 import { useCabin, useLive } from '../state/store'
+import { useTicker } from '../state/ticker'
 import { useText } from '../state/text'
 import './map.css'
 import { cabClock } from '../../shared/host'
@@ -25,12 +26,21 @@ import { cabClock } from '../../shared/host'
  */
 export function MapView({ interactive = false }: { interactive?: boolean }) {
   const speed = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.speed) : 0))
+  // The badge's number eased like a speedo, not the game's twenty frames a second (state/ticker.ts).
+  const shownSpeed = Math.round(useTicker(speed))
   const limit = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.navigationSpeedLimit) : 0))
   const data = useMapData()
   const hvtMap = useLive((state) => state.hvtMap)
+  const showLimit = useCabin((state) => state.mapLimit)
+  const warnOver = useCabin((state) => state.mapOver)
   const text = useText()
   const arrived = useArrival()
   const night = useNightMap()
+  // The wipers are on: rain runs down the map too, as it runs down the windscreen. How hard it comes down is the
+  // game's own wetness (percent): a drizzle as the roads damp, a downpour once they're soaked.
+  const wipers = useLive((state) => state.telemetry?.wipers ?? false)
+  const wetness = useLive((state) => state.weather?.wetness ?? 0)
+  const rain = wetness >= 70 ? 'heavy' : wetness >= 25 ? 'medium' : 'light'
 
   if (hvtMap) {
     return (
@@ -63,16 +73,19 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
         </>
       )}
       <div className="map-shade" />
+      {wipers && <div className={`map-rain ${rain}`} aria-hidden />}
       <TripPill />
       <StopsStrip compact={!interactive} />
       <ArrivalCard arrived={arrived} />
       <div className="speed-stack">
-        {limit > 0 && (
+        {limit > 0 && showLimit && (
           <div className="speed-limit" aria-label={text.speedLimit(limit)}>
             {limit}
           </div>
         )}
-        {speed > 0 && <div className={`speed-badge${limit > 0 && speed > limit ? ' over' : ''}`}>{speed}</div>}
+        {speed > 0 && (
+          <div className={`speed-badge${limit > 0 && warnOver && speed > limit ? ' over' : ''}`}>{shownSpeed}</div>
+        )}
       </div>
       {/* Turn-by-turn, over the map on both screens (the Dashboard has no card of its own for it). */}
       <GuidanceCard />
@@ -89,10 +102,11 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
  */
 function useNightMap(): boolean {
   const on = useCabin((state) => state.mapNight)
+  const starts = useCabin((state) => state.mapNightStart)
   const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
   if (!on || clock === null) return false
   const minute = ((clock % 1440) + 1440) % 1440
-  return minute >= 20 * 60 || minute < 6 * 60
+  return minute >= starts * 60 || minute < 6 * 60
 }
 
 /** How long the arrival card stays up, ms: long enough to be read at the wheel. */
@@ -172,18 +186,50 @@ function TripPill() {
           )
         : null
       const total = formatTripTime(minutes, text)
-      return [
-        formatGameTime(Math.round(cabClock(telemetry, state.clockShift) + minutes)),
-        stop ? `${formatTripTime(stop.minutes, text)} | ${total}` : total,
-        formatTripDistance(telemetry.navigationDistance, text.decimal),
-      ]
+      // How much of the route is behind the truck: the route's own length, as the game counts its distances.
+      const planned = state.route?.distances[0] ?? 0
+      const progress = planned > 0 ? Math.min(1, Math.max(0, 1 - telemetry.navigationDistance / planned)) : null
+      // The next rest the game's fatigue simulation asks for, while it's within the hour, and the tank's range
+      // against the way left (amber when it doesn't reach: a fill-up has to come first).
+      const rest = telemetry.restStop
+      return {
+        arrival: formatGameTime(Math.round(cabClock(telemetry, state.clockShift) + minutes)),
+        time: stop ? `${formatTripTime(stop.minutes, text)} | ${total}` : total,
+        distance: formatTripDistance(telemetry.navigationDistance, text.decimal),
+        progress,
+        rest: rest >= 0 && rest <= 60 ? `${text.diagnostics.restStop} ${formatTripTime(rest, text)}` : null,
+        // The tank only when it doesn't reach: the one piece of the pill that has to be acted on.
+        range:
+          telemetry.fuelRange > 0 && telemetry.fuelRange < telemetry.navigationDistance
+            ? `${text.diagnostics.range} ${formatTripDistance(telemetry.fuelRange, text.decimal)}`
+            : null,
+      }
     }),
   )
   if (!trip) return null
-  const [arrival, time, distance] = trip
+  const { arrival, time, distance, progress, rest, range } = trip
   return (
     <div className="eta-pill glass">
-      <b>{arrival}</b> {text.arrival} <span className="dot">·</span> {time} <span className="dot">·</span> {distance}
+      <span className="eta-line">
+        {/* Keyed by what they say: a new arrival or a new time rolls in, as the sidebar's clock does. */}
+        <b key={arrival}>{arrival}</b> {text.arrival} <span className="dot">·</span>{' '}
+        <span key={time} className="eta-time">
+          {time}
+        </span>{' '}
+        <span className="dot">·</span> {distance}
+        {range && (
+          <>
+            {' '}
+            <span className="dot">·</span> <span className="eta-range">{range}</span>
+          </>
+        )}
+      </span>
+      {rest && <span className="eta-rest">{rest}</span>}
+      {progress !== null && (
+        <span className="eta-bar" aria-hidden>
+          <span style={{ width: `${Math.round(progress * 100)}%` }} />
+        </span>
+      )}
     </div>
   )
 }

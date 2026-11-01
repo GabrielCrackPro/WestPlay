@@ -1,4 +1,4 @@
-import type { CustomWallpaper, IconSet } from './customize'
+import type { CustomWallpaper, IconSet, IconStyle } from './customize'
 import type { Language } from '../cabin/state/strings'
 
 /**
@@ -345,6 +345,9 @@ export type PageMessage =
   | { type: 'westplay'; open: boolean }
   /** The wallpaper chosen in Settings (wallpapers.ts), kept with WestPlay's settings (the companion's too). */
   | { type: 'wallpaper'; id: string }
+  /** The app icons chosen in Settings › App Icons: the player's set by name (`null`: Cabin Play's own), and
+   * which of its looks shows. Kept the same way as the wallpaper (the companion's Customize sees it). */
+  | { type: 'icons'; iconSet: string | null; iconStyle: IconStyle }
   /** The Vehicle Bar (the truck's strip) kept or not, chosen in Settings › Appearance, kept the same way. */
   | { type: 'truckStrip'; strip: 'auto' | 'off' }
   /** The players' tone, set in Settings › Equalizer: the player's curve, and whether it plays (Custom) or the

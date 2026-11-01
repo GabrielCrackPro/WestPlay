@@ -261,7 +261,7 @@ export const words: CompanionWords = {
       'Nimeta iga ikoon tema rakenduse järgi: {names}. PNG, WebP, JPG või SVG. Puuduv rakendus jääb Cabin Play ikooniga.',
     looksNote:
       'Kui tahad ikooni, mis vahetub heleda ja tumeda vahel, lisa tume versioon, mille nimes on .dark, näiteks maps.dark.png faili maps.png kõrvale.',
-    style: { title: 'Ikoonide välimus', auto: 'Auto', light: 'Hele', dark: 'Tume' },
+    style: { title: 'Ikoonide välimus', auto: 'Auto', light: 'Hele', dark: 'Tume', android: 'Android Auto' },
     remove: 'Eemalda',
     pickWallpapers: 'Vali taustapildid',
     pickWallpaperFolder: 'Vali taustapiltide kaust',

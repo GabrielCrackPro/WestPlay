@@ -46,6 +46,7 @@ import {
 } from './route'
 import { guidanceOf } from './guidance'
 import { type PinPlace, pinFeatures } from './nearbyPins'
+import type { MapMarker } from './routeLook'
 import {
   BUILDING_LAYER,
   MAP_SOURCE,
@@ -55,8 +56,10 @@ import {
   PLAYERS_SOURCE,
   paintFor,
   placeImagesFor,
+  placeKindFilter,
   ROUTE_HEAD_SOURCE,
   ROUTE_SOURCE,
+  routeOverrides,
   TRAFFIC_SOURCE,
 } from './style'
 import { corridorOf, type TrafficStretch, trafficAlong } from './traffic'
@@ -176,6 +179,12 @@ interface LiveMap {
   keptAt: number
   /** The Map detail and layer choices last applied (Settings › Maps). */
   settingsShown: string
+  /** The route's colour and weight and the truck's marker last drawn (Settings › Maps). */
+  lookShown: string
+  /** The pins' style and kinds last applied (Settings › Maps). */
+  pinsShown: string
+  /** The scale bar, while it's on the map (Settings › Maps). */
+  scale: maplibregl.ScaleControl | null
 }
 
 /** Whether the map is browsing (moved away from the truck): the Maps app shows its recentre button. */
@@ -340,6 +349,9 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     kept: '',
     keptAt: 0,
     settingsShown: '',
+    lookShown: '',
+    pinsShown: '',
+    scale: null,
   }
   // Place icons are drawn when the map first needs each (placeIcons.ts), and again once the type for their
   // names is in.
@@ -347,9 +359,11 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     const icon = parsePlaceIcon(id)
     if (!icon || map.hasImage(id)) return
     const pixelRatio = window.devicePixelRatio || 1
-    map.addImage(id, drawPlaceIcon(icon.kind, icon.name, created.painted, pixelRatio, fontFamily, nameScale()), {
-      pixelRatio,
-    })
+    map.addImage(
+      id,
+      drawPlaceIcon(icon.kind, icon.name, created.painted, pixelRatio, fontFamily, nameScale(), outlinedPins()),
+      { pixelRatio },
+    )
   })
   document.fonts.ready.then(() => redrawPlaceIcons(created)).catch(() => {})
   // The player's text size changed: once it has settled (a drag along the slider passes several), the names
@@ -370,6 +384,7 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     }, TEXT_SIZE_SETTLE_MS)
   })
   listen(created)
+  drawMarker(created)
   restoreView(created)
   return created
 }
@@ -400,6 +415,98 @@ function syncMapSettings(target: LiveMap) {
   show('players', mapTrucks)
   show('traffic', mapTraffic)
   target.settingsShown = key
+}
+
+/**
+ * The route, the truck's marker and its size as the player has them (Settings › Maps). Applied as they change; the
+ * appearance repainting the map takes the route's colours off again, so syncAppearance lets go of the key and this
+ * puts them back.
+ */
+function syncMapLook(target: LiveMap) {
+  const { mapRoute, mapWeight, mapMarker, mapMarkerSize } = useCabin.getState()
+  const key = `${mapRoute}:${mapWeight}:${mapMarker}:${mapMarkerSize}`
+  if (target.lookShown === key) return
+  try {
+    for (const { layer, property, value } of routeOverrides(target.painted, mapRoute, mapWeight)) {
+      if (target.map.getLayer(layer)) target.map.setPaintProperty(layer, property, value)
+    }
+  } catch {
+    // The style is still loading: the next frame tries again.
+    return
+  }
+  target.lookShown = key
+  drawMarker(target)
+}
+
+/** The marker's glyphs, by style. */
+const MARKER_GLYPHS: Record<MapMarker, string> = {
+  arrow: '<path d="M12 4.5 18 19l-6-3.2L6 19Z" fill="currentColor"/>',
+  dot: '<circle cx="12" cy="12" r="5.5" fill="currentColor"/><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2" opacity="0.4"/>',
+  truck:
+    '<path d="M2.5 7.5h11v8h-11zM13.5 10h3.2l2.8 2.6v2.9h-6z" fill="currentColor"/>' +
+    '<circle cx="6" cy="17.4" r="1.7" fill="currentColor"/><circle cx="16.6" cy="17.4" r="1.7" fill="currentColor"/>',
+}
+
+/** Draws the truck's marker as the player chose it (its size is CSS, by the element's `data-size`). */
+function drawMarker(target: LiveMap) {
+  const { mapMarker, mapMarkerSize } = useCabin.getState()
+  const element = target.puck.getElement()
+  element.dataset.marker = mapMarker
+  element.dataset.size = mapMarkerSize
+  element.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${MARKER_GLYPHS[mapMarker]}</svg>`
+}
+
+/** Whether the player draws every pin as an outline (Settings › Maps). */
+function outlinedPins(): boolean {
+  return useCabin.getState().mapPins === 'outlined'
+}
+
+/**
+ * The map's pins (Settings › Maps): filled or outlined, and which kinds of place it shows. The kinds are left out of
+ * both place layers' filter; a change of style takes the drawn images away, so the map asks for them anew in it.
+ */
+function syncPins(target: LiveMap) {
+  const { mapPins, mapPinFuel, mapPinParking, mapPinService } = useCabin.getState()
+  const hidden = [
+    ...(mapPinFuel ? [] : ['fuel']),
+    ...(mapPinParking ? [] : ['parking']),
+    ...(mapPinService ? [] : ['service']),
+  ]
+  const key = `${mapPins}:${hidden.join(',')}`
+  if (target.pinsShown === key) return
+  // Nothing to filter until the style has laid its layers out (a map still loading them): the next frame tries.
+  if (!target.map.getLayer('places') || !target.map.getLayer('places-badges')) return
+  const before = target.pinsShown.split(':')[0]
+  try {
+    const filter = hidden.length
+      ? (['all', placeKindFilter(), ['!', ['in', ['get', 'kind'], ['literal', hidden]]]] as never)
+      : (placeKindFilter() as never)
+    for (const layer of ['places', 'places-badges']) {
+      if (target.map.getLayer(layer)) target.map.setFilter(layer, filter)
+    }
+  } catch {
+    // The style is still loading: the next frame tries again.
+    return
+  }
+  // A new pin style: the images drawn so far are the old one's, so they go and the map draws them again. (`before`
+  // empty: the first time, nothing has been drawn for this map yet.)
+  if (before !== '' && before !== mapPins) {
+    for (const id of target.map.listImages()) if (parsePlaceIcon(id)) target.map.removeImage(id)
+  }
+  target.pinsShown = key
+}
+
+/** The scale bar (Settings › Maps): MapLibre's own, bottom left; off, taken away. */
+function syncScale(target: LiveMap) {
+  const wanted = useCabin.getState().mapScale
+  if ((target.scale !== null) === wanted) return
+  if (wanted) {
+    target.scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' })
+    target.map.addControl(target.scale, 'bottom-left')
+  } else if (target.scale) {
+    target.map.removeControl(target.scale)
+    target.scale = null
+  }
 }
 
 /** How near (m, as the game counts) a turn makes the camera ease out so the junction is seen before it's on. */
@@ -559,6 +666,8 @@ function syncAppearance(target: LiveMap) {
       target.map.setPaintProperty(layer, property, value)
     }
     target.painted = target.wanted
+    // The player's own route colour and weight go on over the appearance's: they're theirs, not the look's.
+    target.lookShown = ''
     // Names' colours follow the appearance.
     redrawPlaceIcons(target)
   } catch {
@@ -696,7 +805,10 @@ function redrawPlaceIcons({ map, painted }: LiveMap) {
   for (const id of map.listImages()) {
     const icon = parsePlaceIcon(id)
     if (icon?.name) {
-      map.updateImage(id, drawPlaceIcon(icon.kind, icon.name, painted, pixelRatio, fontFamily, nameScale()))
+      map.updateImage(
+        id,
+        drawPlaceIcon(icon.kind, icon.name, painted, pixelRatio, fontFamily, nameScale(), outlinedPins()),
+      )
     }
   }
 }
@@ -768,6 +880,9 @@ function place() {
       const dt = Math.min(now - lastFrame, 100)
       lastFrame = now
       syncAppearance(current)
+      syncMapLook(current)
+      syncPins(current)
+      syncScale(current)
       syncGarages(current)
       syncMapSettings(current)
       syncPlayers(current, now)
@@ -1212,11 +1327,12 @@ function updateCamera(target: LiveMap, now: number, dt: number) {
     Math.max(MIN_ZOOM, zoomForSpeed(truck.speed) + target.zoomOffset - (nearJunction() ? JUNCTION_ZOOM_OUT : 0)),
   )
   const height = map.getContainer().clientHeight
-  // Behind the truck: facing its way, tilted, the truck low on the screen. North up: from above, the truck in
-  // the middle.
-  const wanted = target.northUp
-    ? { bearing: 0, pitch: 0, top: 0 }
-    : { bearing, pitch: PITCH, top: height * (PUCK_FROM_TOP - 0.5) * 2 }
+  // Behind the truck: facing its way, tilted, the truck low on the screen. North up (the player's setting, or the
+  // compass tapped): from above, the truck in the middle.
+  const wanted =
+    target.northUp || useCabin.getState().mapNorth
+      ? { bearing: 0, pitch: 0, top: 0 }
+      : { bearing, pitch: PITCH, top: height * (PUCK_FROM_TOP - 0.5) * 2 }
   const padding = { top: wanted.top, bottom: 0, left: 0, right: 0 }
 
   if (target.mode === 'return' && target.glide) {

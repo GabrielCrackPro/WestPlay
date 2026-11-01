@@ -731,3 +731,46 @@ button.widget:active {
     font-size: calc(13.5px * var(--text-scale, 1));
   }
 }
+
+/* A widget that arrives (a job taken, the truck's readings back) rises into the column, as the column makes room
+   for it. */
+.widget-slot.open {
+  animation: widget-in 320ms var(--motion-ease) both;
+}
+
+@keyframes widget-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Mounting as an app closes: the column is the transition's, so its cards don't rise in (Dashboard.tsx). */
+.widgets.no-enter .widget-slot.open {
+  animation: none;
+}
+
+/* The weather card in a full column (widgets.tsx): the same card, a size down, so it fits without the others
+   giving up their own. */
+.widget.weather.tight {
+  padding: 12px 20px;
+  gap: 12px;
+}
+
+.widget.weather.tight .condition {
+  font-size: calc(19px * var(--text-scale, 1));
+}
+
+/* A reading out of its range on the Diagnostics card gives itself away, two short pulses and then it stays put:
+   enough to catch a driver's eye, not a light that keeps blinking at them. */
+.widget.diagnostics .destination.alarm,
+.widget.diagnostics .place.alarm,
+.widget.diagnostics .diag-extra-item.alarm .diag-extra-value {
+  animation: diag-alarm 900ms var(--motion-ease) 2;
+}
+
+@keyframes diag-alarm {
+  50% {
+    opacity: 0.45;
+  }
+}

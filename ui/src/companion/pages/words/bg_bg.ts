@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Наименувайте всяка икона като приложението ѝ: {names}. PNG, WebP, JPG или SVG. Пропуснато приложение запазва иконата на Cabin Play.',
     looksNote:
       'За икона, която се сменя между светъл и тъмен режим, добавете тъмна версия с .dark в името, например maps.dark.png до maps.png.',
-    style: { title: 'Облик на иконите', auto: 'Авт.', light: 'Светъл', dark: 'Тъмен' },
+    style: { title: 'Облик на иконите', auto: 'Авт.', light: 'Светъл', dark: 'Тъмен', android: 'Android Auto' },
     remove: 'Премахни',
     pickWallpapers: 'Изберете тапети',
     pickWallpaperFolder: 'Изберете папка с тапети',

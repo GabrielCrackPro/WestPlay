@@ -904,3 +904,55 @@
   pointer-events: none;
   transition-duration: 900ms;
 }
+
+/* The truck's marker (Settings › Maps: an arrow, a dot or a truck, in three sizes). Its colours are the map's
+   own (maps.css' .map-puck); these only size the drawing, and lift the solid ones a little. */
+.map-puck[data-size='small'] svg {
+  width: 22px;
+  height: 22px;
+}
+
+.map-puck[data-size='medium'] svg {
+  width: 30px;
+  height: 30px;
+}
+
+.map-puck[data-size='large'] svg {
+  width: 40px;
+  height: 40px;
+}
+
+.map-puck[data-marker='dot'],
+.map-puck[data-marker='truck'] {
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.45));
+}
+
+/* The scale bar (Settings › Maps): MapLibre's own, bottom left, in the cabin's type and glass. */
+.maplibregl-ctrl-scale {
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 2px 8px;
+  background: rgb(20 22 26 / 0.5);
+  color: #fff;
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.appearance-light .maplibregl-ctrl-scale {
+  border-color: rgb(0 0 0 / 0.35);
+  background: rgb(255 255 255 / 0.72);
+  color: #14161a;
+}
+
+/* The destination's flag drops onto the map when a route is set (liveMap adds its marker then). */
+.map-destination {
+  animation: destination-drop 420ms var(--motion-ease) both;
+}
+
+@keyframes destination-drop {
+  from {
+    opacity: 0;
+    translate: 0 -16px;
+  }
+}

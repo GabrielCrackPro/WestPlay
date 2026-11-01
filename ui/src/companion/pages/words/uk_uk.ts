@@ -262,7 +262,7 @@ export const words: CompanionWords = {
       'Назвіть кожен значок за його застосунком: {names}. PNG, WebP, JPG або SVG. Пропущений застосунок збереже значок Cabin Play.',
     looksNote:
       'Щоб значок змінювався між світлим і темним режимом, додайте темну версію з .dark у назві, наприклад maps.dark.png поруч із maps.png.',
-    style: { title: 'Вигляд значків', auto: 'Авто', light: 'Світлий', dark: 'Темний' },
+    style: { title: 'Вигляд значків', auto: 'Авто', light: 'Світлий', dark: 'Темний', android: 'Android Auto' },
     remove: 'Видалити',
     pickWallpapers: 'Виберіть шпалери',
     pickWallpaperFolder: 'Виберіть папку зі шпалерами',

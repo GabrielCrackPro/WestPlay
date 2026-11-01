@@ -19,6 +19,7 @@ import { showVolume } from './shell/volumeShown'
 import { type Route, routeKey } from './state/navigation'
 import { nextPhaseAt, type PowerPhase } from './state/power'
 import { meterFrames } from './state/frameMeter'
+import { installSounds } from './state/sound'
 import { connectHost, useCabin, useLive } from './state/store'
 import { languageOf } from './state/strings'
 import { followTimeZone } from './state/timeZone'
@@ -49,9 +50,18 @@ export function CabinApp() {
   useEffect(() => followTruckersMp(), [])
   // The page's own frames while the game runs, for the host's performance line (state/frameMeter.ts).
   useEffect(() => meterFrames(), [])
+  // The cabin's sounds (state/sound.ts): a tick under every press, from one listener for the whole screen.
+  useEffect(() => installSounds(), [])
   useEffect(() => routeClicksDuringTransitions(), [])
   // Lists follow a drag, as on a touch screen (the cab has a mouse).
   useEffect(() => installDragScroll(), [])
+  // The page's language, so text set in capitals follows its rules (Turkish: i to İ, not I).
+  // Reduced motion: the shell's transitions (and launches, state/launch.ts) are cut short (shell.css).
+  const reduceMotion = useCabin((state) => state.reduceMotion)
+  useEffect(() => {
+    if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
+    else delete document.documentElement.dataset.motion
+  }, [reduceMotion])
   // The page's language, so text set in capitals follows its rules (Turkish: i to İ, not I).
   const language = languageOf(useLive((state) => state.gameLanguage))
   useEffect(() => {

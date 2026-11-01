@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Benenne jedes Symbol nach seiner App: {names}. PNG, WebP, JPG oder SVG. Eine fehlende App behält das Symbol von Cabin Play.',
     looksNote:
       'Für ein Symbol, das zwischen Hell und Dunkel wechselt, füge eine dunkle Version mit .dark im Namen hinzu, etwa maps.dark.png neben maps.png.',
-    style: { title: 'Symbol-Look', auto: 'Auto', light: 'Hell', dark: 'Dunkel' },
+    style: { title: 'Symbol-Look', auto: 'Auto', light: 'Hell', dark: 'Dunkel', android: 'Android Auto' },
     remove: 'Entfernen',
     pickWallpapers: 'Hintergründe auswählen',
     pickWallpaperFolder: 'Ordner mit Hintergründen auswählen',

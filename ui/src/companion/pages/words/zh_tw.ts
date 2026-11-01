@@ -258,7 +258,7 @@ export const words: CompanionWords = {
     addZip: '從 .zip 加入',
     iconsNote: '以 App 的名稱為每個圖像命名：{names}。支援 PNG、WebP、JPG 或 SVG。缺少的 App 保留 Cabin Play 的圖像。',
     looksNote: '想要隨淺色與深色切換的圖像，就加入一個名稱裡帶 .dark 的深色版本，例如 maps.png 旁邊的 maps.dark.png。',
-    style: { title: '圖像外觀', auto: '自動', light: '淺色', dark: '深色' },
+    style: { title: '圖像外觀', auto: '自動', light: '淺色', dark: '深色', android: 'Android Auto' },
     remove: '移除',
     pickWallpapers: '選擇桌布',
     pickWallpaperFolder: '選擇桌布資料夾',

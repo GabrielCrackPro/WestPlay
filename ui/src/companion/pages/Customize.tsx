@@ -85,8 +85,14 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
     refreshCustom()
   }
 
-  // The look the icons show in: the room's screen is dark, so Auto shows them dark here.
-  const shown = look?.iconStyle === 'light' ? 'light' : 'dark'
+  // The look the icons show in: the room's screen is dark, so Auto shows them dark here. Android Auto's flat
+  // icons are a choice of their own (below, with the sets), not a look: Light and Dark are the sets' looks.
+  const style = look?.iconStyle ?? 'auto'
+  const shown: 'light' | 'dark' = style === 'light' ? 'light' : 'dark'
+  const androidLook = style === 'android'
+  // Choosing a set leaves Android Auto's look, as choosing Android Auto leaves the set.
+  const chooseSet = (name: string | null) =>
+    choose(androidLook ? { iconSet: name, iconStyle: 'auto' } : { iconSet: name })
   const wallpapers = [...BUILT_IN_WALLPAPERS, ...(custom?.wallpapers ?? []).map((x) => customWallpaper(x, FILES_BASE))]
   const chosenWallpaper = look?.wallpaper ?? wallpapers[0]?.id
   const names = list(
@@ -137,10 +143,18 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
         <IconSetRow
           name={w.westplay}
           icons={null}
-          chosen={!look?.iconSet}
+          chosen={!look?.iconSet && !androidLook}
           shown={shown}
           cw={cw}
-          choose={() => choose({ iconSet: null })}
+          choose={() => chooseSet(null)}
+        />
+        <IconSetRow
+          name={w.style.android}
+          icons={null}
+          chosen={androidLook}
+          shown="android"
+          cw={cw}
+          choose={() => choose({ iconSet: null, iconStyle: 'android' })}
         />
         {(custom?.iconSets ?? []).map((set) => (
           <IconSetRow
@@ -150,7 +164,7 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
             chosen={look?.iconSet === set.name}
             shown={shown}
             cw={cw}
-            choose={() => choose({ iconSet: set.name })}
+            choose={() => chooseSet(set.name)}
             remove={() => void remove(removeIconSet(set.name))}
           />
         ))}
@@ -243,7 +257,7 @@ function IconSetRow({
   /** `null`: Cabin Play's own. */
   icons: IconSet | null
   chosen: boolean
-  shown: 'light' | 'dark'
+  shown: 'light' | 'dark' | 'android'
   cw: CompanionWords
   choose(): void
   remove?: () => void
@@ -259,7 +273,7 @@ function IconSetRow({
           </span>
           <span className="cz-strip" aria-hidden>
             {ICON_FILES.map(([role]) => {
-              const path = icons?.icons[role]?.[shown]
+              const path = shown === 'android' ? null : icons?.icons[role]?.[shown]
               return (
                 <img
                   key={role}

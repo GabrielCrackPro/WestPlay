@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Назовите каждый значок по его приложению: {names}. PNG, WebP, JPG или SVG. У пропущенного приложения останется значок Cabin Play.',
     looksNote:
       'Чтобы значок менялся между светлым и тёмным режимом, добавьте тёмную версию с .dark в имени, например maps.dark.png рядом с maps.png.',
-    style: { title: 'Внешний вид значков', auto: 'Авто', light: 'Светлый', dark: 'Тёмный' },
+    style: { title: 'Внешний вид значков', auto: 'Авто', light: 'Светлый', dark: 'Тёмный', android: 'Android Auto' },
     remove: 'Удалить',
     pickWallpapers: 'Выберите обои',
     pickWallpaperFolder: 'Выберите папку с обоями',

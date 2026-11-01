@@ -25,17 +25,17 @@
   min-height: 100%;
 }
 
-/* The app's pages, as one bar of tabs: the page being shown is raised out of the bar (owner 2026-11-01: "so we
-   dont have to scroll to see info"). */
+/* The app's pages, as one bar of tabs: an icon and the page's name each, the page being shown raised out of the
+   bar on a card of its own (owner 2026-11-01: "so we dont have to scroll to see info"). */
 .diag-tabs {
   display: flex;
   flex: none;
   /* The tabs wrap rather than run off the panel: a narrow screen shows two rows, both readable. */
   flex-wrap: wrap;
-  gap: calc(5px * var(--text-scale, 1));
+  gap: calc(4px * var(--text-scale, 1));
   width: fit-content;
   max-width: 100%;
-  padding: calc(6px * var(--text-scale, 1));
+  padding: calc(5px * var(--text-scale, 1));
   border: 1px solid var(--apple-separator);
   border-radius: 999px;
   background: var(--apple-fill);
@@ -44,22 +44,71 @@
 .diag-tab {
   display: flex;
   align-items: center;
-  gap: calc(8px * var(--text-scale, 1));
-  padding: calc(10px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  gap: calc(9px * var(--text-scale, 1));
+  /* A finger's (or a mouse cursor's) target, even at the small screen's size. */
+  min-height: calc(46px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(19px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1))
+    calc(16px * var(--text-scale, 1));
   border-radius: 999px;
   font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 600;
+  font-weight: 550;
   color: var(--text-dim);
   white-space: nowrap;
   transition:
-    background-color 160ms var(--motion-ease),
-    color 160ms var(--motion-ease);
+    background-color 180ms var(--motion-ease),
+    color 180ms var(--motion-ease),
+    box-shadow 220ms var(--motion-ease),
+    scale 150ms var(--motion-ease);
+}
+
+.diag-tab:active {
+  scale: 0.97;
 }
 
 .diag-tab.on {
   background: var(--apple-card);
   color: var(--text);
+  font-weight: 650;
   box-shadow: var(--shadow-raised);
+}
+
+/* The tab's icon: dim beside its name, full once the tab shows, and in the reading's tone when that page has one
+   worth watching (the app's own colours, as its cards and its tab bar's dot use). */
+.diag-tab-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(24px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
+  opacity: 0.75;
+  transition:
+    opacity 180ms var(--motion-ease),
+    color 180ms var(--motion-ease);
+}
+
+.diag-tab.on .diag-tab-icon {
+  opacity: 1;
+}
+
+.diag-tab.warn .diag-tab-icon {
+  color: var(--apple-orange);
+  opacity: 1;
+}
+
+.diag-tab.alarm .diag-tab-icon {
+  color: var(--apple-red);
+  opacity: 1;
+}
+
+.diag-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diag-tab .diag-dot {
+  flex: none;
+  margin-left: calc(-2px * var(--text-scale, 1));
 }
 
 /* A page shows only its own readings, and the hero only on the overview: the other pages' cards stay out of the
@@ -582,5 +631,122 @@
 
   .diag-quick {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The cards of the page shown come in as the tabs turn (DiagnosticsApp keys the grid by its page): a short rise,
+   so a page change reads as one. Reduce Motion cuts it to a blink (shell.css). */
+.diag-cards {
+  animation: diag-page-in 260ms var(--motion-ease) both;
+}
+
+@keyframes diag-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Opening: the window is the launch's, so the cards don't rise in behind it (DiagnosticsApp.tsx). */
+.diag-shell.no-enter .diag-cards {
+  animation: none;
+}
+
+/* A tab under the mouse reads as its own (the one showing already does), and the panel's scrolling stays in it. */
+.diag-tab:hover:not(.on) {
+  color: var(--text);
+}
+
+.diagnostics-app {
+  overscroll-behavior: contain;
+}
+
+/* The hero's truck leans with the cab (DiagnosticsApp.tsx sets the angle from the game's pitch and roll): eased,
+   so a hill or a camber tilts the drawing rather than jerking it. */
+.diag-art {
+  transform-origin: 50% 92%;
+  transition: transform 700ms var(--motion-ease);
+}
+
+html[data-motion='reduced'] .diag-art {
+  transition: none;
+}
+
+/* The panel's telltales (DiagnosticsApp.tsx): off, a faint outline; on, the lamp's own colour, its bezel lit with
+   it, and the indicators blinking as the truck's do. */
+.diag-telltales {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(6px * var(--text-scale, 1));
+}
+
+.diag-lamp {
+  flex: none;
+  width: calc(27px * var(--text-scale, 1));
+  height: calc(27px * var(--text-scale, 1));
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--apple-separator);
+  border-radius: calc(7px * var(--text-scale, 1));
+  color: var(--text-dim);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  transition:
+    color 140ms var(--motion-ease),
+    border-color 140ms var(--motion-ease),
+    background-color 140ms var(--motion-ease);
+}
+
+.diag-lamp svg {
+  width: 68%;
+  height: 68%;
+}
+
+.diag-lamp.lit {
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.diag-lamp.lit.green {
+  color: var(--apple-green);
+}
+
+.diag-lamp.lit.blue {
+  color: var(--apple-blue);
+}
+
+.diag-lamp.lit.amber {
+  color: var(--apple-orange);
+}
+
+.diag-lamp.lit.red {
+  color: var(--apple-red);
+}
+
+.diag-lamp.blink {
+  animation: diag-lamp-blink 900ms steps(1, end) infinite;
+}
+
+@keyframes diag-lamp-blink {
+  50% {
+    opacity: 0.18;
+  }
+}
+
+/* Reduce Motion: the indicators still blink — they're the truck's, not the screen's — but at a gentler pace. */
+html[data-motion='reduced'] .diag-lamp.blink {
+  animation-duration: 1600ms;
+}
+
+/* A sparkline draws itself on, left to right, as its card comes in: Sparkline.tsx gives the line a path length of
+   1, so the stroke's dash is the whole of it and one dash offset shows the line growing. */
+.diag-spark polyline {
+  stroke-dasharray: 1;
+  animation: spark-draw 900ms var(--motion-ease) both;
+}
+
+@keyframes spark-draw {
+  from {
+    stroke-dashoffset: 1;
   }
 }

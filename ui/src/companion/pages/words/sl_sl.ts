@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Vsako ikono poimenuj po njeni aplikaciji: {names}. PNG, WebP, JPG ali SVG. Izpuščena aplikacija obdrži ikono Cabin Playa.',
     looksNote:
       'Za ikono, ki se menja med svetlim in temnim načinom, dodaj temno različico z .dark v imenu, npr. maps.dark.png poleg maps.png.',
-    style: { title: 'Videz ikon', auto: 'Samod.', light: 'Svetlo', dark: 'Temno' },
+    style: { title: 'Videz ikon', auto: 'Samod.', light: 'Svetlo', dark: 'Temno', android: 'Android Auto' },
     remove: 'Odstrani',
     pickWallpapers: 'Izberi ozadja',
     pickWallpaperFolder: 'Izberi mapo z ozadji',

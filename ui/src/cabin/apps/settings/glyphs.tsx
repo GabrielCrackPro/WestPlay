@@ -70,6 +70,18 @@ export function SoundGlyph() {
   )
 }
 
+/** App Icons: four rounded squares, as an app grid. */
+export function IconsGlyph() {
+  return (
+    <TileGlyph>
+      <rect x="3.4" y="3.4" width="7.4" height="7.4" rx="2.4" />
+      <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.4" />
+      <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.4" />
+      <rect x="13.2" y="13.2" width="7.4" height="7.4" rx="2.4" />
+    </TileGlyph>
+  )
+}
+
 /** The chevron after a row that opens a page. */
 export function ChevronGlyph({ back = false }: { back?: boolean }) {
   return (

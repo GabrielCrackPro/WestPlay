@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Nimeä jokainen kuvake sovelluksensa mukaan: {names}. PNG, WebP, JPG tai SVG. Puuttuva sovellus säilyttää Cabin Playn kuvakkeen.',
     looksNote:
       'Jos haluat kuvakkeen, joka vaihtuu vaalean ja tumman välillä, lisää tumma versio, jonka nimessä on .dark, esimerkiksi maps.dark.png maps.png:n viereen.',
-    style: { title: 'Kuvakkeiden ulkoasu', auto: 'Auto', light: 'Vaalea', dark: 'Tumma' },
+    style: { title: 'Kuvakkeiden ulkoasu', auto: 'Auto', light: 'Vaalea', dark: 'Tumma', android: 'Android Auto' },
     remove: 'Poista',
     pickWallpapers: 'Valitse taustakuvat',
     pickWallpaperFolder: 'Valitse taustakuvien kansio',

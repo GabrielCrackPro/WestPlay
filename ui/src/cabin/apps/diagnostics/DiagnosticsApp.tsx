@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
+import { launchingNow } from '../../state/launch'
 import { useCabin, useLive, type DiagnosticsPage } from '../../state/store'
 import { useText } from '../../state/text'
 import {
@@ -18,10 +19,58 @@ import {
   type State,
 } from './readings'
 import { Sparkline } from './Sparkline'
+import { ChassisTabIcon, EngineTabIcon, HoursTabIcon, OverviewTabIcon } from './tabIcons'
 import { clock, tripAverage } from './trip'
 import { TruckFigure } from './TruckFigure'
+import { useDamped } from './useDamped'
 import { useTrends } from './useTrends'
 import './diagnostics.css'
+
+/** Each page's tab icon (tabIcons.tsx). */
+const TAB_ICONS: Record<DiagnosticsPage, ReactNode> = {
+  overview: <OverviewTabIcon />,
+  engine: <EngineTabIcon />,
+  driver: <HoursTabIcon />,
+  chassis: <ChassisTabIcon />,
+}
+
+/**
+ * One telltale of the dash: a small lamp, lit in its own colour while what it stands for is on, and dark while it
+ * isn't. The indicators blink with the truck's own (`blink`), as they do on any panel.
+ */
+function Lamp({
+  on,
+  label,
+  tone = 'green',
+  blink = false,
+  children,
+}: {
+  on: boolean
+  label: string
+  tone?: 'green' | 'blue' | 'amber' | 'red'
+  blink?: boolean
+  children: ReactNode
+}) {
+  return (
+    <span
+      className={`diag-lamp ${tone}${on ? ' lit' : ''}${on && blink ? ' blink' : ''}`}
+      role="img"
+      aria-label={label}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        {children}
+      </svg>
+    </span>
+  )
+}
 
 /**
  * The Diagnostics app: the truck's own health as the game reports it, on three pages under a bar of tabs so a
@@ -35,6 +84,9 @@ import './diagnostics.css'
 export function DiagnosticsApp() {
   const text = useText()
   const telemetry = useLive((state) => state.telemetry)
+  // The speed as a speedo shows it: eased rather than snapped to the game's twenty frames a second (useDamped.ts).
+  // Called before the early return below, as every hook is.
+  const speedShown = Math.round(useDamped(Math.abs(telemetry?.speed ?? 0) * 3.6))
   const truck = useLive((state) => state.truck)
   const trailer = useLive((state) => state.trailer)
   // The trip computer and the two histories, from the frames the game sends.
@@ -42,6 +94,9 @@ export function DiagnosticsApp() {
   // The page left open comes back with the player's settings, so a warning's page isn't hunted for twice.
   const page = useCabin((state) => state.diagnosticsPage)
   const setPage = useCabin((state) => state.setDiagnosticsPage)
+  // Opening: the window is the launch's, so the cards don't rise in behind it (they do as the tabs turn). Read once,
+  // at mount: a live flag would start their rise as the transition ended (a flash of cards).
+  const [animateIn] = useState(() => !launchingNow())
   if (!telemetry) {
     return (
       <section className="app-panel diagnostics-app" aria-label={text.apps.diagnostics}>
@@ -53,6 +108,8 @@ export function DiagnosticsApp() {
   const n = text.number
   const t = telemetry
   const trip = trends.trip
+  // The worst readings since the engine came on: what a driver reads off before calling a garage.
+  const worstRead = trends.extremes
 
   const heat = coolant(t.coolantTemperature)
   const oilHeat = oil(t.oilTemperature)
@@ -71,6 +128,15 @@ export function DiagnosticsApp() {
     percent: tank?.percent ?? 0,
     state: t.fuelWarning ? 'alarm' : (tank?.state ?? 'ok'),
   }
+  const peakHeat = worstRead.coolantPeak === null ? null : coolant(worstRead.coolantPeak)
+  const lowAir = worstRead.airLow === null ? null : brakeAir(worstRead.airLow)
+  const lowOil = worstRead.oilLow === null ? null : oilPressure(worstRead.oilLow)
+  const lowTank =
+    capacity > 0 && worstRead.fuelLow !== null
+      ? fuelLevel(worstRead.fuelLow / capacity, truck?.fuelWarningFactor ?? 0)
+      : null
+  const summaryReads = [peakHeat, lowAir, lowOil, lowTank].filter((read): read is Reading => read !== null)
+  const summaryState = summaryReads.map((read) => read.state).reduce(worst, 'ok')
   const engineWear = wear(t.wearEngine)
   const tireWear = wear(t.wearWheels)
   const gearboxWear = wear(t.wearTransmission)
@@ -98,7 +164,7 @@ export function DiagnosticsApp() {
 
   const celsius = (value: number) => `${n(Math.round(value))} ${words.celsius}`
   const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
-  const speed = Math.round(Math.abs(t.speed) * 3.6)
+  const speed = speedShown
   const gear = t.displayedGear < 0 ? 'R' : t.displayedGear === 0 ? 'N' : n(t.displayedGear)
   // Minutes as the cab writes them: an hour and a half is "1 h 30", twenty minutes "20 min".
   const inMinutes = (value: number) =>
@@ -110,6 +176,9 @@ export function DiagnosticsApp() {
     t.retarderLevel > 0
       ? `${n(t.retarderLevel)}${truck && truck.retarderSteps > 0 ? ` / ${n(truck.retarderSteps)}` : ''}`
       : words.off
+  // The cab's own attitude, as the game has it (pitch and roll in turns): the hero's truck leans into the road
+  // under it, a couple of degrees at most, so a hill and a camber read without the drawing waving about.
+  const lean = Math.max(-2.5, Math.min(2.5, t.roll * 360))
   const lights =
     [t.lowBeam ? words.lowBeam : null, t.highBeam ? words.highBeam : null, t.parkingLight ? words.parkingLight : null]
       .filter(Boolean)
@@ -130,7 +199,7 @@ export function DiagnosticsApp() {
 
   return (
     <section className="app-panel diagnostics-app" aria-label={text.apps.diagnostics}>
-      <div className={`diag-shell page-${page}`}>
+      <div className={animateIn ? `diag-shell page-${page}` : `diag-shell page-${page} no-enter`}>
         <nav className="diag-tabs" role="tablist" aria-label={text.apps.diagnostics}>
           {pages.map((tab) => (
             <button
@@ -141,13 +210,18 @@ export function DiagnosticsApp() {
               className={`diag-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
               onClick={() => setPage(tab.id)}
             >
-              {tab.label}
+              <span className="diag-tab-icon" aria-hidden>
+                {TAB_ICONS[tab.id]}
+              </span>
+              <span className="diag-tab-label">{tab.label}</span>
               {tab.state !== 'ok' && <span className={`diag-dot ${tab.state}`} aria-hidden />}
             </button>
           ))}
         </nav>
-        <section className={`diag-overview diag-hero ${overall}`}>
-          <div className="diag-art">
+        {/* Its name is the Dashboard's Diagnostics widget's too: opened from there, the card becomes this hero
+            (shell/transitions.css), rather than growing out of an icon somewhere else. */}
+        <section className={`diag-overview diag-hero ${overall}`} style={{ viewTransitionName: 'widget-diagnostics' }}>
+          <div className="diag-art" style={{ transform: `rotate(${lean.toFixed(2)}deg)` }}>
             <TruckFigure />
           </div>
           <div className="diag-main">
@@ -163,6 +237,36 @@ export function DiagnosticsApp() {
               <Tag label={words.gear} value={gear} />
               <Tag label={words.engine} value={t.engineEnabled ? words.running : words.engineOff} />
               <Tag label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
+            </div>
+            {/* The panel's telltales: the indicators (blinking with the truck's), the beams, the parking brake, and
+                the retarder and the cruise when either is holding the truck back or keeping its speed. */}
+            <div className="diag-telltales" aria-label={words.controls}>
+              <Lamp on={t.leftBlinker} blink label={words.indicatorLeft}>
+                <path d="M14 5 7 12l7 7" />
+              </Lamp>
+              <Lamp on={t.rightBlinker} blink label={words.indicatorRight}>
+                <path d="M10 5l7 7-7 7" />
+              </Lamp>
+              <Lamp on={t.lowBeam && !t.highBeam} tone="blue" label={words.lowBeam}>
+                <path d="M3 8h6M3 12h8M3 16h6" />
+              </Lamp>
+              <Lamp on={t.highBeam} tone="blue" label={words.highBeam}>
+                <path d="M3 12h8m0-6 4-3v18l-4-3" />
+              </Lamp>
+              <Lamp on={t.parkingBrake} tone="red" label={words.parkingBrake}>
+                <path d="M9 17V7h3.5a3.2 3.2 0 0 1 0 6.4H9" />
+              </Lamp>
+              {t.retarderLevel > 0 && (
+                <Lamp on tone="amber" label={`${words.retarder} ${n(t.retarderLevel)}`}>
+                  <path d="M5 8h14M5 12h14M5 16h9" />
+                </Lamp>
+              )}
+              {t.cruiseControlSpeed > 0.5 && (
+                <Lamp on label={`${words.cruiseControl} ${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}`}>
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+                </Lamp>
+              )}
             </div>
             <div className="diag-quick">
               <Quick
@@ -183,7 +287,8 @@ export function DiagnosticsApp() {
           </div>
         </section>
 
-        <div className="diag-cards">
+        {/* Keyed by the page: the cards come in each time the tabs turn (diagnostics.css). */}
+        <div className="diag-cards" key={page}>
           <Card name={words.engine} state={engineState} note={byHeat[engineState]} page="engine" span={6}>
             <Lead read={heat} value={n(Math.round(t.coolantTemperature))} unit={words.celsius} label={words.coolant} />
             <Sparkline values={trends.coolant} />
@@ -236,6 +341,32 @@ export function DiagnosticsApp() {
               <button type="button" className="diag-reset" onClick={trends.reset}>
                 {words.reset}
               </button>
+            </div>
+          </Card>
+
+          <Card name={words.sinceStart} state={summaryState} note={byOverall[summaryState]} page="overview" span={6}>
+            <div className="diag-rows">
+              <Row
+                label={`${words.coolant} · ${words.high}`}
+                value={worstRead.coolantPeak === null ? words.off : celsius(worstRead.coolantPeak)}
+                read={peakHeat ?? undefined}
+              />
+              <Row
+                label={`${words.brakeAir} · ${words.low}`}
+                value={worstRead.airLow === null ? words.off : psi(worstRead.airLow)}
+                read={lowAir ?? undefined}
+              />
+              <Row
+                label={`${words.oilPressure} · ${words.low}`}
+                value={worstRead.oilLow === null ? words.off : psi(worstRead.oilLow)}
+                read={lowOil ?? undefined}
+              />
+              <Row
+                label={`${words.fuel} · ${words.low}`}
+                value={worstRead.fuelLow === null ? words.off : `${n(Math.round(worstRead.fuelLow))} ${words.litres}`}
+                read={lowTank ?? undefined}
+              />
+              <Row label={words.warnings} value={n(worstRead.warnings)} />
             </div>
           </Card>
 

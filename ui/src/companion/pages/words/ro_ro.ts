@@ -264,7 +264,13 @@ export const words: CompanionWords = {
       'Numește fiecare pictogramă după aplicația ei: {names}. PNG, WebP, JPG sau SVG. O aplicație lipsă păstrează pictograma Cabin Play.',
     looksNote:
       'Pentru o pictogramă care se schimbă între luminos și întunecat, adaugă o versiune întunecată cu .dark în nume, de exemplu maps.dark.png lângă maps.png.',
-    style: { title: 'Aspectul pictogramelor', auto: 'Auto', light: 'Luminos', dark: 'Întunecat' },
+    style: {
+      title: 'Aspectul pictogramelor',
+      auto: 'Auto',
+      light: 'Luminos',
+      dark: 'Întunecat',
+      android: 'Android Auto',
+    },
     remove: 'Elimină',
     pickWallpapers: 'Alege imagini de fundal',
     pickWallpaperFolder: 'Alege un dosar cu imagini de fundal',

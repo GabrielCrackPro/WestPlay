@@ -26,7 +26,7 @@ export const useLooks = create<Looks>()(() => ({
 }))
 
 export function isIconStyle(style: unknown): style is IconStyle {
-  return style === 'auto' || style === 'light' || style === 'dark'
+  return style === 'auto' || style === 'light' || style === 'dark' || style === 'android'
 }
 
 const ROLES: AppIconRole[] = [
@@ -42,12 +42,13 @@ const ROLES: AppIconRole[] = [
   'youtubeMusic',
 ]
 
-/** Every icon file an icon set (`null`: WestPlay's own) can show, in both looks. */
+/** Every icon file an icon set (`null`: WestPlay's own) can show, in its looks (Android Auto's are always
+ * WestPlay's own: a set's files are a light or a dark one). */
 function iconFiles(state: Looks, set: string | null): string[] {
   const chosen = state.custom.iconSets.find((iconSet) => iconSet.name === set)
   return ROLES.flatMap((role) =>
-    (['light', 'dark'] as const).map((look) => {
-      const path = chosen?.icons[role]?.[look]
+    (['light', 'dark', 'android'] as const).map((look) => {
+      const path = look === 'android' ? undefined : chosen?.icons[role]?.[look]
       return path ? fileUrl(state.base, path) : appIcon(role, look)
     }),
   )

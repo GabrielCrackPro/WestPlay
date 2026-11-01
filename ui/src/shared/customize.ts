@@ -25,8 +25,9 @@ export interface IconSet {
   icons: Partial<Record<AppIconRole, { light: string | null; dark: string | null }>>
 }
 
-/** Which of an icon's looks shows: as the screen is (`auto`), or always one. */
-export type IconStyle = 'auto' | 'light' | 'dark'
+/** Which of an icon's looks shows: as the screen is (`auto`), always one, or (`android`) Android Auto's, which
+ * is Cabin Play's own look (an icon set's files are a light or a dark one). */
+export type IconStyle = 'auto' | 'light' | 'dark' | 'android'
 
 export const NO_CUSTOMIZATIONS: Customizations = { wallpapers: [], iconSets: [] }
 

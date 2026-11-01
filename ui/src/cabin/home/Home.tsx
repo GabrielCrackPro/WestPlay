@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useAppIcon } from '../state/hooks'
 import { type AppId, APPS, RELEASED_APP_IDS } from '../state/apps'
-import { useLaunchStyle } from '../state/launch'
+import { launchingNow, useLaunchStyle } from '../state/launch'
 import { unreadCount, useNotes } from '../shell/notesShown'
 import { go, useCabin } from '../state/store'
 import { useText } from '../state/text'
@@ -25,6 +25,9 @@ export function Home() {
   const unread = useNotes((state) => unreadCount(state.history, state.seen))
   // Each app's label's lines as drawn (a long name takes two): the rows are as tall as their names need.
   const [lines, setLines] = useState<Partial<Record<AppId, number>>>({})
+  // Home mounting as an app closes into its icon: the icons are the transition's, so they don't animate in.
+  // Read once, at mount: a live flag would let the entrance start as the transition ended (a flash of icons).
+  const [animateIn] = useState(() => !launchingNow())
 
   useLayoutEffect(() => {
     const element = pagesElement.current
@@ -90,7 +93,7 @@ export function Home() {
     <section className="screen home" aria-label="Home">
       <div
         ref={pagesElement}
-        className={size.compact ? 'home-pages compact' : 'home-pages'}
+        className={[size.compact ? 'home-pages compact' : 'home-pages', animateIn ? '' : 'no-enter'].join(' ')}
         onScroll={(event) => {
           const element = event.currentTarget
           setPage(Math.round(element.scrollLeft / Math.max(1, element.clientWidth)))
@@ -109,8 +112,14 @@ export function Home() {
               rowGap: rows.gap,
             }}
           >
-            {apps.map((id) => (
-              <HomeApp key={id} app={id} badge={id === 'notifications' ? unread : 0} />
+            {apps.map((id, index) => (
+              <HomeApp
+                key={id}
+                app={id}
+                badge={id === 'notifications' ? unread : 0}
+                // Home's icons come in one after another, a moment behind each other (home.css).
+                delay={index * 30}
+              />
             ))}
           </div>
         ))}
@@ -137,12 +146,18 @@ export function Home() {
  * An app on Home. Its icon is what the app grows out of when it opens, and shrinks back into. `badge` counts what
  * the app has for the driver (the Notifications app's unread notes): none shows nothing.
  */
-function HomeApp({ app, badge }: { app: AppId; badge: number }) {
+function HomeApp({ app, badge, delay }: { app: AppId; badge: number; delay: number }) {
   const launch = useLaunchStyle(app, { kind: 'icon', origin: 'home' })
   const text = useText()
   const icon = useAppIcon(APPS[app].icon)
   return (
-    <button type="button" className="app" data-app={app} onClick={() => go({ type: 'openApp', app }, 'home')}>
+    <button
+      type="button"
+      className="app"
+      data-app={app}
+      style={{ animationDelay: `${delay}ms` }}
+      onClick={() => go({ type: 'openApp', app }, 'home')}
+    >
       <span className="app-icon">
         <img src={icon} alt="" style={launch} />
         {badge > 0 && (

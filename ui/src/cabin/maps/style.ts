@@ -10,6 +10,7 @@ import type { Appearance } from '../state/appearance'
 import type { MapData } from './mapData'
 import { PLACE_ICON_PREFIX, PLACE_ICON_SIZE, SHADOW_ROOM } from './placeIcons'
 import { pixelsPerMetre } from './projection'
+import { type MapRouteColour, type MapRouteWeight, ROUTE_COLOURS, ROUTE_WEIGHT_SCALE } from './routeLook'
 
 /**
  * The map's look, in the spirit of Apple Maps: calm ground, white streets with faint casings, fast roads in
@@ -423,15 +424,7 @@ function placeLayer(id: string, image: ExpressionSpecification): LayerSpecificat
     source: MAP_SOURCE,
     'source-layer': 'place',
     minzoom: TRANSIT_MIN_ZOOM,
-    filter: [
-      'match',
-      ['get', 'kind'],
-      ['ferry', 'train', 'border'],
-      true,
-      'company',
-      ['>=', ['zoom'], COMPANY_MIN_ZOOM],
-      ['>=', ['zoom'], PLACE_MIN_ZOOM],
-    ],
+    filter: placeKindFilter(),
     layout: {
       'icon-image': image,
       // The badge on the place, its name to the right.
@@ -561,6 +554,49 @@ const ROUTE_WIDTHS: [zoom: number, pixels: number][] = [
 ]
 
 /**
+ * The route's paint as the player has it (Settings › Maps): its colour and weight over every route layer — the
+ * route drawn, its head, each raised level's, and the route picked among those offered in Directions. Applied to
+ * a live map as the player chooses, and again whenever the appearance repaints the map under it.
+ */
+export function routeOverrides(
+  appearance: Appearance,
+  colour: MapRouteColour,
+  weight: MapRouteWeight,
+): { layer: string; property: string; value: unknown }[] {
+  const colours = ROUTE_COLOURS[appearance][colour]
+  const scale = ROUTE_WEIGHT_SCALE[weight]
+  const width = (extra: number): ExpressionSpecification =>
+    [
+      'interpolate',
+      ['exponential', 2],
+      ['zoom'],
+      ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels * scale + extra]),
+    ] as ExpressionSpecification
+  const out: { layer: string; property: string; value: unknown }[] = []
+  for (let level = 0; level < ROAD_LEVELS; level++) {
+    const suffix = level === 0 ? '' : `-${level}`
+    out.push(
+      { layer: `route-casing${suffix}`, property: 'line-color', value: colours.casing },
+      { layer: `route-head-casing${suffix}`, property: 'line-color', value: colours.casing },
+      { layer: `route${suffix}`, property: 'line-color', value: colours.fill },
+      { layer: `route-head${suffix}`, property: 'line-color', value: colours.fill },
+      { layer: `route-casing${suffix}`, property: 'line-width', value: width(4) },
+      { layer: `route-head-casing${suffix}`, property: 'line-width', value: width(4) },
+      { layer: `route${suffix}`, property: 'line-width', value: width(0) },
+      { layer: `route-head${suffix}`, property: 'line-width', value: width(0) },
+    )
+  }
+  // The route picked among those offered (Directions) wears the same colour as the one driven.
+  out.push(
+    { layer: 'offered-picked-casing', property: 'line-color', value: colours.casing },
+    { layer: 'offered-picked', property: 'line-color', value: colours.fill },
+    { layer: 'offered-picked-casing', property: 'line-width', value: width(4) },
+    { layer: 'offered-picked', property: 'line-width', value: width(0) },
+  )
+  return out
+}
+
+/**
  * The route over the roads in Apple's blue, with a darker edge, under the road numbers and the places: the
  * part of it on each level (route.ts routeLevels: its sources' `level`, none on the ground) over that
  * level's roads, so it passes under a bridge over the road it's on, and over the road beneath when it's on
@@ -643,6 +679,22 @@ function signLayer(): LayerSpecification {
       'icon-rotation-alignment': 'viewport',
     },
   }
+}
+
+/**
+ * The places a layer draws at all, by kind and zoom: what the map has always drawn. The player's own pin types
+ * (Settings › Maps) are left out of it, over this.
+ */
+export function placeKindFilter(): ExpressionSpecification {
+  return [
+    'match',
+    ['get', 'kind'],
+    ['ferry', 'train', 'border'],
+    true,
+    'company',
+    ['>=', ['zoom'], COMPANY_MIN_ZOOM],
+    ['>=', ['zoom'], PLACE_MIN_ZOOM],
+  ]
 }
 
 /** The zoom places show from (the tiles have them a little earlier, crates/mapdata area.rs PLACE_ZOOM and

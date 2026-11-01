@@ -41,6 +41,19 @@ import type { Point, RouteNode } from '../maps/route'
 import { DEFAULT_WALLPAPER_ID } from '../wallpapers'
 import { isReleasedApp } from './apps'
 import type { AppearanceMode } from './appearance'
+import {
+  MAP_MARKERS,
+  MAP_MARKER_SIZES,
+  MAP_NIGHT_STARTS,
+  MAP_PIN_STYLES,
+  MAP_ROUTE_COLOURS,
+  MAP_ROUTE_WEIGHTS,
+  type MapMarker,
+  type MapMarkerSize,
+  type MapPinStyle,
+  type MapRouteColour,
+  type MapRouteWeight,
+} from '../maps/routeLook'
 import { afterRunningTransition, animateNavigation, launchFor, type LaunchOrigin } from './launch'
 import {
   INITIAL_NAVIGATION,
@@ -107,8 +120,17 @@ interface CabinState {
   albumArt: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
   textSize: number
+  /** Screens change without sliding or zooming (Settings › Appearance): the shell's animations, and the view
+   * transitions that grow an app out of its icon, are cut to nothing. */
+  reduceMotion: boolean
+  /** The cabin's own sounds (Settings › Sound): the press's tick, the notes' chime, the volume's pip. */
+  uiSounds: boolean
   /** The Diagnostics app's page last opened, so its tabs come back where the player left them. */
   diagnosticsPage: DiagnosticsPage
+  /** The Dashboard's widgets in the order the player put them (Settings › Dashboard), and whether the cab orders
+   * them itself (Auto order): by what the drive needs (widgetState.ts's `useWidgetOrder`). */
+  dashboardOrder: DashboardWidget[]
+  autoOrder: boolean
   /** The live map's own settings (Settings › Maps): how much it draws, how it behaves at night and at
    * junctions, whose trucks it shows, and when it comes back to the truck. */
   mapDetail: MapDetail
@@ -117,6 +139,23 @@ interface CabinState {
   mapTrucks: boolean
   mapTraffic: boolean
   mapRecentre: MapRecentre
+  /** The route's colour and weight, north up, the truck's marker and its size, the speed-limit sign and whether
+   * it warns, the compass and the scale bar, and the hour the map dims from. */
+  mapRoute: MapRouteColour
+  mapWeight: MapRouteWeight
+  mapNorth: boolean
+  mapMarker: MapMarker
+  mapMarkerSize: MapMarkerSize
+  mapLimit: boolean
+  mapOver: boolean
+  mapCompass: boolean
+  mapScale: boolean
+  mapNightStart: number
+  /** The map's pins: filled or outlined, and which kinds it shows. */
+  mapPins: MapPinStyle
+  mapPinFuel: boolean
+  mapPinParking: boolean
+  mapPinService: boolean
   /** The truck's own strip: kept (`auto`) or not, as set in the companion window (the host sends it). */
   oemMode: OemMode
   /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or the speakers as tuned
@@ -136,7 +175,26 @@ interface CabinState {
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
+  setReduceMotion(on: boolean): void
   setDiagnosticsPage(page: DiagnosticsPage): void
+  setAutoOrder(on: boolean): void
+  /** Moves a widget up (`by` -1) or down (+1) the Dashboard's own order. */
+  moveWidget(widget: DashboardWidget, by: number): void
+  setMapRoute(mapRoute: MapRouteColour): void
+  setMapWeight(mapWeight: MapRouteWeight): void
+  setMapNorth(mapNorth: boolean): void
+  setMapMarker(mapMarker: MapMarker): void
+  setMapMarkerSize(mapMarkerSize: MapMarkerSize): void
+  setMapLimit(mapLimit: boolean): void
+  setMapOver(mapOver: boolean): void
+  setMapCompass(mapCompass: boolean): void
+  setMapScale(mapScale: boolean): void
+  setMapNightStart(mapNightStart: number): void
+  setMapPins(mapPins: MapPinStyle): void
+  setMapPinFuel(mapPinFuel: boolean): void
+  setMapPinParking(mapPinParking: boolean): void
+  setMapPinService(mapPinService: boolean): void
+  setUiSounds(uiSounds: boolean): void
   setMapDetail(detail: MapDetail): void
   setMapNight(on: boolean): void
   setMapJunction(on: boolean): void
@@ -167,14 +225,47 @@ type Persisted = Pick<
   | 'clock'
   | 'albumArt'
   | 'textSize'
+  | 'reduceMotion'
   | 'diagnosticsPage'
+  | 'dashboardOrder'
+  | 'autoOrder'
   | 'mapDetail'
   | 'mapNight'
   | 'mapJunction'
   | 'mapTrucks'
   | 'mapTraffic'
   | 'mapRecentre'
+  | 'mapRoute'
+  | 'mapWeight'
+  | 'mapNorth'
+  | 'mapMarker'
+  | 'mapMarkerSize'
+  | 'mapLimit'
+  | 'mapOver'
+  | 'mapCompass'
+  | 'mapScale'
+  | 'mapNightStart'
+  | 'mapPins'
+  | 'mapPinFuel'
+  | 'mapPinParking'
+  | 'mapPinService'
+  | 'uiSounds'
 >
+
+/** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
+const SYSTEM_REDUCES_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** The Dashboard's own order for a new player, top to bottom (the weather last: it's the one that comes in when
+ * there's room). */
+const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'job', 'diagnostics', 'weather']
+
+/** A saved order, made whole: every widget once, in the order saved, any the save doesn't know about after them. */
+function orderOf(saved: unknown): DashboardWidget[] {
+  const kept = (Array.isArray(saved) ? saved : []).filter((id): id is DashboardWidget =>
+    DASHBOARD_WIDGETS.includes(id as DashboardWidget),
+  )
+  return [...new Set(kept), ...DASHBOARD_WIDGETS.filter((id) => !kept.includes(id))]
+}
 
 /** The widgets a new player starts with: all of them on. */
 const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
@@ -195,7 +286,10 @@ export const useCabin = create<CabinState>()(
       clock: 'real',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
+      reduceMotion: SYSTEM_REDUCES_MOTION,
       diagnosticsPage: 'overview',
+      dashboardOrder: DEFAULT_WIDGET_ORDER,
+      autoOrder: true,
       // Balanced: the buildings still, a little less often than the game, for the PCs that share its GPU.
       mapDetail: 'balanced',
       mapNight: true,
@@ -203,6 +297,21 @@ export const useCabin = create<CabinState>()(
       mapTrucks: true,
       mapTraffic: true,
       mapRecentre: 15,
+      mapRoute: 'blue',
+      mapWeight: 'standard',
+      mapNorth: false,
+      mapMarker: 'arrow',
+      mapMarkerSize: 'medium',
+      mapLimit: true,
+      mapOver: true,
+      mapCompass: true,
+      mapScale: false,
+      mapNightStart: 20,
+      mapPins: 'filled',
+      mapPinFuel: true,
+      mapPinParking: true,
+      mapPinService: true,
+      uiSounds: true,
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
@@ -219,13 +328,40 @@ export const useCabin = create<CabinState>()(
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
+      setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setDiagnosticsPage: (diagnosticsPage) => set({ diagnosticsPage }),
+      setAutoOrder: (autoOrder) => set({ autoOrder }),
+      moveWidget: (widget, by) =>
+        set((state) => {
+          const from = state.dashboardOrder.indexOf(widget)
+          const to = Math.min(state.dashboardOrder.length - 1, Math.max(0, from + by))
+          if (from < 0 || to === from) return {}
+          const dashboardOrder = [...state.dashboardOrder]
+          dashboardOrder.splice(from, 1)
+          dashboardOrder.splice(to, 0, widget)
+          return { dashboardOrder }
+        }),
       setMapDetail: (mapDetail) => set({ mapDetail }),
       setMapNight: (mapNight) => set({ mapNight }),
       setMapJunction: (mapJunction) => set({ mapJunction }),
       setMapTrucks: (mapTrucks) => set({ mapTrucks }),
       setMapTraffic: (mapTraffic) => set({ mapTraffic }),
       setMapRecentre: (mapRecentre) => set({ mapRecentre }),
+      setMapRoute: (mapRoute) => set({ mapRoute }),
+      setMapWeight: (mapWeight) => set({ mapWeight }),
+      setMapNorth: (mapNorth) => set({ mapNorth }),
+      setMapMarker: (mapMarker) => set({ mapMarker }),
+      setMapMarkerSize: (mapMarkerSize) => set({ mapMarkerSize }),
+      setMapLimit: (mapLimit) => set({ mapLimit }),
+      setMapOver: (mapOver) => set({ mapOver }),
+      setMapCompass: (mapCompass) => set({ mapCompass }),
+      setMapScale: (mapScale) => set({ mapScale }),
+      setMapNightStart: (mapNightStart) => set({ mapNightStart }),
+      setMapPins: (mapPins) => set({ mapPins }),
+      setMapPinFuel: (mapPinFuel) => set({ mapPinFuel }),
+      setMapPinParking: (mapPinParking) => set({ mapPinParking }),
+      setMapPinService: (mapPinService) => set({ mapPinService }),
+      setUiSounds: (uiSounds) => set({ uiSounds }),
       setEqualizerBand: (band, db) => {
         const equalizer = toEqualizer({ ...useCabin.getState().equalizer, [band]: db })
         set({ equalizer, equalizerCustom: true })
@@ -276,13 +412,31 @@ export const useCabin = create<CabinState>()(
         clock: state.clock,
         albumArt: state.albumArt,
         textSize: state.textSize,
+        reduceMotion: state.reduceMotion,
         diagnosticsPage: state.diagnosticsPage,
+        dashboardOrder: state.dashboardOrder,
+        autoOrder: state.autoOrder,
         mapDetail: state.mapDetail,
         mapNight: state.mapNight,
         mapJunction: state.mapJunction,
         mapTrucks: state.mapTrucks,
         mapTraffic: state.mapTraffic,
         mapRecentre: state.mapRecentre,
+        mapRoute: state.mapRoute,
+        mapWeight: state.mapWeight,
+        mapNorth: state.mapNorth,
+        mapMarker: state.mapMarker,
+        mapMarkerSize: state.mapMarkerSize,
+        mapLimit: state.mapLimit,
+        mapOver: state.mapOver,
+        mapCompass: state.mapCompass,
+        mapScale: state.mapScale,
+        mapNightStart: state.mapNightStart,
+        mapPins: state.mapPins,
+        mapPinFuel: state.mapPinFuel,
+        mapPinParking: state.mapPinParking,
+        mapPinService: state.mapPinService,
+        uiSounds: state.uiSounds,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -316,15 +470,37 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
+  if (typeof stored.reduceMotion === 'boolean') result.reduceMotion = stored.reduceMotion
   if (DIAGNOSTICS_PAGES.includes(stored.diagnosticsPage as DiagnosticsPage)) {
     result.diagnosticsPage = stored.diagnosticsPage
   }
+  if (stored.dashboardOrder !== undefined) result.dashboardOrder = orderOf(stored.dashboardOrder)
+  if (typeof stored.autoOrder === 'boolean') result.autoOrder = stored.autoOrder
   if (MAP_DETAILS.includes(stored.mapDetail as MapDetail)) result.mapDetail = stored.mapDetail
   if (typeof stored.mapNight === 'boolean') result.mapNight = stored.mapNight
   if (typeof stored.mapJunction === 'boolean') result.mapJunction = stored.mapJunction
   if (typeof stored.mapTrucks === 'boolean') result.mapTrucks = stored.mapTrucks
   if (typeof stored.mapTraffic === 'boolean') result.mapTraffic = stored.mapTraffic
   if (MAP_RECENTRES.includes(stored.mapRecentre as MapRecentre)) result.mapRecentre = stored.mapRecentre
+  if (MAP_ROUTE_COLOURS.includes(stored.mapRoute as MapRouteColour)) result.mapRoute = stored.mapRoute as MapRouteColour
+  if (MAP_ROUTE_WEIGHTS.includes(stored.mapWeight as MapRouteWeight)) {
+    result.mapWeight = stored.mapWeight as MapRouteWeight
+  }
+  if (typeof stored.mapNorth === 'boolean') result.mapNorth = stored.mapNorth
+  if (MAP_MARKERS.includes(stored.mapMarker as MapMarker)) result.mapMarker = stored.mapMarker as MapMarker
+  if (MAP_MARKER_SIZES.includes(stored.mapMarkerSize as MapMarkerSize)) {
+    result.mapMarkerSize = stored.mapMarkerSize as MapMarkerSize
+  }
+  if (typeof stored.mapLimit === 'boolean') result.mapLimit = stored.mapLimit
+  if (typeof stored.mapOver === 'boolean') result.mapOver = stored.mapOver
+  if (typeof stored.mapCompass === 'boolean') result.mapCompass = stored.mapCompass
+  if (typeof stored.mapScale === 'boolean') result.mapScale = stored.mapScale
+  if (MAP_NIGHT_STARTS.includes(stored.mapNightStart as number)) result.mapNightStart = stored.mapNightStart as number
+  if (MAP_PIN_STYLES.includes(stored.mapPins as MapPinStyle)) result.mapPins = stored.mapPins as MapPinStyle
+  if (typeof stored.mapPinFuel === 'boolean') result.mapPinFuel = stored.mapPinFuel
+  if (typeof stored.mapPinParking === 'boolean') result.mapPinParking = stored.mapPinParking
+  if (typeof stored.mapPinService === 'boolean') result.mapPinService = stored.mapPinService
+  if (typeof stored.uiSounds === 'boolean') result.uiSounds = stored.uiSounds
   return result
 }
 

@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Minden ikont az alkalmazásáról nevezz el: {names}. PNG, WebP, JPG vagy SVG. A kihagyott alkalmazás megtartja a Cabin Play ikonját.',
     looksNote:
       'Ha olyan ikont szeretnél, amely vált a világos és a sötét mód között, adj hozzá egy sötét változatot .dark a nevében, például maps.dark.png a maps.png mellé.',
-    style: { title: 'Ikonok megjelenése', auto: 'Auto', light: 'Világos', dark: 'Sötét' },
+    style: { title: 'Ikonok megjelenése', auto: 'Auto', light: 'Világos', dark: 'Sötét', android: 'Android Auto' },
     remove: 'Eltávolítás',
     pickWallpapers: 'Háttérképek kiválasztása',
     pickWallpaperFolder: 'Háttérképmappa kiválasztása',

@@ -262,7 +262,7 @@ export const words: CompanionWords = {
       'Nosauc katru ikonu pēc tās lietotnes: {names}. PNG, WebP, JPG vai SVG. Lietotnei bez ikonas paliek Cabin Play ikona.',
     looksNote:
       'Lai ikona mainītos starp gaišo un tumšo režīmu, pievieno tumšo versiju ar .dark nosaukumā, piemēram, maps.dark.png blakus maps.png.',
-    style: { title: 'Ikonu izskats', auto: 'Auto', light: 'Gaišs', dark: 'Tumšs' },
+    style: { title: 'Ikonu izskats', auto: 'Auto', light: 'Gaišs', dark: 'Tumšs', android: 'Android Auto' },
     remove: 'Noņemt',
     pickWallpapers: 'Izvēlies fona attēlus',
     pickWallpaperFolder: 'Izvēlies mapi ar fona attēliem',

@@ -263,7 +263,7 @@ export const words: CompanionWords = {
       'Jarri ikono bakoitzari bere aplikazioaren izena: {names}. PNG, WebP, JPG edo SVG. Falta den aplikazioak Cabin Play-ren ikonoa gordetzen du.',
     looksNote:
       'Argiaren eta ilunaren artean aldatzen den ikono baterako, gehitu bertsio ilun bat izenean .dark duela, adibidez maps.dark.png maps.png-ren ondoan.',
-    style: { title: 'Ikonoen itxura', auto: 'Auto', light: 'Argia', dark: 'Iluna' },
+    style: { title: 'Ikonoen itxura', auto: 'Auto', light: 'Argia', dark: 'Iluna', android: 'Android Auto' },
     remove: 'Kendu',
     pickWallpapers: 'Aukeratu horma-paperak',
     pickWallpaperFolder: 'Aukeratu horma-paperen karpeta',

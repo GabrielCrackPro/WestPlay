@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cabClock } from '../../shared/host'
 import { formatGameTime } from '../../shared/format'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
-import { useNotes } from './notesShown'
+import { type Note, useNotes } from './notesShown'
+import { playCue } from '../state/sound'
 import './notifications.css'
 
 /**
@@ -14,18 +15,72 @@ import './notifications.css'
  */
 export function Notifications() {
   const notes = useNotes((state) => state.notes)
+  const leaving = useLeaving(notes)
+  useNoteCue(notes)
   useGameAlerts()
   return (
-    <div className={notes.length > 0 ? 'notifications shown' : 'notifications'} aria-live="polite">
+    <div className={notes.length + leaving.length > 0 ? 'notifications shown' : 'notifications'} aria-live="polite">
       {notes.map((note) => (
-        <div key={note.key} className={`notification ${note.tone}`}>
-          <span className="notification-title">{note.title}</span>
-          <span className="notification-detail">{note.detail}</span>
-        </div>
+        <NotePill key={note.key} note={note} />
+      ))}
+      {/* The ones just taken down, still there to fade out (a note that vanished mid-read is a note missed). */}
+      {leaving.map((note) => (
+        <NotePill key={`${note.key}:out`} note={note} leaving />
       ))}
     </div>
   )
 }
+
+/**
+ * The chime as a note comes up: soft for a warning, firmer for an alarm (state/sound.ts). Only when the stack grows,
+ * so a note leaving (and the one under it becoming the newest) says nothing.
+ */
+function useNoteCue(notes: { tone: 'warn' | 'alarm' }[]): void {
+  const count = useRef(0)
+  useEffect(() => {
+    const added = notes.length > count.current
+    count.current = notes.length
+    if (!added) return
+    playCue(notes.at(-1)?.tone === 'alarm' ? 'alarm' : 'note')
+  }, [notes])
+}
+
+/** How long a note that has gone stays up to fade out, ms (notifications.css' note-out). */
+const NOTE_OUT_MS = 220
+
+/** One note's pill. */
+function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) {
+  return (
+    <div className={`notification ${note.tone}${leaving ? ' leaving' : ''}`} aria-hidden={leaving || undefined}>
+      <span className="notification-title">{note.title}</span>
+      <span className="notification-detail">{note.detail}</span>
+    </div>
+  )
+}
+
+/**
+ * The notes that have just gone, kept for a moment so they can be seen out: the store drops one the instant it's
+ * taken down (its timer, a new one pushing it off the stack), and an element that leaves the page can't animate.
+ */
+function useLeaving(notes: Note[]): Note[] {
+  const [leaving, setLeaving] = useState<Note[]>([])
+  const shown = useRef<Note[]>(notes)
+  useEffect(() => {
+    const before = shown.current
+    shown.current = notes
+    const gone = before.filter((note) => !notes.some((each) => each.key === note.key))
+    if (gone.length === 0) return
+    setLeaving((kept) => [...kept.filter((note) => !gone.some((each) => each.key === note.key)), ...gone])
+    const timer = setTimeout(() => {
+      setLeaving((kept) => kept.filter((note) => !gone.some((each) => each.key === note.key)))
+    }, NOTE_OUT_MS)
+    return () => clearTimeout(timer)
+  }, [notes])
+  return leaving
+}
+
+/** How long a reading must stay right before a warning on it may be raised again, ms. */
+const WARN_HOLD_MS = 3000
 
 /**
  * Watches the game for the moments worth a note: its own warning channels (battery, oil pressure, brake air,
@@ -37,8 +92,9 @@ function useGameAlerts() {
   const text = useText()
   const telemetry = useLive((state) => state.telemetry)
   const clockShift = useLive((state) => state.clockShift)
-  // The readings that have already had their note (cleared as each goes right again).
-  const raised = useRef(new Set<string>())
+  // The readings that have already had their note, by key: `null` while the note stands, or the timer that forgets
+  // a reading that has just gone right again (WARN_HOLD_MS below).
+  const raised = useRef(new Map<string, ReturnType<typeof setTimeout> | null>())
   // The game's route as the store has it: a new one while driving (its own reroute, a stop added, a waypoint
   // reached) gets a note, with the arrival it now has, so a changed ETA isn't a mystery.
   const routeId = useLive((state) => state.route?.id ?? null)
@@ -46,21 +102,37 @@ function useGameAlerts() {
   useEffect(() => {
     const before = routed.current
     routed.current = routeId
-    if (before === null || routeId === null) return
+    // A route only counts as changed while one was there before: not as this mounts, and not as the effect runs
+    // again for another reason (a new language's words), which raised a note for a route that hadn't changed.
+    if (before === null || routeId === null || before === routeId) return
     const state = useLive.getState()
     const current = state.telemetry
     if (!current || current.navigationDistance <= 0) return
     const arrival = formatGameTime(Math.round(cabClock(current, state.clockShift) + current.navigationTime / 60))
-    useNotes.getState().push({
-      key: 'reroute',
-      title: text.destinations.routeChanged,
-      detail: `${arrival} ${text.arrival}`,
-      tone: 'warn',
-    })
+    useNotes.getState().push(
+      {
+        key: 'reroute',
+        title: text.destinations.routeChanged,
+        detail: `${arrival} ${text.arrival}`,
+        tone: 'warn',
+      },
+      // The game's clock, as the rest of the list keeps it (without this the app showed the player's own time in a
+      // column that is the game's).
+      { at: Date.now(), clock: cabClock(current, state.clockShift) },
+    )
   }, [routeId, text])
+
+  // A note's timer outlives the effect that set it: the component going takes them with it.
+  useEffect(() => {
+    const timers = raised.current
+    return () => {
+      for (const timer of timers.values()) if (timer) clearTimeout(timer)
+    }
+  }, [])
 
   useEffect(() => {
     if (!telemetry) {
+      for (const timer of raised.current.values()) if (timer) clearTimeout(timer)
       raised.current.clear()
       return
     }
@@ -76,12 +148,24 @@ function useGameAlerts() {
         ? `${n(Math.floor(value / 60))} ${words.hours} ${String(Math.floor(value % 60)).padStart(2, '0')}`
         : `${n(Math.round(value))} ${words.minutes}`
     const raise = (key: string, on: boolean, title: string, detail: string, tone: 'warn' | 'alarm') => {
+      const held = raised.current.get(key)
       if (!on) {
-        raised.current.delete(key)
+        // Gone right: it may be raised again, but only once it has stayed right for a moment (a sensor that
+        // flickers at the pump, or an oil pressure that dips at idle, doesn't stack note after note).
+        if (held === undefined || held !== null) return
+        raised.current.set(
+          key,
+          setTimeout(() => raised.current.delete(key), WARN_HOLD_MS),
+        )
         return
       }
-      if (raised.current.has(key)) return
-      raised.current.add(key)
+      if (held === undefined) raised.current.set(key, null)
+      else if (held !== null) {
+        // Back within the hold: the same fault as before, not a new one.
+        clearTimeout(held)
+        raised.current.set(key, null)
+        return
+      } else return
       useNotes.getState().push({ key, title, detail, tone }, when)
     }
 

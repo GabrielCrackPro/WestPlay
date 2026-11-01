@@ -232,3 +232,25 @@
   font-weight: 500;
   color: rgb(255 255 255 / 0.8);
 }
+
+/* How wet the roads have been these last minutes (WeatherApp.tsx's useWetness): a line under the meter. */
+.wx-trend {
+  width: 100%;
+  height: 44px;
+  margin-top: 10px;
+  overflow: visible;
+}
+
+.wx-trend polyline {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The roads' wetness fills in as the game reports it, rather than jumping to each new reading. */
+.wx-meter span {
+  transition: width 700ms var(--motion-ease);
+}

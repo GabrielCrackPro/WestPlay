@@ -261,7 +261,7 @@ export const words: CompanionWords = {
       '각 아이콘의 이름을 앱 이름으로 하세요: {names}. PNG, WebP, JPG, SVG를 쓸 수 있어요. 빠진 앱은 Cabin Play 아이콘을 그대로 써요.',
     looksNote:
       '라이트와 다크에 따라 바뀌는 아이콘을 원하면 이름에 .dark를 붙인 다크 버전을 추가하세요. 예: maps.png 옆에 maps.dark.png.',
-    style: { title: '아이콘 스타일', auto: '자동', light: '라이트', dark: '다크' },
+    style: { title: '아이콘 스타일', auto: '자동', light: '라이트', dark: '다크', android: 'Android Auto' },
     remove: '제거',
     pickWallpapers: '배경화면 선택',
     pickWallpaperFolder: '배경화면 폴더 선택',

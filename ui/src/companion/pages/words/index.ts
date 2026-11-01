@@ -183,7 +183,7 @@ export interface CompanionWords {
     addZip: string
     iconsNote: string
     looksNote: string
-    style: { title: string; auto: string; light: string; dark: string }
+    style: { title: string; auto: string; light: string; dark: string; android: string }
     remove: string
     pickWallpapers: string
     pickWallpaperFolder: string

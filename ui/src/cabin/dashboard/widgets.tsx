@@ -31,7 +31,7 @@ import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { JobGlyph } from './JobGlyph'
-import { EMPTY, useDestinationView, useDiagnosticsView, useJobView, weatherFits } from './widgetState'
+import { EMPTY, useDestinationView, useDiagnosticsView, useJobView } from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -43,7 +43,7 @@ export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
   const { showing, spotify, appleMusic, youtubeMusic } = useNowPlaying()
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`}>
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-nowPlaying' }}>
       {shown && showing === 'video' && <VideoWidget />}
       {shown && showing === 'spotify' && spotify && <SpotifyWidget spotify={spotify} />}
       {shown && showing === 'appleMusic' && appleMusic && <AppleMusicWidget appleMusic={appleMusic} />}
@@ -230,7 +230,7 @@ export function DestinationWidget() {
   const view = useDestinationView()
   const shown = useCabin((state) => state.dashboardWidgets.destination) && view !== EMPTY
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`}>
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-destination' }}>
       {shown && (
         <article className="widget glass job">
           <div className="kicker">{view.kicker}</div>
@@ -253,7 +253,7 @@ export function JobWidget() {
   const view = useJobView()
   const shown = useCabin((state) => state.dashboardWidgets.job) && view !== null
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`}>
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-job' }}>
       {shown && view && (
         <article className="widget glass job job-card" aria-label={text.job}>
           <div className="job-text">
@@ -281,7 +281,7 @@ export function DiagnosticsWidget() {
   const view = useDiagnosticsView()
   const shown = useCabin((state) => state.dashboardWidgets.diagnostics) && view !== null
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`}>
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-diagnostics' }}>
       {shown && view && (
         <button
           type="button"
@@ -339,23 +339,31 @@ export function WeatherWidget() {
     widgets.job && hasJob,
     widgets.diagnostics && diagnostics !== null,
   ].filter(Boolean).length
-  const room = widgets.weather && weatherFits(others)
+  // Weather is never dropped when the column is full: it comes in tight instead (a smaller card), so a widget the
+  // player turned on doesn't disappear without saying why.
+  const room = widgets.weather
+  const tight = others >= 4
   const weather = useLive((state) => state.weather)
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : 0))
   const place = useLive((state) => {
     const t = state.telemetry
     return t && labels ? nearestCity([t.x, t.z], labels) : null
   })
-  const view = weather ? weatherView(weather, gameTime, place, text) : null
+  // The wipers running say it rains now, before the game's own sky turns (weather.ts).
+  const wipers = useLive((state) => state.telemetry?.wipers ?? false)
+  const view = weather ? weatherView(weather, gameTime, place, text, wipers) : null
   return (
-    <div className={`widget-slot${room && view ? ' open' : ''}`}>
-      {view && (
-        <article className="widget glass weather" aria-label={[view.place, view.condition].filter(Boolean).join(', ')}>
+    <div className={`widget-slot${room && view ? ' open' : ''}`} style={{ viewTransitionName: 'widget-weather' }}>
+      {room && view && (
+        <article
+          className={`widget glass weather${tight ? ' tight' : ''}`}
+          aria-label={[view.place, view.condition].filter(Boolean).join(', ')}
+        >
           <div className="weather-text">
             {view.place && <div className="place">{view.place}</div>}
             <div className="condition">{view.condition}</div>
           </div>
-          <WeatherGlyph symbol={view.symbol} size={84} />
+          <WeatherGlyph symbol={view.symbol} size={tight ? 60 : 84} />
         </article>
       )}
     </div>

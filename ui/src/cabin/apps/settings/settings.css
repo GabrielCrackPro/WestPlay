@@ -619,3 +619,101 @@
   transform: translate(-50%, -50%) scale(1.08);
   transition: transform 150ms var(--motion-ease);
 }
+
+/* App Icons (SettingsApp.tsx): an icon set's row, with the apps it changes beside it. */
+.icon-sets {
+  display: flex;
+  flex-direction: column;
+}
+
+.shell .settings-row.icon-set-row {
+  gap: 16px;
+}
+
+.icon-set-row .settings-label {
+  flex: none;
+}
+
+.icon-strip {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.icon-strip img {
+  width: 44px;
+  height: 44px;
+  filter: var(--shadow-icon);
+}
+
+.icon-strip + .settings-check {
+  margin-left: 4px;
+}
+
+/* Rows answer the mouse (the cab's cursor), and the press shows: iOS's grey fill, the whole row a target. */
+.shell .settings-row {
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.shell .settings-row:hover {
+  background: var(--apple-fill-quaternary);
+}
+
+.shell .settings-row:active {
+  background: var(--apple-fill-tertiary);
+}
+
+/* The page's own scrolling stops at its ends rather than dragging the screen behind it. */
+.settings-scroll {
+  overscroll-behavior: contain;
+}
+
+/* A widget's place in the Dashboard's own order (Settings › Dashboard, Auto order off): its name, and the two
+   buttons that move it, each as large a target as the row. */
+.shell .settings-row.settings-order {
+  cursor: default;
+}
+
+.settings-order-buttons {
+  display: flex;
+  margin-left: auto;
+  gap: 8px;
+}
+
+.shell .settings-order-buttons button {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: calc(15px * var(--text-scale, 1));
+  color: var(--apple-blue);
+  background: var(--apple-fill-quaternary);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.shell .settings-order-buttons button:hover:not(:disabled) {
+  background: var(--apple-fill-tertiary);
+}
+
+.shell .settings-order-buttons button:disabled {
+  color: var(--apple-label-tertiary);
+  cursor: default;
+}
+
+/* Keyboard: the cab is driven by mouse, but Tab and the arrows walk these too (the Text Size slider and the
+   Equalizer's bands), so focus has to show. The ring is drawn inside the row: a card clips what spills out of it. */
+.settings-app button:focus-visible,
+.settings-app [role='slider']:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--apple-blue);
+}
+
+/* The Equalizer's points are drawn in its graph: a box round one would sit over the curve, so the point itself
+   turns blue and thickens. */
+.settings-app .eq-point:focus-visible {
+  box-shadow: none;
+  stroke: var(--apple-blue);
+  stroke-width: 4;
+}

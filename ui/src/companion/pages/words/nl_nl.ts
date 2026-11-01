@@ -264,7 +264,7 @@ export const words: CompanionWords = {
       'Noem elk symbool naar zijn app: {names}. PNG, WebP, JPG of SVG. Een app die ontbreekt houdt het symbool van Cabin Play.',
     looksNote:
       'Voor een symbool dat wisselt tussen licht en donker, voeg je een donkere versie toe met .dark in de naam, bijvoorbeeld maps.dark.png naast maps.png.',
-    style: { title: 'Symboolstijl', auto: 'Auto', light: 'Licht', dark: 'Donker' },
+    style: { title: 'Symboolstijl', auto: 'Auto', light: 'Licht', dark: 'Donker', android: 'Android Auto' },
     remove: 'Verwijder',
     pickWallpapers: 'Kies achtergronden',
     pickWallpaperFolder: 'Kies een map met achtergronden',

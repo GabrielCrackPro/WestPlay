@@ -83,6 +83,9 @@ body,
 .shell {
   --text: #fff;
   --text-dim: rgb(255 255 255 / 0.68);
+  /* What keyboard and knob focus is drawn in (focus-visible, below): the look's own text over the screen's art,
+     so it reads on a dark wallpaper and a light one alike. */
+  --focus: #fff;
   --glass: rgb(255 255 255 / 0.12);
   --glass-rim: rgb(255 255 255 / 0.32);
   --chip: rgb(0 0 0 / 0.22);
@@ -97,6 +100,7 @@ body,
 .shell.appearance-light {
   --text: #14161a;
   --text-dim: rgb(20 22 26 / 0.62);
+  --focus: #14161a;
   --glass: rgb(255 255 255 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.75);
   --chip: rgb(255 255 255 / 0.5);
@@ -173,11 +177,12 @@ body,
   cursor: pointer;
 }
 
-/* Focus ring for keyboard/knob navigation (v1.x); invisible for mouse clicks. */
-.shell button:focus-visible {
-  outline: 3px solid var(--text);
-  outline-offset: 6px;
-  border-radius: 24px;
+/* Focus ring for keyboard/knob navigation (v1.x); invisible for mouse clicks. It follows whatever shape the
+   control has (the outline traces the element's border-radius itself, and no radius of its own is set here, which
+   used to square a round sidebar button off). */
+.shell :is(button, a, [tabindex], [role='tab'], [role='switch'], [role='radio'], [role='slider']):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
 }
 
 /* The CarPlay area: the whole screen, or everything beside the truck's own OEM strip. Opaque. */
@@ -439,6 +444,11 @@ body,
   scale: 0.92;
 }
 
+/* Under the mouse (the cab's cursor): the button's glass comes up, so it's clear it can be pressed. */
+.shell .sidebar-button:hover {
+  background: var(--glass);
+}
+
 /* The Home button's two icons share its place; the one for where it goes shows. */
 .home-button svg {
   grid-area: 1 / 1;
@@ -569,4 +579,85 @@ body,
     width: 50px;
     height: 50px;
   }
+}
+
+/* The Notifications app's count on its sidebar icon (Sidebar.tsx): the same as Home's badge, on the glass. */
+.recent-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: var(--apple-red);
+  color: #fff;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+/* Reduced motion (Settings › Appearance's Reduce Motion, or the PC's own; CabinApp sets data-motion): screens
+   change in place — nothing slides, springs or crossfades for more than a moment. View transitions are skipped
+   in state/launch.ts, so app launches are as instant as the rest. */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* The sidebar's clock, keyed by the minute (Sidebar.tsx): a new one rolls in under the old, as a car's clock does. */
+.time {
+  animation: time-in 240ms var(--motion-ease) both;
+}
+
+@keyframes time-in {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+
+/* An app that joins the sidebar's recents comes in with a pop, as one put on Home would. Its icon carries the
+   launch's transition name, so only the plain icon animates (the copy laid over it for a launch doesn't). */
+.recent button > img:not(.launch-copy) {
+  animation: recent-in 260ms var(--motion-ease) both;
+}
+
+@keyframes recent-in {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+}
+
+/* Night in the truck (Shell.tsx `useNightDim`): the screen dims as a head unit's does, so the map doesn't glare in a
+   dark cab. Over everything the CarPlay area draws, and it takes no presses. */
+.cab-night {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  pointer-events: none;
+  transition: opacity 2s var(--motion-ease);
+}
+
+:root {
+  /* The cabin's motion, in three sizes: a press or a chip, a panel changing under the player, and an app opening or
+     a screen trading places (whose spring is --motion-spring-duration, transitions.css). */
+  --motion-quick: 160ms;
+  --motion-standard: 300ms;
+}
+
+/* Pressed, everything the player can press gives a little, as Home's icons do (theirs a larger give of their own).
+   `scale` rather than `transform`, so it rides on whatever transform the element already carries. */
+.shell :is(button, [role='button']):active {
+  scale: 0.97;
+  transition: scale var(--motion-quick) var(--motion-ease);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLive } from '../state/store'
+import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { followBearing, northUpLiveMap, overviewLiveMap, recentreLiveMap, useMapBrowsing, zoomLiveMap } from './liveMap'
 
@@ -12,6 +12,7 @@ import { followBearing, northUpLiveMap, overviewLiveMap, recentreLiveMap, useMap
 export function MapControls() {
   const browsing = useMapBrowsing((state) => state.browsing)
   const routed = useLive((state) => state.route !== null)
+  const compass = useCabin((state) => state.mapCompass)
   const text = useText()
   return (
     <div className="map-controls">
@@ -41,7 +42,7 @@ export function MapControls() {
           </svg>
         </button>
       )}
-      <MapCompass label={text.northUp} />
+      {compass && <MapCompass label={text.northUp} />}
       <MapZoom />
     </div>
   )
