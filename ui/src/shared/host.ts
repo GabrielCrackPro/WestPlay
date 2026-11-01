@@ -102,6 +102,10 @@ export interface TruckInfo {
   id: string
   /** Display model name, localized by the game, e.g. "XG+". */
   name: string
+  /** The tank's capacity, litres (0 when the game hasn't said), and the fraction of it below which the game
+   * warns of low fuel (0 when it hasn't said either). */
+  fuelCapacity: number
+  fuelWarningFactor: number
 }
 
 /** The player's job (`westplay_shared::JobInfo`): names localized by the game. */

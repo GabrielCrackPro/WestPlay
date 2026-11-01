@@ -30,7 +30,7 @@ pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
 /// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
 /// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
 /// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings.
-pub const BRIDGE_VERSION: u32 = 27;
+pub const BRIDGE_VERSION: u32 = 28;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -656,6 +656,10 @@ pub struct TruckInfo {
     /// The plate's country (`license.plate.country.id`, e.g. `italy`).
     #[cfg_attr(feature = "serde", serde(skip))]
     pub plate_country: FixedStr<32>,
+    /// The tank's capacity, litres (the configuration's `fuel.capacity`), and the fraction of it below which
+    /// the game warns of low fuel (`fuel.warning.factor`): 0 when the game hasn't said either.
+    pub fuel_capacity: f32,
+    pub fuel_warning_factor: f32,
 }
 
 /// The player's current job, from the SDK's "job" configuration. Names come localized by the game.
@@ -1005,6 +1009,8 @@ mod tests {
             head: [-0.722, 1.696, 0.686],
             plate: FixedStr::new("CA 324KD"),
             plate_country: FixedStr::new("italy"),
+            fuel_capacity: 900.0,
+            fuel_warning_factor: 0.15,
         };
         lock.write(&truck);
         assert_eq!(lock.read(), Some(truck));

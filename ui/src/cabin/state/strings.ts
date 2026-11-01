@@ -528,6 +528,7 @@ export interface Strings {
     time: string
     reset: string
     noTelemetry: string
+    overview: string
   }
   apps: Record<AppId, string>
   notBuiltYet: string
@@ -1067,6 +1068,7 @@ const ENGLISH_STRINGS: Strings = {
     time: 'Time',
     reset: 'Reset',
     noTelemetry: 'Start the game for readings',
+    overview: 'Overview',
   },
   apps: {
     maps: 'Maps',
@@ -1620,6 +1622,7 @@ const TURKISH_STRINGS: Strings = {
     time: 'Süre',
     reset: 'Sıfırla',
     noTelemetry: 'Değerler için oyunu başlat',
+    overview: 'Genel bakış',
   },
   apps: {
     maps: 'Haritalar',
@@ -2184,6 +2187,7 @@ const SPANISH_STRINGS: Strings = {
     time: 'Tiempo',
     reset: 'Reiniciar',
     noTelemetry: 'Inicia el juego para ver valores',
+    overview: 'Resumen',
   },
   apps: {
     maps: 'Mapas',

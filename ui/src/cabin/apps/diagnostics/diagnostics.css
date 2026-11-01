@@ -14,19 +14,61 @@
   display: none;
 }
 
-/* The panel scrolls; the column's parts keep their height. Without this they're flex items of a column
-   that's taller than the panel, and the hero (whose `overflow: hidden` lets a flex item shrink to nothing)
-   is crushed down to its padding: an empty strip above the cards. */
-.diag-scroll {
+/* The panel holds the tab bar and the page under it. `min-height` lets the page fill the panel (its cards spread
+   to its height); only a page taller than the panel scrolls, which is the small screen's case. */
+.diag-shell {
   display: flex;
   flex-direction: column;
-  gap: calc(16px * var(--text-scale, 1));
+  gap: calc(14px * var(--text-scale, 1));
   min-width: 0;
   width: 100%;
+  min-height: 100%;
 }
 
-.diag-scroll > * {
+/* The app's pages, as one bar of tabs: the page being shown is raised out of the bar (owner 2026-11-01: "so we
+   dont have to scroll to see info"). */
+.diag-tabs {
+  display: flex;
   flex: none;
+  /* The tabs wrap rather than run off the panel: a narrow screen shows two rows, both readable. */
+  flex-wrap: wrap;
+  gap: calc(5px * var(--text-scale, 1));
+  width: fit-content;
+  max-width: 100%;
+  padding: calc(6px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: 999px;
+  background: var(--apple-fill);
+}
+
+.diag-tab {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(10px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  border-radius: 999px;
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.diag-tab.on {
+  background: var(--apple-card);
+  color: var(--text);
+  box-shadow: var(--shadow-raised);
+}
+
+/* A page shows only its own readings, and the hero only on the overview: the other pages' cards stay out of the
+   grid (their state is the telemetry's, so nothing is lost by keeping them mounted). */
+.diag-shell:not(.page-overview) .diag-hero,
+.diag-shell.page-overview .diag-card:not(.on-overview),
+.diag-shell.page-engine .diag-card:not(.on-engine),
+.diag-shell.page-chassis .diag-card:not(.on-chassis) {
+  display: none;
 }
 
 /* On top: the truck turning on its disc, its speed, and the four readings a driver watches without thinking. */
@@ -69,31 +111,28 @@
   pointer-events: none;
 }
 
-/* Where the 3D truck draws itself (TruckModel.tsx). */
+/* Where the truck is drawn (TruckFigure.tsx). */
 .diag-art {
   position: relative;
   align-self: stretch;
-  min-height: calc(190px * var(--text-scale, 1));
+  min-height: calc(160px * var(--text-scale, 1));
 }
 
-.truck-view {
+.diag-figure {
   position: absolute;
   inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(8px * var(--text-scale, 1));
+  color: var(--diag-tone);
 }
 
-.truck-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* No WebGL: the panel's glow stands in for the truck. */
-.truck-view.unavailable::before {
-  content: '';
-  position: absolute;
-  inset: 22% 12%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--diag-tone) 30%, transparent), transparent);
+/* The drawing is wide and low (300 by 120): it takes a little more of the column than a glyph would, so its
+   detail — the trailer's ribs, the twin drive axle — still reads at the hero's size. */
+.diag-figure svg {
+  width: min(100%, calc(360px * var(--text-scale, 1)));
+  height: auto;
+  max-height: 100%;
 }
 
 .diag-main {
@@ -152,7 +191,7 @@
   padding: calc(5px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
   border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
 }
 
 .diag-tag-label {
@@ -179,7 +218,7 @@
 }
 
 .diag-quick-label {
-  font-size: calc(12.5px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -195,7 +234,7 @@
 
 .diag-quick-unit {
   margin-left: calc(3px * var(--text-scale, 1));
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(13.5px * var(--text-scale, 1));
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -224,11 +263,31 @@
   background: var(--apple-red);
 }
 
-/* The cards under it. */
+/* The cards under it, as tall as the panel leaves them: their readings spread out rather than leaving the page
+   half empty under them. They never shrink under their own content (`flex-shrink: 0`): a panel too short for
+   them scrolls the app instead of clipping a card's rows. */
 .diag-cards {
   display: grid;
+  flex: 1 0 auto;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: calc(16px * var(--text-scale, 1));
+  align-content: stretch;
+  min-height: 0;
+}
+
+/*
+ * The overview is the hero and the trip computer under it: the hero takes the height, the trip keeps its own. The
+ * hero grows into spare room but never shrinks into its own content — it clips (its `overflow: hidden` keeps the
+ * gauge grid inside its corners, and an item with `overflow: hidden` has no automatic minimum size), so on a panel
+ * too short for both the shell runs past the panel and the app scrolls, as it did before the pages, rather than
+ * losing the speed, the tags or a quick reading.
+ */
+.diag-shell.page-overview .diag-hero {
+  flex: 1 0 auto;
+}
+
+.diag-shell.page-overview .diag-cards {
+  flex: none;
 }
 
 .diag-card {
@@ -249,6 +308,11 @@
 
 .diag-card.span-6 {
   grid-column: span 6;
+}
+
+/* The trip and its four figures run the width of the app, under the three cards above them. */
+.diag-card.span-12 {
+  grid-column: span 12;
 }
 
 .diag-card.span-12 {
@@ -286,7 +350,7 @@
   padding: calc(4px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
   border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  font-size: calc(12.5px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
   font-weight: 650;
   color: var(--diag-tone);
 }
@@ -365,7 +429,7 @@
 }
 
 .diag-stat-label {
-  font-size: calc(13px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
@@ -386,10 +450,10 @@
 
 .diag-reset {
   margin-left: auto;
-  padding: calc(7px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
   border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -433,8 +497,8 @@
 /* A reading worth watching: its dot takes the tone its card does. */
 .diag-dot {
   flex: none;
-  width: calc(8px * var(--text-scale, 1));
-  height: calc(8px * var(--text-scale, 1));
+  width: calc(10px * var(--text-scale, 1));
+  height: calc(10px * var(--text-scale, 1));
   border-radius: 50%;
   background: var(--apple-green);
 }
@@ -465,7 +529,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
   color: var(--text-dim);
 }
 
@@ -497,7 +561,7 @@
   }
 
   .diag-art {
-    min-height: calc(170px * var(--text-scale, 1));
+    min-height: calc(140px * var(--text-scale, 1));
   }
 
   .diag-card.span-4 {

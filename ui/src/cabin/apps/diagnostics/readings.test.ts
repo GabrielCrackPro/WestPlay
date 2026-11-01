@@ -6,6 +6,7 @@ import {
   brakeTemperature,
   consumption,
   coolant,
+  fuelLevel,
   oilPressure,
   warned,
   wear,
@@ -67,6 +68,16 @@ describe("the Diagnostics app's readings", () => {
     // Already an alarm: it stays one, and the reading is unchanged.
     expect(warned(battery(21), true).state).toBe('alarm')
     expect(warned(battery(21), true).value).toBe(21)
+  })
+
+  it("gauges the tank against the capacity, at the game's own warning fraction", () => {
+    // A 900 litre tank at 60%: 540 litres, with the game's warning at 15% and half of that for trouble.
+    expect(fuelLevel(540 / 900, 0.15).percent).toBeCloseTo(0.6)
+    expect(fuelLevel(540 / 900, 0.15).state).toBe('ok')
+    expect(fuelLevel(0.12, 0.15).state).toBe('warn')
+    expect(fuelLevel(0.05, 0.15).state).toBe('alarm')
+    // Without a warning fraction from the game, a sixth of a tank is worth watching.
+    expect(fuelLevel(0.14).state).toBe('warn')
   })
 
   it('calls a thirsty truck out from above', () => {

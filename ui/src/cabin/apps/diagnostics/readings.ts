@@ -51,6 +51,16 @@ export const battery = (volts: number) => scale({ min: 20, max: 30, warn: 24, al
 /** AdBlue, litres of a 60 litre tank: a fifth left is worth filling, under a tenth it limits the engine. */
 export const adblue = (litres: number) => scale({ min: 0, max: 60, warn: 12, alarm: 6, low: true }, litres)
 
+/**
+ * How full the tank is, 0 to 1 of its capacity: the game's own warning fraction (`fuel.warning.factor`) is where
+ * it turns worth fuelling, half of that where it's a problem. A truck whose capacity the game hasn't reported
+ * has no gauge at all (Diagnostics checks for that first).
+ */
+export const fuelLevel = (fraction: number, warning = 0.15) => {
+  const low = warning > 0 ? warning : 0.15
+  return scale({ min: 0, max: 1, warn: low, alarm: low / 2, low: true }, fraction)
+}
+
 /** Fuel consumption, litres per 100 km: a loaded truck runs in the 25 to 40s; over it, something's wrong. */
 export const consumption = (per100: number) => scale({ min: 0, max: 60, warn: 42, alarm: 50 }, per100)
 

@@ -17,29 +17,21 @@ import {
   useYouTubeMusic,
   useYouTubeMusicSource,
 } from '../apps/youtubeMusic/youtubeMusic'
-import type { MediaAction, MediaSource } from '../../shared/media'
+import type { MediaAction, MusicService, MediaSource } from '../../shared/media'
+import type { AppId } from '../state/apps'
 import { useLook } from '../state/hooks'
 import { go, useCabin } from '../state/store'
 import { useMapData } from '../maps/mapData'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
 import { nearestCity } from './destination'
-import { useNowPlaying } from './useNowPlaying'
+import { clock, useNowPlaying, useProgress } from './useNowPlaying'
 import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
-import { FuelGlyph } from './FuelGlyph'
 import { JobGlyph } from './JobGlyph'
-import {
-  EMPTY,
-  useDestinationView,
-  useDiagnosticsView,
-  useFuelView,
-  useGuided,
-  useJobView,
-  weatherFits,
-} from './widgetState'
+import { EMPTY, useDestinationView, useDiagnosticsView, useGuided, useJobView, weatherFits } from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -118,6 +110,13 @@ function SpotifyWidget({ spotify }: { spotify: NonNullable<ReturnType<typeof use
   )
 }
 
+/** A player's app, whose own name the card shows above the track: Apple Music is the Music app's. */
+const SERVICE_APPS: Record<MusicService, AppId> = {
+  appleMusic: 'music',
+  spotify: 'spotify',
+  youTubeMusic: 'youtubeMusic',
+}
+
 /** Behind Now Playing's words, in each look: the blurred cover at its opacity (dashboard.css) over the look's
  * glass, on the page behind an app (what's under the glass, roughly). */
 const WIDGET_BACKDROPS: Record<Look, Backdrop> = {
@@ -148,6 +147,8 @@ function MusicWidget({
   const controls = source?.controls
   const playing = source?.status === 'playing'
   const text = useText()
+  // How far into the track (its own player's time, ticking while it plays).
+  const progress = useProgress(source)
   const ink = useWordsOver(cover, useLook().appearance, WIDGET_BACKDROPS)
 
   return (
@@ -173,12 +174,28 @@ function MusicWidget({
           layerClassName="track-lines"
           render={(track) => (
             <>
+              {/* Which app plays it, above the name (the players' own names, in their language). */}
+              {track && <span className="service">{text.apps[SERVICE_APPS[track.source.service]]}</span>}
               <span className="title">{track?.source.title ?? text.notPlaying}</span>
               {track && <span className="artist">{track.source.artist}</span>}
+              {/* The album, where it says more than the song's own name (a single's album is the song). */}
+              {track && track.source.album && track.source.album !== track.source.title && (
+                <span className="album">{track.source.album}</span>
+              )}
             </>
           )}
         />
       </button>
+      {/* How far in, and how long: the bar moves while it plays, the times either side of it. */}
+      {progress && (
+        <div className="np-progress">
+          <span className="np-time">{clock(progress.position)}</span>
+          <span className="np-bar" aria-hidden>
+            <span style={{ width: `${Math.round((progress.position / progress.duration) * 100)}%` }} />
+          </span>
+          <span className="np-time">{clock(progress.duration)}</span>
+        </div>
+      )}
       <div className="controls">
         <button
           type="button"
@@ -253,40 +270,10 @@ export function JobWidget() {
 }
 
 /**
- * Fuel: what's left in the tank and how far it goes, on the job card's own layout (kicker, a big line, a line
- * under it) so the column's cards read alike. Folded away without either — no game, or a truck whose tank the
- * game hasn't read (widgetState.ts) — as the destination folds away without a job.
- */
-export function FuelWidget() {
-  const view = useFuelView()
-  const shown = useCabin((state) => state.dashboardWidgets.fuel) && view !== null
-  return (
-    <div className={`widget-slot${shown ? ' open' : ''}`}>
-      {shown && view && (
-        <article className="widget glass job fuel" aria-label={view.kicker}>
-          <div className="fuel-text">
-            <div className="kicker">{view.kicker}</div>
-            {view.range ? (
-              <>
-                <div className="destination">{view.range}</div>
-                <div className="place">{view.litres}</div>
-              </>
-            ) : (
-              <div className="destination">{view.litres}</div>
-            )}
-          </div>
-          <FuelGlyph size={GLYPH} />
-        </article>
-      )}
-    </div>
-  )
-}
-
-/**
- * Diagnostics: the engine's coolant and the brake air on one card — the two readings a driver watches while
-driving — on the fuel card's layout, with the battery, the AdBlue, the oil's pressure, the fuel it burns and the trailer's tires under them. A
- * reading out of its range takes the tone, so a glance says whether it's worth opening the app. Folded away
- * without the game, like the fuel card.
+ * Diagnostics: the engine's coolant and the brake air on one card — the readings a driver watches while
+driving — with the fuel left in the tank, the AdBlue and the battery under them. A reading out of its range,
+ * or the game's own warning, takes the tone, so a glance says whether it's worth opening the app. Folded away
+ * without the game.
  */
 export function DiagnosticsWidget() {
   const text = useText()
@@ -307,15 +294,9 @@ export function DiagnosticsWidget() {
             <div className={`destination ${view.coolantState}`}>{view.coolant}</div>
             <div className={`place ${view.airState}`}>{view.air}</div>
             <div className="diag-extra">
-              <Extra label={words.battery} value={view.battery} state={view.batteryState} />
+              <Extra label={words.fuel} value={view.fuel} state={view.fuelState} />
               <Extra label={words.adblue} value={view.adblue} state={view.adblueState} />
-              <Extra label={words.oil} value={view.oilPressure} state={view.oilPressureState} />
-              <Extra
-                label={words.trailer}
-                value={view.trailer ?? '—'}
-                state={view.trailer === null ? 'ok' : view.trailerState}
-              />
-              <Extra wide label={words.consumption} value={view.economy} state={view.economyState} />
+              <Extra label={words.battery} value={view.battery} state={view.batteryState} />
             </div>
           </div>
           <DiagnosticsGlyph size={GLYPH} />
@@ -325,11 +306,10 @@ export function DiagnosticsWidget() {
   )
 }
 
-/** One of the diagnostics card's smaller readings: its name, then its value, in the card's muted lines. The
- * wide one takes the card's whole width (a value too long for a half). */
-function Extra({ label, value, state, wide = false }: { label: string; value: string; state: State; wide?: boolean }) {
+/** One of the diagnostics card's smaller readings: its name over its value. */
+function Extra({ label, value, state }: { label: string; value: string; state: State }) {
   return (
-    <span className={`diag-extra-item ${state}${wide ? ' wide' : ''}`}>
+    <span className={`diag-extra-item ${state}`}>
       <span className="diag-extra-label">{label}</span>
       <span className="diag-extra-value">{value}</span>
     </span>
@@ -341,9 +321,9 @@ const GLYPH = 72
 
 /**
  * The weather where the truck is, as CarPlay's weather widget (weather.ts): the nearest city, the weather
- * and its symbol. It comes in only where there's room (widgetState.ts): three widgets fill the column, four
- * with the fuel card up — so a full column without fuel holds what it always did, and nothing goes without
- * the weather (no game, or one whose weather isn't read), or turned off itself.
+ * and its symbol. It comes in only where there's room (widgetState.ts): three widgets fill the column — so the
+ * cards that are up keep their size, and nothing goes without the weather (no game, or one whose weather isn't
+ * read), or turned off itself.
  */
 export function WeatherWidget() {
   const text = useText()
@@ -352,16 +332,13 @@ export function WeatherWidget() {
   const guided = useGuided()
   const destination = useDestinationView()
   const job = useJobView()
-  const fuel = useFuelView()
   const diagnostics = useDiagnosticsView()
   const hasJob = job !== null
-  const hasFuel = fuel !== null
   const others = [
     guided,
     widgets.nowPlaying,
     widgets.destination && destination !== EMPTY,
     widgets.job && hasJob,
-    widgets.fuel && hasFuel,
     widgets.diagnostics && diagnostics !== null,
   ].filter(Boolean).length
   const room = widgets.weather && weatherFits(others)

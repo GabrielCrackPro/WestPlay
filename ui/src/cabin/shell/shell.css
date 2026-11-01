@@ -549,7 +549,7 @@ body,
   }
 
   .brand-wordmark {
-    font-size: calc(11px * var(--sidebar-scale));
+    font-size: calc(13px * var(--sidebar-scale));
   }
 
   .recent {

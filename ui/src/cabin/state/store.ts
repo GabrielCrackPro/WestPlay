@@ -56,19 +56,26 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'job' | 'fuel' | 'diagnostics'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'job' | 'diagnostics'
 
 export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'nowPlaying',
   'destination',
   'weather',
   'job',
-  'fuel',
   'diagnostics',
 ]
 
 /** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
 export type Clock = 'game' | 'real'
+
+/**
+ * The Diagnostics app's page: the readings a driver glances at, the powertrain, or the running gear's wear. The
+ * app's tabs switch between them, and the one left open comes back (kept with the player's settings).
+ */
+export type DiagnosticsPage = 'overview' | 'engine' | 'chassis'
+
+export const DIAGNOSTICS_PAGES: readonly DiagnosticsPage[] = ['overview', 'engine', 'chassis']
 
 /**
  * Cabin state that the UI renders from. Telemetry lives in its own store (`useLive`) because it updates
@@ -86,6 +93,8 @@ interface CabinState {
   albumArt: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
   textSize: number
+  /** The Diagnostics app's page last opened, so its tabs come back where the player left them. */
+  diagnosticsPage: DiagnosticsPage
   /** The truck's own strip: kept (`auto`) or not, as set in the companion window (the host sends it). */
   oemMode: OemMode
   /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or the speakers as tuned
@@ -105,6 +114,7 @@ interface CabinState {
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
+  setDiagnosticsPage(page: DiagnosticsPage): void
   /** One band of the curve, set in Settings › Equalizer (choosing Custom): played by every player, and kept with
    * WestPlay's settings. */
   setEqualizerBand(band: keyof Equalizer, db: number): void
@@ -122,7 +132,14 @@ interface CabinState {
 /** What survives a restart of the app: where you were and your choices, never the power state. */
 type Persisted = Pick<
   CabinState,
-  'navigation' | 'appearanceMode' | 'wallpaperId' | 'dashboardWidgets' | 'clock' | 'albumArt' | 'textSize'
+  | 'navigation'
+  | 'appearanceMode'
+  | 'wallpaperId'
+  | 'dashboardWidgets'
+  | 'clock'
+  | 'albumArt'
+  | 'textSize'
+  | 'diagnosticsPage'
 >
 
 /** The widgets a new player starts with: all of them on. */
@@ -131,7 +148,6 @@ const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
   destination: true,
   weather: true,
   job: true,
-  fuel: true,
   diagnostics: true,
 }
 
@@ -145,6 +161,7 @@ export const useCabin = create<CabinState>()(
       clock: 'real',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
+      diagnosticsPage: 'overview',
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
@@ -161,6 +178,7 @@ export const useCabin = create<CabinState>()(
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
+      setDiagnosticsPage: (diagnosticsPage) => set({ diagnosticsPage }),
       setEqualizerBand: (band, db) => {
         const equalizer = toEqualizer({ ...useCabin.getState().equalizer, [band]: db })
         set({ equalizer, equalizerCustom: true })
@@ -211,6 +229,7 @@ export const useCabin = create<CabinState>()(
         clock: state.clock,
         albumArt: state.albumArt,
         textSize: state.textSize,
+        diagnosticsPage: state.diagnosticsPage,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -244,6 +263,9 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
+  if (DIAGNOSTICS_PAGES.includes(stored.diagnosticsPage as DiagnosticsPage)) {
+    result.diagnosticsPage = stored.diagnosticsPage
+  }
   return result
 }
 
@@ -349,7 +371,7 @@ function previewTruck(): TruckInfo | null {
   const model = new URLSearchParams(location.search).get('truck')
   if (!model) return null
   const brandId = model.split('.')[0]
-  return { brandId, brand: brandId, id: `vehicle.${model}`, name: model }
+  return { brandId, brand: brandId, id: `vehicle.${model}`, name: model, fuelCapacity: 0, fuelWarningFactor: 0 }
 }
 
 function previewLayout(): ScreenLayoutId | null {

@@ -321,7 +321,6 @@ function DashboardPage() {
     destination: text.destination,
     weather: text.apps.weather,
     job: text.job,
-    fuel: text.fuel,
     diagnostics: text.apps.diagnostics,
   }
   return (

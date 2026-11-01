@@ -28,7 +28,6 @@ describe('the saved Settings choices', () => {
       nowPlaying: false,
       destination: true,
       job: true,
-      fuel: true,
       diagnostics: true,
       weather: false,
     })
@@ -45,7 +44,6 @@ describe('the saved Settings choices', () => {
       nowPlaying: true,
       destination: true,
       job: true,
-      fuel: true,
       diagnostics: true,
       weather: false,
     })
@@ -60,11 +58,12 @@ describe('the saved Settings choices', () => {
       destination: true,
       weather: true,
       job: true,
-      fuel: true,
       diagnostics: true,
     })
     expect(useCabin.getState().albumArt).toBe(true)
     expect(useCabin.getState().appearanceMode).toBe('dark')
+    // The sidebar's clock: the player's own time, unless they chose the game's.
+    expect(useCabin.getState().clock).toBe('real')
   })
 })
 

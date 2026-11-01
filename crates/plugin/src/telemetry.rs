@@ -352,6 +352,15 @@ unsafe fn on_truck(configuration: &ConfigurationEvent) {
                     cabin = attribute.value.fvector().unwrap_or_default();
                     continue;
                 }
+                // The tank, so the cab can show how full it is rather than only how many litres are left.
+                b"fuel.capacity" => {
+                    truck.fuel_capacity = attribute.value.float();
+                    continue;
+                }
+                b"fuel.warning.factor" => {
+                    truck.fuel_warning_factor = attribute.value.float();
+                    continue;
+                }
                 _ => {}
             }
             let Some(value) = attribute.value.string() else { continue };

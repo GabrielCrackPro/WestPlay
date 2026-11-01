@@ -98,6 +98,21 @@ button.widget:active {
   padding: 14px 20px;
 }
 
+/* The readings are glanced at from the driver's seat: this card's type is a step larger than the other one-job
+   cards' (`job-card`, `fuel`), so a look says what the engine, the brakes and the tank are doing (owner
+   2026-11-01: "i can bearly read the diagnostic widget"). */
+.widget.diagnostics .kicker {
+  font-size: calc(17px * var(--text-scale, 1));
+}
+
+.widget.diagnostics .destination {
+  font-size: calc(26px * var(--text-scale, 1));
+}
+
+.widget.diagnostics .place {
+  font-size: calc(22px * var(--text-scale, 1));
+}
+
 /* Its gauge, in the fuel pump's own soft colour. */
 .diagnostics-glyph {
   flex: none;
@@ -109,25 +124,18 @@ button.widget:active {
    out. */
 .widget.diagnostics .diag-extra {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: calc(10px * var(--text-scale, 1));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: calc(12px * var(--text-scale, 1));
   min-width: 0;
-  margin-top: calc(2px * var(--text-scale, 1));
-  font-size: calc(11.5px * var(--text-scale, 1));
+  margin-top: calc(4px * var(--text-scale, 1));
+  font-size: calc(14px * var(--text-scale, 1));
   line-height: 1.25;
 }
 
 .widget.diagnostics .diag-extra-item {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: calc(4px * var(--text-scale, 1));
+  flex-direction: column;
   min-width: 0;
-}
-
-/* A reading whose value is too long for half the card: the whole row. */
-.widget.diagnostics .diag-extra-item.wide {
-  grid-column: 1 / -1;
 }
 
 .widget.diagnostics .diag-extra-label {
@@ -242,6 +250,18 @@ button.widget:active {
   text-overflow: ellipsis;
 }
 
+/* Which app plays it, above the name: a card's kicker, in the card's own dim. */
+.now-playing .service {
+  overflow: hidden;
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .now-playing .artist {
   overflow: hidden;
   font-size: calc(20px * var(--text-scale, 1));
@@ -249,6 +269,47 @@ button.widget:active {
   opacity: 0.78;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* The album under it, a step down from who it's by. */
+.now-playing .album {
+  overflow: hidden;
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  opacity: 0.6;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* How far into the track: its time and its length either side of the bar, as a player writes them. */
+.now-playing .np-progress {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: 0 calc(4px * var(--text-scale, 1));
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.now-playing .np-bar {
+  flex: 1;
+  min-width: 0;
+  height: calc(5px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  overflow: hidden;
+  color: var(--text);
+}
+
+.now-playing .np-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  /* A second's step at a time, sliding rather than jumping. */
+  transition: width 1s linear;
 }
 
 .now-playing .controls {
@@ -432,6 +493,11 @@ button.widget:active {
     height: 48px;
   }
 
+  .widgets .now-playing .np-progress {
+    gap: calc(8px * var(--text-scale, 1));
+    font-size: calc(12px * var(--text-scale, 1));
+  }
+
   .widgets .now-playing .controls button {
     width: 44px;
     height: 44px;
@@ -446,8 +512,21 @@ button.widget:active {
     font-size: calc(17px * var(--text-scale, 1));
   }
 
+  /* The diagnostics card keeps a size it can still be read at, one step down from its own. */
+  .widgets .widget.diagnostics .kicker {
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .destination {
+    font-size: calc(22px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .place {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
   .widgets .widget.diagnostics .diag-extra {
-    font-size: calc(11px * var(--text-scale, 1));
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 }
 
@@ -476,6 +555,14 @@ button.widget:active {
     font-size: calc(18px * var(--text-scale, 1));
   }
 
+  .now-playing .album {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .now-playing .service {
+    font-size: calc(11px * var(--text-scale, 1));
+  }
+
   .now-playing .controls button {
     width: 48px;
     height: 48px;
@@ -496,7 +583,7 @@ button.widget:active {
 
   .job-card .kicker,
   .fuel .kicker {
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .job-card .destination,
@@ -556,7 +643,20 @@ button.widget:active {
   }
 
   .now-playing .artist {
-    font-size: calc(15px * var(--text-scale, 1));
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .now-playing .album {
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .now-playing .service {
+    font-size: calc(11px * var(--text-scale, 1));
+  }
+
+  .now-playing .np-progress {
+    gap: calc(8px * var(--text-scale, 1));
+    font-size: calc(12px * var(--text-scale, 1));
   }
 
   .now-playing .controls {
@@ -569,7 +669,7 @@ button.widget:active {
   }
 
   .job .kicker {
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .job .destination {
@@ -578,12 +678,12 @@ button.widget:active {
 
   .job .place,
   .job .deadline {
-    font-size: calc(15px * var(--text-scale, 1));
+    font-size: calc(16px * var(--text-scale, 1));
   }
 
   .job-card .kicker,
   .fuel .kicker {
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 
   .job-card .destination,
@@ -593,7 +693,7 @@ button.widget:active {
 
   /* The fuel's line is the longest ("1,241 km of range"): a size down and it still fits the narrow column. */
   .fuel .destination {
-    font-size: calc(16px * var(--text-scale, 1));
+    font-size: calc(17px * var(--text-scale, 1));
   }
 
   .job-card .place,
@@ -650,5 +750,22 @@ button.widget:active {
   .guidance-widget .guidance-then .maneuver-glyph {
     width: 22px;
     height: 22px;
+  }
+
+  /* Diagnostics on the narrow column: the small screen's step, still above the other cards'. */
+  .widget.diagnostics .kicker {
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .widget.diagnostics .destination {
+    font-size: calc(22px * var(--text-scale, 1));
+  }
+
+  .widget.diagnostics .place {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .widget.diagnostics .diag-extra {
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 }

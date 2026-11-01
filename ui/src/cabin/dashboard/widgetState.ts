@@ -1,16 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 import { cabClock } from '../../shared/host'
-import {
-  adblue,
-  battery,
-  brakeAir,
-  consumption,
-  coolant,
-  oilPressure as oilPressureReading,
-  warned,
-  wear,
-  type State,
-} from '../apps/diagnostics/readings'
+import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } from '../apps/diagnostics/readings'
 import { guidanceOf } from '../maps/guidance'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
@@ -41,7 +31,6 @@ export function useAnyWidget(): boolean {
   const guided = useGuided()
   const destination = useDestinationView() !== EMPTY
   const job = useJobView() !== null
-  const fuel = useFuelView() !== null
   const diagnostics = useDiagnosticsView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
@@ -49,7 +38,6 @@ export function useAnyWidget(): boolean {
     widgets.nowPlaying ||
     (widgets.destination && destination) ||
     (widgets.job && job) ||
-    (widgets.fuel && fuel) ||
     (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
@@ -66,42 +54,13 @@ export function useGuided(): boolean {
   })
 }
 
-/** Whether there's room for the weather card: three widgets fill the column, four with the fuel card up. */
+/** Whether there's room for the weather card: three widgets fill the column. */
 export function weatherFits(others: number): boolean {
   return others < 4
 }
 
-/** The fuel card's words: what it is, how far the tank goes and what's in it. */
-export interface FuelView {
-  /** "Fuel". */
-  kicker: string
-  /** "1,240 km of range"; null when the game gives no range (an empty tank, or a truck that doesn't report). */
-  range: string | null
-  /** "540 L". */
-  litres: string
-}
-
-/**
- * The Dashboard's fuel widget, from the game's own telemetry (`Telemetry.fuel`, litres, and `fuelRange`, km).
- * Without the game there's nothing to read, so it folds away as the destination does without a job.
- */
-export function useFuelView(): FuelView | null {
-  const text = useText()
-  return useLive(
-    useShallow((state) => {
-      const telemetry = state.telemetry
-      if (!telemetry) return null
-      return {
-        kicker: text.fuel,
-        range: telemetry.fuelRange > 0 ? text.range(`${text.number(Math.round(telemetry.fuelRange))} km`) : null,
-        litres: `${text.number(Math.round(telemetry.fuel))} L`,
-      }
-    }),
-  )
-}
-
-/** The diagnostics card's readings: the coolant and the brake air, then the battery, the AdBlue, the oil's
-pressure, the fuel it burns and the trailer's tires, and how serious each is. */
+/** The diagnostics card's readings: the coolant and the brake air, then the fuel left in the tank, the AdBlue
+ * and the battery, and how serious each is. */
 export interface DiagnosticsView {
   /** "Diagnostics". */
   kicker: string
@@ -109,30 +68,24 @@ export interface DiagnosticsView {
   coolant: string
   /** "118 psi". */
   air: string
-  /** "27.6 V". */
-  battery: string
-  /** "38 l". */
+  /** "329 l". */
+  fuel: string
+  /** "49 l". */
   adblue: string
-  /** "42 psi". */
-  oilPressure: string
-  /** "31.4 l/100 km". */
-  economy: string
-  /** The trailer's tires, "34%", or null with no trailer on. */
-  trailer: string | null
+  /** "27.4 V". */
+  battery: string
   coolantState: State
   airState: State
-  batteryState: State
+  fuelState: State
   adblueState: State
-  oilPressureState: State
-  economyState: State
-  trailerState: State
+  batteryState: State
 }
 
 /**
  * The Dashboard's diagnostics widget, from the game's own telemetry: the readings worth watching while
-driving, the engine's coolant and the brake air, and under them the battery, the AdBlue in its tank (the
-game's own warning when it comes on), the oil's pressure, the average fuel it burns and the wear of the
-trailer's tires. Without the game there's nothing to read, so it folds away as the fuel card does.
+driving, the engine's coolant and the brake air, and under them the fuel left in the tank (the game's low-fuel
+warning when it comes on), the AdBlue and the battery. Without the game there's nothing to read, so it folds
+away as the destination does without a job.
  */
 export function useDiagnosticsView(): DiagnosticsView | null {
   const text = useText()
@@ -144,25 +97,21 @@ export function useDiagnosticsView(): DiagnosticsView | null {
       const air = brakeAir(telemetry.brakeAirPressure)
       const volts = warned(battery(telemetry.batteryVoltage), telemetry.batteryWarning)
       const urea = warned(adblue(telemetry.adblue), telemetry.adblueWarning)
-      const pressure = warned(oilPressureReading(telemetry.oilPressure), telemetry.oilPressureWarning)
-      const economy = consumption(telemetry.fuelAverage)
-      const tires = wear(telemetry.trailerWearWheels)
+      // How full the tank is, when the game says how big it is.
+      const capacity = state.truck?.fuelCapacity ?? 0
+      const tank = capacity > 0 ? fuelLevel(telemetry.fuel / capacity, state.truck?.fuelWarningFactor ?? 0) : null
       return {
         kicker: text.apps.diagnostics,
         coolant: `${text.number(Math.round(heat.value))} ${text.diagnostics.celsius}`,
         air: `${text.number(Math.round(air.value))} ${text.diagnostics.psi}`,
-        battery: `${text.number(Math.round(telemetry.batteryVoltage * 10) / 10)} ${text.diagnostics.volts}`,
+        fuel: `${text.number(Math.round(telemetry.fuel))} ${text.diagnostics.litres}`,
         adblue: `${text.number(Math.round(telemetry.adblue))} ${text.diagnostics.litres}`,
-        oilPressure: `${text.number(Math.round(pressure.value))} ${text.diagnostics.psi}`,
-        economy: `${text.number(Math.round(economy.value * 10) / 10)} ${text.diagnostics.lPer100}`,
-        trailer: telemetry.trailerAttached ? `${text.number(Math.round(tires.value * 100))}%` : null,
+        battery: `${text.number(Math.round(telemetry.batteryVoltage * 10) / 10)} ${text.diagnostics.volts}`,
         coolantState: heat.state,
         airState: air.state,
-        batteryState: volts.state,
+        fuelState: telemetry.fuelWarning ? 'alarm' : (tank?.state ?? 'ok'),
         adblueState: urea.state,
-        oilPressureState: pressure.state,
-        economyState: economy.state,
-        trailerState: tires.state,
+        batteryState: volts.state,
       }
     }),
   )

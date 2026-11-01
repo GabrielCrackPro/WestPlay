@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useLive } from '../../state/store'
+import { useCabin, useLive, type DiagnosticsPage } from '../../state/store'
 import { useText } from '../../state/text'
 import {
   adblue,
@@ -8,6 +8,7 @@ import {
   brakeTemperature,
   consumption,
   coolant,
+  fuelLevel,
   oil,
   oilPressure,
   warned,
@@ -18,16 +19,18 @@ import {
 } from './readings'
 import { Sparkline } from './Sparkline'
 import { clock, tripAverage } from './trip'
-import { TruckModel } from './TruckModel'
+import { TruckFigure } from './TruckFigure'
 import { useTrends } from './useTrends'
 import './diagnostics.css'
 
 /**
- * The Diagnostics app: the truck's own health as the game reports it. On top, the truck turning on its disc
- * with its speed, its gear and the four readings a driver watches without thinking (coolant, oil, brake air,
- * battery) and one pill saying whether anything wants attention. Under it, a card each for the engine, the
- * brakes, the fuel and AdBlue, the chassis (its wear) and the trailer. Every reading is on its own gauge, and a
- * reading the host doesn't send (an older host) stands at zero.
+ * The Diagnostics app: the truck's own health as the game reports it, on three pages under a bar of tabs so a
+ * page fits the panel and nothing has to be scrolled to be seen. The overview is the truck with its speed, its
+ * gear and the four readings a driver watches without thinking (coolant, oil, brake air, battery), one pill
+ * saying whether anything wants attention, and the trip computer. The engine page holds the engine and the fuel
+ * (its tank, its consumption and the AdBlue, which are read together). The chassis page holds the brakes and how
+ * worn the truck and its trailer are. Every reading is on its own gauge, and a reading the host doesn't send (an
+ * older host) stands at zero.
  */
 export function DiagnosticsApp() {
   const text = useText()
@@ -35,6 +38,9 @@ export function DiagnosticsApp() {
   const truck = useLive((state) => state.truck)
   // The trip computer and the two histories, from the frames the game sends.
   const trends = useTrends()
+  // The page left open comes back with the player's settings, so a warning's page isn't hunted for twice.
+  const page = useCabin((state) => state.diagnosticsPage)
+  const setPage = useCabin((state) => state.setDiagnosticsPage)
   if (!telemetry) {
     return (
       <section className="app-panel diagnostics-app" aria-label={text.apps.diagnostics}>
@@ -56,7 +62,14 @@ export function DiagnosticsApp() {
   const brakeHeat = brakeTemperature(t.brakeTemperature)
   const urea = adblue(t.adblue)
   const economy = consumption(t.fuelAverage)
-  const fuel: Reading = { value: t.fuel, percent: 0, state: t.fuelWarning ? 'alarm' : 'ok' }
+  // How full the tank is, from the capacity the game reports for this truck (no capacity: litres alone).
+  const capacity = truck?.fuelCapacity ?? 0
+  const tank = capacity > 0 ? fuelLevel(t.fuel / capacity, truck?.fuelWarningFactor ?? 0) : null
+  const fuel: Reading = {
+    value: t.fuel,
+    percent: tank?.percent ?? 0,
+    state: t.fuelWarning ? 'alarm' : (tank?.state ?? 'ok'),
+  }
   const engineWear = wear(t.wearEngine)
   const tireWear = wear(t.wearWheels)
   const gearboxWear = wear(t.wearTransmission)
@@ -83,12 +96,34 @@ export function DiagnosticsApp() {
   const speed = Math.round(Math.abs(t.speed) * 3.6)
   const gear = t.displayedGear < 0 ? 'R' : t.displayedGear === 0 ? 'N' : n(t.displayedGear)
 
+  // The tabs: each page's name, and the tone of the worst reading it holds, so a page worth opening shows it.
+  const pages: { id: DiagnosticsPage; label: string; state: State }[] = [
+    { id: 'overview', label: words.overview, state: overall },
+    { id: 'engine', label: words.engine, state: worst(engineState, fuelState) },
+    { id: 'chassis', label: words.chassis, state: [brakeState, chassisState, trailerState].reduce(worst, 'ok') },
+  ]
+
   return (
     <section className="app-panel diagnostics-app" aria-label={text.apps.diagnostics}>
-      <div className="diag-scroll">
-        <section className={`diag-overview ${overall}`}>
+      <div className={`diag-shell page-${page}`}>
+        <nav className="diag-tabs" role="tablist" aria-label={text.apps.diagnostics}>
+          {pages.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={page === tab.id}
+              className={`diag-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
+              onClick={() => setPage(tab.id)}
+            >
+              {tab.label}
+              {tab.state !== 'ok' && <span className={`diag-dot ${tab.state}`} aria-hidden />}
+            </button>
+          ))}
+        </nav>
+        <section className={`diag-overview diag-hero ${overall}`}>
           <div className="diag-art">
-            <TruckModel />
+            <TruckFigure />
           </div>
           <div className="diag-main">
             <header className="diag-top">
@@ -124,7 +159,7 @@ export function DiagnosticsApp() {
         </section>
 
         <div className="diag-cards">
-          <Card name={words.engine} state={engineState} note={byHeat[engineState]}>
+          <Card name={words.engine} state={engineState} note={byHeat[engineState]} page="engine" span={6}>
             <Lead read={heat} value={n(Math.round(t.coolantTemperature))} unit={words.celsius} label={words.coolant} />
             <Sparkline values={trends.coolant} />
             <div className="diag-rows">
@@ -139,7 +174,7 @@ export function DiagnosticsApp() {
             </div>
           </Card>
 
-          <Card name={words.brakes} state={brakeState} note={byLow[brakeState]}>
+          <Card name={words.brakes} state={brakeState} note={byLow[brakeState]} page="chassis">
             <Lead read={air} value={n(Math.round(t.brakeAirPressure))} unit={words.psi} label={words.airPressure} />
             <Sparkline values={trends.brakes} />
             <div className="diag-rows">
@@ -149,21 +184,21 @@ export function DiagnosticsApp() {
             </div>
           </Card>
 
-          <Card name={words.fuel} state={fuelState} note={byLow[fuelState]}>
-            <Lead read={urea} value={n(Math.round(t.adblue))} unit={words.litres} label={words.adblue} />
+          <Card name={words.fuel} state={fuelState} note={byLow[fuelState]} page="engine" span={6}>
+            <Lead read={fuel} value={n(Math.round(t.fuel))} unit={words.litres} label={words.fuel} />
             <div className="diag-rows">
-              <Row label={words.fuel} value={`${n(Math.round(t.fuel))} ${words.litres}`} read={fuel} />
               <Row label={words.range} value={`${n(Math.round(t.fuelRange))} ${words.km}`} />
               <Row
                 label={words.consumption}
                 value={`${n(Math.round(t.fuelAverage * 10) / 10)} ${words.lPer100}`}
                 read={economy}
               />
+              <Row label={words.adblue} value={`${n(Math.round(t.adblue))} ${words.litres}`} read={urea} />
               <Row label={words.odometer} value={`${n(Math.round(t.odometer))} ${words.km}`} />
             </div>
           </Card>
 
-          <Card name={words.trip} state={fuelState} note={byLow[fuelState]} span={12}>
+          <Card name={words.trip} state={fuelState} note={byLow[fuelState]} page="overview" span={12}>
             <div className="diag-trip">
               <Stat label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
               <Stat label={words.used} value={`${n(Math.round(trip.fuel * 10) / 10)} ${words.litres}`} />
@@ -179,7 +214,7 @@ export function DiagnosticsApp() {
             </div>
           </Card>
 
-          <Card name={words.chassis} state={chassisState} note={byWear[chassisState]} span={6}>
+          <Card name={words.chassis} state={chassisState} note={byWear[chassisState]} page="chassis">
             <div className="diag-wear">
               <Wear label={words.wearEngine} read={engineWear} />
               <Wear label={words.wearTransmission} read={gearboxWear} />
@@ -189,7 +224,7 @@ export function DiagnosticsApp() {
             </div>
           </Card>
 
-          <Card name={words.trailer} state={trailerState} note={byWear[trailerState]} span={6}>
+          <Card name={words.trailer} state={trailerState} note={byWear[trailerState]} page="chassis">
             {t.trailerAttached ? (
               <>
                 <div className="diag-lead">
@@ -210,22 +245,27 @@ export function DiagnosticsApp() {
   )
 }
 
-/** A card: its name and what its readings say, above them. */
+/**
+ * A card: its name and what its readings say, above them. It belongs to one page, and the page being shown is what
+ * puts it in the grid (the other pages' cards stay out of it, their readings cost nothing to keep).
+ */
 function Card({
   name,
   state,
   note,
+  page,
   span = 4,
   children,
 }: {
   name: string
   state: State
   note: string
+  page: DiagnosticsPage
   span?: 4 | 6 | 12
   children: ReactNode
 }) {
   return (
-    <article className={`diag-card ${state} span-${span}`}>
+    <article className={`diag-card ${state} span-${span} on-${page}`}>
       <header className="diag-head">
         <h2 className="diag-name">{name}</h2>
         <span className="diag-pill">{note}</span>
@@ -244,9 +284,12 @@ function Lead({ read, value, unit, label }: { read: Reading; value: string; unit
         <span className="diag-unit">{unit}</span>
       </div>
       <div className="diag-label">{label}</div>
-      <div className="diag-meter" aria-hidden>
-        <span style={{ width: `${Math.round(read.percent * 100)}%` }} />
-      </div>
+      {/* A reading with no range of its own (a truck whose tank the game doesn't measure) has no gauge. */}
+      {read.percent > 0 && (
+        <div className="diag-meter" aria-hidden>
+          <span style={{ width: `${Math.round(read.percent * 100)}%` }} />
+        </div>
+      )}
     </div>
   )
 }

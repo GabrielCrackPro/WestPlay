@@ -251,7 +251,7 @@
   border-radius: 6px;
   background: rgb(0 0 0 / 0.6);
   color: #fff;
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale, 1));
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -1327,9 +1327,9 @@
   padding: 0 4px;
   border-radius: 4px;
   background: var(--yt-red);
-  font-size: 12px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 700;
-  line-height: 16px;
+  line-height: 1.4;
 }
 
 /* The captions' or quality's choices: a dark sheet over the controls' right end. */
