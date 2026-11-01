@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Pokračovať',
   welcome: {
     title: 'CarPlay vo vašej kabíne',
-    sub: 'WestPlay prináša CarPlay na obrazovku vášho kamióna v Euro Truck Simulator 2. Nastavenie zaberie len pár minút.',
+    sub: 'Cabin Play prináša CarPlay na obrazovku vášho kamióna v Euro Truck Simulator 2. Nastavenie zaberie len pár minút.',
     start: 'Začať',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'Vaša hra',
     titleMissing: 'Kde je vaša hra?',
-    found: 'WestPlay našiel Euro Truck Simulator 2 na tomto počítači.',
+    found: 'Cabin Play našiel Euro Truck Simulator 2 na tomto počítači.',
     foundMany: 'Euro Truck Simulator 2 je nainštalovaný na viacerých miestach. Vyberte ten, ktorý hráte.',
     missing:
-      'WestPlay nenašiel Euro Truck Simulator 2. Vyberte priečinok, do ktorého ste hru nainštalovali – ten so súborom base.scs.',
+      'Cabin Play nenašiel Euro Truck Simulator 2. Vyberte priečinok, do ktorého ste hru nainštalovali – ten so súborom base.scs.',
     chooseAnother: 'Použiť iný priečinok…',
     chooseFolder: 'Vybrať priečinok…',
     picker: 'Vyberte priečinok Euro Truck Simulator 2',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'Hra už v tomto priečinku nie je.',
     closeToGoOn: {
       title: 'Zatvorte, prosím, hru.',
-      text: 'WestPlay sa môže nastaviť, len keď Euro Truck Simulator 2 nebeží.',
+      text: 'Cabin Play sa môže nastaviť, len keď Euro Truck Simulator 2 nebeží.',
     },
   },
   check: {
@@ -43,16 +43,16 @@ export const words: Words = {
     notYet: 'Zatiaľ nepodporované',
     title: 'Toto máte',
     titleNotYet: 'Zatiaľ nepodporované',
-    cantInstall: 'WestPlay zatiaľ túto verziu hry nepodporuje.',
+    cantInstall: 'Cabin Play zatiaľ túto verziu hry nepodporuje.',
     version: 'Verzia',
     unknown: 'Neznáma',
     dlcs: 'DLC',
     mapDlcs: 'Mapové DLC',
     noMapDlcs: 'Žiadne',
-    untested: 'WestPlay vznikol pre verziu 1.61. Vaša zatiaľ nebola vyskúšaná, ale najskôr bude fungovať.',
+    untested: 'Cabin Play vznikol pre verziu 1.61. Vaša zatiaľ nebola vyskúšaná, ale najskôr bude fungovať.',
     otherCarPlay: {
       title: 'Odstráňte YMN One',
-      text: 'V hre je nainštalovaný iný mód CarPlay, YMN One (YamanDriveBridge.dll v priečinku plugins). Preberá obrazovku GPS vášho kamióna: WestPlay sa tam nemôže zobraziť a obrazovka zružovie, keď YMN One nebeží. Zatvorte hru a ten súbor vymažte.',
+      text: 'V hre je nainštalovaný iný mód CarPlay, YMN One (YamanDriveBridge.dll v priečinku plugins). Preberá obrazovku GPS vášho kamióna: Cabin Play sa tam nemôže zobraziť a obrazovka zružovie, keď YMN One nebeží. Zatvorte hru a ten súbor vymažte.',
     },
     trucks: 'Kamióny',
     truckNotYet: 'Zatiaľ nepodporované',
@@ -61,11 +61,11 @@ export const words: Words = {
     notInGame: 'Vo vašej hre nie je',
     scania7: 'Scania S a R – 7" obrazovka',
     scaniaSmartDash: 'Scania S a R – Smart Dash',
-    anyTruckTablet: 'Akýkoľvek kamión – s tabletom WestPlay',
+    anyTruckTablet: 'Akýkoľvek kamión – s tabletom Cabin Play',
     profiles: 'Profily',
     profileCount: { one: '{n} profil', few: '{n} profily', many: '{n} profilu', other: '{n} profilov' },
     noProfiles: 'Zatiaľ žiadne profily',
-    noProfilesDetail: 'WestPlay pripraví mapu pre prvý profil, ktorý vytvoríte.',
+    noProfilesDetail: 'Cabin Play pripraví mapu pre prvý profil, ktorý vytvoríte.',
     baseMap: 'Pôvodná mapa',
     withMods: '{map} s módmi: {mods}',
     unreadable: {
@@ -75,20 +75,20 @@ export const words: Words = {
       other: '{n} mapových módov sa nepodarilo načítať, ich zmeny sa nezobrazia',
     },
     mapNote:
-      'WestPlay pripravuje mapu pre každý váš profil, jeden po druhom, počnúc tým, ktorý ste hrali naposledy. Mapy sa pripravujú, keď je hra zatvorená.',
+      'Cabin Play pripravuje mapu pre každý váš profil, jeden po druhom, počnúc tým, ktorý ste hrali naposledy. Mapy sa pripravujú, keď je hra zatvorená.',
   },
   install: {
-    title: 'Inštalácia WestPlay',
-    titleDone: 'WestPlay je nainštalovaný',
-    sub: 'WestPlay pridá do hry plugin, ktorý pri každom hraní sám načíta obrazovky WestPlay pre kamióny: v Správcovi modifikácií netreba nič zapínať. Súbory samotnej hry zostanú nedotknuté a odinštalovaním WestPlay sa všetko odstráni.',
+    title: 'Inštalácia Cabin Play',
+    titleDone: 'Cabin Play je nainštalovaný',
+    sub: 'Cabin Play pridá do hry plugin, ktorý pri každom hraní sám načíta obrazovky Cabin Play pre kamióny: v Správcovi modifikácií netreba nič zapínať. Súbory samotnej hry zostanú nedotknuté a odinštalovaním Cabin Play sa všetko odstráni.',
     install: 'Inštalovať',
     tryAgain: 'Skúsiť znova',
     asAdministrator: 'Inštalovať ako správca',
     plugin: 'Plugin',
-    pluginDetail: 'Zobrazuje WestPlay na obrazovke vášho kamióna',
+    pluginDetail: 'Zobrazuje Cabin Play na obrazovke vášho kamióna',
     banners: {
       installing: { title: 'Inštalácia…' },
-      done: { title: 'WestPlay je nainštalovaný', text: 'Vaša hra je pripravená' },
+      done: { title: 'Cabin Play je nainštalovaný', text: 'Vaša hra je pripravená' },
       permission: { title: 'Je potrebné povolenie', text: 'Windows sa raz opýta' },
       inUse: { title: 'Zatvorte hru', text: 'Používa plugin' },
       failed: { title: 'Inštalácia sa nedokončila', text: 'Podrobnosti nájdete vľavo' },
@@ -96,7 +96,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Zatvorte, prosím, hru.',
-      text: 'WestPlay sa nedá nainštalovať, keď Euro Truck Simulator 2 beží.',
+      text: 'Cabin Play sa nedá nainštalovať, keď Euro Truck Simulator 2 beží.',
     },
     inUse: {
       title: 'Zatvorte, prosím, hru.',
@@ -111,24 +111,24 @@ export const words: Words = {
       text: 'Bez neho sa plugin nedá nainštalovať. Skúste to znova a zvoľte „Áno“.',
     },
     pluginFailed: 'Plugin sa nepodarilo nainštalovať.',
-    modFailed: 'Obrazovky WestPlay pre kamión sa nepodarilo pripraviť z vašej hry.',
-    noPlugin: 'V tejto kópii WestPlay chýba plugin. Nainštalujte WestPlay znova.',
+    modFailed: 'Obrazovky Cabin Play pre kamión sa nepodarilo pripraviť z vašej hry.',
+    noPlugin: 'V tejto kópii Cabin Play chýba plugin. Nainštalujte Cabin Play znova.',
     noDocuments: 'Priečinok Dokumenty sa nenašiel.',
   },
   map: {
     title: 'Pripravujeme vašu mapu…',
     titleReady: 'Vaša mapa je pripravená',
-    sub: 'WestPlay vytvára svoju mapu z vašej hry vrátane mapových DLC a módov. Zaberie to minútu alebo dve.',
+    sub: 'Cabin Play vytvára svoju mapu z vašej hry vrátane mapových DLC a módov. Zaberie to minútu alebo dve.',
     banners: {
       building: 'Pripravujeme vašu mapu',
       ready: { title: 'Vaša mapa je pripravená', text: 'S vašimi DLC a mapovými módmi' },
       waiting: { title: 'Zatvorte hru', text: 'Mapa sa pripraví, keď bude zatvorená' },
-      failed: { title: 'Mapu sa nepodarilo pripraviť', text: 'WestPlay to skúsi neskôr znova' },
+      failed: { title: 'Mapu sa nepodarilo pripraviť', text: 'Cabin Play to skúsi neskôr znova' },
       getting: 'Pripravujeme…',
     },
     waiting: {
       title: 'Zatvorte, prosím, hru.',
-      text: 'Príprava mapy potrebuje veľa pamäte, preto WestPlay čaká, kým hra nebude bežať.',
+      text: 'Príprava mapy potrebuje veľa pamäte, preto Cabin Play čaká, kým hra nebude bežať.',
     },
     stages: {
       reading: { now: 'Čítame mapu z vašej hry', done: 'Mapa načítaná z vašej hry' },
@@ -151,7 +151,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Prihlásenie do YouTube',
-    sub: 'Voliteľné. Prihláste sa a na obrazovke kamióna uvidíte svoje odporúčania, odbery a históriu. Prihlasujete sa cez Google v samostatnom okne a WestPlay váš účet nikdy nevidí.',
+    sub: 'Voliteľné. Prihláste sa a na obrazovke kamióna uvidíte svoje odporúčania, odbery a históriu. Prihlasujete sa cez Google v samostatnom okne a Cabin Play váš účet nikdy nevidí.',
     signIn: 'Prihlásiť sa',
     signOut: 'Odhlásiť sa',
     signedIn: 'Prihlásené',
@@ -162,13 +162,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Prihlásenie do Spotify',
-    sub: 'Voliteľné. Prihláste sa a púšťajte si Spotify na obrazovke kamióna so svojimi playlistami a knižnicou. Do Spotify sa prihlasujete v samostatnom okne a WestPlay váš účet nikdy nevidí.',
+    sub: 'Voliteľné. Prihláste sa a púšťajte si Spotify na obrazovke kamióna so svojimi playlistami a knižnicou. Do Spotify sa prihlasujete v samostatnom okne a Cabin Play váš účet nikdy nevidí.',
     finishInWindow: 'Dokončite prihlásenie v okne Spotify',
     signingIn: { title: 'Prihlasovanie do Spotify', text: 'Pokračujte v okne Spotify' },
   },
   appleMusic: {
     title: 'Prihlásenie do Apple Music',
-    sub: 'Voliteľné. Prihláste sa a púšťajte si Apple Music na obrazovke kamióna so svojimi playlistami a knižnicou. Do Apple Music sa prihlasujete v samostatnom okne a WestPlay váš účet nikdy nevidí.',
+    sub: 'Voliteľné. Prihláste sa a púšťajte si Apple Music na obrazovke kamióna so svojimi playlistami a knižnicou. Do Apple Music sa prihlasujete v samostatnom okne a Cabin Play váš účet nikdy nevidí.',
     finishInWindow: 'Dokončite prihlásenie v okne Apple Music',
     signingIn: { title: 'Prihlasovanie do Apple Music', text: 'Pokračujte v okne Apple Music' },
   },
@@ -178,11 +178,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Spustite hru',
-        text: 'Keď sa objaví „Bol detekovaný záujem použiť pokročilé vlastnosti SDK.“, zvoľte „OK“. To je WestPlay.',
+        text: 'Keď sa objaví „Bol detekovaný záujem použiť pokročilé vlastnosti SDK.“, zvoľte „OK“. To je Cabin Play.',
       },
       {
         title: 'Nasadnite do kamióna',
-        text: 'Zapnite elektriku a WestPlay sa objaví na obrazovke. Nechajte WestPlay počas hrania spustený.',
+        text: 'Zapnite elektriku a Cabin Play sa objaví na obrazovke. Nechajte Cabin Play počas hrania spustený.',
       },
     ],
   },

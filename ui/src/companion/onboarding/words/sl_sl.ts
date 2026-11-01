@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Nadaljuj',
   welcome: {
     title: 'CarPlay v tvoji kabini',
-    sub: 'WestPlay prinese CarPlay na zaslon tvojega tovornjaka v igri Euro Truck Simulator 2. Nastavitev traja le nekaj minut.',
+    sub: 'Cabin Play prinese CarPlay na zaslon tvojega tovornjaka v igri Euro Truck Simulator 2. Nastavitev traja le nekaj minut.',
     start: 'Začni',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'Tvoja igra',
     titleMissing: 'Kje je tvoja igra?',
-    found: 'WestPlay je v tem računalniku našel Euro Truck Simulator 2.',
+    found: 'Cabin Play je v tem računalniku našel Euro Truck Simulator 2.',
     foundMany: 'Euro Truck Simulator 2 je nameščen na več mestih. Izberi tistega, ki ga igraš.',
     missing:
-      'WestPlay ni našel igre Euro Truck Simulator 2. Izberi mapo, v katero si jo namestil – tisto z datoteko base.scs.',
+      'Cabin Play ni našel igre Euro Truck Simulator 2. Izberi mapo, v katero si jo namestil – tisto z datoteko base.scs.',
     chooseAnother: 'Uporabi drugo mapo …',
     chooseFolder: 'Izberi mapo …',
     picker: 'Izberi mapo igre Euro Truck Simulator 2',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'Igre ni več v tej mapi.',
     closeToGoOn: {
       title: 'Zapri igro.',
-      text: 'WestPlay se lahko nastavi le, ko Euro Truck Simulator 2 ne teče.',
+      text: 'Cabin Play se lahko nastavi le, ko Euro Truck Simulator 2 ne teče.',
     },
   },
   check: {
@@ -43,16 +43,16 @@ export const words: Words = {
     notYet: 'Še ni podprto',
     title: 'To je tvoja postavitev',
     titleNotYet: 'Še ni podprto',
-    cantInstall: 'WestPlay še ne podpira te različice igre.',
+    cantInstall: 'Cabin Play še ne podpira te različice igre.',
     version: 'Različica',
     unknown: 'Neznana',
     dlcs: 'DLC-ji',
     mapDlcs: 'DLC-ji, ki spremenijo zemljevid',
     noMapDlcs: 'Brez',
-    untested: 'WestPlay je narejen za različico 1.61. Tvoja še ni preizkušena, a bo najverjetneje delovala.',
+    untested: 'Cabin Play je narejen za različico 1.61. Tvoja še ni preizkušena, a bo najverjetneje delovala.',
     otherCarPlay: {
       title: 'Odstrani YMN One',
-      text: 'V igri je nameščen drug mod CarPlay, YMN One (YamanDriveBridge.dll v mapi plugins). Prevzame zaslon GPS tvojega tovornjaka: WestPlay se tam ne more prikazati, zaslon pa postane rožnat, ko YMN One ne teče. Zapri igro in izbriši to datoteko.',
+      text: 'V igri je nameščen drug mod CarPlay, YMN One (YamanDriveBridge.dll v mapi plugins). Prevzame zaslon GPS tvojega tovornjaka: Cabin Play se tam ne more prikazati, zaslon pa postane rožnat, ko YMN One ne teče. Zapri igro in izbriši to datoteko.',
     },
     trucks: 'Tovornjaki',
     truckNotYet: 'Še ni podprto',
@@ -61,11 +61,11 @@ export const words: Words = {
     notInGame: 'Ni v tvoji igri',
     scania7: 'Scania S in R – 7" zaslon',
     scaniaSmartDash: 'Scania S in R – Smart Dash',
-    anyTruckTablet: 'Kateri koli tovornjak – s tablico WestPlay',
+    anyTruckTablet: 'Kateri koli tovornjak – s tablico Cabin Play',
     profiles: 'Profili',
     profileCount: { one: '{n} profil', two: '{n} profila', few: '{n} profili', other: '{n} profilov' },
     noProfiles: 'Še ni profilov',
-    noProfilesDetail: 'WestPlay bo pripravil zemljevid za prvi profil, ki ga ustvariš.',
+    noProfilesDetail: 'Cabin Play bo pripravil zemljevid za prvi profil, ki ga ustvariš.',
     baseMap: 'Izvirni zemljevid',
     withMods: '{map} z modifikacijami: {mods}',
     unreadable: {
@@ -75,20 +75,20 @@ export const words: Words = {
       other: '{n} modifikacij zemljevida ni bilo mogoče prebrati, zato njihove spremembe ne bodo vidne',
     },
     mapNote:
-      'WestPlay pripravi zemljevid za vsakega od tvojih profilov, enega za drugim, začenši s tistim, s katerim si nazadnje igral. Zemljevidi se pripravijo, ko je igra zaprta.',
+      'Cabin Play pripravi zemljevid za vsakega od tvojih profilov, enega za drugim, začenši s tistim, s katerim si nazadnje igral. Zemljevidi se pripravijo, ko je igra zaprta.',
   },
   install: {
-    title: 'Namesti WestPlay',
-    titleDone: 'WestPlay je nameščen',
-    sub: 'WestPlay igri doda vtičnik, ki ob vsakem igranju sam naloži WestPlayjeve zaslone za tovornjake: v Upravitelju modifikacij ni treba ničesar vklopiti. Datoteke same igre ostanejo nedotaknjene, z odstranitvijo WestPlaya pa se odstrani vse.',
+    title: 'Namesti Cabin Play',
+    titleDone: 'Cabin Play je nameščen',
+    sub: 'Cabin Play igri doda vtičnik, ki ob vsakem igranju sam naloži Cabin Playjeve zaslone za tovornjake: v Upravitelju modifikacij ni treba ničesar vklopiti. Datoteke same igre ostanejo nedotaknjene, z odstranitvijo Cabin Playa pa se odstrani vse.',
     install: 'Namesti',
     tryAgain: 'Poskusi znova',
     asAdministrator: 'Namesti kot skrbnik',
     plugin: 'Vtičnik',
-    pluginDetail: 'Prikaže WestPlay na zaslonu tvojega tovornjaka',
+    pluginDetail: 'Prikaže Cabin Play na zaslonu tvojega tovornjaka',
     banners: {
       installing: { title: 'Nameščanje …' },
-      done: { title: 'WestPlay je nameščen', text: 'Tvoja igra je pripravljena' },
+      done: { title: 'Cabin Play je nameščen', text: 'Tvoja igra je pripravljena' },
       permission: { title: 'Potrebno je dovoljenje', text: 'Windows bo vprašal enkrat' },
       inUse: { title: 'Zapri igro', text: 'Uporablja vtičnik' },
       failed: { title: 'Namestitev ni končana', text: 'Podrobnosti so na levi' },
@@ -96,7 +96,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Zapri igro.',
-      text: 'WestPlaya ni mogoče namestiti, ko teče Euro Truck Simulator 2.',
+      text: 'Cabin Playa ni mogoče namestiti, ko teče Euro Truck Simulator 2.',
     },
     inUse: {
       title: 'Zapri igro.',
@@ -111,24 +111,24 @@ export const words: Words = {
       text: 'Brez njega vtičnika ni mogoče namestiti. Poskusi znova in izberi »Da«.',
     },
     pluginFailed: 'Vtičnika ni bilo mogoče namestiti.',
-    modFailed: 'WestPlayjevih zaslonov za tovornjak ni bilo mogoče pripraviti iz tvoje igre.',
-    noPlugin: 'V tej kopiji WestPlaya manjka vtičnik. Znova namesti WestPlay.',
+    modFailed: 'Cabin Playjevih zaslonov za tovornjak ni bilo mogoče pripraviti iz tvoje igre.',
+    noPlugin: 'V tej kopiji Cabin Playa manjka vtičnik. Znova namesti Cabin Play.',
     noDocuments: 'Mape Dokumenti ni bilo mogoče najti.',
   },
   map: {
     title: 'Pripravljanje zemljevida …',
     titleReady: 'Tvoj zemljevid je pripravljen',
-    sub: 'WestPlay ustvari svoj zemljevid iz tvoje igre, skupaj s tvojimi DLC-ji in modifikacijami zemljevida. To traja minuto ali dve.',
+    sub: 'Cabin Play ustvari svoj zemljevid iz tvoje igre, skupaj s tvojimi DLC-ji in modifikacijami zemljevida. To traja minuto ali dve.',
     banners: {
       building: 'Pripravljanje zemljevida',
       ready: { title: 'Tvoj zemljevid je pripravljen', text: 'S tvojimi DLC-ji in modifikacijami zemljevida' },
       waiting: { title: 'Zapri igro', text: 'Zemljevid se pripravi, ko je zaprta' },
-      failed: { title: 'Zemljevida ni bilo mogoče pripraviti', text: 'WestPlay bo poskusil znova pozneje' },
+      failed: { title: 'Zemljevida ni bilo mogoče pripraviti', text: 'Cabin Play bo poskusil znova pozneje' },
       getting: 'Pripravljanje …',
     },
     waiting: {
       title: 'Zapri igro.',
-      text: 'Priprava zemljevida potrebuje veliko pomnilnika, zato WestPlay počaka, da igra ne teče več.',
+      text: 'Priprava zemljevida potrebuje veliko pomnilnika, zato Cabin Play počaka, da igra ne teče več.',
     },
     stages: {
       reading: { now: 'Branje zemljevida tvoje igre', done: 'Zemljevid je prebran' },
@@ -151,7 +151,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Prijava v YouTube',
-    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka videl svoja priporočila, naročnine in zgodovino. Prijaviš se z Googlom v ločenem oknu, WestPlay pa tvojega računa nikoli ne vidi.',
+    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka videl svoja priporočila, naročnine in zgodovino. Prijaviš se z Googlom v ločenem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
     signIn: 'Prijava',
     signOut: 'Odjava',
     signedIn: 'Prijavljen',
@@ -162,13 +162,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Prijava v Spotify',
-    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka poslušal Spotify s svojimi seznami predvajanja in knjižnico. V Spotify se prijaviš v ločenem oknu, WestPlay pa tvojega računa nikoli ne vidi.',
+    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka poslušal Spotify s svojimi seznami predvajanja in knjižnico. V Spotify se prijaviš v ločenem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
     finishInWindow: 'Dokončaj prijavo v oknu Spotify',
     signingIn: { title: 'Prijava v Spotify', text: 'Nadaljuj v oknu Spotify' },
   },
   appleMusic: {
     title: 'Prijava v Apple Music',
-    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka poslušal Apple Music s svojimi seznami predvajanja in knjižnico. V Apple Music se prijaviš v ločenem oknu, WestPlay pa tvojega računa nikoli ne vidi.',
+    sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka poslušal Apple Music s svojimi seznami predvajanja in knjižnico. V Apple Music se prijaviš v ločenem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
     finishInWindow: 'Dokončaj prijavo v oknu Apple Music',
     signingIn: { title: 'Prijava v Apple Music', text: 'Nadaljuj v oknu Apple Music' },
   },
@@ -178,11 +178,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Zaženi igro',
-        text: 'Ko se prikaže »Zaznana zahteva po uporabni naprednih funkcionalnosti SDK-ja.«, izberi »V redu«. To je WestPlay.',
+        text: 'Ko se prikaže »Zaznana zahteva po uporabni naprednih funkcionalnosti SDK-ja.«, izberi »V redu«. To je Cabin Play.',
       },
       {
         title: 'Sedi v tovornjak',
-        text: 'Vklopi elektriko in WestPlay se prikaže na zaslonu. Med igranjem pusti WestPlay odprt.',
+        text: 'Vklopi elektriko in Cabin Play se prikaže na zaslonu. Med igranjem pusti Cabin Play odprt.',
       },
     ],
   },

@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Jarraitu',
   welcome: {
     title: 'CarPlay zure kabinan',
-    sub: 'WestPlay-k CarPlay zure kamioiaren pantailara eramaten du Euro Truck Simulator 2-n. Konfigurazioak minutu gutxi batzuk besterik ez ditu behar.',
+    sub: 'Cabin Play-k CarPlay zure kamioiaren pantailara eramaten du Euro Truck Simulator 2-n. Konfigurazioak minutu gutxi batzuk besterik ez ditu behar.',
     start: 'Hasi',
   },
   summary: {
@@ -20,9 +20,9 @@ export const words: Words = {
   game: {
     title: 'Zure jokoa',
     titleMissing: 'Non dago zure jokoa?',
-    found: 'WestPlay-k Euro Truck Simulator 2 aurkitu du ordenagailu honetan.',
+    found: 'Cabin Play-k Euro Truck Simulator 2 aurkitu du ordenagailu honetan.',
     foundMany: 'Euro Truck Simulator 2 leku batean baino gehiagotan dago instalatuta. Aukeratu jolasten duzuna.',
-    missing: 'WestPlay-k ez du Euro Truck Simulator 2 aurkitu. Aukeratu instalatu zenuen karpeta, base.scs duena.',
+    missing: 'Cabin Play-k ez du Euro Truck Simulator 2 aurkitu. Aukeratu instalatu zenuen karpeta, base.scs duena.',
     chooseAnother: 'Erabili beste karpeta bat…',
     chooseFolder: 'Aukeratu karpeta…',
     picker: 'Aukeratu Euro Truck Simulator 2-ren karpeta',
@@ -31,7 +31,7 @@ export const words: Words = {
     gameGone: 'Jokoa ez dago jada karpeta honetan.',
     closeToGoOn: {
       title: 'Itxi jokoa, mesedez.',
-      text: 'WestPlay Euro Truck Simulator 2 martxan ez dagoenean bakarrik konfigura daiteke.',
+      text: 'Cabin Play Euro Truck Simulator 2 martxan ez dagoenean bakarrik konfigura daiteke.',
     },
   },
   check: {
@@ -42,16 +42,16 @@ export const words: Words = {
     notYet: 'Oraindik ez da onartzen',
     title: 'Hau da zure konfigurazioa',
     titleNotYet: 'Oraindik ez da onartzen',
-    cantInstall: 'WestPlay-k oraindik ez du jokoaren bertsio hau onartzen.',
+    cantInstall: 'Cabin Play-k oraindik ez du jokoaren bertsio hau onartzen.',
     version: 'Bertsioa',
     unknown: 'Ezezaguna',
     dlcs: 'DLCak',
     mapDlcs: 'Maparen DLCak',
     noMapDlcs: 'Bat ere ez',
-    untested: 'WestPlay 1.61 bertsiorako egin da. Zurea oraindik ez da probatu, baina ziurrenik ondo ibiliko da.',
+    untested: 'Cabin Play 1.61 bertsiorako egin da. Zurea oraindik ez da probatu, baina ziurrenik ondo ibiliko da.',
     otherCarPlay: {
       title: 'Kendu YMN One',
-      text: 'Beste CarPlay mod bat dago jokoan instalatuta, YMN One (YamanDriveBridge.dll, plugins karpetan). Zure kamioiaren GPS pantaila hartzen du: WestPlay ezin da han agertu, eta pantaila arrosa jartzen da YMN One martxan ez dagoenean. Itxi jokoa eta ezabatu fitxategi hori.',
+      text: 'Beste CarPlay mod bat dago jokoan instalatuta, YMN One (YamanDriveBridge.dll, plugins karpetan). Zure kamioiaren GPS pantaila hartzen du: Cabin Play ezin da han agertu, eta pantaila arrosa jartzen da YMN One martxan ez dagoenean. Itxi jokoa eta ezabatu fitxategi hori.',
     },
     trucks: 'Kamioiak',
     truckNotYet: 'Oraindik ez da onartzen',
@@ -60,11 +60,11 @@ export const words: Words = {
     notInGame: 'Ez dago zure jokoan',
     scania7: 'Scania S eta R – 7"-ko pantaila',
     scaniaSmartDash: 'Scania S eta R – Smart Dash',
-    anyTruckTablet: 'Edozein kamioi – WestPlay tabletarekin',
+    anyTruckTablet: 'Edozein kamioi – Cabin Play tabletarekin',
     profiles: 'Profilak',
     profileCount: { one: '{n} profil', other: '{n} profil' },
     noProfiles: 'Oraindik ez dago profilik',
-    noProfilesDetail: 'WestPlay-k sortzen duzun lehen profilerako prestatuko du mapa.',
+    noProfilesDetail: 'Cabin Play-k sortzen duzun lehen profilerako prestatuko du mapa.',
     baseMap: 'Jatorrizko mapa',
     withMods: '{map} eta {mods}',
     unreadable: {
@@ -72,20 +72,20 @@ export const words: Words = {
       other: 'Ezin izan dira maparen {n} mod irakurri; beraz, haien aldaketak ez dira agertuko',
     },
     mapNote:
-      'WestPlay-k mapa bat prestatzen du zure profil bakoitzerako, bata bestearen atzetik, azken aldiz jolastu zenuenetik hasita. Mapak jokoa itxita dagoen bitartean prestatzen dira.',
+      'Cabin Play-k mapa bat prestatzen du zure profil bakoitzerako, bata bestearen atzetik, azken aldiz jolastu zenuenetik hasita. Mapak jokoa itxita dagoen bitartean prestatzen dira.',
   },
   install: {
-    title: 'Instalatu WestPlay',
-    titleDone: 'WestPlay instalatuta dago',
-    sub: 'WestPlay-k plugin bat gehitzen dio zure jokoari, eta hark berak kargatzen ditu WestPlay-ren kamioi-pantailak jolasten duzun bakoitzean: Mod-kudeatzailean ez dago ezer aktibatu beharrik. Jokoaren beraren fitxategiak ez dira ukitzen, eta WestPlay desinstalatzean dena kentzen da.',
+    title: 'Instalatu Cabin Play',
+    titleDone: 'Cabin Play instalatuta dago',
+    sub: 'Cabin Play-k plugin bat gehitzen dio zure jokoari, eta hark berak kargatzen ditu Cabin Play-ren kamioi-pantailak jolasten duzun bakoitzean: Mod-kudeatzailean ez dago ezer aktibatu beharrik. Jokoaren beraren fitxategiak ez dira ukitzen, eta Cabin Play desinstalatzean dena kentzen da.',
     install: 'Instalatu',
     tryAgain: 'Saiatu berriro',
     asAdministrator: 'Instalatu administratzaile gisa',
     plugin: 'Plugina',
-    pluginDetail: 'WestPlay zure kamioiaren pantailan erakusten du',
+    pluginDetail: 'Cabin Play zure kamioiaren pantailan erakusten du',
     banners: {
       installing: { title: 'Instalatzen…' },
-      done: { title: 'WestPlay instalatuta dago', text: 'Zure jokoa prest dago' },
+      done: { title: 'Cabin Play instalatuta dago', text: 'Zure jokoa prest dago' },
       permission: { title: 'Baimena behar da', text: 'Windows-ek behin galdetuko du' },
       inUse: { title: 'Itxi jokoa', text: 'Plugina erabiltzen ari da' },
       failed: { title: 'Instalazioa ez da amaitu', text: 'Ikusi xehetasunak ezkerrean' },
@@ -93,7 +93,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Itxi jokoa, mesedez.',
-      text: 'Ezin da WestPlay instalatu Euro Truck Simulator 2 martxan dagoen bitartean.',
+      text: 'Ezin da Cabin Play instalatu Euro Truck Simulator 2 martxan dagoen bitartean.',
     },
     inUse: {
       title: 'Itxi jokoa, mesedez.',
@@ -108,24 +108,24 @@ export const words: Words = {
       text: 'Baimenik gabe ezin da plugina instalatu. Saiatu berriro eta aukeratu «Bai».',
     },
     pluginFailed: 'Ezin izan da plugina instalatu.',
-    modFailed: 'Ezin izan dira WestPlay-ren kamioi-pantailak prestatu zure jokotik.',
-    noPlugin: 'WestPlay-ren kopia honek ez du pluginik. Instalatu berriro WestPlay.',
+    modFailed: 'Ezin izan dira Cabin Play-ren kamioi-pantailak prestatu zure jokotik.',
+    noPlugin: 'Cabin Play-ren kopia honek ez du pluginik. Instalatu berriro Cabin Play.',
     noDocuments: 'Ezin izan da Dokumentuak karpeta aurkitu.',
   },
   map: {
     title: 'Zure mapa prestatzen…',
     titleReady: 'Zure mapa prest dago',
-    sub: 'WestPlay-k zure jokotik sortzen du bere mapa, maparen DLCak eta mod-ak barne. Minutu bat edo bi behar ditu.',
+    sub: 'Cabin Play-k zure jokotik sortzen du bere mapa, maparen DLCak eta mod-ak barne. Minutu bat edo bi behar ditu.',
     banners: {
       building: 'Zure mapa prestatzen',
       ready: { title: 'Zure mapa prest dago', text: 'Zure DLCekin eta maparen mod-ekin' },
       waiting: { title: 'Itxi jokoa', text: 'Mapa jokoa itxita dagoenean prestatzen da' },
-      failed: { title: 'Ezin izan da mapa prestatu', text: 'WestPlay geroago saiatuko da berriro' },
+      failed: { title: 'Ezin izan da mapa prestatu', text: 'Cabin Play geroago saiatuko da berriro' },
       getting: 'Prestatzen…',
     },
     waiting: {
       title: 'Itxi jokoa, mesedez.',
-      text: 'Mapa prestatzeko memoria asko behar da; horregatik, WestPlay-k jokoa martxan ez egon arte itxaroten du.',
+      text: 'Mapa prestatzeko memoria asko behar da; horregatik, Cabin Play-k jokoa martxan ez egon arte itxaroten du.',
     },
     stages: {
       reading: { now: 'Zure jokoaren mapa irakurtzen', done: 'Mapa irakurrita' },
@@ -148,7 +148,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Hasi saioa YouTube-n',
-    sub: 'Aukerakoa. Hasi saioa zure gomendioak, harpidetzak eta historia kamioiaren pantailan ikusteko. Google-n leiho bereizi batean hasten duzu saioa, eta WestPlay-k ez du inoiz zure kontua ikusten.',
+    sub: 'Aukerakoa. Hasi saioa zure gomendioak, harpidetzak eta historia kamioiaren pantailan ikusteko. Google-n leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
     signIn: 'Hasi saioa',
     signOut: 'Amaitu saioa',
     signedIn: 'Saioa hasita',
@@ -159,13 +159,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Hasi saioa Spotify-n',
-    sub: 'Aukerakoa. Hasi saioa Spotify kamioiaren pantailan entzuteko, zure erreprodukzio-zerrenda eta liburutegiarekin. Spotify-n leiho bereizi batean hasten duzu saioa, eta WestPlay-k ez du inoiz zure kontua ikusten.',
+    sub: 'Aukerakoa. Hasi saioa Spotify kamioiaren pantailan entzuteko, zure erreprodukzio-zerrenda eta liburutegiarekin. Spotify-n leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
     finishInWindow: 'Amaitu saio-hasiera Spotify-ren leihoan',
     signingIn: { title: 'Spotify-n saioa hasten', text: 'Jarraitu Spotify-ren leihoan' },
   },
   appleMusic: {
     title: 'Hasi saioa Apple Music-en',
-    sub: 'Aukerakoa. Hasi saioa Apple Music kamioiaren pantailan entzuteko, zure erreprodukzio-zerrenda eta liburutegiarekin. Apple Music-en leiho bereizi batean hasten duzu saioa, eta WestPlay-k ez du inoiz zure kontua ikusten.',
+    sub: 'Aukerakoa. Hasi saioa Apple Music kamioiaren pantailan entzuteko, zure erreprodukzio-zerrenda eta liburutegiarekin. Apple Music-en leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
     finishInWindow: 'Amaitu saio-hasiera Apple Music-en leihoan',
     signingIn: { title: 'Apple Music-en saioa hasten', text: 'Jarraitu Apple Music-en leihoan' },
   },
@@ -175,11 +175,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Abiarazi jokoa',
-        text: '«SKD berezien ezaugarriak erabiltzeko eskaera jaso da.» agertzen denean, aukeratu «Ok». WestPlay da.',
+        text: '«SKD berezien ezaugarriak erabiltzeko eskaera jaso da.» agertzen denean, aukeratu «Ok». Cabin Play da.',
       },
       {
         title: 'Igo zure kamioira',
-        text: 'Piztu elektrizitatea, eta WestPlay pantailan agertuko da. Utzi WestPlay irekita jolasten duzun bitartean.',
+        text: 'Piztu elektrizitatea, eta Cabin Play pantailan agertuko da. Utzi Cabin Play irekita jolasten duzun bitartean.',
       },
     ],
   },

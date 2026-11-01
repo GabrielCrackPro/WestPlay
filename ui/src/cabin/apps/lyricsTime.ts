@@ -53,7 +53,7 @@ export function previewLyrics(colors?: Lyrics['colors'], provider?: string): Lyr
   return {
     synced: true,
     lines,
-    writers: ['WestPlay'],
+    writers: ['Cabin Play'],
     ...(colors ? { colors } : {}),
     ...(provider ? { provider } : {}),
   }

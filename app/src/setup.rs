@@ -134,9 +134,12 @@ pub async fn setup_state(store: State<'_, SetupStore>) -> Result<SetupState, Str
         let record = inner.record();
         let found = game::find();
         let game = record.game.as_deref().and_then(Game::recognise);
+        // The plugin in the game isn't this build's (an update since, even one that changed only the plugin):
+        // setup puts it in again, as it does for a new version's.
+        let plugin_outdated = game.as_ref().is_some_and(|game| plugin_outdated(game, inner.plugin.as_deref()));
         Ok(SetupState {
             finished: record.finished,
-            updated: game.is_some() && record.finished && is_update(record.version.as_deref()),
+            updated: game.is_some() && record.finished && (is_update(record.version.as_deref()) || plugin_outdated),
             game: game.as_ref().map(GameInfo::from),
             found: found.iter().map(GameInfo::from).collect(),
             game_running: game::running(),
@@ -332,12 +335,18 @@ type ModsStamp = (PathBuf, Option<String>, usize, Vec<(PathBuf, u64, Option<Syst
 /// on (Oyuncuyusbis' coaches: a bus mod installed, updated or taken out), and the cab's mark in those trucks'
 /// dashboards (`cab_mark`: a mod's script updated, or another copy of it installed). While the game is closed, once the
 /// installed mods change, the mod is made again if it isn't so (the plugin mounts it as the game starts).
+///
+/// The game's plugin is kept so too: one of another build's (an update since, maybe of the plugin alone) is put
+/// in again, since the app and the plugin share the bridge (`westplay_shared::BRIDGE_VERSION`) and a plugin of
+/// another build draws nothing on the truck's screen.
 pub fn watch_installed_mods(store: &SetupStore) {
     let inner = store.0.clone();
     let watch = move || {
         let mut looked = None;
+        // What putting this build's plugin in the game last said: a copy that keeps failing isn't tried each look.
+        let mut plugin_tried: Option<String> = None;
         loop {
-            look_at_mods(&inner, &mut looked);
+            look_at_mods(&inner, &mut looked, &mut plugin_tried);
             std::thread::sleep(MODS_LOOK);
         }
     };
@@ -346,13 +355,34 @@ pub fn watch_installed_mods(store: &SetupStore) {
     }
 }
 
-/// One look ([`watch_installed_mods`]); `looked` what the last one that needed nothing more was from.
-fn look_at_mods(inner: &Inner, looked: &mut Option<ModsStamp>) {
+/// One look ([`watch_installed_mods`]); `looked` what the last one that needed nothing more was from, and
+/// `plugin_tried` what putting this build's plugin in the game last said.
+fn look_at_mods(inner: &Inner, looked: &mut Option<ModsStamp>, plugin_tried: &mut Option<String>) {
     let record = inner.record();
     let Some(game) = record.game.as_deref().and_then(Game::recognise).filter(|_| record.finished) else { return };
     let Some(ours) = places::westplay_documents().map(|dir| dir.join(game_mod::FILE_NAME)) else { return };
-    // Not set up yet (setup makes it), or the game has it open.
-    if !ours.is_file() || game::running() {
+    // The game has its plugin open: what's in its folder can't be replaced until it's closed.
+    if game::running() {
+        return;
+    }
+    // This build's plugin, when the game's is another build's: the bridge they share is laid out per build
+    // (`westplay_shared::BRIDGE_VERSION`), so a plugin of another build shows nothing at the truck.
+    if let Some(shipped) = inner.plugin.as_deref()
+        && matches!(plugin::state(&game, shipped), Ok(plugin::State::Different))
+    {
+        let said = match plugin::install(&game, shipped) {
+            Ok(_) => "the game's plugin replaced with this build's".to_string(),
+            Err(error) => format!("the game's plugin stays another build's: {error}"),
+        };
+        if plugin_tried.as_ref() != Some(&said) {
+            log!("setup: {said}");
+            *plugin_tried = Some(said);
+        }
+    } else {
+        *plugin_tried = None;
+    }
+    // Not set up yet (setup makes it).
+    if !ours.is_file() {
         return;
     }
     let mods = installed_mod_files(&game);
@@ -528,6 +558,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// (`installed_by`; none: one from before versions were kept). Never in a development build.
 fn is_update(installed_by: Option<&str>) -> bool {
     !cfg!(debug_assertions) && installed_by != Some(VERSION)
+}
+
+/// Whether the plugin in `game` isn't the one WestPlay ships (`ours`): another build's, which may not speak
+/// this app's bridge (`westplay_shared::BRIDGE_VERSION`) nor draw its screens.
+fn plugin_outdated(game: &Game, ours: Option<&Path>) -> bool {
+    ours.is_some_and(|ours| matches!(plugin::state(game, ours), Ok(plugin::State::Different)))
 }
 
 /// The onboarding was gone through to its end.

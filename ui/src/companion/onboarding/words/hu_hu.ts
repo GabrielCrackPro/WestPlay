@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Tovább',
   welcome: {
     title: 'CarPlay a fülkédben',
-    sub: 'A WestPlay a CarPlayt a kamionod képernyőjére hozza az Euro Truck Simulator 2-ben. A beállítás csak pár percet vesz igénybe.',
+    sub: 'A Cabin Play a CarPlayt a kamionod képernyőjére hozza az Euro Truck Simulator 2-ben. A beállítás csak pár percet vesz igénybe.',
     start: 'Kezdjük',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'A játékod',
     titleMissing: 'Hol a játékod?',
-    found: 'A WestPlay megtalálta az Euro Truck Simulator 2-t ezen a gépen.',
+    found: 'A Cabin Play megtalálta az Euro Truck Simulator 2-t ezen a gépen.',
     foundMany: 'Az Euro Truck Simulator 2 több helyre is telepítve van. Válaszd ki azt, amelyikkel játszol.',
     missing:
-      'A WestPlay nem találta az Euro Truck Simulator 2-t. Válaszd ki a mappát, ahová telepítetted – azt, amelyikben a base.scs van.',
+      'A Cabin Play nem találta az Euro Truck Simulator 2-t. Válaszd ki a mappát, ahová telepítetted – azt, amelyikben a base.scs van.',
     chooseAnother: 'Másik mappa használata…',
     chooseFolder: 'Mappa kiválasztása…',
     picker: 'Válaszd ki az Euro Truck Simulator 2 mappáját',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'A játék már nincs ebben a mappában.',
     closeToGoOn: {
       title: 'Zárd be a játékot.',
-      text: 'A WestPlay csak akkor tud beállni, amikor az Euro Truck Simulator 2 nem fut.',
+      text: 'A Cabin Play csak akkor tud beállni, amikor az Euro Truck Simulator 2 nem fut.',
     },
   },
   check: {
@@ -43,17 +43,17 @@ export const words: Words = {
     notYet: 'Még nem támogatott',
     title: 'Ez a te felállásod',
     titleNotYet: 'Még nem támogatott',
-    cantInstall: 'A WestPlay még nem támogatja a játék ezen verzióját.',
+    cantInstall: 'A Cabin Play még nem támogatja a játék ezen verzióját.',
     version: 'Verzió',
     unknown: 'Ismeretlen',
     dlcs: 'DLC-k',
     mapDlcs: 'Térkép-DLC-k',
     noMapDlcs: 'Nincs',
     untested:
-      'A WestPlay az 1.61-es verzióhoz készült. A tiédet még nem tesztelték, de nagy valószínűséggel működni fog.',
+      'A Cabin Play az 1.61-es verzióhoz készült. A tiédet még nem tesztelték, de nagy valószínűséggel működni fog.',
     otherCarPlay: {
       title: 'Távolítsd el a YMN One-t',
-      text: 'Egy másik CarPlay-mod, a YMN One is telepítve van a játékodban (YamanDriveBridge.dll a plugins mappában). Átveszi a kamionod GPS-képernyőjét: a WestPlay nem jelenhet meg rajta, és a képernyő rózsaszín lesz, amikor a YMN One nem fut. Zárd be a játékot, és töröld azt a fájlt.',
+      text: 'Egy másik CarPlay-mod, a YMN One is telepítve van a játékodban (YamanDriveBridge.dll a plugins mappában). Átveszi a kamionod GPS-képernyőjét: a Cabin Play nem jelenhet meg rajta, és a képernyő rózsaszín lesz, amikor a YMN One nem fut. Zárd be a játékot, és töröld azt a fájlt.',
     },
     trucks: 'Kamionok',
     truckNotYet: 'Még nem támogatott',
@@ -62,11 +62,11 @@ export const words: Words = {
     notInGame: 'Nincs a játékodban',
     scania7: 'Scania S és R – 7"-os képernyő',
     scaniaSmartDash: 'Scania S és R – Smart Dash',
-    anyTruckTablet: 'Bármelyik kamion – a WestPlay tablettel',
+    anyTruckTablet: 'Bármelyik kamion – a Cabin Play tablettel',
     profiles: 'Profilok',
     profileCount: { one: '{n} profil', other: '{n} profil' },
     noProfiles: 'Még nincs profil',
-    noProfilesDetail: 'A WestPlay az első létrehozott profilodhoz készíti el a térképet.',
+    noProfilesDetail: 'A Cabin Play az első létrehozott profilodhoz készíti el a térképet.',
     baseMap: 'Eredeti térkép',
     withMods: '{map} ezekkel: {mods}',
     unreadable: {
@@ -74,20 +74,20 @@ export const words: Words = {
       other: '{n} térképmodot nem sikerült beolvasni, ezért a változtatásaik nem jelennek meg',
     },
     mapNote:
-      'A WestPlay minden profilodhoz készít egy térképet, egymás után, azzal kezdve, amellyel utoljára játszottál. A térképek akkor készülnek, amikor a játék be van zárva.',
+      'A Cabin Play minden profilodhoz készít egy térképet, egymás után, azzal kezdve, amellyel utoljára játszottál. A térképek akkor készülnek, amikor a játék be van zárva.',
   },
   install: {
-    title: 'A WestPlay telepítése',
-    titleDone: 'A WestPlay telepítve',
-    sub: 'A WestPlay egy bővítményt ad a játékodhoz, amely minden játéknál magától betölti a WestPlay kamionképernyőit: a Modkezelőben nem kell semmit bekapcsolnod. A játék saját fájljai érintetlenek maradnak, és a WestPlay eltávolításakor minden törlődik.',
+    title: 'A Cabin Play telepítése',
+    titleDone: 'A Cabin Play telepítve',
+    sub: 'A Cabin Play egy bővítményt ad a játékodhoz, amely minden játéknál magától betölti a Cabin Play kamionképernyőit: a Modkezelőben nem kell semmit bekapcsolnod. A játék saját fájljai érintetlenek maradnak, és a Cabin Play eltávolításakor minden törlődik.',
     install: 'Telepítés',
     tryAgain: 'Újrapróbálás',
     asAdministrator: 'Telepítés rendszergazdaként',
     plugin: 'Bővítmény',
-    pluginDetail: 'Megjeleníti a WestPlayt a kamionod képernyőjén',
+    pluginDetail: 'Megjeleníti a Cabin Playt a kamionod képernyőjén',
     banners: {
       installing: { title: 'Telepítés…' },
-      done: { title: 'A WestPlay telepítve', text: 'A játékod készen áll' },
+      done: { title: 'A Cabin Play telepítve', text: 'A játékod készen áll' },
       permission: { title: 'Engedély szükséges', text: 'A Windows egyszer rákérdez' },
       inUse: { title: 'Zárd be a játékot', text: 'Épp használja a bővítményt' },
       failed: { title: 'A telepítés nem fejeződött be', text: 'A részleteket bal oldalt látod' },
@@ -95,7 +95,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Zárd be a játékot.',
-      text: 'A WestPlay nem telepíthető, amíg az Euro Truck Simulator 2 fut.',
+      text: 'A Cabin Play nem telepíthető, amíg az Euro Truck Simulator 2 fut.',
     },
     inUse: {
       title: 'Zárd be a játékot.',
@@ -110,24 +110,24 @@ export const words: Words = {
       text: 'Enélkül a bővítmény nem telepíthető. Próbáld újra, és válaszd az „Igen” lehetőséget.',
     },
     pluginFailed: 'A bővítményt nem sikerült telepíteni.',
-    modFailed: 'A WestPlay kamionképernyőit nem sikerült elkészíteni a játékodból.',
-    noPlugin: 'A WestPlay ezen példányából hiányzik a bővítmény. Telepítsd újra a WestPlayt.',
+    modFailed: 'A Cabin Play kamionképernyőit nem sikerült elkészíteni a játékodból.',
+    noPlugin: 'A Cabin Play ezen példányából hiányzik a bővítmény. Telepítsd újra a Cabin Playt.',
     noDocuments: 'A Dokumentumok mappa nem található.',
   },
   map: {
     title: 'A térképed készül…',
     titleReady: 'A térképed elkészült',
-    sub: 'A WestPlay a saját játékodból készíti el a térképét, a térkép-DLC-iddel és térképmodjaiddal együtt. Ez egy-két percig tart.',
+    sub: 'A Cabin Play a saját játékodból készíti el a térképét, a térkép-DLC-iddel és térképmodjaiddal együtt. Ez egy-két percig tart.',
     banners: {
       building: 'A térképed készül',
       ready: { title: 'A térképed elkészült', text: 'A DLC-iddel és térképmodjaiddal' },
       waiting: { title: 'Zárd be a játékot', text: 'A térkép akkor készül, amikor be van zárva' },
-      failed: { title: 'A térképet nem sikerült elkészíteni', text: 'A WestPlay később újra próbálkozik' },
+      failed: { title: 'A térképet nem sikerült elkészíteni', text: 'A Cabin Play később újra próbálkozik' },
       getting: 'Előkészítés…',
     },
     waiting: {
       title: 'Zárd be a játékot.',
-      text: 'A térkép elkészítése sok memóriát igényel, ezért a WestPlay megvárja, amíg a játék nem fut.',
+      text: 'A térkép elkészítése sok memóriát igényel, ezért a Cabin Play megvárja, amíg a játék nem fut.',
     },
     stages: {
       reading: { now: 'A játékod térképének beolvasása', done: 'A térkép beolvasva' },
@@ -150,7 +150,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Bejelentkezés a YouTube-ba',
-    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén a saját ajánlásaidat, feliratkozásaidat és előzményeidet látod. A Google-bejelentkezés külön ablakban történik, és a WestPlay soha nem látja a fiókodat.',
+    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén a saját ajánlásaidat, feliratkozásaidat és előzményeidet látod. A Google-bejelentkezés külön ablakban történik, és a Cabin Play soha nem látja a fiókodat.',
     signIn: 'Bejelentkezés',
     signOut: 'Kijelentkezés',
     signedIn: 'Bejelentkezve',
@@ -161,13 +161,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Bejelentkezés a Spotifyba',
-    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén Spotifyt hallgathatsz a saját lejátszási listáiddal és könyvtáraddal. A Spotify-bejelentkezés külön ablakban történik, és a WestPlay soha nem látja a fiókodat.',
+    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén Spotifyt hallgathatsz a saját lejátszási listáiddal és könyvtáraddal. A Spotify-bejelentkezés külön ablakban történik, és a Cabin Play soha nem látja a fiókodat.',
     finishInWindow: 'Fejezd be a bejelentkezést a Spotify-ablakban',
     signingIn: { title: 'Bejelentkezés a Spotifyba', text: 'Folytasd a Spotify-ablakban' },
   },
   appleMusic: {
     title: 'Bejelentkezés az Apple Musicba',
-    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén Apple Musicot hallgathatsz a saját lejátszási listáiddal és könyvtáraddal. Az Apple Music-bejelentkezés külön ablakban történik, és a WestPlay soha nem látja a fiókodat.',
+    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén Apple Musicot hallgathatsz a saját lejátszási listáiddal és könyvtáraddal. Az Apple Music-bejelentkezés külön ablakban történik, és a Cabin Play soha nem látja a fiókodat.',
     finishInWindow: 'Fejezd be a bejelentkezést az Apple Music-ablakban',
     signingIn: { title: 'Bejelentkezés az Apple Musicba', text: 'Folytasd az Apple Music-ablakban' },
   },
@@ -177,11 +177,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Indítsd el a játékot',
-        text: 'Amikor megjelenik, hogy „A játék fejlett SDK funkciók hívását érzékelte.”, válaszd az „Ok” gombot. Ez a WestPlay.',
+        text: 'Amikor megjelenik, hogy „A játék fejlett SDK funkciók hívását érzékelte.”, válaszd az „Ok” gombot. Ez a Cabin Play.',
       },
       {
         title: 'Szállj be a kamionodba',
-        text: 'Kapcsold be az elektromos rendszert, és a WestPlay megjelenik a képernyőn. Játék közben hagyd nyitva a WestPlayt.',
+        text: 'Kapcsold be az elektromos rendszert, és a Cabin Play megjelenik a képernyőn. Játék közben hagyd nyitva a Cabin Playt.',
       },
     ],
   },

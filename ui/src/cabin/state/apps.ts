@@ -12,6 +12,7 @@ export const APP_IDS = [
   'messages',
   'weather',
   'settings',
+  'diagnostics',
 ] as const
 
 export type AppId = (typeof APP_IDS)[number]
@@ -33,6 +34,7 @@ export const APPS: Record<AppId, AppDefinition> = {
   messages: { id: 'messages', icon: 'messages' },
   weather: { id: 'weather', icon: 'weather' },
   settings: { id: 'settings', icon: 'settings' },
+  diagnostics: { id: 'diagnostics', icon: 'diagnostics' },
 }
 
 export function isAppId(value: unknown): value is AppId {

@@ -7,7 +7,7 @@ export const words: Words = {
   continue: 'Настави',
   welcome: {
     title: 'CarPlay у вашој кабини',
-    sub: 'WestPlay доноси CarPlay на екран вашег камиона у игри Euro Truck Simulator 2. Подешавање траје само неколико минута.',
+    sub: 'Cabin Play доноси CarPlay на екран вашег камиона у игри Euro Truck Simulator 2. Подешавање траје само неколико минута.',
     start: 'Почни',
   },
   summary: {
@@ -21,10 +21,10 @@ export const words: Words = {
   game: {
     title: 'Ваша игра',
     titleMissing: 'Где је ваша игра?',
-    found: 'WestPlay је пронашао Euro Truck Simulator 2 на овом рачунару.',
+    found: 'Cabin Play је пронашао Euro Truck Simulator 2 на овом рачунару.',
     foundMany: 'Euro Truck Simulator 2 је инсталиран на више места. Изаберите онај који играте.',
     missing:
-      'WestPlay није пронашао Euro Truck Simulator 2. Изаберите фасциклу у коју сте га инсталирали – ону са датотеком base.scs.',
+      'Cabin Play није пронашао Euro Truck Simulator 2. Изаберите фасциклу у коју сте га инсталирали – ону са датотеком base.scs.',
     chooseAnother: 'Користи другу фасциклу…',
     chooseFolder: 'Изабери фасциклу…',
     picker: 'Изаберите фасциклу игре Euro Truck Simulator 2',
@@ -33,7 +33,7 @@ export const words: Words = {
     gameGone: 'Игра више није у овој фасцикли.',
     closeToGoOn: {
       title: 'Затворите игру.',
-      text: 'WestPlay може да се подеси само док Euro Truck Simulator 2 није покренут.',
+      text: 'Cabin Play може да се подеси само док Euro Truck Simulator 2 није покренут.',
     },
   },
   check: {
@@ -44,16 +44,16 @@ export const words: Words = {
     notYet: 'Још није подржано',
     title: 'Ово је ваш комплет',
     titleNotYet: 'Још није подржано',
-    cantInstall: 'WestPlay још не подржава ову верзију игре.',
+    cantInstall: 'Cabin Play још не подржава ову верзију игре.',
     version: 'Верзија',
     unknown: 'Непозната',
     dlcs: 'DLC-ови',
     mapDlcs: 'DLC-ови који мењају мапу',
     noMapDlcs: 'Нема',
-    untested: 'WestPlay је направљен за верзију 1.61. Ваша још није испробана, али ће највероватније радити.',
+    untested: 'Cabin Play је направљен за верзију 1.61. Ваша још није испробана, али ће највероватније радити.',
     otherCarPlay: {
       title: 'Уклоните YMN One',
-      text: 'У игри је инсталиран други CarPlay мод, YMN One (YamanDriveBridge.dll у фасцикли plugins). Он преузима GPS екран вашег камиона: WestPlay не може да се појави ту, а екран постаје розе кад YMN One не ради. Затворите игру и обришите ту датотеку.',
+      text: 'У игри је инсталиран други CarPlay мод, YMN One (YamanDriveBridge.dll у фасцикли plugins). Он преузима GPS екран вашег камиона: Cabin Play не може да се појави ту, а екран постаје розе кад YMN One не ради. Затворите игру и обришите ту датотеку.',
     },
     trucks: 'Камиони',
     truckNotYet: 'Још није подржано',
@@ -62,11 +62,11 @@ export const words: Words = {
     notInGame: 'Нема га у вашој игри',
     scania7: 'Scania S и R – екран од 7"',
     scaniaSmartDash: 'Scania S и R – Smart Dash',
-    anyTruckTablet: 'Било који камион – са таблетом WestPlay',
+    anyTruckTablet: 'Било који камион – са таблетом Cabin Play',
     profiles: 'Профили',
     profileCount: { one: '{n} профил', few: '{n} профила', other: '{n} профила' },
     noProfiles: 'Још нема профила',
-    noProfilesDetail: 'WestPlay ће припремити мапу за први профил који направите.',
+    noProfilesDetail: 'Cabin Play ће припремити мапу за први профил који направите.',
     baseMap: 'Оригинална мапа',
     withMods: '{map} са модовима: {mods}',
     unreadable: {
@@ -75,20 +75,20 @@ export const words: Words = {
       other: '{n} модова мапе није могуће прочитати, па се њихове измене неће видети',
     },
     mapNote:
-      'WestPlay припрема мапу за сваки ваш профил, један за другим, почевши од оног са којим сте последњи играли. Мапе се припремају док је игра затворена.',
+      'Cabin Play припрема мапу за сваки ваш профил, један за другим, почевши од оног са којим сте последњи играли. Мапе се припремају док је игра затворена.',
   },
   install: {
-    title: 'Инсталирајте WestPlay',
-    titleDone: 'WestPlay је инсталиран',
-    sub: 'WestPlay игри додаје додатак који при сваком игрању сам учитава WestPlay екране за камионе: у „Управљању модовима“ не треба ништа да укључујете. Датотеке саме игре остају нетакнуте, а деинсталирањем WestPlay-а све се уклања.',
+    title: 'Инсталирајте Cabin Play',
+    titleDone: 'Cabin Play је инсталиран',
+    sub: 'Cabin Play игри додаје додатак који при сваком игрању сам учитава Cabin Play екране за камионе: у „Управљању модовима“ не треба ништа да укључујете. Датотеке саме игре остају нетакнуте, а деинсталирањем Cabin Play-а све се уклања.',
     install: 'Инсталирај',
     tryAgain: 'Покушај поново',
     asAdministrator: 'Инсталирај као администратор',
     plugin: 'Додатак',
-    pluginDetail: 'Приказује WestPlay на екрану вашег камиона',
+    pluginDetail: 'Приказује Cabin Play на екрану вашег камиона',
     banners: {
       installing: { title: 'Инсталирање…' },
-      done: { title: 'WestPlay је инсталиран', text: 'Ваша игра је спремна' },
+      done: { title: 'Cabin Play је инсталиран', text: 'Ваша игра је спремна' },
       permission: { title: 'Потребна је дозвола', text: 'Windows ће питати једном' },
       inUse: { title: 'Затворите игру', text: 'Користи додатак' },
       failed: { title: 'Инсталација није завршена', text: 'Детаљи су лево' },
@@ -96,7 +96,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Затворите игру.',
-      text: 'WestPlay не може да се инсталира док је Euro Truck Simulator 2 покренут.',
+      text: 'Cabin Play не може да се инсталира док је Euro Truck Simulator 2 покренут.',
     },
     inUse: {
       title: 'Затворите игру.',
@@ -111,24 +111,24 @@ export const words: Words = {
       text: 'Без ње додатак не може да се инсталира. Покушајте поново и изаберите „Да“.',
     },
     pluginFailed: 'Додатак није могуће инсталирати.',
-    modFailed: 'WestPlay екрани за камион нису могли да се припреме из ваше игре.',
-    noPlugin: 'У овој копији WestPlay-а недостаје додатак. Поново инсталирајте WestPlay.',
+    modFailed: 'Cabin Play екрани за камион нису могли да се припреме из ваше игре.',
+    noPlugin: 'У овој копији Cabin Play-а недостаје додатак. Поново инсталирајте Cabin Play.',
     noDocuments: 'Фасцикла „Документи“ није пронађена.',
   },
   map: {
     title: 'Припремамо вашу мапу…',
     titleReady: 'Ваша мапа је спремна',
-    sub: 'WestPlay прави своју мапу од ваше игре, укључујући ваше DLC-ове и модове мапе. То траје минут-два.',
+    sub: 'Cabin Play прави своју мапу од ваше игре, укључујући ваше DLC-ове и модове мапе. То траје минут-два.',
     banners: {
       building: 'Припремамо вашу мапу',
       ready: { title: 'Ваша мапа је спремна', text: 'Са вашим DLC-овима и модовима мапе' },
       waiting: { title: 'Затворите игру', text: 'Мапа се припрема док је игра затворена' },
-      failed: { title: 'Мапу није могуће припремити', text: 'WestPlay ће покушати поново касније' },
+      failed: { title: 'Мапу није могуће припремити', text: 'Cabin Play ће покушати поново касније' },
       getting: 'Припрема…',
     },
     waiting: {
       title: 'Затворите игру.',
-      text: 'За припрему мапе потребно је много меморије, па WestPlay чека да игра више не буде покренута.',
+      text: 'За припрему мапе потребно је много меморије, па Cabin Play чека да игра више не буде покренута.',
     },
     stages: {
       reading: { now: 'Читамо мапу ваше игре', done: 'Мапа је прочитана' },
@@ -151,7 +151,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Пријава на YouTube',
-    sub: 'Опционално. Пријавите се да бисте на екрану камиона видели своје препоруке, праћења и историју. Пријављујете се преко Google-а у засебном прозору, а WestPlay никада не види ваш налог.',
+    sub: 'Опционално. Пријавите се да бисте на екрану камиона видели своје препоруке, праћења и историју. Пријављујете се преко Google-а у засебном прозору, а Cabin Play никада не види ваш налог.',
     signIn: 'Пријави се',
     signOut: 'Одјави се',
     signedIn: 'Пријављени сте',
@@ -162,13 +162,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Пријава на Spotify',
-    sub: 'Опционално. Пријавите се да бисте на екрану камиона слушали Spotify, са својим плејлистама и библиотеком. На Spotify се пријављујете у засебном прозору, а WestPlay никада не види ваш налог.',
+    sub: 'Опционално. Пријавите се да бисте на екрану камиона слушали Spotify, са својим плејлистама и библиотеком. На Spotify се пријављујете у засебном прозору, а Cabin Play никада не види ваш налог.',
     finishInWindow: 'Довршите пријаву у Spotify прозору',
     signingIn: { title: 'Пријава на Spotify', text: 'Наставите у Spotify прозору' },
   },
   appleMusic: {
     title: 'Пријава на Apple Music',
-    sub: 'Опционално. Пријавите се да бисте на екрану камиона слушали Apple Music, са својим плејлистама и библиотеком. На Apple Music се пријављујете у засебном прозору, а WestPlay никада не види ваш налог.',
+    sub: 'Опционално. Пријавите се да бисте на екрану камиона слушали Apple Music, са својим плејлистама и библиотеком. На Apple Music се пријављујете у засебном прозору, а Cabin Play никада не види ваш налог.',
     finishInWindow: 'Довршите пријаву у Apple Music прозору',
     signingIn: { title: 'Пријава на Apple Music', text: 'Наставите у Apple Music прозору' },
   },
@@ -178,11 +178,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Покрените игру',
-        text: 'Када се појави „Примећено коришћење напредних SDK могућности.“, изаберите „ОК“. То је WestPlay.',
+        text: 'Када се појави „Примећено коришћење напредних SDK могућности.“, изаберите „ОК“. То је Cabin Play.',
       },
       {
         title: 'Уђите у камион',
-        text: 'Укључите струју и WestPlay ће се појавити на екрану. Оставите WestPlay отворен док играте.',
+        text: 'Укључите струју и Cabin Play ће се појавити на екрану. Оставите Cabin Play отворен док играте.',
       },
     ],
   },

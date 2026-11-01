@@ -96,7 +96,7 @@ const POSES: Record<StepId, Pose> = {
 
 /** How long the words take to leave before the next step's arrive. */
 const LEAVE_MS = 240
-/** The WestPlay intro on the screen, from power on to Home (cabin/state/power.ts CONNECTING_MS, and a
+/** The Cabin Play intro on the screen, from power on to Home (cabin/state/power.ts CONNECTING_MS, and a
  * beat). */
 const BOOT_MS = 2900
 /** How long the screen takes to move to another place (onboarding.css `.ts` transform). */
@@ -108,11 +108,11 @@ const POSE_OVERLAP_MS = 250
 const DIVE_MS = 1100
 
 /**
- * The companion's first run. The truck's screen stands in a dark room, the live WestPlay on it (the cabin
- * page in its demo mode): it boots, steps aside while the player sets WestPlay up, and tells them how it's
+ * The companion's first run. The truck's screen stands in a dark room, the live Cabin Play on it (the cabin
+ * page in its demo mode): it boots, steps aside while the player sets Cabin Play up, and tells them how it's
  * going through banners as CarPlay would; it opens what each step is about (their map as it's made, an app
  * tapped with the key they choose), and comes back to centre stage on the Dashboard, the player diving into
- * it as they finish. The game stays closed until the end: WestPlay installs into it and builds its map
+ * it as they finish. The game stays closed until the end: Cabin Play installs into it and builds its map
  * while it's closed.
  */
 export function Onboarding({
@@ -144,7 +144,7 @@ export function Onboarding({
   const [cursor, setCursor] = useState<{ x: number; y: number; pressing: boolean } | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const index = STEPS.indexOf(step)
-  // The game's language, as WestPlay speaks in the cab (and the map's place names are in); Windows' for a
+  // The game's language, as Cabin Play speaks in the cab (and the map's place names are in); Windows' for a
   // game never started.
   const [code] = useState(() => initial.language ?? languageOf(navigator.languages))
   const words = wordsFor(code)
@@ -192,7 +192,7 @@ export function Onboarding({
     settling: () => Math.max(0, moveEnds.current - POSE_OVERLAP_MS - performance.now()),
   }
 
-  // The screen comes on once WestPlay in it is ready: the intro, then Home.
+  // The screen comes on once Cabin Play in it is ready: the intro, then Home.
   useEffect(() => {
     if (!demo.ready || powered) return
     const timer = window.setTimeout(() => {
@@ -202,7 +202,7 @@ export function Onboarding({
     return () => window.clearTimeout(timer)
   }, [demo.ready, powered, send])
 
-  // WestPlay on the screen speaks the same language.
+  // Cabin Play on the screen speaks the same language.
   useEffect(() => {
     if (demo.ready) send({ type: 'language', code })
   }, [demo.ready, code, send])
@@ -296,7 +296,7 @@ export function Onboarding({
 
 function Welcome({ next }: { next(): void }) {
   const screen = useScreen()
-  // The words come once WestPlay has booted on the screen.
+  // The words come once Cabin Play has booted on the screen.
   const [booted, setBooted] = useState(false)
   useEffect(() => {
     if (!screen.powered) return
@@ -570,7 +570,7 @@ function Install({
       const result = await installIntoGame(game.dir, administrator)
       reported(result)
       if (result.done) {
-        // WestPlay in the game: the screen boots it again.
+        // Cabin Play in the game: the screen boots it again.
         screen.reboot()
         window.setTimeout(() => setCelebrated(true), BOOT_MS + 450)
       }
@@ -616,7 +616,7 @@ function Install({
       place="side"
       title={done ? w.titleDone : w.title}
       sub={w.sub}
-      // While WestPlay boots again on the screen, the player waits for it: the next step opens an app there.
+      // While Cabin Play boots again on the screen, the player waits for it: the next step opens an app there.
       back={installing || (done && !celebrated) ? undefined : back}
       action={
         done ? (

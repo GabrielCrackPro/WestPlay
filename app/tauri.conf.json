@@ -12,7 +12,7 @@
       "wait": false
     },
     "beforeBuildCommand": {
-      "script": "npm run build:release",
+      "script": "npm run build:release && node ../tools/build/plugin.mjs",
       "cwd": "../ui"
     }
   },
@@ -20,7 +20,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "WestPlay",
+        "title": "Cabin Play",
         "width": 900,
         "height": 600,
         "resizable": false,

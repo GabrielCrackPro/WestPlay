@@ -5,6 +5,7 @@ import { type AppId, APPS } from '../state/apps'
 import { useLaunchStyle, whenTransitionEnds } from '../state/launch'
 import { useLanguage, useText } from '../state/text'
 import { isCopied, noteOpened, openedBefore, saveCopy, savedCopy } from './launchCopies'
+import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
 import { MusicApp } from './music/MusicApp'
 import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
@@ -87,6 +88,8 @@ function AppContent({ app }: { app: AppId }) {
       return <SettingsApp />
     case 'weather':
       return <WeatherApp />
+    case 'diagnostics':
+      return <DiagnosticsApp />
     default:
       return <NotBuiltYet app={app} />
   }

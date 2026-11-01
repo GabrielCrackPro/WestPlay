@@ -27,7 +27,10 @@ pub fn bridge_name() -> String {
     format!("Local\\WestPlay.Bridge.v{BRIDGE_VERSION}")
 }
 pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
-pub const BRIDGE_VERSION: u32 = 24;
+/// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
+/// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
+/// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings.
+pub const BRIDGE_VERSION: u32 = 25;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -587,6 +590,18 @@ pub struct Telemetry {
     /// SDK's `multiplayer.time.offset`; 0 out of one): the cab's clock shows `game_time` plus this. A job's
     /// times are the player's own.
     pub multiplayer_time_offset: i32,
+    /// The engine's coolant temperature, degrees Celsius (the SDK's `truck.water.temperature`).
+    pub coolant_temperature: f32,
+    /// The engine's oil temperature, degrees Celsius.
+    pub oil_temperature: f32,
+    /// The brake air tank's pressure, psi: below it, the brakes get sluggish.
+    pub brake_air_pressure: f32,
+    /// The brakes' temperature, degrees Celsius (the game approximates it for the whole truck).
+    pub brake_temperature: f32,
+    /// Wear of the engine, 0 (new) to 1 (worn out).
+    pub wear_engine: f32,
+    /// Wear of the wheels, 0 (new) to 1 (worn out): the game's average across them, the tires' own wear.
+    pub wear_wheels: f32,
 }
 
 /// Identity of the current truck, from the SDK's "truck" configuration.

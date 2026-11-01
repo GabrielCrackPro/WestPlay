@@ -10,12 +10,15 @@ const MOD_BRANDS: Readonly<Record<string, string>> = { t16shd: 'mercedes', setra
 
 /**
  * The files to try for a truck's brand logo, in order: its own brand id first, then the game's brand a modded
- * truck is a version of (`logoBrands`). `mono` tries the silhouette files first, for places that draw the
- * mark in the cabin's own colour (the sidebar and the boot splash) rather than the maker's.
+ * truck is a version of (`logoBrands`). `mono` tries the line-art files first, for places that draw the mark
+ * in the cabin's own colour (the sidebar and the boot splash) rather than the maker's.
  */
 export interface LogoSource {
   src: string
-  /** The file is a maker's colour logo (`*.color.svg/png`); otherwise it's already a silhouette. */
+  /**
+   * The file is a maker's colour logo (`*.color.svg/png`); otherwise it's line art: white outlines with no
+   * fill, which the screen's filters draw in the cabin's own colour.
+   */
   color: boolean
 }
 

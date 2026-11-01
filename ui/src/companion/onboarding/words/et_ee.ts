@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Jätka',
   welcome: {
     title: 'CarPlay sinu kabiinis',
-    sub: 'WestPlay toob CarPlay sinu veoki ekraanile mängus Euro Truck Simulator 2. Seadistamine võtab vaid mõne minuti.',
+    sub: 'Cabin Play toob CarPlay sinu veoki ekraanile mängus Euro Truck Simulator 2. Seadistamine võtab vaid mõne minuti.',
     start: 'Alustame',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'Sinu mäng',
     titleMissing: 'Kus su mäng on?',
-    found: 'WestPlay leidis selles arvutis mängu Euro Truck Simulator 2.',
+    found: 'Cabin Play leidis selles arvutis mängu Euro Truck Simulator 2.',
     foundMany: 'Euro Truck Simulator 2 on paigaldatud mitmesse kohta. Vali see, mida mängid.',
     missing:
-      'WestPlay ei leidnud mängu Euro Truck Simulator 2. Vali kaust, kuhu selle paigaldasid – see, kus on base.scs.',
+      'Cabin Play ei leidnud mängu Euro Truck Simulator 2. Vali kaust, kuhu selle paigaldasid – see, kus on base.scs.',
     chooseAnother: 'Kasuta teist kausta…',
     chooseFolder: 'Vali kaust…',
     picker: 'Vali Euro Truck Simulator 2 kaust',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'Mängu pole enam selles kaustas.',
     closeToGoOn: {
       title: 'Sulge mäng.',
-      text: 'WestPlay saab end seadistada ainult siis, kui Euro Truck Simulator 2 ei tööta.',
+      text: 'Cabin Play saab end seadistada ainult siis, kui Euro Truck Simulator 2 ei tööta.',
     },
   },
   check: {
@@ -43,16 +43,16 @@ export const words: Words = {
     notYet: 'Veel ei toetata',
     title: 'See on sinu komplekt',
     titleNotYet: 'Veel ei toetata',
-    cantInstall: 'WestPlay ei toeta veel selle mängu versiooni.',
+    cantInstall: 'Cabin Play ei toeta veel selle mängu versiooni.',
     version: 'Versioon',
     unknown: 'Tundmatu',
     dlcs: 'DLC-d',
     mapDlcs: 'Kaardi-DLC-d',
     noMapDlcs: 'Puuduvad',
-    untested: 'WestPlay on tehtud versioonile 1.61. Sinu oma pole veel testitud, kuid see töötab suure tõenäosusega.',
+    untested: 'Cabin Play on tehtud versioonile 1.61. Sinu oma pole veel testitud, kuid see töötab suure tõenäosusega.',
     otherCarPlay: {
       title: 'Eemalda YMN One',
-      text: 'Sinu mängu on paigaldatud teine CarPlay mod, YMN One (YamanDriveBridge.dll kaustas plugins). See võtab üle veoki GPS-ekraani: WestPlay ei saa seal kuvada ja ekraan muutub roosaks, kui YMN One ei tööta. Sulge mäng ja kustuta see fail.',
+      text: 'Sinu mängu on paigaldatud teine CarPlay mod, YMN One (YamanDriveBridge.dll kaustas plugins). See võtab üle veoki GPS-ekraani: Cabin Play ei saa seal kuvada ja ekraan muutub roosaks, kui YMN One ei tööta. Sulge mäng ja kustuta see fail.',
     },
     trucks: 'Veokid',
     truckNotYet: 'Veel ei toetata',
@@ -61,11 +61,11 @@ export const words: Words = {
     notInGame: 'Pole sinu mängus',
     scania7: 'Scania S ja R – 7" ekraan',
     scaniaSmartDash: 'Scania S ja R – Smart Dash',
-    anyTruckTablet: 'Iga veok – WestPlay tahvelarvutiga',
+    anyTruckTablet: 'Iga veok – Cabin Play tahvelarvutiga',
     profiles: 'Profiilid',
     profileCount: { one: '{n} profiil', other: '{n} profiili' },
     noProfiles: 'Profiile veel pole',
-    noProfilesDetail: 'WestPlay valmistab kaardi ette esimesele profiilile, mille lood.',
+    noProfilesDetail: 'Cabin Play valmistab kaardi ette esimesele profiilile, mille lood.',
     baseMap: 'Algne kaart',
     withMods: '{map} koos modidega {mods}',
     unreadable: {
@@ -73,20 +73,20 @@ export const words: Words = {
       other: '{n} kaardimodi ei õnnestunud lugeda, seega nende muudatusi pole näha',
     },
     mapNote:
-      'WestPlay valmistab kaardi igale sinu profiilile, ühe teise järel, alustades sellest, millega mängisid viimati. Kaardid valmivad siis, kui mäng on suletud.',
+      'Cabin Play valmistab kaardi igale sinu profiilile, ühe teise järel, alustades sellest, millega mängisid viimati. Kaardid valmivad siis, kui mäng on suletud.',
   },
   install: {
-    title: 'WestPlay paigaldamine',
-    titleDone: 'WestPlay on paigaldatud',
-    sub: 'WestPlay lisab mängule pistikprogrammi, mis laadib iga kord mängides ise WestPlay veokiekraanid: Moodihalduris ei pea midagi sisse lülitama. Mängu enda failid jäävad puutumata ja WestPlay eemaldamisel eemaldatakse kõik.',
+    title: 'Cabin Play paigaldamine',
+    titleDone: 'Cabin Play on paigaldatud',
+    sub: 'Cabin Play lisab mängule pistikprogrammi, mis laadib iga kord mängides ise Cabin Play veokiekraanid: Moodihalduris ei pea midagi sisse lülitama. Mängu enda failid jäävad puutumata ja Cabin Play eemaldamisel eemaldatakse kõik.',
     install: 'Paigalda',
     tryAgain: 'Proovi uuesti',
     asAdministrator: 'Paigalda administraatorina',
     plugin: 'Pistikprogramm',
-    pluginDetail: 'Näitab WestPlayd sinu veoki ekraanil',
+    pluginDetail: 'Näitab Cabin Playd sinu veoki ekraanil',
     banners: {
       installing: { title: 'Paigaldamine…' },
-      done: { title: 'WestPlay on paigaldatud', text: 'Sinu mäng on valmis' },
+      done: { title: 'Cabin Play on paigaldatud', text: 'Sinu mäng on valmis' },
       permission: { title: 'Vaja on luba', text: 'Windows küsib ühe korra' },
       inUse: { title: 'Sulge mäng', text: 'See kasutab pistikprogrammi' },
       failed: { title: 'Paigaldamine jäi pooleli', text: 'Üksikasjad on vasakul' },
@@ -94,7 +94,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Sulge mäng.',
-      text: 'WestPlayd ei saa paigaldada, kui Euro Truck Simulator 2 töötab.',
+      text: 'Cabin Playd ei saa paigaldada, kui Euro Truck Simulator 2 töötab.',
     },
     inUse: {
       title: 'Sulge mäng.',
@@ -109,24 +109,24 @@ export const words: Words = {
       text: 'Ilma selleta ei saa pistikprogrammi paigaldada. Proovi uuesti ja vali „Jah“.',
     },
     pluginFailed: 'Pistikprogrammi ei õnnestunud paigaldada.',
-    modFailed: 'WestPlay veokiekraane ei õnnestunud sinu mängust valmistada.',
-    noPlugin: 'Selles WestPlay koopias puudub pistikprogramm. Paigalda WestPlay uuesti.',
+    modFailed: 'Cabin Play veokiekraane ei õnnestunud sinu mängust valmistada.',
+    noPlugin: 'Selles Cabin Play koopias puudub pistikprogramm. Paigalda Cabin Play uuesti.',
     noDocuments: 'Kausta Dokumendid ei leitud.',
   },
   map: {
     title: 'Sinu kaarti valmistatakse…',
     titleReady: 'Sinu kaart on valmis',
-    sub: 'WestPlay teeb oma kaardi sinu enda mängust koos kaardi-DLC-de ja kaardimodidega. See võtab minuti või kaks.',
+    sub: 'Cabin Play teeb oma kaardi sinu enda mängust koos kaardi-DLC-de ja kaardimodidega. See võtab minuti või kaks.',
     banners: {
       building: 'Sinu kaarti valmistatakse',
       ready: { title: 'Sinu kaart on valmis', text: 'Koos sinu DLC-de ja kaardimodidega' },
       waiting: { title: 'Sulge mäng', text: 'Kaart valmib, kui mäng on suletud' },
-      failed: { title: 'Kaarti ei õnnestunud valmistada', text: 'WestPlay proovib hiljem uuesti' },
+      failed: { title: 'Kaarti ei õnnestunud valmistada', text: 'Cabin Play proovib hiljem uuesti' },
       getting: 'Valmistamine…',
     },
     waiting: {
       title: 'Sulge mäng.',
-      text: 'Kaardi valmistamine vajab palju mälu, seega ootab WestPlay, kuni mäng enam ei tööta.',
+      text: 'Kaardi valmistamine vajab palju mälu, seega ootab Cabin Play, kuni mäng enam ei tööta.',
     },
     stages: {
       reading: { now: 'Loetakse sinu mängu kaarti', done: 'Kaart on mängust loetud' },
@@ -149,7 +149,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Logi sisse YouTube’i',
-    sub: 'Valikuline. Logi sisse, et näha veoki ekraanil oma soovitusi, tellimusi ja ajalugu. Logid Google’i sisse eraldi aknas ja WestPlay ei näe kunagi sinu kontot.',
+    sub: 'Valikuline. Logi sisse, et näha veoki ekraanil oma soovitusi, tellimusi ja ajalugu. Logid Google’i sisse eraldi aknas ja Cabin Play ei näe kunagi sinu kontot.',
     signIn: 'Logi sisse',
     signOut: 'Logi välja',
     signedIn: 'Sisse logitud',
@@ -160,13 +160,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Logi sisse Spotify’sse',
-    sub: 'Valikuline. Logi sisse, et kuulata veoki ekraanil Spotifyt oma esitusloendite ja koguga. Logid Spotify’sse sisse eraldi aknas ja WestPlay ei näe kunagi sinu kontot.',
+    sub: 'Valikuline. Logi sisse, et kuulata veoki ekraanil Spotifyt oma esitusloendite ja koguga. Logid Spotify’sse sisse eraldi aknas ja Cabin Play ei näe kunagi sinu kontot.',
     finishInWindow: 'Vii sisselogimine Spotify aknas lõpule',
     signingIn: { title: 'Spotify’sse sisselogimine', text: 'Jätka Spotify aknas' },
   },
   appleMusic: {
     title: 'Logi sisse teenusesse Apple Music',
-    sub: 'Valikuline. Logi sisse, et kuulata veoki ekraanil teenust Apple Music oma esitusloendite ja koguga. Logid teenusesse Apple Music sisse eraldi aknas ja WestPlay ei näe kunagi sinu kontot.',
+    sub: 'Valikuline. Logi sisse, et kuulata veoki ekraanil teenust Apple Music oma esitusloendite ja koguga. Logid teenusesse Apple Music sisse eraldi aknas ja Cabin Play ei näe kunagi sinu kontot.',
     finishInWindow: 'Vii sisselogimine Apple Musicu aknas lõpule',
     signingIn: { title: 'Teenusesse Apple Music sisselogimine', text: 'Jätka Apple Musicu aknas' },
   },
@@ -176,11 +176,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Käivita mäng',
-        text: 'Kui see teatab „Leitud on edasijõudnud SDK kasutamiseks tehtud päring.“, vali „Ok“. See on WestPlay.',
+        text: 'Kui see teatab „Leitud on edasijõudnud SDK kasutamiseks tehtud päring.“, vali „Ok“. See on Cabin Play.',
       },
       {
         title: 'Istu oma veokisse',
-        text: 'Lülita elekter sisse ja WestPlay ilmub ekraanile. Hoia WestPlay mängimise ajal avatuna.',
+        text: 'Lülita elekter sisse ja Cabin Play ilmub ekraanile. Hoia Cabin Play mängimise ajal avatuna.',
       },
     ],
   },

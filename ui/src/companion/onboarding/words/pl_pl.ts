@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Dalej',
   welcome: {
     title: 'CarPlay w twojej kabinie',
-    sub: 'WestPlay przenosi CarPlay na ekran twojej ciężarówki w Euro Truck Simulator 2. Konfiguracja zajmuje tylko kilka minut.',
+    sub: 'Cabin Play przenosi CarPlay na ekran twojej ciężarówki w Euro Truck Simulator 2. Konfiguracja zajmuje tylko kilka minut.',
     start: 'Zaczynajmy',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'Twoja gra',
     titleMissing: 'Gdzie jest twoja gra?',
-    found: 'WestPlay znalazł Euro Truck Simulator 2 na tym komputerze.',
+    found: 'Cabin Play znalazł Euro Truck Simulator 2 na tym komputerze.',
     foundMany: 'Euro Truck Simulator 2 jest zainstalowany w kilku miejscach. Wybierz ten, w który grasz.',
     missing:
-      'WestPlay nie znalazł Euro Truck Simulator 2. Wybierz folder, w którym go zainstalowałeś – ten z plikiem base.scs.',
+      'Cabin Play nie znalazł Euro Truck Simulator 2. Wybierz folder, w którym go zainstalowałeś – ten z plikiem base.scs.',
     chooseAnother: 'Użyj innego folderu…',
     chooseFolder: 'Wybierz folder…',
     picker: 'Wybierz folder Euro Truck Simulator 2',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'Gry nie ma już w tym folderze.',
     closeToGoOn: {
       title: 'Zamknij grę.',
-      text: 'WestPlay może się skonfigurować tylko wtedy, gdy Euro Truck Simulator 2 nie jest uruchomiony.',
+      text: 'Cabin Play może się skonfigurować tylko wtedy, gdy Euro Truck Simulator 2 nie jest uruchomiony.',
     },
   },
   check: {
@@ -43,17 +43,17 @@ export const words: Words = {
     notYet: 'Jeszcze nieobsługiwane',
     title: 'Oto twoja konfiguracja',
     titleNotYet: 'Jeszcze nieobsługiwane',
-    cantInstall: 'WestPlay nie obsługuje jeszcze tej wersji gry.',
+    cantInstall: 'Cabin Play nie obsługuje jeszcze tej wersji gry.',
     version: 'Wersja',
     unknown: 'Nieznana',
     dlcs: 'DLC',
     mapDlcs: 'DLC zmieniające mapę',
     noMapDlcs: 'Brak',
     untested:
-      'WestPlay powstał dla wersji 1.61. Twoja nie była jeszcze testowana, ale najprawdopodobniej będzie działać.',
+      'Cabin Play powstał dla wersji 1.61. Twoja nie była jeszcze testowana, ale najprawdopodobniej będzie działać.',
     otherCarPlay: {
       title: 'Usuń YMN One',
-      text: 'W grze jest zainstalowany inny mod CarPlay, YMN One (YamanDriveBridge.dll w folderze plugins). Przejmuje on ekran GPS twojej ciężarówki: WestPlay nie może się tam pojawić, a ekran robi się różowy, gdy YMN One nie działa. Zamknij grę i usuń ten plik.',
+      text: 'W grze jest zainstalowany inny mod CarPlay, YMN One (YamanDriveBridge.dll w folderze plugins). Przejmuje on ekran GPS twojej ciężarówki: Cabin Play nie może się tam pojawić, a ekran robi się różowy, gdy YMN One nie działa. Zamknij grę i usuń ten plik.',
     },
     trucks: 'Ciężarówki',
     truckNotYet: 'Jeszcze nieobsługiwana',
@@ -62,11 +62,11 @@ export const words: Words = {
     notInGame: 'Nie ma jej w twojej grze',
     scania7: 'Scania S i R – ekran 7"',
     scaniaSmartDash: 'Scania S i R – Smart Dash',
-    anyTruckTablet: 'Dowolna ciężarówka – z tabletem WestPlay',
+    anyTruckTablet: 'Dowolna ciężarówka – z tabletem Cabin Play',
     profiles: 'Profile',
     profileCount: { one: '{n} profil', few: '{n} profile', many: '{n} profili', other: '{n} profilu' },
     noProfiles: 'Brak profili',
-    noProfilesDetail: 'WestPlay przygotuje mapę dla pierwszego profilu, który utworzysz.',
+    noProfilesDetail: 'Cabin Play przygotuje mapę dla pierwszego profilu, który utworzysz.',
     baseMap: 'Oryginalna mapa',
     withMods: '{map} z: {mods}',
     unreadable: {
@@ -76,20 +76,20 @@ export const words: Words = {
       other: 'Nie udało się odczytać {n} modyfikacji mapy, więc ich zmian nie będzie widać',
     },
     mapNote:
-      'WestPlay przygotowuje mapę dla każdego twojego profilu, jedną po drugiej, zaczynając od tego, na którym grałeś ostatnio. Mapy są przygotowywane, gdy gra jest zamknięta.',
+      'Cabin Play przygotowuje mapę dla każdego twojego profilu, jedną po drugiej, zaczynając od tego, na którym grałeś ostatnio. Mapy są przygotowywane, gdy gra jest zamknięta.',
   },
   install: {
-    title: 'Zainstaluj WestPlay',
-    titleDone: 'WestPlay jest zainstalowany',
-    sub: 'WestPlay dodaje do gry wtyczkę, która przy każdej grze sama wczytuje ekrany WestPlay dla ciężarówek: w Menedżerze modyfikacji nie trzeba niczego włączać. Pliki samej gry pozostają nietknięte, a odinstalowanie WestPlay usuwa wszystko.',
+    title: 'Zainstaluj Cabin Play',
+    titleDone: 'Cabin Play jest zainstalowany',
+    sub: 'Cabin Play dodaje do gry wtyczkę, która przy każdej grze sama wczytuje ekrany Cabin Play dla ciężarówek: w Menedżerze modyfikacji nie trzeba niczego włączać. Pliki samej gry pozostają nietknięte, a odinstalowanie Cabin Play usuwa wszystko.',
     install: 'Zainstaluj',
     tryAgain: 'Spróbuj ponownie',
     asAdministrator: 'Zainstaluj jako administrator',
     plugin: 'Wtyczka',
-    pluginDetail: 'Wyświetla WestPlay na ekranie twojej ciężarówki',
+    pluginDetail: 'Wyświetla Cabin Play na ekranie twojej ciężarówki',
     banners: {
       installing: { title: 'Instalowanie…' },
-      done: { title: 'WestPlay jest zainstalowany', text: 'Twoja gra jest gotowa' },
+      done: { title: 'Cabin Play jest zainstalowany', text: 'Twoja gra jest gotowa' },
       permission: { title: 'Potrzebna zgoda', text: 'Windows zapyta jeden raz' },
       inUse: { title: 'Zamknij grę', text: 'Gra używa wtyczki' },
       failed: { title: 'Instalacja nie została ukończona', text: 'Szczegóły znajdziesz po lewej' },
@@ -97,7 +97,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Zamknij grę.',
-      text: 'Nie można zainstalować WestPlay, gdy Euro Truck Simulator 2 jest uruchomiony.',
+      text: 'Nie można zainstalować Cabin Play, gdy Euro Truck Simulator 2 jest uruchomiony.',
     },
     inUse: {
       title: 'Zamknij grę.',
@@ -112,24 +112,24 @@ export const words: Words = {
       text: 'Bez niej nie można zainstalować wtyczki. Spróbuj ponownie i wybierz „Tak”.',
     },
     pluginFailed: 'Nie udało się zainstalować wtyczki.',
-    modFailed: 'Nie udało się przygotować ekranów WestPlay dla ciężarówki z twojej gry.',
-    noPlugin: 'W tej kopii WestPlay brakuje wtyczki. Zainstaluj WestPlay ponownie.',
+    modFailed: 'Nie udało się przygotować ekranów Cabin Play dla ciężarówki z twojej gry.',
+    noPlugin: 'W tej kopii Cabin Play brakuje wtyczki. Zainstaluj Cabin Play ponownie.',
     noDocuments: 'Nie znaleziono twojego folderu Dokumenty.',
   },
   map: {
     title: 'Przygotowywanie mapy…',
     titleReady: 'Twoja mapa jest gotowa',
-    sub: 'WestPlay tworzy swoją mapę z twojej gry, razem z twoimi DLC i modyfikacjami mapy. To potrwa minutę lub dwie.',
+    sub: 'Cabin Play tworzy swoją mapę z twojej gry, razem z twoimi DLC i modyfikacjami mapy. To potrwa minutę lub dwie.',
     banners: {
       building: 'Przygotowywanie mapy',
       ready: { title: 'Twoja mapa jest gotowa', text: 'Z twoimi DLC i modyfikacjami mapy' },
       waiting: { title: 'Zamknij grę', text: 'Mapa powstaje, gdy gra jest zamknięta' },
-      failed: { title: 'Nie udało się przygotować mapy', text: 'WestPlay spróbuje ponownie później' },
+      failed: { title: 'Nie udało się przygotować mapy', text: 'Cabin Play spróbuje ponownie później' },
       getting: 'Przygotowywanie…',
     },
     waiting: {
       title: 'Zamknij grę.',
-      text: 'Przygotowanie mapy wymaga dużo pamięci, więc WestPlay czeka, aż gra nie będzie uruchomiona.',
+      text: 'Przygotowanie mapy wymaga dużo pamięci, więc Cabin Play czeka, aż gra nie będzie uruchomiona.',
     },
     stages: {
       reading: { now: 'Odczytywanie mapy z gry', done: 'Mapa odczytana z gry' },
@@ -152,7 +152,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Zaloguj się do YouTube',
-    sub: 'Opcjonalnie. Zaloguj się, aby widzieć na ekranie ciężarówki swoje rekomendacje, subskrypcje i historię. Logujesz się przez Google w osobnym oknie, a WestPlay nigdy nie widzi twojego konta.',
+    sub: 'Opcjonalnie. Zaloguj się, aby widzieć na ekranie ciężarówki swoje rekomendacje, subskrypcje i historię. Logujesz się przez Google w osobnym oknie, a Cabin Play nigdy nie widzi twojego konta.',
     signIn: 'Zaloguj się',
     signOut: 'Wyloguj się',
     signedIn: 'Zalogowano',
@@ -163,13 +163,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Zaloguj się do Spotify',
-    sub: 'Opcjonalnie. Zaloguj się, aby słuchać Spotify na ekranie ciężarówki, z własnymi playlistami i biblioteką. Do Spotify logujesz się w osobnym oknie, a WestPlay nigdy nie widzi twojego konta.',
+    sub: 'Opcjonalnie. Zaloguj się, aby słuchać Spotify na ekranie ciężarówki, z własnymi playlistami i biblioteką. Do Spotify logujesz się w osobnym oknie, a Cabin Play nigdy nie widzi twojego konta.',
     finishInWindow: 'Dokończ logowanie w oknie Spotify',
     signingIn: { title: 'Logowanie do Spotify', text: 'Kontynuuj w oknie Spotify' },
   },
   appleMusic: {
     title: 'Zaloguj się do Apple Music',
-    sub: 'Opcjonalnie. Zaloguj się, aby słuchać Apple Music na ekranie ciężarówki, z własnymi playlistami i biblioteką. Do Apple Music logujesz się w osobnym oknie, a WestPlay nigdy nie widzi twojego konta.',
+    sub: 'Opcjonalnie. Zaloguj się, aby słuchać Apple Music na ekranie ciężarówki, z własnymi playlistami i biblioteką. Do Apple Music logujesz się w osobnym oknie, a Cabin Play nigdy nie widzi twojego konta.',
     finishInWindow: 'Dokończ logowanie w oknie Apple Music',
     signingIn: { title: 'Logowanie do Apple Music', text: 'Kontynuuj w oknie Apple Music' },
   },
@@ -179,11 +179,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Uruchom grę',
-        text: 'Gdy pojawi się komunikat „Wykryto próbę skorzystania z zaawansowanych narzędzi deweloperskich.”, wybierz „OK”. To WestPlay.',
+        text: 'Gdy pojawi się komunikat „Wykryto próbę skorzystania z zaawansowanych narzędzi deweloperskich.”, wybierz „OK”. To Cabin Play.',
       },
       {
         title: 'Wsiądź do ciężarówki',
-        text: 'Włącz zasilanie, a WestPlay pojawi się na ekranie. Nie zamykaj WestPlay podczas gry.',
+        text: 'Włącz zasilanie, a Cabin Play pojawi się na ekranie. Nie zamykaj Cabin Play podczas gry.',
       },
     ],
   },

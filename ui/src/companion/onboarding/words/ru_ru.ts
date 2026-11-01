@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Продолжить',
   welcome: {
     title: 'CarPlay в вашей кабине',
-    sub: 'WestPlay выводит CarPlay на экран вашего грузовика в Euro Truck Simulator 2. Настройка займёт всего несколько минут.',
+    sub: 'Cabin Play выводит CarPlay на экран вашего грузовика в Euro Truck Simulator 2. Настройка займёт всего несколько минут.',
     start: 'Начать',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'Ваша игра',
     titleMissing: 'Где ваша игра?',
-    found: 'WestPlay нашёл Euro Truck Simulator 2 на этом компьютере.',
+    found: 'Cabin Play нашёл Euro Truck Simulator 2 на этом компьютере.',
     foundMany: 'Euro Truck Simulator 2 установлена в нескольких местах. Выберите ту, в которую вы играете.',
     missing:
-      'WestPlay не нашёл Euro Truck Simulator 2. Выберите папку, в которую вы установили игру, — ту, где лежит base.scs.',
+      'Cabin Play не нашёл Euro Truck Simulator 2. Выберите папку, в которую вы установили игру, — ту, где лежит base.scs.',
     chooseAnother: 'Выбрать другую папку…',
     chooseFolder: 'Выбрать папку…',
     picker: 'Выберите папку Euro Truck Simulator 2',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'Игры больше нет в этой папке.',
     closeToGoOn: {
       title: 'Закройте игру.',
-      text: 'WestPlay может настроиться, только пока Euro Truck Simulator 2 не запущена.',
+      text: 'Cabin Play может настроиться, только пока Euro Truck Simulator 2 не запущена.',
     },
   },
   check: {
@@ -43,16 +43,16 @@ export const words: Words = {
     notYet: 'Пока не поддерживается',
     title: 'Вот что у вас есть',
     titleNotYet: 'Пока не поддерживается',
-    cantInstall: 'WestPlay пока не поддерживает эту версию игры.',
+    cantInstall: 'Cabin Play пока не поддерживает эту версию игры.',
     version: 'Версия',
     unknown: 'Неизвестна',
     dlcs: 'DLC',
     mapDlcs: 'DLC, меняющие карту',
     noMapDlcs: 'Нет',
-    untested: 'WestPlay создан для версии 1.61. Ваша версия ещё не проверялась, но, скорее всего, всё заработает.',
+    untested: 'Cabin Play создан для версии 1.61. Ваша версия ещё не проверялась, но, скорее всего, всё заработает.',
     otherCarPlay: {
       title: 'Удалите YMN One',
-      text: 'В игре установлен другой мод CarPlay — YMN One (YamanDriveBridge.dll в папке plugins). Он занимает экран GPS вашего грузовика: WestPlay не может там появиться, а когда YMN One не запущен, экран становится розовым. Закройте игру и удалите этот файл.',
+      text: 'В игре установлен другой мод CarPlay — YMN One (YamanDriveBridge.dll в папке plugins). Он занимает экран GPS вашего грузовика: Cabin Play не может там появиться, а когда YMN One не запущен, экран становится розовым. Закройте игру и удалите этот файл.',
     },
     trucks: 'Грузовики',
     truckNotYet: 'Пока не поддерживается',
@@ -61,11 +61,11 @@ export const words: Words = {
     notInGame: 'Нет в вашей игре',
     scania7: 'Scania S и R — экран 7"',
     scaniaSmartDash: 'Scania S и R — Smart Dash',
-    anyTruckTablet: 'Любой грузовик – с планшетом WestPlay',
+    anyTruckTablet: 'Любой грузовик – с планшетом Cabin Play',
     profiles: 'Профили',
     profileCount: { one: '{n} профиль', few: '{n} профиля', many: '{n} профилей', other: '{n} профиля' },
     noProfiles: 'Профилей пока нет',
-    noProfilesDetail: 'WestPlay подготовит карту для первого профиля, который вы создадите.',
+    noProfilesDetail: 'Cabin Play подготовит карту для первого профиля, который вы создадите.',
     baseMap: 'Оригинальная карта',
     withMods: '{map} с модами: {mods}',
     unreadable: {
@@ -75,20 +75,20 @@ export const words: Words = {
       other: 'Не удалось прочитать {n} мода карты, поэтому их изменений не будет видно',
     },
     mapNote:
-      'WestPlay готовит карту для каждого вашего профиля, по очереди, начиная с того, в котором вы играли последним. Карты готовятся, пока игра закрыта.',
+      'Cabin Play готовит карту для каждого вашего профиля, по очереди, начиная с того, в котором вы играли последним. Карты готовятся, пока игра закрыта.',
   },
   install: {
-    title: 'Установка WestPlay',
-    titleDone: 'WestPlay установлен',
-    sub: 'WestPlay добавляет в игру плагин, который сам загружает экраны WestPlay для грузовиков каждый раз, когда вы играете: в «Диспетчере модов» ничего включать не нужно. Файлы самой игры остаются нетронутыми, а при удалении WestPlay удаляется всё.',
+    title: 'Установка Cabin Play',
+    titleDone: 'Cabin Play установлен',
+    sub: 'Cabin Play добавляет в игру плагин, который сам загружает экраны Cabin Play для грузовиков каждый раз, когда вы играете: в «Диспетчере модов» ничего включать не нужно. Файлы самой игры остаются нетронутыми, а при удалении Cabin Play удаляется всё.',
     install: 'Установить',
     tryAgain: 'Повторить',
     asAdministrator: 'Установить от имени администратора',
     plugin: 'Плагин',
-    pluginDetail: 'Показывает WestPlay на экране вашего грузовика',
+    pluginDetail: 'Показывает Cabin Play на экране вашего грузовика',
     banners: {
       installing: { title: 'Установка…' },
-      done: { title: 'WestPlay установлен', text: 'Ваша игра готова' },
+      done: { title: 'Cabin Play установлен', text: 'Ваша игра готова' },
       permission: { title: 'Нужно разрешение', text: 'Windows спросит один раз' },
       inUse: { title: 'Закройте игру', text: 'Она использует плагин' },
       failed: { title: 'Установка не завершена', text: 'Подробности слева' },
@@ -96,7 +96,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Закройте игру.',
-      text: 'WestPlay нельзя установить, пока запущена Euro Truck Simulator 2.',
+      text: 'Cabin Play нельзя установить, пока запущена Euro Truck Simulator 2.',
     },
     inUse: {
       title: 'Закройте игру.',
@@ -111,24 +111,24 @@ export const words: Words = {
       text: 'Без него плагин не установить. Попробуйте снова и выберите «Да».',
     },
     pluginFailed: 'Не удалось установить плагин.',
-    modFailed: 'Не удалось подготовить экраны WestPlay для грузовика из вашей игры.',
-    noPlugin: 'В этой копии WestPlay нет плагина. Переустановите WestPlay.',
+    modFailed: 'Не удалось подготовить экраны Cabin Play для грузовика из вашей игры.',
+    noPlugin: 'В этой копии Cabin Play нет плагина. Переустановите Cabin Play.',
     noDocuments: 'Не удалось найти папку «Документы».',
   },
   map: {
     title: 'Готовим вашу карту…',
     titleReady: 'Ваша карта готова',
-    sub: 'WestPlay строит свою карту по вашей игре — с вашими DLC и модами карты. Это займёт минуту-другую.',
+    sub: 'Cabin Play строит свою карту по вашей игре — с вашими DLC и модами карты. Это займёт минуту-другую.',
     banners: {
       building: 'Готовим вашу карту',
       ready: { title: 'Ваша карта готова', text: 'С вашими DLC и модами карты' },
       waiting: { title: 'Закройте игру', text: 'Карта строится, когда игра закрыта' },
-      failed: { title: 'Не удалось подготовить карту', text: 'WestPlay попробует позже' },
+      failed: { title: 'Не удалось подготовить карту', text: 'Cabin Play попробует позже' },
       getting: 'Подготовка…',
     },
     waiting: {
       title: 'Закройте игру.',
-      text: 'Для подготовки карты нужно много памяти, поэтому WestPlay ждёт, пока игра не будет закрыта.',
+      text: 'Для подготовки карты нужно много памяти, поэтому Cabin Play ждёт, пока игра не будет закрыта.',
     },
     stages: {
       reading: { now: 'Читаем карту вашей игры', done: 'Карта прочитана' },
@@ -151,7 +151,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Вход в YouTube',
-    sub: 'Необязательно. Войдите, чтобы видеть на экране грузовика свои рекомендации, подписки и историю. Вход в Google выполняется в отдельном окне, и WestPlay никогда не видит ваш аккаунт.',
+    sub: 'Необязательно. Войдите, чтобы видеть на экране грузовика свои рекомендации, подписки и историю. Вход в Google выполняется в отдельном окне, и Cabin Play никогда не видит ваш аккаунт.',
     signIn: 'Войти',
     signOut: 'Выйти',
     signedIn: 'Вход выполнен',
@@ -162,13 +162,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Вход в Spotify',
-    sub: 'Необязательно. Войдите, чтобы слушать Spotify на экране грузовика со своими плейлистами и медиатекой. Вход в Spotify выполняется в отдельном окне, и WestPlay никогда не видит ваш аккаунт.',
+    sub: 'Необязательно. Войдите, чтобы слушать Spotify на экране грузовика со своими плейлистами и медиатекой. Вход в Spotify выполняется в отдельном окне, и Cabin Play никогда не видит ваш аккаунт.',
     finishInWindow: 'Завершите вход в окне Spotify',
     signingIn: { title: 'Вход в Spotify', text: 'Продолжите в окне Spotify' },
   },
   appleMusic: {
     title: 'Вход в Apple Music',
-    sub: 'Необязательно. Войдите, чтобы слушать Apple Music на экране грузовика со своими плейлистами и медиатекой. Вход в Apple Music выполняется в отдельном окне, и WestPlay никогда не видит ваш аккаунт.',
+    sub: 'Необязательно. Войдите, чтобы слушать Apple Music на экране грузовика со своими плейлистами и медиатекой. Вход в Apple Music выполняется в отдельном окне, и Cabin Play никогда не видит ваш аккаунт.',
     finishInWindow: 'Завершите вход в окне Apple Music',
     signingIn: { title: 'Вход в Apple Music', text: 'Продолжите в окне Apple Music' },
   },
@@ -178,11 +178,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Запустите игру',
-        text: 'Когда появится сообщение «Обнаружен запрос на использование дополнительных функций SDK.», нажмите «ОК». Это WestPlay.',
+        text: 'Когда появится сообщение «Обнаружен запрос на использование дополнительных функций SDK.», нажмите «ОК». Это Cabin Play.',
       },
       {
         title: 'Садитесь в грузовик',
-        text: 'Включите электрику, и WestPlay появится на экране. Не закрывайте WestPlay, пока играете.',
+        text: 'Включите электрику, и Cabin Play появится на экране. Не закрывайте Cabin Play, пока играете.',
       },
     ],
   },

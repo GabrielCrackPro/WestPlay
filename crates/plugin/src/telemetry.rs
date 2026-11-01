@@ -69,6 +69,12 @@ static SNAPSHOT: Mutex<Telemetry> = Mutex::new(Telemetry {
     cabin_z: 0.0,
     steering: 0.0,
     multiplayer_time_offset: 0,
+    coolant_temperature: 0.0,
+    oil_temperature: 0.0,
+    brake_air_pressure: 0.0,
+    brake_temperature: 0.0,
+    wear_engine: 0.0,
+    wear_wheels: 0.0,
 });
 
 /// Where the driver's head is by default in the truck's cab (the "truck" configuration's `head.position`).
@@ -106,6 +112,12 @@ enum Field {
     HeadOffset,
     Steering,
     MultiplayerTimeOffset,
+    CoolantTemperature,
+    OilTemperature,
+    BrakeAirPressure,
+    BrakeTemperature,
+    WearEngine,
+    WearWheels,
 }
 
 const CHANNELS: &[(&str, u32, Field)] = &[
@@ -133,6 +145,12 @@ const CHANNELS: &[(&str, u32, Field)] = &[
     ("truck.head.offset", SCS_VALUE_TYPE_FPLACEMENT, Field::HeadOffset),
     ("truck.effective.steering", SCS_VALUE_TYPE_FLOAT, Field::Steering),
     ("multiplayer.time.offset", SCS_VALUE_TYPE_S32, Field::MultiplayerTimeOffset),
+    ("truck.water.temperature", SCS_VALUE_TYPE_FLOAT, Field::CoolantTemperature),
+    ("truck.oil.temperature", SCS_VALUE_TYPE_FLOAT, Field::OilTemperature),
+    ("truck.brake.air.pressure", SCS_VALUE_TYPE_FLOAT, Field::BrakeAirPressure),
+    ("truck.brake.temperature", SCS_VALUE_TYPE_FLOAT, Field::BrakeTemperature),
+    ("truck.wear.engine", SCS_VALUE_TYPE_FLOAT, Field::WearEngine),
+    ("truck.wear.wheels", SCS_VALUE_TYPE_FLOAT, Field::WearWheels),
 ];
 
 /// Registers the telemetry channels and events. Called from `scs_telemetry_init`.
@@ -414,6 +432,12 @@ unsafe fn on_channel_value(value: *const ScsValue, context: *mut c_void) {
             }
             Field::Steering => s.steering = value.float(),
             Field::MultiplayerTimeOffset => s.multiplayer_time_offset = value.s32(),
+            Field::CoolantTemperature => s.coolant_temperature = value.float(),
+            Field::OilTemperature => s.oil_temperature = value.float(),
+            Field::BrakeAirPressure => s.brake_air_pressure = value.float(),
+            Field::BrakeTemperature => s.brake_temperature = value.float(),
+            Field::WearEngine => s.wear_engine = value.float(),
+            Field::WearWheels => s.wear_wheels = value.float(),
         }
     }
 }
@@ -451,5 +475,11 @@ fn reset(s: &mut Telemetry, field: Field) {
         }
         Field::Steering => s.steering = d.steering,
         Field::MultiplayerTimeOffset => s.multiplayer_time_offset = d.multiplayer_time_offset,
+        Field::CoolantTemperature => s.coolant_temperature = d.coolant_temperature,
+        Field::OilTemperature => s.oil_temperature = d.oil_temperature,
+        Field::BrakeAirPressure => s.brake_air_pressure = d.brake_air_pressure,
+        Field::BrakeTemperature => s.brake_temperature = d.brake_temperature,
+        Field::WearEngine => s.wear_engine = d.wear_engine,
+        Field::WearWheels => s.wear_wheels = d.wear_wheels,
     }
 }

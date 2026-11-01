@@ -34,7 +34,7 @@ import { DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
 
 /**
  * The companion window: its onboarding on the first run (until it's gone through), then the room it ends in.
- * The truck's screen stays in its dark room, turned aside at the right, the live WestPlay on it; the
+ * The truck's screen stays in its dark room, turned aside at the right, the live Cabin Play on it; the
  * sections are a list at the left, each with what it is now; the page in between. Each section shows on the
  * screen what it's about (its app, its banner, the cursor using it), as the onboarding's steps did.
  */
@@ -146,7 +146,7 @@ function Room({
   // Who's signed in, known at once (what was last known), and asked as the companion opens if never known.
   const signedIn = useSignedIn(status)
   useAskOnce()
-  // The uninstall sheet over the room, and the room fading as WestPlay leaves.
+  // The uninstall sheet over the room, and the room fading as Cabin Play leaves.
   const [uninstalling, setUninstalling] = useState(false)
   const [leavingPc, setLeavingPc] = useState(false)
   // An update found, offered in its sheet once per version (Later puts it off; About opens it again).
@@ -206,7 +206,7 @@ function Room({
     settling: () => Math.max(0, arrived.current - performance.now()),
   }
 
-  // On as soon as WestPlay in it is ready: it's been on all along (the player dove into it).
+  // On as soon as Cabin Play in it is ready: it's been on all along (the player dove into it).
   useEffect(() => {
     if (!demo.ready || powered) return
     send({ type: 'power', on: true })
@@ -353,8 +353,8 @@ function Room({
 }
 
 /**
- * The sections, at the left: WestPlay's name and where it is now, then each section with what it is now
- * (WestPlay on or off, the key, who's signed in, the map, the game's version, WestPlay's own or an update), in
+ * The sections, at the left: Cabin Play's name and where it is now, then each section with what it is now
+ * (Cabin Play on or off, the key, who's signed in, the map, the game's version, Cabin Play's own or an update), in
  * groups. The one that's open is lit by a capsule of glass that glides from section to section.
  */
 function SectionList({
@@ -418,11 +418,11 @@ function SectionList({
 
   let place = 2
   return (
-    <nav ref={list} className="cp-list" aria-label="WestPlay">
+    <nav ref={list} className="cp-list" aria-label="Cabin Play">
       <header className="cp-brand ob-in" style={n(0)}>
-        <img src="/westplay.png" alt="" />
+        <img src="/cabinplay.png" alt="" />
         <span>
-          <b>WestPlay</b>
+          <b>Cabin Play</b>
           <span className="cp-state" data-state={state}>
             <i />
             {cw.state[state]}
@@ -470,7 +470,7 @@ function mapValue(status: HostStatus | null, progress: MapProgress, cw: Companio
   }
 }
 
-/** WestPlay's version, once the app has said. */
+/** Cabin Play's version, once the app has said. */
 function useVersion(): string {
   const [version, setVersion] = useState('')
   useEffect(() => {

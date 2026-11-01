@@ -62,7 +62,7 @@ const SERVICES: Record<
 const ORDER: Service[] = ['youtube', 'spotify', 'appleMusic']
 
 /**
- * The services WestPlay plays from, each signed in (in its own window, on the desktop) or not. WestPlay only
+ * The services Cabin Play plays from, each signed in (in its own window, on the desktop) or not. Cabin Play only
  * ever knows whether it is. On the room's screen, the app of the service the pointer is on.
  */
 export function Accounts({ status, cw, signedIn }: PageProps) {

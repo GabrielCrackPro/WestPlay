@@ -1,69 +1,168 @@
-/* Diagnostics app styles */
+/* The Diagnostics app (DiagnosticsApp.tsx): the truck's own readings, a card each, on the app's background. */
 
-/* The diagnostics app panel */
-.app-panel.diagnostics-app {
-  background: var(--app-background);
-  color: var(--text);
+.diagnostics-app {
+  display: flex;
+  align-items: stretch;
 }
 
-/* Diagnostics grid */
 .diag-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px;
+  gap: calc(18px * var(--text-scale, 1));
+  min-width: 0;
+  width: 100%;
 }
 
-/* Individual diagnostics card */
 .diag-card {
-  background: var(--glass);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16px * var(--text-scale, 1));
+  min-width: 0;
+  padding: calc(22px * var(--text-scale, 1));
+  border-radius: var(--panel-radius);
+  background: var(--apple-card);
 }
 
-/* Diagnostics title */
-.diag-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.diag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.diag-name {
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-dim);
 }
 
-/* Diagnostics value */
+/* What the card's reading says: normal, or the one word it's worth knowing. */
+.diag-pill {
+  flex: none;
+  padding: calc(4px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: 999px;
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 650;
+  color: var(--text-dim);
+}
+
+.diag-card.warn .diag-pill {
+  border-color: transparent;
+  color: var(--apple-orange);
+}
+
+.diag-card.alarm .diag-pill {
+  border-color: transparent;
+  color: var(--apple-red);
+}
+
+/* The card's reading, big, over its gauge. */
+.diag-hero {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--text-scale, 1));
+}
+
+.diag-reading {
+  display: flex;
+  align-items: baseline;
+  gap: calc(6px * var(--text-scale, 1));
+}
+
 .diag-value {
-  font-size: 24px;
+  font-size: calc(46px * var(--text-scale, 1));
   font-weight: 700;
-  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Progress bar container */
-.diag-bar {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+.diag-unit {
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.diag-label {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.diag-meter {
+  height: calc(8px * var(--text-scale, 1));
+  margin-top: calc(6px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill);
   overflow: hidden;
-  margin-top: 8px;
 }
 
-/* Progress bar fill */
-.diag-fill {
+.diag-meter span {
+  display: block;
   height: 100%;
-  background: var(--text);
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: 999px;
+  background: var(--apple-green);
+  transition: width 300ms var(--motion-ease);
 }
 
-/* Make the progress bars color-coded */
-.diag-bar.engine .diag-fill {
-  background: #ff4757; /* red for engine */
+.diag-card.warn .diag-meter span {
+  background: var(--apple-orange);
 }
 
-.diag-bar.tires .diag-fill {
-  background: #ffa502; /* orange for tires */
+.diag-card.alarm .diag-meter span {
+  background: var(--apple-red);
 }
 
-.diag-bar.brakes .diag-fill {
-  background: #2ed573; /* green for brakes */
+/* The card's other readings, under the one it draws: its name on the left, its value on the right. */
+.diag-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+}
+
+.diag-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(10px * var(--text-scale, 1)) 0;
+  border-top: 1px solid var(--apple-separator);
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+.diag-row-label {
+  color: var(--text-dim);
+}
+
+.diag-row-value {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A reading worth watching: its dot takes the tone its gauge would. */
+.diag-dot {
+  flex: none;
+  width: calc(8px * var(--text-scale, 1));
+  height: calc(8px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-green);
+}
+
+.diag-dot.warn {
+  background: var(--apple-orange);
+}
+
+.diag-dot.alarm {
+  background: var(--apple-red);
+}
+
+/* No telemetry yet (the game isn't running, or hasn't sent a frame). */
+.diag-unavailable {
+  margin: auto;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: center;
 }

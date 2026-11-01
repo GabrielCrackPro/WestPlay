@@ -64,6 +64,40 @@
   flex: 1 0 auto;
 }
 
+/* A widget that opens its app (Diagnostics) is the card itself: the card's own type and glass, none of the
+   button's (and the press shows, as an app icon's does on Home). */
+button.widget {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border: 0;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms var(--motion-ease);
+}
+
+button.widget:active {
+  transform: scale(0.985);
+}
+
+/* Diagnostics: the coolant and the brake air, each in the card's own words unless it's out of its range, when
+   it takes the tone (the app's own colours, DiagnosticsApp). */
+.widget.diagnostics .destination.warn,
+.widget.diagnostics .place.warn {
+  color: var(--apple-orange);
+}
+
+.widget.diagnostics .destination.alarm,
+.widget.diagnostics .place.alarm {
+  color: var(--apple-red);
+}
+
+/* Its gauge, in the card's own colour like the fuel pump's. */
+.diagnostics-glyph {
+  flex: none;
+  color: var(--text-dim);
+}
+
 /* The column's gap between the cards that are up: a card that folds away takes its gap with it (the slots
    themselves are stacked, so the gap is the space under every open card but the last). */
 .widget-slot.open:has(~ .widget-slot.open) {

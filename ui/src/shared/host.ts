@@ -44,6 +44,18 @@ export interface Telemetry {
   leftBlinker: boolean
   rightBlinker: boolean
   paused: boolean
+  /** The engine's coolant temperature, degrees Celsius (the SDK's water temperature). */
+  coolantTemperature: number
+  /** The engine's oil temperature, degrees Celsius. */
+  oilTemperature: number
+  /** The brake air tank's pressure, psi. */
+  brakeAirPressure: number
+  /** The brakes' temperature, degrees Celsius (the game's average for the truck). */
+  brakeTemperature: number
+  /** Wear of the engine, 0 (new) to 1 (worn out). */
+  wearEngine: number
+  /** Wear of the wheels, 0 (new) to 1 (worn out): the tires' own wear. */
+  wearWheels: number
 }
 
 /** The time the cab's clock shows (minutes since day 0, 00:00): the game's, or in a Convoy session the

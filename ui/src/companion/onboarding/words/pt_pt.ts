@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Continuar',
   welcome: {
     title: 'CarPlay na sua cabina',
-    sub: 'O WestPlay leva o CarPlay para o ecrã do seu camião no Euro Truck Simulator 2. A configuração demora só alguns minutos.',
+    sub: 'O Cabin Play leva o CarPlay para o ecrã do seu camião no Euro Truck Simulator 2. A configuração demora só alguns minutos.',
     start: 'Começar',
   },
   summary: {
@@ -20,10 +20,10 @@ export const words: Words = {
   game: {
     title: 'O seu jogo',
     titleMissing: 'Onde está o seu jogo?',
-    found: 'O WestPlay encontrou o Euro Truck Simulator 2 neste PC.',
+    found: 'O Cabin Play encontrou o Euro Truck Simulator 2 neste PC.',
     foundMany: 'O Euro Truck Simulator 2 está instalado em mais de um local. Escolha aquele com que joga.',
     missing:
-      'O WestPlay não encontrou o Euro Truck Simulator 2. Escolha a pasta onde o instalou, a que contém o base.scs.',
+      'O Cabin Play não encontrou o Euro Truck Simulator 2. Escolha a pasta onde o instalou, a que contém o base.scs.',
     chooseAnother: 'Usar outra pasta…',
     chooseFolder: 'Escolher pasta…',
     picker: 'Escolha a sua pasta do Euro Truck Simulator 2',
@@ -32,7 +32,7 @@ export const words: Words = {
     gameGone: 'O jogo já não está nesta pasta.',
     closeToGoOn: {
       title: 'Feche o jogo.',
-      text: 'O WestPlay só se consegue configurar enquanto o Euro Truck Simulator 2 não está aberto.',
+      text: 'O Cabin Play só se consegue configurar enquanto o Euro Truck Simulator 2 não está aberto.',
     },
   },
   check: {
@@ -43,17 +43,17 @@ export const words: Words = {
     notYet: 'Ainda não suportado',
     title: 'A sua configuração',
     titleNotYet: 'Ainda não suportado',
-    cantInstall: 'O WestPlay ainda não suporta esta versão do jogo.',
+    cantInstall: 'O Cabin Play ainda não suporta esta versão do jogo.',
     version: 'Versão',
     unknown: 'Desconhecida',
     dlcs: 'DLC',
     mapDlcs: 'DLC de mapa',
     noMapDlcs: 'Nenhum',
     untested:
-      'O WestPlay foi feito para a versão 1.61. A sua ainda não foi testada, mas muito provavelmente vai funcionar.',
+      'O Cabin Play foi feito para a versão 1.61. A sua ainda não foi testada, mas muito provavelmente vai funcionar.',
     otherCarPlay: {
       title: 'Remova o YMN One',
-      text: 'Outro mod de CarPlay, o YMN One, está instalado no seu jogo (YamanDriveBridge.dll, na pasta plugins). Ocupa o ecrã do GPS do seu camião: o WestPlay não aparece aí, e o ecrã fica cor-de-rosa quando o YMN One não está a correr. Feche o jogo e apague esse ficheiro.',
+      text: 'Outro mod de CarPlay, o YMN One, está instalado no seu jogo (YamanDriveBridge.dll, na pasta plugins). Ocupa o ecrã do GPS do seu camião: o Cabin Play não aparece aí, e o ecrã fica cor-de-rosa quando o YMN One não está a correr. Feche o jogo e apague esse ficheiro.',
     },
     trucks: 'Camiões',
     truckNotYet: 'Ainda não suportado',
@@ -62,11 +62,11 @@ export const words: Words = {
     notInGame: 'Não está no seu jogo',
     scania7: 'Scania S e R – ecrã de 7"',
     scaniaSmartDash: 'Scania S e R – Smart Dash',
-    anyTruckTablet: 'Qualquer camião – com o tablet WestPlay',
+    anyTruckTablet: 'Qualquer camião – com o tablet Cabin Play',
     profiles: 'Perfis',
     profileCount: { one: '{n} perfil', other: '{n} perfis' },
     noProfiles: 'Ainda sem perfis',
-    noProfilesDetail: 'O WestPlay vai preparar o mapa para o primeiro perfil que criar.',
+    noProfilesDetail: 'O Cabin Play vai preparar o mapa para o primeiro perfil que criar.',
     baseMap: 'Mapa original',
     withMods: '{map} com {mods}',
     unreadable: {
@@ -74,20 +74,20 @@ export const words: Words = {
       other: 'Não foi possível ler {n} mods de mapa, por isso as alterações delas não vão aparecer',
     },
     mapNote:
-      'O WestPlay prepara um mapa para cada um dos seus perfis, um após o outro, começando pelo último com que jogou. Os mapas são preparados enquanto o jogo está fechado.',
+      'O Cabin Play prepara um mapa para cada um dos seus perfis, um após o outro, começando pelo último com que jogou. Os mapas são preparados enquanto o jogo está fechado.',
   },
   install: {
-    title: 'Instalar o WestPlay',
-    titleDone: 'O WestPlay está instalado',
-    sub: 'O WestPlay adiciona um plugin ao seu jogo, que carrega sozinho os ecrãs do WestPlay para os camiões sempre que joga: não há nada a ativar no Gestor de mods. Os ficheiros do próprio jogo ficam intactos, e desinstalar o WestPlay remove tudo.',
+    title: 'Instalar o Cabin Play',
+    titleDone: 'O Cabin Play está instalado',
+    sub: 'O Cabin Play adiciona um plugin ao seu jogo, que carrega sozinho os ecrãs do Cabin Play para os camiões sempre que joga: não há nada a ativar no Gestor de mods. Os ficheiros do próprio jogo ficam intactos, e desinstalar o Cabin Play remove tudo.',
     install: 'Instalar',
     tryAgain: 'Tentar novamente',
     asAdministrator: 'Instalar como administrador',
     plugin: 'Plugin',
-    pluginDetail: 'Mostra o WestPlay no ecrã do seu camião',
+    pluginDetail: 'Mostra o Cabin Play no ecrã do seu camião',
     banners: {
       installing: { title: 'A instalar…' },
-      done: { title: 'O WestPlay está instalado', text: 'O seu jogo está pronto' },
+      done: { title: 'O Cabin Play está instalado', text: 'O seu jogo está pronto' },
       permission: { title: 'É preciso autorização', text: 'O Windows vai pedi-la uma vez' },
       inUse: { title: 'Feche o jogo', text: 'Está a usar o plugin' },
       failed: { title: 'A instalação não terminou', text: 'Veja os detalhes à esquerda' },
@@ -95,7 +95,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Feche o jogo.',
-      text: 'O WestPlay não pode ser instalado enquanto o Euro Truck Simulator 2 está aberto.',
+      text: 'O Cabin Play não pode ser instalado enquanto o Euro Truck Simulator 2 está aberto.',
     },
     inUse: {
       title: 'Feche o jogo.',
@@ -110,24 +110,24 @@ export const words: Words = {
       text: 'Sem ela, o plugin não pode ser instalado. Tente novamente e escolha «Sim».',
     },
     pluginFailed: 'Não foi possível instalar o plugin.',
-    modFailed: 'Não foi possível preparar os ecrãs do WestPlay para o camião a partir do seu jogo.',
-    noPlugin: 'Falta o plugin nesta cópia do WestPlay. Reinstale o WestPlay.',
+    modFailed: 'Não foi possível preparar os ecrãs do Cabin Play para o camião a partir do seu jogo.',
+    noPlugin: 'Falta o plugin nesta cópia do Cabin Play. Reinstale o Cabin Play.',
     noDocuments: 'A sua pasta Documentos não foi encontrada.',
   },
   map: {
     title: 'A preparar o seu mapa…',
     titleReady: 'O seu mapa está pronto',
-    sub: 'O WestPlay cria o mapa a partir do seu próprio jogo, com os seus DLC e mods de mapa. Demora um ou dois minutos.',
+    sub: 'O Cabin Play cria o mapa a partir do seu próprio jogo, com os seus DLC e mods de mapa. Demora um ou dois minutos.',
     banners: {
       building: 'A preparar o seu mapa',
       ready: { title: 'O seu mapa está pronto', text: 'Com os seus DLC e mods de mapa' },
       waiting: { title: 'Feche o jogo', text: 'O mapa é preparado com o jogo fechado' },
-      failed: { title: 'Não foi possível preparar o mapa', text: 'O WestPlay vai tentar outra vez mais tarde' },
+      failed: { title: 'Não foi possível preparar o mapa', text: 'O Cabin Play vai tentar outra vez mais tarde' },
       getting: 'A preparar…',
     },
     waiting: {
       title: 'Feche o jogo.',
-      text: 'Preparar o mapa precisa de muita memória, por isso o WestPlay espera até o jogo não estar aberto.',
+      text: 'Preparar o mapa precisa de muita memória, por isso o Cabin Play espera até o jogo não estar aberto.',
     },
     stages: {
       reading: { now: 'A ler o mapa do seu jogo', done: 'Mapa lido do seu jogo' },
@@ -150,7 +150,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Inicie sessão no YouTube',
-    sub: 'Opcional. Inicie sessão para ver as suas recomendações, subscrições e histórico no ecrã do camião. Inicia sessão com a Google numa janela à parte, e o WestPlay nunca vê a sua conta.',
+    sub: 'Opcional. Inicie sessão para ver as suas recomendações, subscrições e histórico no ecrã do camião. Inicia sessão com a Google numa janela à parte, e o Cabin Play nunca vê a sua conta.',
     signIn: 'Iniciar sessão',
     signOut: 'Terminar sessão',
     signedIn: 'Sessão iniciada',
@@ -161,13 +161,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Inicie sessão no Spotify',
-    sub: 'Opcional. Inicie sessão para ouvir o Spotify no ecrã do camião, com as suas playlists e a sua biblioteca. Inicia sessão no Spotify numa janela à parte, e o WestPlay nunca vê a sua conta.',
+    sub: 'Opcional. Inicie sessão para ouvir o Spotify no ecrã do camião, com as suas playlists e a sua biblioteca. Inicia sessão no Spotify numa janela à parte, e o Cabin Play nunca vê a sua conta.',
     finishInWindow: 'Conclua o início de sessão na janela do Spotify',
     signingIn: { title: 'A iniciar sessão no Spotify', text: 'Continue na janela do Spotify' },
   },
   appleMusic: {
     title: 'Inicie sessão no Apple Music',
-    sub: 'Opcional. Inicie sessão para ouvir o Apple Music no ecrã do camião, com as suas playlists e a sua biblioteca. Inicia sessão no Apple Music numa janela à parte, e o WestPlay nunca vê a sua conta.',
+    sub: 'Opcional. Inicie sessão para ouvir o Apple Music no ecrã do camião, com as suas playlists e a sua biblioteca. Inicia sessão no Apple Music numa janela à parte, e o Cabin Play nunca vê a sua conta.',
     finishInWindow: 'Conclua o início de sessão na janela do Apple Music',
     signingIn: { title: 'A iniciar sessão no Apple Music', text: 'Continue na janela do Apple Music' },
   },
@@ -177,11 +177,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Abra o jogo',
-        text: 'Quando aparecer «Detectado pedido para usar ferramentas de desenvolvimento (SDK).», escolha «Ok». É o WestPlay.',
+        text: 'Quando aparecer «Detectado pedido para usar ferramentas de desenvolvimento (SDK).», escolha «Ok». É o Cabin Play.',
       },
       {
         title: 'Entre no seu camião',
-        text: 'Ligue a parte elétrica, e o WestPlay aparece no ecrã. Deixe o WestPlay aberto enquanto joga.',
+        text: 'Ligue a parte elétrica, e o Cabin Play aparece no ecrã. Deixe o Cabin Play aberto enquanto joga.',
       },
     ],
   },

@@ -27,9 +27,18 @@ import { nearestCity } from './destination'
 import { useNowPlaying } from './useNowPlaying'
 import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
+import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { FuelGlyph } from './FuelGlyph'
 import { JobGlyph } from './JobGlyph'
-import { EMPTY, useDestinationView, useFuelView, useGuided, useJobView, weatherFits } from './widgetState'
+import {
+  EMPTY,
+  useDestinationView,
+  useDiagnosticsView,
+  useFuelView,
+  useGuided,
+  useJobView,
+  weatherFits,
+} from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -272,6 +281,35 @@ export function FuelWidget() {
   )
 }
 
+/**
+ * Diagnostics: the engine's coolant and the brake air on one card — the two readings a driver watches while
+driving — on the fuel card's layout. A reading out of its range takes the tone, so a glance says whether
+ * it's worth opening the app. Folded away without the game, like the fuel card.
+ */
+export function DiagnosticsWidget() {
+  const view = useDiagnosticsView()
+  const shown = useCabin((state) => state.dashboardWidgets.diagnostics) && view !== null
+  return (
+    <div className={`widget-slot${shown ? ' open' : ''}`}>
+      {shown && view && (
+        <button
+          type="button"
+          className="widget glass job diagnostics"
+          aria-label={view.kicker}
+          onClick={() => go({ type: 'openApp', app: 'diagnostics' })}
+        >
+          <div className="fuel-text">
+            <div className="kicker">{view.kicker}</div>
+            <div className={`destination ${view.coolantState}`}>{view.coolant}</div>
+            <div className={`place ${view.airState}`}>{view.air}</div>
+          </div>
+          <DiagnosticsGlyph size={GLYPH} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 /** The job and fuel cards' glyphs, the weather symbol's size. */
 const GLYPH = 72
 
@@ -289,6 +327,7 @@ export function WeatherWidget() {
   const destination = useDestinationView()
   const job = useJobView()
   const fuel = useFuelView()
+  const diagnostics = useDiagnosticsView()
   const hasJob = job !== null
   const hasFuel = fuel !== null
   const others = [
@@ -297,6 +336,7 @@ export function WeatherWidget() {
     widgets.destination && destination !== EMPTY,
     widgets.job && hasJob,
     widgets.fuel && hasFuel,
+    widgets.diagnostics && diagnostics !== null,
   ].filter(Boolean).length
   const room = widgets.weather && weatherFits(others)
   const weather = useLive((state) => state.weather)

@@ -29,6 +29,7 @@ describe('the saved Settings choices', () => {
       destination: true,
       job: true,
       fuel: true,
+      diagnostics: true,
       weather: false,
     })
     expect(useCabin.getState().albumArt).toBe(false)
@@ -45,6 +46,7 @@ describe('the saved Settings choices', () => {
       destination: true,
       job: true,
       fuel: true,
+      diagnostics: true,
       weather: false,
     })
     expect(useCabin.getState().albumArt).toBe(true)
@@ -53,7 +55,14 @@ describe('the saved Settings choices', () => {
   it('are all on when nothing was saved (an earlier WestPlay)', async () => {
     vi.stubGlobal('localStorage', savedStorage({ appearanceMode: 'dark' }))
     const { useCabin } = await import('./store')
-    expect(useCabin.getState().dashboardWidgets).toEqual({ nowPlaying: true, destination: true, weather: true })
+    expect(useCabin.getState().dashboardWidgets).toEqual({
+      nowPlaying: true,
+      destination: true,
+      weather: true,
+      job: true,
+      fuel: true,
+      diagnostics: true,
+    })
     expect(useCabin.getState().albumArt).toBe(true)
     expect(useCabin.getState().appearanceMode).toBe('dark')
   })

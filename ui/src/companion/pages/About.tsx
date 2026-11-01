@@ -11,9 +11,9 @@ import { type PageProps, screenState } from './page'
 const COPIED_MS = 3200
 
 /**
- * WestPlay itself: its version and whether there's an update (looked for as the page opens; one found opens
- * its sheet), and the live details of WestPlay and the game for when something isn't
- * right, with a report of them to copy for whoever helps, and where the logs are (app.log in WestPlay's own
+ * Cabin Play itself: its version and whether there's an update (looked for as the page opens; one found opens
+ * its sheet), and the live details of Cabin Play and the game for when something isn't
+ * right, with a report of them to copy for whoever helps, and where the logs are (app.log in Cabin Play's own
  * folder where Documents refused it). On the room's screen, the Dashboard; a banner says when the report's
  * copied.
  */
@@ -97,7 +97,7 @@ function report(
   appLog: string | null,
 ): string {
   return [
-    `WestPlay ${version}`,
+    `Cabin Play ${version}`,
     `Game: ${game ?? 'unknown'}${dir ? ` (${dir})` : ''}`,
     `State: ${screenState(status)}`,
     `Engine: ${status?.error ? `stopped: ${status.error}` : status ? 'running' : 'starting'}`,

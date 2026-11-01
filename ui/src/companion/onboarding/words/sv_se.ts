@@ -6,7 +6,7 @@ export const words: Words = {
   continue: 'Fortsätt',
   welcome: {
     title: 'CarPlay i din hytt',
-    sub: 'WestPlay tar CarPlay till skärmen i din lastbil i Euro Truck Simulator 2. Konfigurationen tar bara några minuter.',
+    sub: 'Cabin Play tar CarPlay till skärmen i din lastbil i Euro Truck Simulator 2. Konfigurationen tar bara några minuter.',
     start: 'Kom igång',
   },
   summary: {
@@ -20,9 +20,9 @@ export const words: Words = {
   game: {
     title: 'Ditt spel',
     titleMissing: 'Var är ditt spel?',
-    found: 'WestPlay hittade Euro Truck Simulator 2 på den här datorn.',
+    found: 'Cabin Play hittade Euro Truck Simulator 2 på den här datorn.',
     foundMany: 'Euro Truck Simulator 2 är installerat på mer än ett ställe. Välj det du spelar.',
-    missing: 'WestPlay hittade inte Euro Truck Simulator 2. Välj mappen där du installerade det, den med base.scs i.',
+    missing: 'Cabin Play hittade inte Euro Truck Simulator 2. Välj mappen där du installerade det, den med base.scs i.',
     chooseAnother: 'Använd en annan mapp …',
     chooseFolder: 'Välj mapp …',
     picker: 'Välj din mapp för Euro Truck Simulator 2',
@@ -31,7 +31,7 @@ export const words: Words = {
     gameGone: 'Spelet finns inte längre i den här mappen.',
     closeToGoOn: {
       title: 'Stäng spelet.',
-      text: 'WestPlay kan bara konfigurera sig när Euro Truck Simulator 2 inte körs.',
+      text: 'Cabin Play kan bara konfigurera sig när Euro Truck Simulator 2 inte körs.',
     },
   },
   check: {
@@ -42,16 +42,16 @@ export const words: Words = {
     notYet: 'Stöds inte än',
     title: 'Det här är din uppsättning',
     titleNotYet: 'Stöds inte än',
-    cantInstall: 'WestPlay har inte stöd för den här versionen av spelet än.',
+    cantInstall: 'Cabin Play har inte stöd för den här versionen av spelet än.',
     version: 'Version',
     unknown: 'Okänd',
     dlcs: 'DLC',
     mapDlcs: 'Kart-DLC',
     noMapDlcs: 'Inga',
-    untested: 'WestPlay är byggt för version 1.61. Din har inte testats än, men den fungerar troligen.',
+    untested: 'Cabin Play är byggt för version 1.61. Din har inte testats än, men den fungerar troligen.',
     otherCarPlay: {
       title: 'Ta bort YMN One',
-      text: 'Ett annat CarPlay-mod, YMN One, är installerat i ditt spel (YamanDriveBridge.dll i mappen plugins). Det tar över lastbilens GPS-skärm: WestPlay kan inte visas där, och skärmen blir rosa när YMN One inte körs. Stäng spelet och radera den filen.',
+      text: 'Ett annat CarPlay-mod, YMN One, är installerat i ditt spel (YamanDriveBridge.dll i mappen plugins). Det tar över lastbilens GPS-skärm: Cabin Play kan inte visas där, och skärmen blir rosa när YMN One inte körs. Stäng spelet och radera den filen.',
     },
     trucks: 'Lastbilar',
     truckNotYet: 'Stöds inte än',
@@ -60,11 +60,11 @@ export const words: Words = {
     notInGame: 'Finns inte i ditt spel',
     scania7: 'Scania S och R – 7"-skärm',
     scaniaSmartDash: 'Scania S och R – Smart Dash',
-    anyTruckTablet: 'Vilken lastbil som helst – med WestPlay-surfplattan',
+    anyTruckTablet: 'Vilken lastbil som helst – med Cabin Play-surfplattan',
     profiles: 'Profiler',
     profileCount: { one: '{n} profil', other: '{n} profiler' },
     noProfiles: 'Inga profiler än',
-    noProfilesDetail: 'WestPlay förbereder kartan för den första profilen du skapar.',
+    noProfilesDetail: 'Cabin Play förbereder kartan för den första profilen du skapar.',
     baseMap: 'Originalkarta',
     withMods: '{map} med {mods}',
     unreadable: {
@@ -72,20 +72,20 @@ export const words: Words = {
       other: '{n} kartmoddar kunde inte läsas, så deras ändringar syns inte',
     },
     mapNote:
-      'WestPlay förbereder en karta för var och en av dina profiler, en i taget, med början i den du spelade senast. Kartorna förbereds medan spelet är stängt.',
+      'Cabin Play förbereder en karta för var och en av dina profiler, en i taget, med början i den du spelade senast. Kartorna förbereds medan spelet är stängt.',
   },
   install: {
-    title: 'Installera WestPlay',
-    titleDone: 'WestPlay är installerat',
-    sub: 'WestPlay lägger till ett plugin i ditt spel, som själv läser in WestPlays lastbilsskärmar varje gång du spelar: det finns inget att slå på i Mod-hanteraren. Spelets egna filer lämnas orörda, och när du avinstallerar WestPlay tas allt bort.',
+    title: 'Installera Cabin Play',
+    titleDone: 'Cabin Play är installerat',
+    sub: 'Cabin Play lägger till ett plugin i ditt spel, som själv läser in Cabin Plays lastbilsskärmar varje gång du spelar: det finns inget att slå på i Mod-hanteraren. Spelets egna filer lämnas orörda, och när du avinstallerar Cabin Play tas allt bort.',
     install: 'Installera',
     tryAgain: 'Försök igen',
     asAdministrator: 'Installera som administratör',
     plugin: 'Plugin',
-    pluginDetail: 'Visar WestPlay på skärmen i din lastbil',
+    pluginDetail: 'Visar Cabin Play på skärmen i din lastbil',
     banners: {
       installing: { title: 'Installerar …' },
-      done: { title: 'WestPlay är installerat', text: 'Ditt spel är redo' },
+      done: { title: 'Cabin Play är installerat', text: 'Ditt spel är redo' },
       permission: { title: 'Behörighet krävs', text: 'Windows frågar en gång' },
       inUse: { title: 'Stäng spelet', text: 'Det använder pluginet' },
       failed: { title: 'Installationen blev inte klar', text: 'Se detaljerna till vänster' },
@@ -93,7 +93,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Stäng spelet.',
-      text: 'WestPlay kan inte installeras medan Euro Truck Simulator 2 körs.',
+      text: 'Cabin Play kan inte installeras medan Euro Truck Simulator 2 körs.',
     },
     inUse: {
       title: 'Stäng spelet.',
@@ -108,24 +108,24 @@ export const words: Words = {
       text: 'Utan den kan pluginet inte installeras. Försök igen och välj ”Ja”.',
     },
     pluginFailed: 'Pluginet kunde inte installeras.',
-    modFailed: 'WestPlays lastbilsskärmar kunde inte göras i ordning från ditt spel.',
-    noPlugin: 'Den här kopian av WestPlay saknar sitt plugin. Installera om WestPlay.',
+    modFailed: 'Cabin Plays lastbilsskärmar kunde inte göras i ordning från ditt spel.',
+    noPlugin: 'Den här kopian av Cabin Play saknar sitt plugin. Installera om Cabin Play.',
     noDocuments: 'Mappen Dokument hittades inte.',
   },
   map: {
     title: 'Din karta förbereds …',
     titleReady: 'Din karta är klar',
-    sub: 'WestPlay bygger sin karta av ditt eget spel, med dina kart-DLC och kartmoddar. Det tar en minut eller två.',
+    sub: 'Cabin Play bygger sin karta av ditt eget spel, med dina kart-DLC och kartmoddar. Det tar en minut eller två.',
     banners: {
       building: 'Din karta förbereds',
       ready: { title: 'Din karta är klar', text: 'Med dina DLC och kartmoddar' },
       waiting: { title: 'Stäng spelet', text: 'Kartan förbereds när det är stängt' },
-      failed: { title: 'Kartan kunde inte förberedas', text: 'WestPlay försöker igen senare' },
+      failed: { title: 'Kartan kunde inte förberedas', text: 'Cabin Play försöker igen senare' },
       getting: 'Förbereder …',
     },
     waiting: {
       title: 'Stäng spelet.',
-      text: 'Att förbereda kartan kräver mycket minne, så WestPlay väntar tills spelet inte körs.',
+      text: 'Att förbereda kartan kräver mycket minne, så Cabin Play väntar tills spelet inte körs.',
     },
     stages: {
       reading: { now: 'Läser kartan i ditt spel', done: 'Kartan läst från ditt spel' },
@@ -148,7 +148,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Logga in på YouTube',
-    sub: 'Valfritt. Logga in för att se dina egna rekommendationer, prenumerationer och din historik på lastbilens skärm. Du loggar in med Google i ett separat fönster, och WestPlay ser aldrig ditt konto.',
+    sub: 'Valfritt. Logga in för att se dina egna rekommendationer, prenumerationer och din historik på lastbilens skärm. Du loggar in med Google i ett separat fönster, och Cabin Play ser aldrig ditt konto.',
     signIn: 'Logga in',
     signOut: 'Logga ut',
     signedIn: 'Inloggad',
@@ -159,13 +159,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Logga in på Spotify',
-    sub: 'Valfritt. Logga in för att lyssna på Spotify på lastbilens skärm, med dina egna spellistor och ditt bibliotek. Du loggar in på Spotify i ett separat fönster, och WestPlay ser aldrig ditt konto.',
+    sub: 'Valfritt. Logga in för att lyssna på Spotify på lastbilens skärm, med dina egna spellistor och ditt bibliotek. Du loggar in på Spotify i ett separat fönster, och Cabin Play ser aldrig ditt konto.',
     finishInWindow: 'Slutför inloggningen i Spotify-fönstret',
     signingIn: { title: 'Loggar in på Spotify', text: 'Fortsätt i Spotify-fönstret' },
   },
   appleMusic: {
     title: 'Logga in på Apple Music',
-    sub: 'Valfritt. Logga in för att lyssna på Apple Music på lastbilens skärm, med dina egna spellistor och ditt bibliotek. Du loggar in på Apple Music i ett separat fönster, och WestPlay ser aldrig ditt konto.',
+    sub: 'Valfritt. Logga in för att lyssna på Apple Music på lastbilens skärm, med dina egna spellistor och ditt bibliotek. Du loggar in på Apple Music i ett separat fönster, och Cabin Play ser aldrig ditt konto.',
     finishInWindow: 'Slutför inloggningen i Apple Music-fönstret',
     signingIn: { title: 'Loggar in på Apple Music', text: 'Fortsätt i Apple Music-fönstret' },
   },
@@ -175,11 +175,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Starta spelet',
-        text: 'När det står ”Begäran om att använda avancerat SDK upptäckt.” väljer du ”OK”. Det är WestPlay.',
+        text: 'När det står ”Begäran om att använda avancerat SDK upptäckt.” väljer du ”OK”. Det är Cabin Play.',
       },
       {
         title: 'Kliv in i din lastbil',
-        text: 'Slå på elsystemet, så dyker WestPlay upp på skärmen. Låt WestPlay vara öppet medan du spelar.',
+        text: 'Slå på elsystemet, så dyker Cabin Play upp på skärmen. Låt Cabin Play vara öppet medan du spelar.',
       },
     ],
   },

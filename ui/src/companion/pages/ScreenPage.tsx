@@ -5,8 +5,8 @@ import { GLOW, useScreenAt } from '../room/screen'
 import { type PageProps, screenState } from './page'
 
 /**
- * The truck's screen: where WestPlay is now (its headline), WestPlay on it or the truck's own, and the
- * connection from WestPlay to the game to the screen. On the room's screen, Home, and WestPlay saying the
+ * The truck's screen: where Cabin Play is now (its headline), Cabin Play on it or the truck's own, and the
+ * connection from Cabin Play to the game to the screen. On the room's screen, Home, and Cabin Play saying the
  * same in a banner.
  */
 export function ScreenPage({ status, settings, cw }: PageProps) {
@@ -42,7 +42,7 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
               disabled={open === null || !status?.screenDrawing}
               label={w.show}
               change={(on) => {
-                setWestplayOpen(on).catch((error: unknown) => console.error('WestPlay could not be switched', error))
+                setWestplayOpen(on).catch((error: unknown) => console.error('Cabin Play could not be switched', error))
               }}
             />
           }
@@ -95,9 +95,9 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
 }
 
 /**
- * The graphics card WestPlay's screen is drawn on: WestPlay's pick (the game's), or one the player chooses
+ * The graphics card Cabin Play's screen is drawn on: Cabin Play's pick (the game's), or one the player chooses
  * when that one stutters, as iOS lists choices (a tick on the chosen, as the onboarding's game folders). The
- * one drawing it now says so; a choice starts WestPlay's screen again on that card. Only with more than one
+ * one drawing it now says so; a choice starts Cabin Play's screen again on that card. Only with more than one
  * card to choose from.
  */
 function GpuChooser({ status, settings: state, cw }: Pick<PageProps, 'status' | 'settings' | 'cw'>) {

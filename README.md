@@ -190,7 +190,10 @@ npm install      # the companion's tools and the UI's packages
 npm run dev      # WestPlay, with the UI served live
 ```
 
-`cargo test --workspace` and `npm test --prefix ui` run the tests. The game plugin is built with
+`cargo test --workspace` and `npm test --prefix ui` run the tests. `npm run build` makes the app (with the
+NSIS installer, `tools/build/installer.ps1`): before Tauri builds it, the UI and the game plugin are built too
+(`tools/build/plugin.mjs`), and the plugin is checked to be this build's — the app and the plugin share a
+bridge, so one of another build shows nothing at the truck's screen. The plugin alone is
 `cargo build --release -p westplay-plugin`.
 
 </details>

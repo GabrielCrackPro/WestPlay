@@ -14,7 +14,7 @@ function inFront(): boolean {
   return document.hasFocus() && document.visibilityState === 'visible'
 }
 
-/** The live WestPlay in the screen (cabin.html in demo mode, cabin/demo.ts): commands to it, its icons'
+/** The live Cabin Play in the screen (cabin.html in demo mode, cabin/demo.ts): commands to it, its icons'
  * places from it. While the window isn't in front, the room and the demo in it hold still (`away`: their
  * animations paused, nothing drawn), and go on as it comes back. */
 export function useDemo(): {

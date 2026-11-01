@@ -11,13 +11,13 @@ import type { Settings } from './useSettings'
  *
  * - `?onboarding`: the first run, from its start.
  * - `?game=off|on|live|unsupported`: the game not running, running (the cab not on the screen), the screen live, or
- *   the player in a truck WestPlay doesn't show in.
+ *   the player in a truck Cabin Play doesn't show in.
  * - `?map=building|ready|waiting|failed`: the map's state (`building` runs to `ready`).
  * - `?update`: an update found (its sheet offers it; installing it downloads, then stays installing).
  * - `?custom`: some wallpapers and an icon set of the player's (adding gives more, with a file left out).
  * - `?leftOut`: the played profile's map made without a map mod it couldn't read.
- * - `?elevated`: the game run as administrator (WestPlay can't read its route, guidance or weather).
- * - `?updated` (or `?updated=admin`): WestPlay updated since it was set up: the new plugin goes into the game
+ * - `?elevated`: the game run as administrator (Cabin Play can't read its route, guidance or weather).
+ * - `?updated` (or `?updated=admin`): Cabin Play updated since it was set up: the new plugin goes into the game
  *   once it's closed (with `admin`, Windows' permission is asked for first).
  *
  * Nothing here is ever in the app.
@@ -67,7 +67,7 @@ let settings: Settings = {
   graphics: { gpu: null },
 }
 
-// The player's own, made up from WestPlay's files (the preview's address: `FILES_BASE` is `/` here).
+// The player's own, made up from Cabin Play's files (the preview's address: `FILES_BASE` is `/` here).
 const custom: Customizations = query.has('custom')
   ? {
       wallpapers: [{ id: 'custom:Logo', name: 'Logo', dark: 'westplay.png', light: 'westplay.png' }],
@@ -118,7 +118,7 @@ function status(): HostStatus {
   return {
     webviewVersion: '141.0.3537.71',
     adapter: gameState === 'off' ? null : ADAPTERS[0].name,
-    // The one chosen, or WestPlay's pick: the game's.
+    // The one chosen, or Cabin Play's pick: the game's.
     cabAdapter: (ADAPTERS.find((adapter) => adapter.id === settings.graphics.gpu) ?? ADAPTERS[0]).name,
     gameAdapter: gameState === 'off' ? null : ADAPTERS[0].name,
     adapters: ADAPTERS,
@@ -126,7 +126,7 @@ function status(): HostStatus {
     droppedTotal: live ? 3 : 0,
     gameConnected: gameState !== 'off',
     screenDrawing: live,
-    // `?game=unsupported`: in a truck WestPlay doesn't show in.
+    // `?game=unsupported`: in a truck Cabin Play doesn't show in.
     truckSupported: gameState === 'unsupported' ? false : live ? true : null,
     gameElevated: gameState !== 'off' && query.has('elevated'),
     westplayOpen: live ? westplayOpen : null,
@@ -225,7 +225,7 @@ const CHECK: GameCheck = {
     { id: 'renault-t-2024', name: 'Renault T (2024)', fit: 'ready', fromMod: false },
     { id: 'volvo-fh-2021', name: 'Volvo FH (2021)', fit: 'ready', fromMod: false },
     { id: 'volvo-fh-2024', name: 'Volvo FH (2024)', fit: 'ready', fromMod: false },
-    { id: 'any-truck-tablet', name: 'Any truck – with the WestPlay tablet', fit: 'ready', fromMod: false },
+    { id: 'any-truck-tablet', name: 'Any truck – with the Cabin Play tablet', fit: 'ready', fromMod: false },
   ],
   modProblem: null,
   plugin: 'current',

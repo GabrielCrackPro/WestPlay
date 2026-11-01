@@ -8,7 +8,7 @@ export const words: Words = {
   continue: 'Turpināt',
   welcome: {
     title: 'CarPlay tavā kabīnē',
-    sub: 'WestPlay ienes CarPlay tava kravas auto ekrānā spēlē Euro Truck Simulator 2. Iestatīšana aizņem tikai dažas minūtes.',
+    sub: 'Cabin Play ienes CarPlay tava kravas auto ekrānā spēlē Euro Truck Simulator 2. Iestatīšana aizņem tikai dažas minūtes.',
     start: 'Sākt',
   },
   summary: {
@@ -22,9 +22,9 @@ export const words: Words = {
   game: {
     title: 'Tava spēle',
     titleMissing: 'Kur ir tava spēle?',
-    found: 'WestPlay atrada Euro Truck Simulator 2 šajā datorā.',
+    found: 'Cabin Play atrada Euro Truck Simulator 2 šajā datorā.',
     foundMany: 'Euro Truck Simulator 2 ir instalēta vairākās vietās. Izvēlies to, kuru spēlē.',
-    missing: 'WestPlay neatrada Euro Truck Simulator 2. Izvēlies mapi, kurā to instalēji, – to, kurā ir base.scs.',
+    missing: 'Cabin Play neatrada Euro Truck Simulator 2. Izvēlies mapi, kurā to instalēji, – to, kurā ir base.scs.',
     chooseAnother: 'Izmantot citu mapi…',
     chooseFolder: 'Izvēlēties mapi…',
     picker: 'Izvēlies Euro Truck Simulator 2 mapi',
@@ -33,7 +33,7 @@ export const words: Words = {
     gameGone: 'Spēle vairs nav šajā mapē.',
     closeToGoOn: {
       title: 'Aizver spēli.',
-      text: 'WestPlay var iestatīties tikai tad, kad Euro Truck Simulator 2 nedarbojas.',
+      text: 'Cabin Play var iestatīties tikai tad, kad Euro Truck Simulator 2 nedarbojas.',
     },
   },
   check: {
@@ -44,16 +44,16 @@ export const words: Words = {
     notYet: 'Vēl netiek atbalstīts',
     title: 'Lūk, tavs komplekts',
     titleNotYet: 'Vēl netiek atbalstīts',
-    cantInstall: 'WestPlay vēl neatbalsta šo spēles versiju.',
+    cantInstall: 'Cabin Play vēl neatbalsta šo spēles versiju.',
     version: 'Versija',
     unknown: 'Nezināma',
     dlcs: 'DLC',
     mapDlcs: 'Kartes DLC',
     noMapDlcs: 'Nav',
-    untested: 'WestPlay ir veidots versijai 1.61. Tava versija vēl nav pārbaudīta, taču, visticamāk, darbosies.',
+    untested: 'Cabin Play ir veidots versijai 1.61. Tava versija vēl nav pārbaudīta, taču, visticamāk, darbosies.',
     otherCarPlay: {
       title: 'Noņem YMN One',
-      text: 'Tavā spēlē ir instalēts cits CarPlay mods — YMN One (YamanDriveBridge.dll mapē plugins). Tas pārņem tava kravas auto GPS ekrānu: WestPlay tur nevar parādīties, un ekrāns kļūst rozā, kad YMN One nedarbojas. Aizver spēli un izdzēs šo failu.',
+      text: 'Tavā spēlē ir instalēts cits CarPlay mods — YMN One (YamanDriveBridge.dll mapē plugins). Tas pārņem tava kravas auto GPS ekrānu: Cabin Play tur nevar parādīties, un ekrāns kļūst rozā, kad YMN One nedarbojas. Aizver spēli un izdzēs šo failu.',
     },
     trucks: 'Kravas auto',
     truckNotYet: 'Vēl netiek atbalstīts',
@@ -62,11 +62,11 @@ export const words: Words = {
     notInGame: 'Nav tavā spēlē',
     scania7: 'Scania S un R – 7" ekrāns',
     scaniaSmartDash: 'Scania S un R – Smart Dash',
-    anyTruckTablet: 'Jebkura kravas automašīna – ar WestPlay planšeti',
+    anyTruckTablet: 'Jebkura kravas automašīna – ar Cabin Play planšeti',
     profiles: 'Profili',
     profileCount: { zero: '{n} profilu', one: '{n} profils', other: '{n} profili' },
     noProfiles: 'Vēl nav profilu',
-    noProfilesDetail: 'WestPlay sagatavos karti pirmajam profilam, ko izveidosi.',
+    noProfilesDetail: 'Cabin Play sagatavos karti pirmajam profilam, ko izveidosi.',
     baseMap: 'Oriģinālā karte',
     withMods: '{map} ar {mods}',
     unreadable: {
@@ -75,20 +75,20 @@ export const words: Words = {
       other: '{n} kartes modus neizdevās nolasīt, tāpēc to izmaiņas nebūs redzamas',
     },
     mapNote:
-      'WestPlay sagatavo karti katram tavam profilam, vienu pēc otra, sākot ar to, ar kuru spēlēji pēdējo reizi. Kartes tiek sagatavotas, kamēr spēle ir aizvērta.',
+      'Cabin Play sagatavo karti katram tavam profilam, vienu pēc otra, sākot ar to, ar kuru spēlēji pēdējo reizi. Kartes tiek sagatavotas, kamēr spēle ir aizvērta.',
   },
   install: {
-    title: 'Instalēt WestPlay',
-    titleDone: 'WestPlay ir instalēts',
-    sub: 'WestPlay pievieno spēlei spraudni, kas katru reizi, kad spēlē, pats ielādē WestPlay kravas auto ekrānus: “Mod Manager” nekas nav jāieslēdz. Pašas spēles faili paliek neskarti, un, atinstalējot WestPlay, viss tiek noņemts.',
+    title: 'Instalēt Cabin Play',
+    titleDone: 'Cabin Play ir instalēts',
+    sub: 'Cabin Play pievieno spēlei spraudni, kas katru reizi, kad spēlē, pats ielādē Cabin Play kravas auto ekrānus: “Mod Manager” nekas nav jāieslēdz. Pašas spēles faili paliek neskarti, un, atinstalējot Cabin Play, viss tiek noņemts.',
     install: 'Instalēt',
     tryAgain: 'Mēģināt vēlreiz',
     asAdministrator: 'Instalēt kā administratoram',
     plugin: 'Spraudnis',
-    pluginDetail: 'Rāda WestPlay tava kravas auto ekrānā',
+    pluginDetail: 'Rāda Cabin Play tava kravas auto ekrānā',
     banners: {
       installing: { title: 'Instalē…' },
-      done: { title: 'WestPlay ir instalēts', text: 'Tava spēle ir gatava' },
+      done: { title: 'Cabin Play ir instalēts', text: 'Tava spēle ir gatava' },
       permission: { title: 'Vajadzīga atļauja', text: 'Windows pajautās vienreiz' },
       inUse: { title: 'Aizver spēli', text: 'Tā izmanto spraudni' },
       failed: { title: 'Instalēšana netika pabeigta', text: 'Sīkāka informācija ir pa kreisi' },
@@ -96,7 +96,7 @@ export const words: Words = {
     },
     closeToInstall: {
       title: 'Aizver spēli.',
-      text: 'WestPlay nevar instalēt, kamēr darbojas Euro Truck Simulator 2.',
+      text: 'Cabin Play nevar instalēt, kamēr darbojas Euro Truck Simulator 2.',
     },
     inUse: {
       title: 'Aizver spēli.',
@@ -111,24 +111,24 @@ export const words: Words = {
       text: 'Bez tās spraudni nevar instalēt. Mēģini vēlreiz un izvēlies “Jā”.',
     },
     pluginFailed: 'Spraudni neizdevās instalēt.',
-    modFailed: 'WestPlay kravas auto ekrānus neizdevās sagatavot no tavas spēles.',
-    noPlugin: 'Šajā WestPlay kopijā trūkst spraudņa. Instalē WestPlay vēlreiz.',
+    modFailed: 'Cabin Play kravas auto ekrānus neizdevās sagatavot no tavas spēles.',
+    noPlugin: 'Šajā Cabin Play kopijā trūkst spraudņa. Instalē Cabin Play vēlreiz.',
     noDocuments: 'Mape Dokumenti netika atrasta.',
   },
   map: {
     title: 'Gatavo tavu karti…',
     titleReady: 'Tava karte ir gatava',
-    sub: 'WestPlay veido savu karti no tavas spēles, ieskaitot tavus kartes DLC un kartes modus. Tas aizņem minūti vai divas.',
+    sub: 'Cabin Play veido savu karti no tavas spēles, ieskaitot tavus kartes DLC un kartes modus. Tas aizņem minūti vai divas.',
     banners: {
       building: 'Gatavo tavu karti',
       ready: { title: 'Tava karte ir gatava', text: 'Ar taviem DLC un kartes modiem' },
       waiting: { title: 'Aizver spēli', text: 'Karte tiek veidota, kad tā ir aizvērta' },
-      failed: { title: 'Karti neizdevās sagatavot', text: 'WestPlay mēģinās vēlāk vēlreiz' },
+      failed: { title: 'Karti neizdevās sagatavot', text: 'Cabin Play mēģinās vēlāk vēlreiz' },
       getting: 'Gatavo…',
     },
     waiting: {
       title: 'Aizver spēli.',
-      text: 'Kartes sagatavošanai vajag daudz atmiņas, tāpēc WestPlay gaida, līdz spēle vairs nedarbojas.',
+      text: 'Kartes sagatavošanai vajag daudz atmiņas, tāpēc Cabin Play gaida, līdz spēle vairs nedarbojas.',
     },
     stages: {
       reading: { now: 'Nolasa tavas spēles karti', done: 'Karte nolasīta no spēles' },
@@ -151,7 +151,7 @@ export const words: Words = {
   },
   accounts: {
     title: 'Pierakstīties YouTube',
-    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā redzētu savus ieteikumus, abonementus un vēsturi. Tu pierakstīsies ar Google atsevišķā logā, un WestPlay nekad neredz tavu kontu.',
+    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā redzētu savus ieteikumus, abonementus un vēsturi. Tu pierakstīsies ar Google atsevišķā logā, un Cabin Play nekad neredz tavu kontu.',
     signIn: 'Pierakstīties',
     signOut: 'Izrakstīties',
     signedIn: 'Pierakstījies',
@@ -162,13 +162,13 @@ export const words: Words = {
   },
   spotify: {
     title: 'Pierakstīties Spotify',
-    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā klausītos Spotify ar saviem atskaņošanas sarakstiem un bibliotēku. Tu pierakstīsies Spotify atsevišķā logā, un WestPlay nekad neredz tavu kontu.',
+    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā klausītos Spotify ar saviem atskaņošanas sarakstiem un bibliotēku. Tu pierakstīsies Spotify atsevišķā logā, un Cabin Play nekad neredz tavu kontu.',
     finishInWindow: 'Pabeidz pierakstīšanos Spotify logā',
     signingIn: { title: 'Pierakstīšanās Spotify', text: 'Turpini Spotify logā' },
   },
   appleMusic: {
     title: 'Pierakstīties Apple Music',
-    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā klausītos Apple Music ar saviem atskaņošanas sarakstiem un bibliotēku. Tu pierakstīsies Apple Music atsevišķā logā, un WestPlay nekad neredz tavu kontu.',
+    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā klausītos Apple Music ar saviem atskaņošanas sarakstiem un bibliotēku. Tu pierakstīsies Apple Music atsevišķā logā, un Cabin Play nekad neredz tavu kontu.',
     finishInWindow: 'Pabeidz pierakstīšanos Apple Music logā',
     signingIn: { title: 'Pierakstīšanās Apple Music', text: 'Turpini Apple Music logā' },
   },
@@ -178,11 +178,11 @@ export const words: Words = {
     steps: [
       {
         title: 'Palaid spēli',
-        text: 'Kad tā parāda “Request to use advanced SDK features detected.”, izvēlies “Labi”. Tas ir WestPlay.',
+        text: 'Kad tā parāda “Request to use advanced SDK features detected.”, izvēlies “Labi”. Tas ir Cabin Play.',
       },
       {
         title: 'Kāp savā kravas auto',
-        text: 'Ieslēdz elektrību, un WestPlay parādīsies ekrānā. Turi WestPlay atvērtu, kamēr spēlē.',
+        text: 'Ieslēdz elektrību, un Cabin Play parādīsies ekrānā. Turi Cabin Play atvērtu, kamēr spēlē.',
       },
     ],
   },

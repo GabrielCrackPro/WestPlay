@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow'
 import { cabClock } from '../../shared/host'
+import { brakeAir, coolant, type State } from '../apps/diagnostics/readings'
 import { guidanceOf } from '../maps/guidance'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
@@ -31,6 +32,7 @@ export function useAnyWidget(): boolean {
   const destination = useDestinationView() !== EMPTY
   const job = useJobView() !== null
   const fuel = useFuelView() !== null
+  const diagnostics = useDiagnosticsView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
     guided ||
@@ -38,6 +40,7 @@ export function useAnyWidget(): boolean {
     (widgets.destination && destination) ||
     (widgets.job && job) ||
     (widgets.fuel && fuel) ||
+    (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
 }
@@ -80,11 +83,44 @@ export function useFuelView(): FuelView | null {
       if (!telemetry) return null
       return {
         kicker: text.fuel,
-        range:
-          telemetry.fuelRange > 0
-            ? text.range(`${text.number(Math.round(telemetry.fuelRange))} km`)
-            : null,
+        range: telemetry.fuelRange > 0 ? text.range(`${text.number(Math.round(telemetry.fuelRange))} km`) : null,
         litres: `${text.number(Math.round(telemetry.fuel))} L`,
+      }
+    }),
+  )
+}
+
+/** The diagnostics card's readings: the coolant, the brake air, and how serious each is. */
+export interface DiagnosticsView {
+  /** "Diagnostics". */
+  kicker: string
+  /** "89 °C". */
+  coolant: string
+  /** "118 psi". */
+  air: string
+  coolantState: State
+  airState: State
+}
+
+/**
+ * The Dashboard's diagnostics widget, from the game's own telemetry: the two readings worth watching while
+driving, the engine's coolant and the brake air. Without the game there's nothing to read, so it folds away
+as the fuel card does.
+ */
+export function useDiagnosticsView(): DiagnosticsView | null {
+  const text = useText()
+  return useLive(
+    useShallow((state) => {
+      const telemetry = state.telemetry
+      if (!telemetry) return null
+      const heat = coolant(telemetry.coolantTemperature)
+      const air = brakeAir(telemetry.brakeAirPressure)
+      return {
+        kicker: text.apps.diagnostics,
+        coolant: `${text.number(Math.round(heat.value))} ${text.diagnostics.celsius}`,
+        air: `${text.number(Math.round(air.value))} ${text.diagnostics.psi}`,
+        coolantState: heat.state,
+        airState: air.state,
       }
     }),
   )
@@ -116,9 +152,7 @@ export function useJobView(): JobView | null {
       let detail = text.delivery
       if (!job.cargoLoaded) detail = text.pickup
       else if (job.deliveryTime > 0) {
-        detail = late
-          ? text.late
-          : text.arriveBy(formatDeadline(job.deliveryTime + (clock - now), clock, text.days))
+        detail = late ? text.late : text.arriveBy(formatDeadline(job.deliveryTime + (clock - now), clock, text.days))
       }
       return {
         cargo: job.cargo ? `${job.cargo} · ${tonnes} t` : `${tonnes} t`,
