@@ -36,6 +36,7 @@ export function DiagnosticsApp() {
   const text = useText()
   const telemetry = useLive((state) => state.telemetry)
   const truck = useLive((state) => state.truck)
+  const trailer = useLive((state) => state.trailer)
   // The trip computer and the two histories, from the frames the game sends.
   const trends = useTrends()
   // The page left open comes back with the player's settings, so a warning's page isn't hunted for twice.
@@ -76,13 +77,17 @@ export function DiagnosticsApp() {
   const cabWear = wear(t.wearCabin)
   const chassisWear = wear(t.wearChassis)
   const trailerWear = wear(t.trailerWearWheels)
+  const trailerBody = wear(t.trailerWearBody)
+  const trailerChassis = wear(t.trailerWearChassis)
 
   const stateOf = (...reads: Reading[]): State => reads.map((read) => read.state).reduce(worst, 'ok')
   const engineState = stateOf(heat, oilHeat, pressure, volts, engineWear)
   const brakeState = stateOf(air, brakeHeat)
   const fuelState = stateOf(urea, economy, fuel)
   const chassisState = stateOf(engineWear, gearboxWear, chassisWear, cabWear, tireWear)
-  const trailerState = t.trailerAttached ? trailerWear.state : 'ok'
+  const trailerState = t.trailerAttached
+    ? [trailerWear.state, trailerBody.state, trailerChassis.state].reduce(worst, 'ok')
+    : 'ok'
   const overall = [engineState, brakeState, fuelState, chassisState, trailerState].reduce(worst, 'ok')
 
   // Too hot, or too little: the two ways a reading turns serious; wear is its own.
@@ -95,11 +100,31 @@ export function DiagnosticsApp() {
   const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
   const speed = Math.round(Math.abs(t.speed) * 3.6)
   const gear = t.displayedGear < 0 ? 'R' : t.displayedGear === 0 ? 'N' : n(t.displayedGear)
+  // Minutes as the cab writes them: an hour and a half is "1 h 30", twenty minutes "20 min".
+  const inMinutes = (value: number) =>
+    value >= 60
+      ? `${n(Math.floor(value / 60))} ${words.hours} ${String(Math.floor(value % 60)).padStart(2, '0')}`
+      : `${n(Math.round(value))} ${words.minutes}`
+  const cruise = t.cruiseControlSpeed > 0.5 ? `${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}` : words.off
+  const retarder =
+    t.retarderLevel > 0
+      ? `${n(t.retarderLevel)}${truck && truck.retarderSteps > 0 ? ` / ${n(truck.retarderSteps)}` : ''}`
+      : words.off
+  const lights =
+    [t.lowBeam ? words.lowBeam : null, t.highBeam ? words.highBeam : null, t.parkingLight ? words.parkingLight : null]
+      .filter(Boolean)
+      .join(' · ') || words.off
 
   // The tabs: each page's name, and the tone of the worst reading it holds, so a page worth opening shows it.
+  // The game's own driver hours, in in-game minutes (-1 where the profile has the simulation off).
+  const rest = t.restStop
+  const breakIn = t.mandatoryBreak
+  const hoursState: State = rest >= 0 && rest <= 15 ? 'warn' : 'ok'
+
   const pages: { id: DiagnosticsPage; label: string; state: State }[] = [
     { id: 'overview', label: words.overview, state: overall },
     { id: 'engine', label: words.engine, state: worst(engineState, fuelState) },
+    { id: 'driver', label: words.driverHours, state: hoursState },
     { id: 'chassis', label: words.chassis, state: [brakeState, chassisState, trailerState].reduce(worst, 'ok') },
   ]
 
@@ -214,6 +239,32 @@ export function DiagnosticsApp() {
             </div>
           </Card>
 
+          <Card
+            name={words.driverHours}
+            state={hoursState}
+            note={hoursState === 'warn' ? words.check : words.normal}
+            page="driver"
+            span={6}
+          >
+            <div className="diag-rows">
+              {/* The game's own: its fatigue simulation's next rest, and the mandatory break's. */}
+              <Row label={words.restStop} value={rest >= 0 ? inMinutes(rest) : words.noRest} />
+              <Row label={words.mandatoryBreak} value={breakIn >= 0 ? inMinutes(breakIn) : words.noRest} />
+              <Row label={words.time} value={clock(trip.moving + trip.idle)} />
+              <Row label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
+            </div>
+          </Card>
+
+          <Card name={words.controls} state="ok" note={words.normal} page="driver" span={6}>
+            <div className="diag-rows">
+              <Row label={words.cruiseControl} value={cruise} />
+              <Row label={words.retarder} value={retarder} />
+              <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
+              <Row label={words.lights} value={lights} />
+              <Row label={words.wipers} value={t.wipers ? words.on : words.off} />
+            </div>
+          </Card>
+
           <Card name={words.chassis} state={chassisState} note={byWear[chassisState]} page="chassis">
             <div className="diag-wear">
               <Wear label={words.wearEngine} read={engineWear} />
@@ -228,10 +279,21 @@ export function DiagnosticsApp() {
             {t.trailerAttached ? (
               <>
                 <div className="diag-lead">
-                  <span className="diag-value">{words.hitched}</span>
-                  <span className="diag-label">{words.trailer}</span>
+                  <span className="diag-value">{trailer?.name || words.hitched}</span>
+                  <span className="diag-label">{trailer?.brand || words.trailer}</span>
+                </div>
+                <div className="diag-rows">
+                  {/* How it hangs and what it carries, its plate, and the wheels it rides on. */}
+                  <Row
+                    label={words.trailerType}
+                    value={[trailer?.chainType, trailer?.bodyType].filter(Boolean).join(' · ') || words.off}
+                  />
+                  <Row label={words.plate} value={trailer?.plate || words.off} />
+                  <Row label={words.tires} value={trailer?.wheelCount ? n(trailer.wheelCount) : words.off} />
                 </div>
                 <div className="diag-wear">
+                  <Wear label={words.body} read={trailerBody} />
+                  <Wear label={words.chassis} read={trailerChassis} />
                   <Wear label={words.wearTrailer} read={trailerWear} />
                 </div>
               </>

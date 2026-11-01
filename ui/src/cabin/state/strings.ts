@@ -529,6 +529,36 @@ export interface Strings {
     reset: string
     noTelemetry: string
     overview: string
+    driverHours: string
+    restStop: string
+    mandatoryBreak: string
+    noRest: string
+    controls: string
+    cruiseControl: string
+    lights: string
+    wipers: string
+    hours: string
+    minutes: string
+    parkingLight: string
+    lowBeam: string
+    highBeam: string
+    on: string
+    trailerType: string
+    plate: string
+    body: string
+  }
+  /** The Notifications app: the notes the cab has shown, and what they read. */
+  notificationsApp: {
+    empty: string
+    /** When notes come: the game's warnings and the rest clocks. */
+    hint: string
+    alerts: string
+    warnings: string
+    alert: string
+    warning: string
+    clear: string
+    /** Above the list: how many the list holds (it's kept on this PC, so past drives are in it too). */
+    summary: (count: number) => string
   }
   apps: Record<AppId, string>
   notBuiltYet: string
@@ -1069,6 +1099,33 @@ const ENGLISH_STRINGS: Strings = {
     reset: 'Reset',
     noTelemetry: 'Start the game for readings',
     overview: 'Overview',
+    driverHours: 'Driver hours',
+    restStop: 'Next rest stop',
+    mandatoryBreak: 'Mandatory break',
+    noRest: 'Off in this profile',
+    controls: 'Controls',
+    cruiseControl: 'Cruise control',
+    lights: 'Lights',
+    wipers: 'Wipers',
+    hours: 'h',
+    minutes: 'min',
+    parkingLight: 'Parking lights',
+    lowBeam: 'Low beam',
+    highBeam: 'High beam',
+    on: 'On',
+    trailerType: 'Type',
+    plate: 'Plate',
+    body: 'Body',
+  },
+  notificationsApp: {
+    empty: 'No notifications yet',
+    hint: 'The truck’s own warnings — battery, oil pressure, brake air, fuel and AdBlue — and the rest clocks show here as they come on: on the screen for six seconds, then in this list. A warning that stays on is one note, not one a second. The list is kept on this PC, so it’s still here after a restart.',
+    alerts: 'Alerts',
+    warnings: 'Warnings',
+    alert: 'Alert',
+    warning: 'Warning',
+    clear: 'Clear',
+    summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
   },
   apps: {
     maps: 'Maps',
@@ -1082,6 +1139,7 @@ const ENGLISH_STRINGS: Strings = {
     weather: 'Weather',
     settings: 'Settings',
     diagnostics: 'Diagnostics',
+    notifications: 'Notifications',
   },
   notBuiltYet: 'Not built yet',
 }
@@ -1623,6 +1681,33 @@ const TURKISH_STRINGS: Strings = {
     reset: 'Sıfırla',
     noTelemetry: 'Değerler için oyunu başlat',
     overview: 'Genel bakış',
+    driverHours: 'Sürüş saatleri',
+    restStop: 'Sonraki mola',
+    mandatoryBreak: 'Zorunlu mola',
+    noRest: 'Bu profilde kapalı',
+    controls: 'Kontroller',
+    cruiseControl: 'Hız sabitleyici',
+    lights: 'Işıklar',
+    wipers: 'Silecekler',
+    hours: 'sa',
+    minutes: 'dk',
+    parkingLight: 'Park lambaları',
+    lowBeam: 'Kısa far',
+    highBeam: 'Uzun far',
+    on: 'Açık',
+    trailerType: 'Tip',
+    plate: 'Plaka',
+    body: 'Kasa',
+  },
+  notificationsApp: {
+    empty: 'Henüz bildirim yok',
+    hint: 'Aracın kendi uyarıları — akü, yağ basıncı, fren havası, yakıt ve AdBlue — ile mola saatleri geldikçe burada görünür: ekranda altı saniye, sonra bu listede. Yanmaya devam eden bir uyarı tek bildirimdir, saniyede bir yeni bildirim değil. Liste bu bilgisayarda saklanır, yeniden başlatınca da burada kalır.',
+    alerts: 'Alarmlar',
+    warnings: 'Uyarılar',
+    alert: 'Alarm',
+    warning: 'Uyarı',
+    clear: 'Temizle',
+    summary: (count) => `${count} bildirim`,
   },
   apps: {
     maps: 'Haritalar',
@@ -1636,6 +1721,7 @@ const TURKISH_STRINGS: Strings = {
     weather: 'Hava Durumu',
     settings: 'Ayarlar',
     diagnostics: 'Tanılama',
+    notifications: 'Bildirimler',
   },
   notBuiltYet: 'Henüz hazır değil',
 }
@@ -2188,6 +2274,33 @@ const SPANISH_STRINGS: Strings = {
     reset: 'Reiniciar',
     noTelemetry: 'Inicia el juego para ver valores',
     overview: 'Resumen',
+    driverHours: 'Horas de conducción',
+    restStop: 'Próximo descanso',
+    mandatoryBreak: 'Descanso obligatorio',
+    noRest: 'Desactivado en este perfil',
+    controls: 'Controles',
+    cruiseControl: 'Control de crucero',
+    lights: 'Luces',
+    wipers: 'Limpiaparabrisas',
+    hours: 'h',
+    minutes: 'min',
+    parkingLight: 'Luces de posición',
+    lowBeam: 'Cortas',
+    highBeam: 'Largas',
+    on: 'Encendido',
+    trailerType: 'Tipo',
+    plate: 'Matrícula',
+    body: 'Carrocería',
+  },
+  notificationsApp: {
+    empty: 'Aún no hay notificaciones',
+    hint: 'Los avisos del propio camión —batería, presión de aceite, aire de frenos, combustible y AdBlue— y los relojes de descanso aparecen aquí al activarse: seis segundos en pantalla y luego en esta lista. Un aviso que sigue activo es una sola notificación, no una por segundo. La lista se guarda en este PC, así que sigue aquí tras reiniciar.',
+    alerts: 'Alertas',
+    warnings: 'Avisos',
+    alert: 'Alerta',
+    warning: 'Aviso',
+    clear: 'Borrar',
+    summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
   },
   apps: {
     maps: 'Mapas',
@@ -2201,6 +2314,7 @@ const SPANISH_STRINGS: Strings = {
     weather: 'Tiempo',
     settings: 'Ajustes',
     diagnostics: 'Diagnóstico',
+    notifications: 'Notificaciones',
   },
   notBuiltYet: 'Aún no disponible',
 }

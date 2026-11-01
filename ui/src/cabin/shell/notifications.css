@@ -1,0 +1,75 @@
+/* The notes over the app (Notifications.tsx): the volume HUD's glass pill, stacked under where the volume shows
+   so the two never sit on each other. Nothing to press, and nothing of the app's moves for them. */
+
+.notifications {
+  position: absolute;
+  /* Right of the sidebar, as the apps are (and the volume pill). */
+  left: var(--content-left, 170px);
+  right: 0;
+  /* Under the volume pill's 58px at 22px. */
+  top: 92px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 -10px;
+  scale: 0.96;
+  visibility: hidden;
+  transition:
+    opacity 260ms ease,
+    translate 260ms ease,
+    scale 260ms ease,
+    visibility 0s linear 260ms;
+}
+
+.notifications.shown {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  visibility: visible;
+  transition-delay: 0s;
+  transition-duration: 160ms;
+}
+
+.notification {
+  display: flex;
+  align-items: baseline;
+  gap: calc(12px * var(--text-scale, 1));
+  max-width: min(100%, calc(560px * var(--text-scale, 1)));
+  padding: calc(14px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  border-radius: calc(22px * var(--text-scale, 1));
+  background: var(--keyboard-glass);
+  backdrop-filter: blur(30px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--shadow-raised-large);
+  color: var(--text);
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 500;
+}
+
+.notification-title {
+  flex: none;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.notification-detail {
+  min-width: 0;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+
+.notification.alarm .notification-title {
+  color: var(--apple-red);
+}
+
+.notification.warn .notification-title {
+  color: var(--apple-orange);
+}

@@ -7,6 +7,7 @@ import { useLanguage, useText } from '../state/text'
 import { isCopied, noteOpened, openedBefore, saveCopy, savedCopy } from './launchCopies'
 import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
 import { MusicApp } from './music/MusicApp'
+import { NotificationsApp } from './notifications/NotificationsApp'
 import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
 import { YouTubeMusicApp } from './youtubeMusic/YouTubeMusicApp'
@@ -90,6 +91,8 @@ function AppContent({ app }: { app: AppId }) {
       return <WeatherApp />
     case 'diagnostics':
       return <DiagnosticsApp />
+    case 'notifications':
+      return <NotificationsApp />
     default:
       return <NotBuiltYet app={app} />
   }

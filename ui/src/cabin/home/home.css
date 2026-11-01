@@ -69,6 +69,33 @@
   filter: var(--shadow-icon-large);
 }
 
+/* The icon and what's over its corner (a badge): the icon keeps its size, the badge sits on top of it. */
+.app-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* What the app has for the driver since it was last opened (its unread notes), as iOS badges an app. */
+.app-badge {
+  position: absolute;
+  top: calc(-4px * var(--text-scale, 1));
+  right: calc(-8px * var(--text-scale, 1));
+  display: grid;
+  place-items: center;
+  min-width: calc(34px * var(--text-scale, 1));
+  height: calc(34px * var(--text-scale, 1));
+  padding: 0 calc(9px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-red);
+  color: #fff;
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+}
+
 .label {
   padding: 5px 16px 6px;
   border-radius: 14px;
@@ -98,6 +125,13 @@
 .home-pages.compact .app img {
   width: 84px;
   height: 84px;
+}
+
+.home-pages.compact .app-badge {
+  min-width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+  padding: 0 calc(6px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
 }
 
 .home-pages.compact .label {

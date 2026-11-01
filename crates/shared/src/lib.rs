@@ -30,7 +30,7 @@ pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
 /// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
 /// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
 /// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings.
-pub const BRIDGE_VERSION: u32 = 28;
+pub const BRIDGE_VERSION: u32 = 29;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -230,6 +230,8 @@ pub struct PluginBlock {
     pub truck: SeqLock<TruckInfo>,
     /// The player's job (`active` false when there is none).
     pub job: SeqLock<JobInfo>,
+    /// The trailer under the truck (`attached` false when there is none).
+    pub trailer: SeqLock<TrailerInfo>,
     /// Mouse input for the WestPlay screen while the player holds the interaction key.
     pub pointer: PointerBlock,
     /// Under TruckersMP: the players around the player, from TruckersMP's SDK (the plugin's `truckersmp`).
@@ -630,6 +632,19 @@ pub struct Telemetry {
     pub oil_pressure_warning: bool,
     pub brake_air_warning: bool,
     pub fuel_warning: bool,
+    /// The game's own driver hours, in in-game minutes: until the next rest stop (the SDK's `rest.stop`) and
+    /// until the next mandatory break (`mandatory.break`). -1 when the game has none to give (the profile's
+    /// fatigue or mandatory-break simulation is off).
+    pub rest_stop: i32,
+    pub mandatory_break: i32,
+    /// Whether the parking lights, the beacon and the wipers are on (the SDK's `truck.light.parking`,
+    /// `truck.light.beacon`, `truck.wipers`).
+    pub parking_light: bool,
+    pub beacon: bool,
+    pub wipers: bool,
+    /// The trailer's body and chassis wear, 0 (new) to 1 (worn out), beside its wheels' (`trailer_wear_wheels`).
+    pub trailer_wear_body: f32,
+    pub trailer_wear_chassis: f32,
 }
 
 /// Identity of the current truck, from the SDK's "truck" configuration.
@@ -660,6 +675,30 @@ pub struct TruckInfo {
     /// the game warns of low fuel (`fuel.warning.factor`): 0 when the game hasn't said either.
     pub fuel_capacity: f32,
     pub fuel_warning_factor: f32,
+    /// The retarder's steps (the configuration's `retarder.steps`), 0 when the truck has none: its level's
+    /// range.
+    pub retarder_steps: u32,
+}
+
+/// Identity of the trailer under the truck, from the SDK's "trailer" configuration. The game reports the
+/// chain's and the body's names for its first trailer only, and an empty attribute set when none is hitched.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct TrailerInfo {
+    /// There is one hitched (the game sends no attributes when there isn't).
+    pub attached: bool,
+    /// Brand and model for display, localized by the game, e.g. "SCS Trailer" and "Box".
+    pub brand: FixedStr<64>,
+    pub name: FixedStr<64>,
+    /// What it hangs as (`chain.type`, e.g. `single`) and carries (`body.type`, e.g. `dryvan`).
+    pub chain_type: FixedStr<32>,
+    pub body_type: FixedStr<32>,
+    /// Its licence plate, as the game shows it (to find it among the save's trailers).
+    pub plate: FixedStr<32>,
+    /// How many wheels it rides on (each axle's pair counted).
+    pub wheel_count: u32,
 }
 
 /// The player's current job, from the SDK's "job" configuration. Names come localized by the game.
@@ -759,6 +798,7 @@ unsafe impl Plain for Telemetry {}
 unsafe impl Plain for TruckInfo {}
 // SAFETY: byte strings, integers, floats and `bool`s only (see `Plain`).
 unsafe impl Plain for JobInfo {}
+unsafe impl Plain for TrailerInfo {}
 // SAFETY: integers and floats only (see `Plain`); a count read torn is bounded by `Nearby::players`.
 unsafe impl Plain for Nearby {}
 
@@ -1011,6 +1051,7 @@ mod tests {
             plate_country: FixedStr::new("italy"),
             fuel_capacity: 900.0,
             fuel_warning_factor: 0.15,
+            retarder_steps: 5,
         };
         lock.write(&truck);
         assert_eq!(lock.read(), Some(truck));

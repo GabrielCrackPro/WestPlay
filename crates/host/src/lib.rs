@@ -1488,6 +1488,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 let message = serde_json::json!({ "type": "job", "data": job });
                 let _ = webview.post_json(&message.to_string());
             }
+            // The trailer under the truck, as the game describes it: to the page when it changes (none
+            // hitched sends the empty one).
+            static LAST_TRAILER: std::sync::Mutex<Option<westplay_shared::TrailerInfo>> =
+                std::sync::Mutex::new(None);
+            if let Some(trailer) = plugin.trailer.read() {
+                let mut last = LAST_TRAILER.lock().unwrap_or_else(|error| error.into_inner());
+                if *last != Some(trailer) {
+                    *last = Some(trailer);
+                    let message = serde_json::json!({ "type": "trailer", "data": trailer });
+                    let _ = webview.post_json(&message.to_string());
+                }
+            }
             let layout = plugin.screen_layout.load(Ordering::Acquire);
             if last_layout != Some(layout) {
                 last_layout = Some(layout);

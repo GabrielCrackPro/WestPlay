@@ -14,6 +14,7 @@ import {
   subscribeHostMessages,
   type Telemetry,
   toEqualizer,
+  type TrailerInfo,
   type TruckInfo,
 } from '../../shared/host'
 import type { Maneuver, TurnKind } from '../maps/guidance'
@@ -73,9 +74,9 @@ export type Clock = 'game' | 'real'
  * The Diagnostics app's page: the readings a driver glances at, the powertrain, or the running gear's wear. The
  * app's tabs switch between them, and the one left open comes back (kept with the player's settings).
  */
-export type DiagnosticsPage = 'overview' | 'engine' | 'chassis'
+export type DiagnosticsPage = 'overview' | 'engine' | 'driver' | 'chassis'
 
-export const DIAGNOSTICS_PAGES: readonly DiagnosticsPage[] = ['overview', 'engine', 'chassis']
+export const DIAGNOSTICS_PAGES: readonly DiagnosticsPage[] = ['overview', 'engine', 'driver', 'chassis']
 
 /**
  * Cabin state that the UI renders from. Telemetry lives in its own store (`useLive`) because it updates
@@ -281,6 +282,8 @@ export interface LiveState {
   truck: TruckInfo | null
   /** The player's job (`null`: none). */
   job: JobInfo | null
+  /** The trailer under the truck (`null`: none hitched). */
+  trailer: TrailerInfo | null
   /** The kind of screen the game draws WestPlay on; `null` until it has drawn one. */
   screenLayout: ScreenLayoutId | null
   /** The cities whose garages the player owns, and their headquarters' (none until the host has read their
@@ -344,6 +347,7 @@ export const useLive = create<LiveState>()(() => ({
   telemetry: null,
   truck: previewTruck(),
   job: null,
+  trailer: null,
   screenLayout: previewLayout(),
   ownedGarages: [],
   headquarters: null,
@@ -371,7 +375,15 @@ function previewTruck(): TruckInfo | null {
   const model = new URLSearchParams(location.search).get('truck')
   if (!model) return null
   const brandId = model.split('.')[0]
-  return { brandId, brand: brandId, id: `vehicle.${model}`, name: model, fuelCapacity: 0, fuelWarningFactor: 0 }
+  return {
+    brandId,
+    brand: brandId,
+    id: `vehicle.${model}`,
+    name: model,
+    fuelCapacity: 0,
+    fuelWarningFactor: 0,
+    retarderSteps: 0,
+  }
 }
 
 function previewLayout(): ScreenLayoutId | null {
@@ -425,6 +437,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'job':
         useLive.setState({ job: message.data.active ? message.data : null })
+        break
+      case 'trailer':
+        useLive.setState({ trailer: message.data.attached ? message.data : null })
         break
       case 'garages':
         useLive.setState({ ownedGarages: message.owned, headquarters: message.headquarters })

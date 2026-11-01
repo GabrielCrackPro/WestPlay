@@ -1,0 +1,242 @@
+/* The Notifications app (NotificationsApp.tsx): the notes the cab has shown, newest first, with the counts above
+   them. A list that scrolls on its own, under a header that stays put. */
+
+.notifications-app {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.notes-shell {
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--text-scale, 1));
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* What's been shown, and how much of it was serious, above the list. */
+.notes-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(18px * var(--text-scale, 1));
+  padding: calc(16px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: var(--panel-radius);
+  background: var(--apple-card);
+}
+
+.notes-title {
+  min-width: 0;
+}
+
+.notes-title h1 {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.notes-sub {
+  margin-top: calc(3px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.notes-stats {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+}
+
+.notes-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(1px * var(--text-scale, 1));
+  min-width: calc(96px * var(--text-scale, 1));
+  padding: calc(7px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border-radius: calc(16px * var(--text-scale, 1));
+  background: var(--apple-fill);
+}
+
+.notes-stat-label {
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.notes-stat-value {
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.notes-stat.alarm .notes-stat-value {
+  color: var(--apple-red);
+}
+
+.notes-stat.warn .notes-stat-value {
+  color: var(--apple-orange);
+}
+
+.notes-clear {
+  padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: 999px;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.notes-clear:hover {
+  background: var(--apple-fill);
+}
+
+/* The notes, newest first: the oldest scroll away under the header. */
+.notes-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--text-scale, 1));
+  min-height: 0;
+  margin: 0;
+  padding: 0 calc(2px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1));
+  overflow-y: auto;
+  overflow-x: hidden;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.notes-list::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-item {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: calc(14px * var(--text-scale, 1));
+  /* Its tone on the left edge, as the diagnostics cards carry theirs. */
+  padding: calc(12px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: calc(18px * var(--text-scale, 1));
+  background: var(--apple-card);
+  box-shadow: inset calc(4px * var(--text-scale, 1)) 0 0 var(--apple-orange);
+}
+
+.notes-item.alarm {
+  box-shadow: inset calc(4px * var(--text-scale, 1)) 0 0 var(--apple-red);
+}
+
+/* The clock, with the day under it for a note from before today (the saved list spans days). */
+.notes-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.notes-time {
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes-day {
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.notes-mark {
+  width: calc(9px * var(--text-scale, 1));
+  height: calc(9px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-orange);
+}
+
+.notes-item.alarm .notes-mark {
+  background: var(--apple-red);
+}
+
+.notes-body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.notes-name {
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.notes-detail {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.notes-tone {
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.notes-item.alarm .notes-tone {
+  color: var(--apple-red);
+}
+
+/* Nothing shown yet: the bell, and when notes come. */
+.notes-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--text-scale, 1));
+  min-height: 0;
+  padding: calc(24px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  border-radius: var(--panel-radius);
+  background: var(--apple-card);
+  text-align: center;
+}
+
+.notes-bell {
+  width: calc(64px * var(--text-scale, 1));
+  height: calc(64px * var(--text-scale, 1));
+  color: var(--text-dim);
+  opacity: 0.75;
+}
+
+.notes-empty-title {
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.notes-empty-hint {
+  max-width: calc(560px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-dim);
+}

@@ -13,6 +13,7 @@ import { useCabin, useLive } from '../state/store'
 import { Sidebar } from './Sidebar'
 import { useSidebarPeek } from './sidebarPeek'
 import { VolumeHud } from './VolumeHud'
+import { Notifications } from './Notifications'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
 
@@ -104,6 +105,7 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
           <Player />
           <Keyboard />
           <VolumeHud />
+          <Notifications />
         </div>
       </div>
       {/* What's drawn over the video where it shows through the CarPlay area (apps/youtube/VideoHole.tsx). */}

@@ -82,6 +82,17 @@ export interface Telemetry {
   oilPressureWarning: boolean
   brakeAirWarning: boolean
   fuelWarning: boolean
+  /** The game's own driver hours, in in-game minutes: until the next rest stop and until the next mandatory
+   * break. -1 when the game has none to give (the profile's fatigue or mandatory-break simulation is off). */
+  restStop: number
+  mandatoryBreak: number
+  /** Whether the parking lights, the beacon and the wipers are on. */
+  parkingLight: boolean
+  beacon: boolean
+  wipers: boolean
+  /** The trailer's body and chassis wear, 0 (new) to 1 (worn out), beside its wheels'. */
+  trailerWearBody: number
+  trailerWearChassis: number
 }
 
 /** The time the cab's clock shows (minutes since day 0, 00:00): the game's, or in a Convoy session the
@@ -106,6 +117,23 @@ export interface TruckInfo {
    * warns of low fuel (0 when it hasn't said either). */
   fuelCapacity: number
   fuelWarningFactor: number
+  /** The retarder's steps, 0 when the truck has none: its level's range. */
+  retarderSteps: number
+}
+
+/** The trailer under the truck, as the game describes it (`westplay_shared::TrailerInfo`). */
+export interface TrailerInfo {
+  /** One is hitched (the game sends no attributes when none is). */
+  attached: boolean
+  /** Display brand and model, localized by the game, e.g. "SCS Trailer" and "Box". */
+  brand: string
+  name: string
+  /** What it hangs as (`single`, `double`…) and carries (`dryvan`, `reefer`…). */
+  chainType: string
+  bodyType: string
+  /** Its own plate. */
+  plate: string
+  wheelCount: number
 }
 
 /** The player's job (`westplay_shared::JobInfo`): names localized by the game. */
@@ -136,6 +164,7 @@ export type HostMessage =
   | { type: 'telemetry'; data: Telemetry }
   | { type: 'truck'; data: TruckInfo }
   | { type: 'job'; data: JobInfo }
+  | { type: 'trailer'; data: TrailerInfo }
   /** `null` until the game has drawn a WestPlay screen. Checked against the known ids on arrival. */
   | { type: 'screen'; layout: string | null }
   /** The settings the page applies: whether the truck's own strip stays beside WestPlay

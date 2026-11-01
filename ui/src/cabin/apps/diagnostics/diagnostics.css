@@ -67,6 +67,7 @@
 .diag-shell:not(.page-overview) .diag-hero,
 .diag-shell.page-overview .diag-card:not(.on-overview),
 .diag-shell.page-engine .diag-card:not(.on-engine),
+.diag-shell.page-driver .diag-card:not(.on-driver),
 .diag-shell.page-chassis .diag-card:not(.on-chassis) {
   display: none;
 }

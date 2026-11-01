@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="face" x1="0" y1="48" x2="0" y2="975" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#303030"/><stop offset="0.5" stop-color="#222"/><stop offset="1" stop-color="#131313"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="48" x2="0" y2="975" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7b7b7b"/><stop offset="0.5" stop-color="#6f6f6f"/><stop offset="0.8" stop-color="#555"/><stop offset="1" stop-color="#242424"/></linearGradient>
+    <linearGradient id="layer0" x1="0" y1="220" x2="0" y2="824" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dde6"/></linearGradient>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="13" flood-color="#000000" flood-opacity="0.45"/></filter>
+  </defs>
+  <rect x="48" y="48" width="927" height="927" rx="212" fill="url(#face)"/>
+  <rect x="48" y="48" width="927" height="927" rx="212" fill="none" stroke="url(#rim)" stroke-width="7"/>
+  <g fill="url(#layer0)" filter="url(#lift)">
+    <path d="M512 222c23 0 41 18 41 41v22c86 21 148 98 148 190v95c0 15 6 29 16 40l33 37c14 16 19 39 11 59-8 21-28 34-50 34H327c-22 0-42-13-50-34-8-20-3-43 11-59l33-37c10-11 16-25 16-40v-95c0-92 62-169 148-190v-22c0-23 18-41 41-41Z"/>
+    <path d="M436 762h152c-9 49-47 86-76 86s-67-37-76-86Z"/>
+  </g>
+</svg>

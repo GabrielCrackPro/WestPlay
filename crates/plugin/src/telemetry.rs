@@ -8,7 +8,7 @@ use std::ffi::{CStr, CString, c_char, c_void};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use westplay_shared::{FixedStr, JobInfo, Telemetry, TruckInfo};
+use westplay_shared::{FixedStr, JobInfo, Telemetry, TrailerInfo, TruckInfo};
 
 use crate::scs::{
     ChannelCallback, ConfigurationEvent, EventCallback, SCS_RESULT_OK, SCS_TELEMETRY_EVENT_CONFIGURATION,
@@ -91,6 +91,13 @@ static SNAPSHOT: Mutex<Telemetry> = Mutex::new(Telemetry {
     oil_pressure_warning: false,
     brake_air_warning: false,
     fuel_warning: false,
+    rest_stop: -1,
+    mandatory_break: -1,
+    parking_light: false,
+    beacon: false,
+    wipers: false,
+    trailer_wear_body: 0.0,
+    trailer_wear_chassis: 0.0,
 });
 
 /// Where the driver's head is by default in the truck's cab (the "truck" configuration's `head.position`).
@@ -150,6 +157,13 @@ enum Field {
     OilPressureWarning,
     BrakeAirWarning,
     FuelWarning,
+    RestStop,
+    MandatoryBreak,
+    ParkingLight,
+    Beacon,
+    Wipers,
+    TrailerWearBody,
+    TrailerWearChassis,
 }
 
 const CHANNELS: &[(&str, u32, Field)] = &[
@@ -199,6 +213,13 @@ const CHANNELS: &[(&str, u32, Field)] = &[
     ("truck.oil.pressure.warning", SCS_VALUE_TYPE_BOOL, Field::OilPressureWarning),
     ("truck.brake.air.pressure.warning", SCS_VALUE_TYPE_BOOL, Field::BrakeAirWarning),
     ("truck.fuel.warning", SCS_VALUE_TYPE_BOOL, Field::FuelWarning),
+    ("rest.stop", SCS_VALUE_TYPE_S32, Field::RestStop),
+    ("mandatory.break", SCS_VALUE_TYPE_S32, Field::MandatoryBreak),
+    ("truck.light.parking", SCS_VALUE_TYPE_BOOL, Field::ParkingLight),
+    ("truck.light.beacon", SCS_VALUE_TYPE_BOOL, Field::Beacon),
+    ("truck.wipers", SCS_VALUE_TYPE_BOOL, Field::Wipers),
+    ("trailer.wear.body", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearBody),
+    ("trailer.wear.chassis", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearChassis),
 ];
 
 /// Registers the telemetry channels and events. Called from `scs_telemetry_init`.
@@ -329,6 +350,8 @@ unsafe fn on_configuration(configuration: &ConfigurationEvent) {
         match CStr::from_ptr(configuration.id).to_bytes() {
             b"truck" => on_truck(configuration),
             b"job" => on_job(configuration),
+            // The game names the first trailer's configuration both ways (the static one is the chain's).
+            b"trailer" | b"trailer.0" => on_trailer(configuration),
             _ => {}
         }
     }
@@ -359,6 +382,11 @@ unsafe fn on_truck(configuration: &ConfigurationEvent) {
                 }
                 b"fuel.warning.factor" => {
                     truck.fuel_warning_factor = attribute.value.float();
+                    continue;
+                }
+                // How many steps the retarder has: its level's range (0 without one).
+                b"retarder.steps" => {
+                    truck.retarder_steps = attribute.value.u32();
                     continue;
                 }
                 _ => {}
@@ -512,6 +540,13 @@ unsafe fn on_channel_value(value: *const ScsValue, context: *mut c_void) {
             Field::OilPressureWarning => s.oil_pressure_warning = value.bool(),
             Field::BrakeAirWarning => s.brake_air_warning = value.bool(),
             Field::FuelWarning => s.fuel_warning = value.bool(),
+            Field::RestStop => s.rest_stop = value.s32(),
+            Field::MandatoryBreak => s.mandatory_break = value.s32(),
+            Field::ParkingLight => s.parking_light = value.bool(),
+            Field::Beacon => s.beacon = value.bool(),
+            Field::Wipers => s.wipers = value.bool(),
+            Field::TrailerWearBody => s.trailer_wear_body = value.float(),
+            Field::TrailerWearChassis => s.trailer_wear_chassis = value.float(),
         }
     }
 }
@@ -571,5 +606,53 @@ fn reset(s: &mut Telemetry, field: Field) {
         Field::OilPressureWarning => s.oil_pressure_warning = d.oil_pressure_warning,
         Field::BrakeAirWarning => s.brake_air_warning = d.brake_air_warning,
         Field::FuelWarning => s.fuel_warning = d.fuel_warning,
+        Field::RestStop => s.rest_stop = d.rest_stop,
+        Field::MandatoryBreak => s.mandatory_break = d.mandatory_break,
+        Field::ParkingLight => s.parking_light = d.parking_light,
+        Field::Beacon => s.beacon = d.beacon,
+        Field::Wipers => s.wipers = d.wipers,
+        Field::TrailerWearBody => s.trailer_wear_body = d.trailer_wear_body,
+        Field::TrailerWearChassis => s.trailer_wear_chassis = d.trailer_wear_chassis,
+    }
+}
+
+/// The trailer under the truck, as the game publishes it: its brand and name, how it hangs (`chain.type`) and
+/// what it carries (`body.type`), its plate and how many wheels it rides on. An empty attribute set means none
+/// is hitched.
+///
+/// # Safety
+/// As [`on_configuration`].
+unsafe fn on_trailer(configuration: &ConfigurationEvent) {
+    // SAFETY: the attributes' names are the SDK's strings, nul-terminated and alive through the call.
+    unsafe {
+        let mut trailer = TrailerInfo::default();
+        for attribute in configuration.attributes() {
+            trailer.attached = true;
+            if CStr::from_ptr(attribute.name).to_bytes() == b"wheel.count" {
+                trailer.wheel_count = attribute.value.u32();
+                continue;
+            }
+            let Some(value) = attribute.value.string() else { continue };
+            match CStr::from_ptr(attribute.name).to_bytes() {
+                b"brand" => trailer.brand = FixedStr::new(&value),
+                b"name" => trailer.name = FixedStr::new(&value),
+                b"chain.type" => trailer.chain_type = FixedStr::new(&value),
+                b"body.type" => trailer.body_type = FixedStr::new(&value),
+                b"license.plate" => trailer.plate = FixedStr::new(&value),
+                _ => {}
+            }
+        }
+        log!(
+            "trailer: {} {} ({} / {}), plate {:?}, {} wheels",
+            trailer.brand.as_str(),
+            trailer.name.as_str(),
+            trailer.chain_type.as_str(),
+            trailer.body_type.as_str(),
+            trailer.plate.as_str(),
+            trailer.wheel_count
+        );
+        if let Some(bridge) = bridge::get() {
+            bridge.plugin.trailer.write(&trailer);
+        }
     }
 }

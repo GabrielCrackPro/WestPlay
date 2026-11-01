@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useAppIcon } from '../state/hooks'
 import { type AppId, APPS, RELEASED_APP_IDS } from '../state/apps'
 import { useLaunchStyle } from '../state/launch'
+import { unreadCount, useNotes } from '../shell/notesShown'
 import { go, useCabin } from '../state/store'
 import { useText } from '../state/text'
 import { textScale } from '../state/textSize'
@@ -20,6 +21,8 @@ export function Home() {
   // The labels grow with the player's Text Size, and the cells with them.
   const scale = textScale(useCabin((state) => state.textSize))
   const names = useText().apps
+  // The notes the cab raised while the driver wasn't looking at the Notifications app: its icon's badge.
+  const unread = useNotes((state) => unreadCount(state.history, state.seen))
   // Each app's label's lines as drawn (a long name takes two): the rows are as tall as their names need.
   const [lines, setLines] = useState<Partial<Record<AppId, number>>>({})
 
@@ -107,7 +110,7 @@ export function Home() {
             }}
           >
             {apps.map((id) => (
-              <HomeApp key={id} app={id} />
+              <HomeApp key={id} app={id} badge={id === 'notifications' ? unread : 0} />
             ))}
           </div>
         ))}
@@ -130,14 +133,24 @@ export function Home() {
   )
 }
 
-/** An app on Home. Its icon is what the app grows out of when it opens, and shrinks back into. */
-function HomeApp({ app }: { app: AppId }) {
+/**
+ * An app on Home. Its icon is what the app grows out of when it opens, and shrinks back into. `badge` counts what
+ * the app has for the driver (the Notifications app's unread notes): none shows nothing.
+ */
+function HomeApp({ app, badge }: { app: AppId; badge: number }) {
   const launch = useLaunchStyle(app, { kind: 'icon', origin: 'home' })
   const text = useText()
   const icon = useAppIcon(APPS[app].icon)
   return (
     <button type="button" className="app" data-app={app} onClick={() => go({ type: 'openApp', app }, 'home')}>
-      <img src={icon} alt="" style={launch} />
+      <span className="app-icon">
+        <img src={icon} alt="" style={launch} />
+        {badge > 0 && (
+          <span className="app-badge" aria-label={text.notificationsApp.summary(badge)}>
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
       <span className="label">{text.apps[app]}</span>
     </button>
   )
