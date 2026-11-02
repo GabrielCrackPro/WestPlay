@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Konfiguracja',
     about: 'Informacje',
-    support: 'Wesprzyj mnie',
   },
   state: {
     starting: 'Uruchamianie…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       setup:
         'Gdzie jest zainstalowany Cabin Play, z opcjami ponownej instalacji i odinstalowania, gdyby były potrzebne.',
       about: 'Twoja wersja i raport do skopiowania, jeśli coś jest nie tak.',
-      support: 'Jeśli lubisz Cabin Play, możesz tu wesprzeć jego rozwój.',
     },
     finish: 'Gotowe',
   },
@@ -283,21 +281,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Uaktualnienie oprogramowania',
-    upToDate: 'Aktualne',
-    available: 'Dostępna wersja {version}',
-    badge: 'Dostępna aktualizacja',
-    title: 'Cabin Play {version}',
-    sub: 'Nowa wersja Cabin Play jest gotowa. Pobierze się i zainstaluje sama, a potem Cabin Play uruchomi się ponownie.',
-    whatsNew: 'Co nowego',
     later: 'Później',
-    install: 'Aktualizuj',
     closeGame: { title: 'Zamknij grę.', text: 'Cabin Play można zaktualizować tylko wtedy, gdy gra nie działa.' },
-    downloading: 'Pobieranie',
-    installing: 'Instalowanie, potem Cabin Play uruchomi się ponownie',
-    failed: 'Nie udało się zainstalować aktualizacji.',
     banners: {
-      updating: { title: 'Aktualizowanie', text: 'Cabin Play uruchomi się ponownie sam' },
       updated: { title: 'Zaktualizowano', text: 'Nowy Cabin Play jest w twojej grze' },
     },
     finish: {
@@ -305,11 +291,5 @@ export const words: CompanionWords = {
       text: 'Wtyczka nowego Cabin Play trafia do twojej gry. Windows poprosi o zgodę, tak jak przy instalacji.',
       button: 'Dalej',
     },
-  },
-  support: {
-    title: 'Wesprzyj mnie',
-    sub: 'Cabin Play jest darmowy. Jeśli umila ci trasy, możesz wesprzeć jego rozwój na Kreosus, jednorazowo lub co miesiąc.',
-    button: 'Wesprzyj na Kreosus',
-    note: 'Otwiera Kreosus w przeglądarce.',
   },
 }

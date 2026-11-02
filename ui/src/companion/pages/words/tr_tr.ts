@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Harita',
     setup: 'Kurulum',
     about: 'Hakkında',
-    support: 'Beni destekle',
   },
   state: {
     starting: 'Başlatılıyor…',
@@ -194,7 +193,6 @@ export const words: CompanionWords = {
       map: 'Oyununa göre hazırlanan haritan. Oyun ya da harita modların değişince yeniden hazırlanır.',
       setup: 'Cabin Play’in kurulu olduğu yer. Gerekirse buradan yeniden kurabilir ya da kaldırabilirsin.',
       about: 'Kullandığın sürüm ve bir sorun olduğunda kopyalayıp iletebileceğin bir rapor.',
-      support: 'Cabin Play’i beğendiysen geliştirilmesine buradan destek olabilirsin.',
     },
     finish: 'Bitti',
   },
@@ -276,21 +274,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Yazılım Güncellemesi',
-    upToDate: 'Güncel',
-    available: '{version} mevcut',
-    badge: 'Güncelleme var',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Play’in yeni bir sürümü hazır. Kendi kendine indirilip kurulur, ardından Cabin Play yeniden başlar.',
-    whatsNew: 'Yenilikler',
     later: 'Daha sonra',
-    install: 'Güncelle',
     closeGame: { title: 'Lütfen oyunu kapat.', text: 'Cabin Play yalnızca oyun çalışmıyorken güncellenebilir.' },
-    downloading: 'İndiriliyor',
-    installing: 'Kuruluyor, ardından Cabin Play yeniden başlar',
-    failed: 'Güncelleme kurulamadı.',
     banners: {
-      updating: { title: 'Güncelleniyor', text: 'Cabin Play kendi kendine yeniden başlar' },
       updated: { title: 'Güncellendi', text: 'Yeni Cabin Play artık oyununda' },
     },
     finish: {
@@ -298,11 +284,5 @@ export const words: CompanionWords = {
       text: 'Yeni Cabin Play’in eklentisi oyununa yerleştirilir. Windows, kurulumda olduğu gibi izin ister.',
       button: 'Devam',
     },
-  },
-  support: {
-    title: 'Beni destekle',
-    sub: 'Cabin Play ücretsiz. Sürüşlerini güzelleştiriyorsa geliştirilmesini Kreosus’ta bir kez ya da her ay destekleyebilirsin.',
-    button: 'Kreosus’ta destekle',
-    note: 'Kreosus tarayıcında açılır.',
   },
 }

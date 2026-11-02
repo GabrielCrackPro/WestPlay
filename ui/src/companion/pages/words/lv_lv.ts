@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Karte',
     setup: 'Iestatīšana',
     about: 'Par',
-    support: 'Atbalsti mani',
   },
   state: {
     starting: 'Startē…',
@@ -196,7 +195,6 @@ export const words: CompanionWords = {
       map: 'Tava karte, veidota no tavas spēles. Tā tiek sagatavota no jauna, kad mainās spēle vai tavi kartes modi.',
       setup: 'Kur Cabin Play ir instalēts, ar pārinstalēšanu un atinstalēšanu, ja tās kādreiz būs vajadzīgas.',
       about: 'Tava versija un ziņojums kopēšanai, ja kaut kas nav kārtībā.',
-      support: 'Ja tev patīk Cabin Play, šeit vari atbalstīt tā izstrādi.',
     },
     finish: 'Gatavs',
   },
@@ -281,21 +279,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Programmatūras atjauninājums',
-    upToDate: 'Atjaunināts',
-    available: 'Pieejama versija {version}',
-    badge: 'Pieejams atjauninājums',
-    title: 'Cabin Play {version}',
-    sub: 'Jaunā Cabin Play versija ir gatava. Tā pati lejupielādējas un instalējas, pēc tam Cabin Play startē no jauna.',
-    whatsNew: 'Kas jauns',
     later: 'Vēlāk',
-    install: 'Atjaunināt',
     closeGame: { title: 'Aizver spēli.', text: 'Cabin Play var atjaunināt tikai tad, kad spēle nedarbojas.' },
-    downloading: 'Lejupielādē',
-    installing: 'Instalē, pēc tam Cabin Play startē no jauna',
-    failed: 'Atjauninājumu neizdevās instalēt.',
     banners: {
-      updating: { title: 'Atjaunina', text: 'Cabin Play pats startē no jauna' },
       updated: { title: 'Atjaunināts', text: 'Jaunais Cabin Play ir tavā spēlē' },
     },
     finish: {
@@ -303,11 +289,5 @@ export const words: CompanionWords = {
       text: 'Jaunā Cabin Play spraudnis tiek ievietots tavā spēlē. Windows lūgs atļauju, tāpat kā instalējot.',
       button: 'Turpināt',
     },
-  },
-  support: {
-    title: 'Atbalsti mani',
-    sub: 'Cabin Play ir bez maksas. Ja tas padara tavus braucienus labākus, vari atbalstīt tā izstrādi Kreosus vienreiz vai katru mēnesi.',
-    button: 'Atbalstīt Kreosus',
-    note: 'Atver Kreosus tavā pārlūkā.',
   },
 }

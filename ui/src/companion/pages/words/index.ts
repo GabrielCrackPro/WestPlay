@@ -195,31 +195,12 @@ export interface CompanionWords {
     nothingAdded: string
     problems: { notAnImage: string; tooLarge: string; unknownName: string; twice: string; unreadable: string }
   }
-  /** Cabin Play's updates: the About page's row, the list's note, the sheet offering one, and finishing one
-   * (its plugin and mod into the game). `{version}`: the update's. */
+  /** After a manual app upgrade: putting its new plugin and mod into the game. */
   update: {
-    row: string
-    upToDate: string
-    available: string
-    badge: string
-    title: string
-    sub: string
-    whatsNew: string
     later: string
-    install: string
     closeGame: { title: string; text: string }
-    downloading: string
-    installing: string
-    failed: string
-    banners: { updating: { title: string; text: string }; updated: { title: string; text: string } }
+    banners: { updated: { title: string; text: string } }
     finish: { title: string; text: string; button: string }
-  }
-  /** Support me: Cabin Play's development, supported on its maker's Kreosus page (opened in the browser). */
-  support: {
-    title: string
-    sub: string
-    button: string
-    note: string
   }
 }
 
@@ -264,7 +245,7 @@ export interface TutorialWords {
   finish: string
 }
 
-export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'setup' | 'about' | 'support'
+export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'setup' | 'about'
 
 const WORDS: Record<string, CompanionWords> = Object.fromEntries(
   Object.entries(import.meta.glob<CompanionWords>('./[a-z][a-z]_[a-z][a-z].ts', { eager: true, import: 'words' })).map(

@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Мапа',
     setup: 'Подешавање',
     about: 'О програму',
-    support: 'Подржите ме',
   },
   state: {
     starting: 'Покретање…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Ваша мапа, направљена од ваше игре. Поново се припрема када се промене игра или ваши модови мапе.',
       setup: 'Где је Cabin Play инсталиран, са поновном инсталацијом и деинсталацијом ако вам икад затребају.',
       about: 'Ваша верзија и извештај за копирање ако нешто није у реду.',
-      support: 'Ако вам се Cabin Play допада, овде можете подржати његов развој.',
     },
     finish: 'Готово',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Ажурирање софтвера',
-    upToDate: 'Ажурно',
-    available: 'Доступна је верзија {version}',
-    badge: 'Доступно ажурирање',
-    title: 'Cabin Play {version}',
-    sub: 'Нова верзија Cabin Play-а је спремна. Сама се преузима и инсталира, а затим се Cabin Play поново покреће.',
-    whatsNew: 'Новости',
     later: 'Касније',
-    install: 'Ажурирај',
     closeGame: { title: 'Затворите игру.', text: 'Cabin Play може да се ажурира само док игра није покренута.' },
-    downloading: 'Преузимање',
-    installing: 'Инсталирање, затим се Cabin Play поново покреће',
-    failed: 'Ажурирање није могло да се инсталира.',
     banners: {
-      updating: { title: 'Ажурирање', text: 'Cabin Play се сам поново покреће' },
       updated: { title: 'Ажурирано', text: 'Нови Cabin Play је у вашој игри' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Додатак новог Cabin Play-а иде у вашу игру. Windows тражи дозволу, као и при инсталацији.',
       button: 'Настави',
     },
-  },
-  support: {
-    title: 'Подржите ме',
-    sub: 'Cabin Play је бесплатан. Ако вам улепшава вожње, можете подржати његов развој на Kreosus-у, једнократно или сваког месеца.',
-    button: 'Подржи на Kreosus-у',
-    note: 'Отвара Kreosus у вашем прегледачу.',
   },
 }

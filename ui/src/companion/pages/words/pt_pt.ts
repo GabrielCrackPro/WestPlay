@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Configuração',
     about: 'Acerca de',
-    support: 'Apoie-me',
   },
   state: {
     starting: 'A iniciar…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'O seu mapa, criado a partir do seu jogo. É preparado de novo quando o jogo ou as suas mods de mapa mudam.',
       setup: 'Onde o Cabin Play está instalado, com Reinstalar e Desinstalar caso alguma vez precise.',
       about: 'A sua versão, e um relatório para copiar se algo não estiver bem.',
-      support: 'Se gosta do Cabin Play, pode apoiar o desenvolvimento aqui.',
     },
     finish: 'Concluir',
   },
@@ -282,24 +280,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Atualização de software',
-    upToDate: 'Atualizado',
-    available: '{version} disponível',
-    badge: 'Atualização disponível',
-    title: 'Cabin Play {version}',
-    sub: 'Está pronta uma nova versão do Cabin Play. É transferida e instalada automaticamente e depois o Cabin Play reinicia.',
-    whatsNew: 'Novidades',
     later: 'Mais tarde',
-    install: 'Atualizar',
     closeGame: {
       title: 'Feche o jogo.',
       text: 'O Cabin Play só pode ser atualizado enquanto o jogo não estiver aberto.',
     },
-    downloading: 'A transferir',
-    installing: 'A instalar; depois o Cabin Play reinicia',
-    failed: 'Não foi possível instalar a atualização.',
     banners: {
-      updating: { title: 'A atualizar', text: 'O Cabin Play reinicia sozinho' },
       updated: { title: 'Atualizado', text: 'O novo Cabin Play está no seu jogo' },
     },
     finish: {
@@ -307,11 +293,5 @@ export const words: CompanionWords = {
       text: 'O plugin do novo Cabin Play vai para o seu jogo. O Windows pede autorização, como na instalação.',
       button: 'Continuar',
     },
-  },
-  support: {
-    title: 'Apoie-me',
-    sub: 'O Cabin Play é gratuito. Se torna as suas viagens melhores, pode apoiar o desenvolvimento no Kreosus, uma vez ou todos os meses.',
-    button: 'Apoiar no Kreosus',
-    note: 'Abre o Kreosus no seu navegador.',
   },
 }

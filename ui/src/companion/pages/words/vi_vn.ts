@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Bản đồ',
     setup: 'Thiết lập',
     about: 'Giới thiệu',
-    support: 'Ủng hộ tôi',
   },
   state: {
     starting: 'Đang khởi động…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Bản đồ của bạn, được tạo từ trò chơi của bạn. Bản đồ được chuẩn bị lại khi trò chơi hoặc mod bản đồ thay đổi.',
       setup: 'Cabin Play được cài ở đâu, cùng nút Cài đặt lại và Gỡ cài đặt nếu bạn cần.',
       about: 'Phiên bản của bạn, và một báo cáo để sao chép nếu có gì không ổn.',
-      support: 'Nếu bạn thích Cabin Play, bạn có thể ủng hộ việc phát triển tại đây.',
     },
     finish: 'Xong',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Cập nhật phần mềm',
-    upToDate: 'Đã cập nhật',
-    available: 'Đã có bản {version}',
-    badge: 'Có bản cập nhật',
-    title: 'Cabin Play {version}',
-    sub: 'Phiên bản mới của Cabin Play đã sẵn sàng. Nó sẽ tự tải xuống và cài đặt, rồi Cabin Play khởi động lại.',
-    whatsNew: 'Có gì mới',
     later: 'Để sau',
-    install: 'Cập nhật',
     closeGame: { title: 'Hãy đóng trò chơi.', text: 'Chỉ có thể cập nhật Cabin Play khi trò chơi không chạy.' },
-    downloading: 'Đang tải xuống',
-    installing: 'Đang cài đặt, rồi Cabin Play khởi động lại',
-    failed: 'Không thể cài đặt bản cập nhật.',
     banners: {
-      updating: { title: 'Đang cập nhật', text: 'Cabin Play tự khởi động lại' },
       updated: { title: 'Đã cập nhật', text: 'Cabin Play mới đã có trong trò chơi của bạn' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Plugin của Cabin Play mới được đưa vào trò chơi của bạn. Windows sẽ xin phép, như khi bạn cài đặt.',
       button: 'Tiếp tục',
     },
-  },
-  support: {
-    title: 'Ủng hộ tôi',
-    sub: 'Cabin Play miễn phí. Nếu nó giúp những chuyến đi của bạn tốt hơn, bạn có thể ủng hộ việc phát triển Cabin Play trên Kreosus, một lần hoặc hằng tháng.',
-    button: 'Ủng hộ trên Kreosus',
-    note: 'Mở Kreosus trong trình duyệt của bạn.',
   },
 }

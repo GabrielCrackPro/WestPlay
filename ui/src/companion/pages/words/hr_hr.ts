@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Karta',
     setup: 'Postavljanje',
     about: 'O programu',
-    support: 'Podržite me',
   },
   state: {
     starting: 'Pokretanje…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Vaša karta, izrađena iz vaše igre. Ponovno se priprema kad se promijene igra ili vaši modovi karte.',
       setup: 'Gdje je Cabin Play instaliran, s ponovnom instalacijom i deinstalacijom ako ih ikad zatrebate.',
       about: 'Vaša verzija i izvješće za kopiranje ako nešto nije u redu.',
-      support: 'Ako vam se Cabin Play sviđa, ovdje možete podržati njegov razvoj.',
     },
     finish: 'Gotovo',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Ažuriranje softvera',
-    upToDate: 'Ažurno',
-    available: 'Dostupna je verzija {version}',
-    badge: 'Dostupno ažuriranje',
-    title: 'Cabin Play {version}',
-    sub: 'Nova verzija Cabin Playa je spremna. Sama se preuzima i instalira, a zatim se Cabin Play ponovno pokreće.',
-    whatsNew: 'Novosti',
     later: 'Kasnije',
-    install: 'Ažuriraj',
     closeGame: { title: 'Zatvorite igru.', text: 'Cabin Play se može ažurirati samo dok igra nije pokrenuta.' },
-    downloading: 'Preuzimanje',
-    installing: 'Instalacija, zatim se Cabin Play ponovno pokreće',
-    failed: 'Ažuriranje se nije moglo instalirati.',
     banners: {
-      updating: { title: 'Ažuriranje', text: 'Cabin Play se sam ponovno pokreće' },
       updated: { title: 'Ažurirano', text: 'Novi Cabin Play je u vašoj igri' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Dodatak novog Cabin Playa ide u vašu igru. Windows traži dopuštenje, kao i pri instalaciji.',
       button: 'Nastavi',
     },
-  },
-  support: {
-    title: 'Podržite me',
-    sub: 'Cabin Play je besplatan. Ako vam uljepšava vožnje, možete podržati njegov razvoj na Kreosusu, jednokratno ili svaki mjesec.',
-    button: 'Podrži na Kreosusu',
-    note: 'Otvara Kreosus u vašem pregledniku.',
   },
 }

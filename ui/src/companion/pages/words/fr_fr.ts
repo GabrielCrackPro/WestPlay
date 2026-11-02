@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Carte',
     setup: 'Configuration',
     about: 'À propos',
-    support: 'Me soutenir',
   },
   state: {
     starting: 'Démarrage…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Votre carte, créée à partir de votre jeu. Elle est préparée à nouveau quand le jeu ou vos mods de carte changent.',
       setup: 'Où Cabin Play est installé, avec Réinstaller et Désinstaller si vous en avez besoin un jour.',
       about: 'Votre version, et un rapport à copier si quelque chose ne va pas.',
-      support: 'Si Cabin Play vous plaît, vous pouvez soutenir son développement ici.',
     },
     finish: 'Terminé',
   },
@@ -282,24 +280,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Mise à jour logicielle',
-    upToDate: 'À jour',
-    available: '{version} disponible',
-    badge: 'Mise à jour disponible',
-    title: 'Cabin Play {version}',
-    sub: 'Une nouvelle version de Cabin Play est prête. Elle se télécharge et s’installe toute seule, puis Cabin Play redémarre.',
-    whatsNew: 'Nouveautés',
     later: 'Plus tard',
-    install: 'Mettre à jour',
     closeGame: {
       title: 'Veuillez fermer le jeu.',
       text: 'Cabin Play ne peut être mis à jour que lorsque le jeu n’est pas lancé.',
     },
-    downloading: 'Téléchargement',
-    installing: 'Installation, puis Cabin Play redémarre',
-    failed: 'La mise à jour n’a pas pu être installée.',
     banners: {
-      updating: { title: 'Mise à jour', text: 'Cabin Play redémarre tout seul' },
       updated: { title: 'Mis à jour', text: 'Le nouveau Cabin Play est dans votre jeu' },
     },
     finish: {
@@ -307,11 +293,5 @@ export const words: CompanionWords = {
       text: 'Le plug-in du nouveau Cabin Play va dans votre jeu. Windows demande l’autorisation, comme lors de l’installation.',
       button: 'Continuer',
     },
-  },
-  support: {
-    title: 'Me soutenir',
-    sub: 'Cabin Play est gratuit. S’il rend vos trajets plus agréables, vous pouvez soutenir son développement sur Kreosus, une fois ou chaque mois.',
-    button: 'Soutenir sur Kreosus',
-    note: 'Ouvre Kreosus dans votre navigateur.',
   },
 }

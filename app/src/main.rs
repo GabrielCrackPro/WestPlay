@@ -6,7 +6,6 @@
 mod customize;
 mod maps;
 mod setup;
-mod update;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -114,16 +113,6 @@ fn apple_music_check(accounts: State<Accounts>) {
     accounts.0.apple_music.request(AccountAction::Check);
 }
 
-/// The maker's Kreosus page, where players support WestPlay's development.
-const SUPPORT_PAGE: &str = "https://kreosus.com/enes-less";
-
-/// Opens the support page (Support me) in the player's browser. The address is fixed here, so the companion
-/// can't open any other.
-#[tauri::command]
-fn open_support_page() {
-    westplay_host::browser::open(SUPPORT_PAGE);
-}
-
 /// Where this run's `app.log` is (the About page): Documents\WestPlay\logs, or WestPlay's own data folder where
 /// Documents refused it; `None` if it couldn't be made.
 #[tauri::command]
@@ -170,8 +159,6 @@ fn main() {
     let open_request = Arc::new(OpenRequest::default());
     let accounts = Arc::new(AccountRequests::default());
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(update::Updates::default())
         .manage(WestplayOpen(open_request.clone()))
         .manage(Accounts(accounts.clone()))
         .register_asynchronous_uri_scheme_protocol(maps::SCHEME, maps::serve)
@@ -188,16 +175,12 @@ fn main() {
             apple_music_sign_in,
             apple_music_sign_out,
             apple_music_check,
-            open_support_page,
             app_log_place,
             customize::customize_list,
             customize::add_wallpapers,
             customize::add_icon_set,
             customize::remove_wallpaper,
             customize::remove_icon_set,
-            update::update_offer,
-            update::look_for_update,
-            update::install_update,
             get_settings,
             update_settings,
             key_name,
@@ -245,7 +228,6 @@ fn main() {
             app.manage(SettingsStore { file, shared });
             app.manage(setup);
             app.manage(std::sync::Mutex::new(host));
-            update::watch(app.handle());
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -258,8 +240,7 @@ fn main() {
     });
 }
 
-/// Stops the host, so its WebView2 shuts down cleanly with the app (it quitting, or an update's installer
-/// about to replace it). Once: a stopped host has nothing left to stop.
+/// Stops the host, so its WebView2 shuts down cleanly with the app. Once: a stopped host has nothing left to stop.
 fn stop_host(app: &AppHandle) {
     if let Some(host) = app.try_state::<std::sync::Mutex<Host>>() {
         let mut host = host.lock().unwrap_or_else(|e| e.into_inner());

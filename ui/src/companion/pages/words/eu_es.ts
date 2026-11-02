@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Konfigurazioa',
     about: 'Honi buruz',
-    support: 'Lagun iezadazu',
   },
   state: {
     starting: 'Abiarazten…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'Zure mapa, zure jokotik sortua. Berriro prestatzen da jokoa edo zure maparen mod-ak aldatzen direnean.',
       setup: 'Non dagoen Cabin Play instalatuta, Berriro instalatu eta Desinstalatu aukerekin inoiz behar badituzu.',
       about: 'Zure bertsioa, eta kopiatzeko txosten bat zerbait ondo ez badago.',
-      support: 'Cabin Play gustatzen bazaizu, hemen lagun dezakezu haren garapena.',
     },
     finish: 'Eginda',
   },
@@ -282,24 +280,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Software-eguneratzea',
-    upToDate: 'Eguneratuta',
-    available: '{version} bertsioa eskuragarri',
-    badge: 'Eguneratze bat dago',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Play-ren bertsio berri bat prest dago. Berez deskargatu eta instalatzen da, eta gero Cabin Play berrabiarazten da.',
-    whatsNew: 'Berritasunak',
     later: 'Geroago',
-    install: 'Eguneratu',
     closeGame: {
       title: 'Itxi jokoa, mesedez.',
       text: 'Cabin Play jokoa martxan ez dagoenean bakarrik egunera daiteke.',
     },
-    downloading: 'Deskargatzen',
-    installing: 'Instalatzen, eta gero Cabin Play berrabiarazten da',
-    failed: 'Ezin izan da eguneratzea instalatu.',
     banners: {
-      updating: { title: 'Eguneratzen', text: 'Cabin Play berez berrabiarazten da' },
       updated: { title: 'Eguneratuta', text: 'Cabin Play berria zure jokoan dago' },
     },
     finish: {
@@ -307,11 +293,5 @@ export const words: CompanionWords = {
       text: 'Cabin Play berriaren plugina zure jokoan jartzen da. Windows-ek baimena eskatzen du, instalatzean bezala.',
       button: 'Jarraitu',
     },
-  },
-  support: {
-    title: 'Lagun iezadazu',
-    sub: 'Cabin Play doakoa da. Zure bidaiak hobetzen baditu, haren garapena Kreosus-en lagun dezakezu, behin edo hilero.',
-    button: 'Lagundu Kreosus-en',
-    note: 'Kreosus zure arakatzailean irekitzen du.',
   },
 }

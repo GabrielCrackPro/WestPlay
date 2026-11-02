@@ -155,7 +155,7 @@ Music plays from the truck's own speakers, each where it sits in the cab. Other 
    screens mod, and builds your map.
 3. Start the game and get in a truck.
 
-WestPlay looks for updates on its own and asks before installing one.
+App updates must be downloaded and installed manually.
 
 **Requirements:** Windows 10 or 11 (64-bit), Euro Truck Simulator 2 version 1.61 (other versions may work; the
 companion says when one is untested), and Microsoft Edge WebView2 (part of Windows 11; the installer adds it
@@ -168,8 +168,7 @@ WestPlay has no servers, no accounts of its own and no analytics. It doesn't col
 - You sign in to Apple Music, Spotify and YouTube on their own pages, in WestPlay's own browser profile on your PC,
   as you would in a browser. WestPlay keeps no account data of its own.
 - Your map is built from your game on your PC and stays there.
-- WestPlay talks to the services you use, to GitHub to look for updates, and to Kreosus only if you open
-  "Support me".
+- WestPlay doesn't check for app updates or open an external support page.
 
 ## Support
 

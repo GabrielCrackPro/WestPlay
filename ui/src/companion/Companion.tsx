@@ -15,9 +15,8 @@ import { MapPage } from './pages/MapPage'
 import { screenState } from './pages/page'
 import { ScreenPage } from './pages/ScreenPage'
 import { Setup } from './pages/Setup'
-import { Support } from './pages/Support'
 import { UninstallSheet } from './pages/UninstallSheet'
-import { FinishUpdate, UpdateSheet } from './pages/UpdateSheet'
+import { FinishUpdate } from './pages/FinishUpdate'
 import { type CompanionWords, companionWords, type SectionId } from './pages/words'
 import { RoomText, n, WordsContext } from './room/room'
 import './room/room.css'
@@ -27,7 +26,6 @@ import { useDemo } from './room/useDemo'
 import './companion.css'
 import { defaultMapAddress, type GameCheck, type SetupState, setupState } from './setup'
 import { FILES_BASE, useCustomizations } from './customize'
-import { type Offer, useUpdateOffer } from './update'
 import { type HostStatus, useHostStatus } from './useHostStatus'
 import { useKeyName } from './keys'
 import { DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
@@ -81,7 +79,6 @@ const SECTIONS: SectionId[][] = [
   ['screen', 'controls', 'customize'],
   ['accounts', 'map'],
   ['setup', 'about'],
-  ['support'],
 ]
 /** The sections in order: the tutorial's tour goes through them. */
 const TOUR = SECTIONS.flat()
@@ -102,7 +99,6 @@ const SECTION_GLOW: Record<SectionId, string> = {
   map: GLOW.maps,
   setup: GLOW.scan,
   about: GLOW.dashboard,
-  support: GLOW.home,
 }
 
 /** How long a page's words take to leave before the next one's arrive. */
@@ -149,12 +145,8 @@ function Room({
   // The uninstall sheet over the room, and the room fading as Cabin Play leaves.
   const [uninstalling, setUninstalling] = useState(false)
   const [leavingPc, setLeavingPc] = useState(false)
-  // An update found, offered in its sheet once per version (Later puts it off; About opens it again).
-  const update = useUpdateOffer()
   // The player's wallpapers and icon sets, for Customize and the room's screen.
   const { custom, refresh: refreshCustom } = useCustomizations()
-  const [updateShown, setUpdateShown] = useState(false)
-  const offered = useRef<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const arrived = useRef(performance.now() + ARRIVE_MS)
 
@@ -246,11 +238,6 @@ function Room({
     else open(TOUR[at + 1])
   }
   const roomShown = phase === 'tour' || phase === 'room'
-  useEffect(() => {
-    if (!update || phase !== 'room' || offered.current === update.version) return
-    offered.current = update.version
-    setUpdateShown(true)
-  }, [update, phase])
 
   // The maps being prepared, worked out once: the Map page's bar and the sidebar show the same.
   const mapProgress = useMapProgress(status)
@@ -264,8 +251,6 @@ function Room({
     checked: setCheck,
     signedIn,
     uninstall: () => setUninstalling(true),
-    update,
-    showUpdate: () => setUpdateShown(true),
     custom,
     refreshCustom,
     tutorial: () => setPhase('lesson'),
@@ -323,7 +308,6 @@ function Room({
                 signedIn={signedIn}
                 settings={settings}
                 setup={setup}
-                update={update}
                 mapProgress={mapProgress}
               />
             )}
@@ -334,15 +318,11 @@ function Room({
             {roomShown && section === 'map' && <MapPage {...page} />}
             {roomShown && section === 'setup' && <Setup {...page} />}
             {roomShown && section === 'about' && <About {...page} />}
-            {roomShown && section === 'support' && <Support {...page} />}
             {phase === 'tour' && (
               <TourCard cw={cw} section={section} last={section === TOUR[TOUR.length - 1]} next={nextInTour} />
             )}
             {uninstalling && (
               <UninstallSheet cw={cw} close={() => setUninstalling(false)} farewell={() => setLeavingPc(true)} />
-            )}
-            {updateShown && update && !uninstalling && (
-              <UpdateSheet cw={cw} offer={update} close={() => setUpdateShown(false)} />
             )}
             {phase === 'room' && <FinishUpdate cw={cw} setup={setup} />}
           </ScreenContext.Provider>
@@ -366,7 +346,6 @@ function SectionList({
   signedIn,
   settings,
   setup,
-  update,
   mapProgress,
 }: {
   section: SectionId
@@ -377,7 +356,6 @@ function SectionList({
   signedIn: SignedIn
   settings: SettingsState
   setup: SetupState
-  update: Offer | null
   mapProgress: MapProgress
 }) {
   const list = useRef<HTMLElement>(null)
@@ -412,8 +390,7 @@ function SectionList({
             .join(', ') || cw.values.none,
     map: mapValue(status, mapProgress, cw, words),
     setup: setup.game?.version ?? '',
-    about: update ? cw.update.badge : version,
-    support: '',
+    about: version,
   }
 
   let place = 2

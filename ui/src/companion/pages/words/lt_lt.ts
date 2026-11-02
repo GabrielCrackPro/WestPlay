@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Žemėlapis',
     setup: 'Sąranka',
     about: 'Apie',
-    support: 'Paremk mane',
   },
   state: {
     starting: 'Paleidžiama…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Tavo žemėlapis, sukurtas iš tavo žaidimo. Jis paruošiamas iš naujo, kai pasikeičia žaidimas ar tavo žemėlapio modai.',
       setup: 'Kur įdiegtas Cabin Play, su diegimu iš naujo ir pašalinimu, jei kada prireiktų.',
       about: 'Tavo versija ir ataskaita kopijuoti, jei kažkas negerai.',
-      support: 'Jei tau patinka Cabin Play, čia gali paremti jo kūrimą.',
     },
     finish: 'Atlikta',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Programinės įrangos naujinys',
-    upToDate: 'Naujausia versija',
-    available: 'Galima {version} versija',
-    badge: 'Yra naujinys',
-    title: 'Cabin Play {version}',
-    sub: 'Nauja Cabin Play versija paruošta. Ji pati atsisiunčiama ir įdiegiama, tada Cabin Play paleidžiamas iš naujo.',
-    whatsNew: 'Kas naujo',
     later: 'Vėliau',
-    install: 'Atnaujinti',
     closeGame: { title: 'Uždaryk žaidimą.', text: 'Cabin Play galima atnaujinti tik tada, kai žaidimas neveikia.' },
-    downloading: 'Atsisiunčiama',
-    installing: 'Diegiama, tada Cabin Play paleidžiamas iš naujo',
-    failed: 'Naujinio įdiegti nepavyko.',
     banners: {
-      updating: { title: 'Atnaujinama', text: 'Cabin Play pats pasileidžia iš naujo' },
       updated: { title: 'Atnaujinta', text: 'Naujasis Cabin Play jau tavo žaidime' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Naujojo Cabin Play papildinys įdedamas į tavo žaidimą. Windows paprašys leidimo, kaip ir diegiant.',
       button: 'Tęsti',
     },
-  },
-  support: {
-    title: 'Paremk mane',
-    sub: 'Cabin Play nemokamas. Jei jis daro tavo keliones geresnes, gali paremti jo kūrimą „Kreosus“ vieną kartą arba kas mėnesį.',
-    button: 'Paremti „Kreosus“',
-    note: 'Atidaro „Kreosus“ tavo naršyklėje.',
   },
 }

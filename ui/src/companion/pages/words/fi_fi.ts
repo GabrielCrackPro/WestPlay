@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Kartta',
     setup: 'Asennus',
     about: 'Tietoja',
-    support: 'Tue minua',
   },
   state: {
     starting: 'Käynnistyy…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Karttasi, tehty pelistäsi. Se valmistellaan uudelleen, kun peli tai karttamodisi muuttuvat.',
       setup: 'Mihin Cabin Play on asennettu, sekä uudelleenasennus ja poisto, jos niitä joskus tarvitset.',
       about: 'Versiosi ja kopioitava raportti, jos jokin ei ole kunnossa.',
-      support: 'Jos pidät Cabin Playsta, voit tukea sen kehitystä täällä.',
     },
     finish: 'Valmis',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Ohjelmistopäivitys',
-    upToDate: 'Ajan tasalla',
-    available: '{version} saatavilla',
-    badge: 'Päivitys saatavilla',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Playn uusi versio on valmis. Se latautuu ja asentuu itsestään, ja sitten Cabin Play käynnistyy uudelleen.',
-    whatsNew: 'Uutta',
     later: 'Myöhemmin',
-    install: 'Päivitä',
     closeGame: { title: 'Sulje peli.', text: 'Cabin Playn voi päivittää vain, kun peli ei ole käynnissä.' },
-    downloading: 'Ladataan',
-    installing: 'Asennetaan, sitten Cabin Play käynnistyy uudelleen',
-    failed: 'Päivitystä ei voitu asentaa.',
     banners: {
-      updating: { title: 'Päivitetään', text: 'Cabin Play käynnistyy uudelleen itsestään' },
       updated: { title: 'Päivitetty', text: 'Uusi Cabin Play on pelissäsi' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Uuden Cabin Playn laajennus asennetaan peliisi. Windows pyytää lupaa kuten asennuksessa.',
       button: 'Jatka',
     },
-  },
-  support: {
-    title: 'Tue minua',
-    sub: 'Cabin Play on ilmainen. Jos se tekee ajoistasi parempia, voit tukea sen kehitystä Kreosuksessa kerran tai joka kuukausi.',
-    button: 'Tue Kreosuksessa',
-    note: 'Avaa Kreosuksen selaimessasi.',
   },
 }

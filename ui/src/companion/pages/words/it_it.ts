@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mappa',
     setup: 'Configurazione',
     about: 'Info',
-    support: 'Sostienimi',
   },
   state: {
     starting: 'Avvio…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'La tua mappa, creata dal tuo gioco. Viene preparata di nuovo quando cambiano il gioco o le tue mod della mappa.',
       setup: 'Dove è installato Cabin Play, con Reinstalla e Disinstalla se mai ti servissero.',
       about: 'La tua versione, e un rapporto da copiare se qualcosa non va.',
-      support: 'Se Cabin Play ti piace, qui puoi sostenerne lo sviluppo.',
     },
     finish: 'Fine',
   },
@@ -283,21 +281,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Aggiornamento software',
-    upToDate: 'Aggiornato',
-    available: '{version} disponibile',
-    badge: 'Aggiornamento disponibile',
-    title: 'Cabin Play {version}',
-    sub: 'È pronta una nuova versione di Cabin Play. Si scarica e si installa da sola, poi Cabin Play si riavvia.',
-    whatsNew: 'Novità',
     later: 'Più tardi',
-    install: 'Aggiorna',
     closeGame: { title: 'Chiudi il gioco.', text: 'Cabin Play si può aggiornare solo mentre il gioco non è avviato.' },
-    downloading: 'Download in corso',
-    installing: 'Installazione, poi Cabin Play si riavvia',
-    failed: 'Non è stato possibile installare l’aggiornamento.',
     banners: {
-      updating: { title: 'Aggiornamento in corso', text: 'Cabin Play si riavvia da solo' },
       updated: { title: 'Aggiornato', text: 'Il nuovo Cabin Play è nel tuo gioco' },
     },
     finish: {
@@ -305,11 +291,5 @@ export const words: CompanionWords = {
       text: 'Il plugin del nuovo Cabin Play va nel tuo gioco. Windows chiede il permesso, come quando l’hai installato.',
       button: 'Continua',
     },
-  },
-  support: {
-    title: 'Sostienimi',
-    sub: 'Cabin Play è gratuito. Se rende migliori i tuoi viaggi, puoi sostenerne lo sviluppo su Kreosus, una volta o ogni mese.',
-    button: 'Sostieni su Kreosus',
-    note: 'Apre Kreosus nel tuo browser.',
   },
 }

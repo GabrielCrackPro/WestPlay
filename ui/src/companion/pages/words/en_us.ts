@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     setup: 'Setup',
     about: 'About',
     customize: 'Customize',
-    support: 'Support me',
   },
   state: {
     starting: 'Starting…',
@@ -194,7 +193,6 @@ export const words: CompanionWords = {
       map: 'Your map, made from your game. It’s prepared again when the game or your map mods change.',
       setup: 'Where Cabin Play is installed, with Reinstall and Uninstall if you ever need them.',
       about: 'Your version, and a report to copy if something isn’t right.',
-      support: 'If you enjoy Cabin Play, you can support its development here.',
     },
     finish: 'Done',
   },
@@ -275,21 +273,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Software Update',
-    upToDate: 'Up to date',
-    available: '{version} available',
-    badge: 'Update available',
-    title: 'Cabin Play {version}',
-    sub: 'A new version of Cabin Play is ready. It downloads and installs itself, then Cabin Play starts again.',
-    whatsNew: 'What’s new',
     later: 'Later',
-    install: 'Update',
     closeGame: { title: 'Please close the game.', text: 'Cabin Play can only be updated while it isn’t running.' },
-    downloading: 'Downloading',
-    installing: 'Installing, then Cabin Play starts again',
-    failed: 'The update couldn’t be installed.',
     banners: {
-      updating: { title: 'Updating', text: 'Cabin Play starts again by itself' },
       updated: { title: 'Updated', text: 'The new Cabin Play is in your game' },
     },
     finish: {
@@ -297,11 +283,5 @@ export const words: CompanionWords = {
       text: 'The new Cabin Play’s plugin goes into your game. Windows asks for permission, as when you installed it.',
       button: 'Continue',
     },
-  },
-  support: {
-    title: 'Support me',
-    sub: 'Cabin Play is free. If it makes your drives better, you can support its development on Kreosus, once or every month.',
-    button: 'Support on Kreosus',
-    note: 'Opens Kreosus in your browser.',
   },
 }

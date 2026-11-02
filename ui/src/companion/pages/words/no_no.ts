@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Kart',
     setup: 'Oppsett',
     about: 'Om',
-    support: 'Støtt meg',
   },
   state: {
     starting: 'Starter …',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Kartet ditt, laget fra spillet ditt. Det gjøres klart på nytt når spillet eller kartmodifikasjonene dine endres.',
       setup: 'Hvor Cabin Play er installert, med Installer på nytt og Avinstaller hvis du noen gang trenger dem.',
       about: 'Versjonen din, og en rapport å kopiere hvis noe ikke stemmer.',
-      support: 'Liker du Cabin Play, kan du støtte utviklingen her.',
     },
     finish: 'Ferdig',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Programvareoppdatering',
-    upToDate: 'Oppdatert',
-    available: '{version} er tilgjengelig',
-    badge: 'Oppdatering tilgjengelig',
-    title: 'Cabin Play {version}',
-    sub: 'En ny versjon av Cabin Play er klar. Den laster ned og installerer seg selv, så starter Cabin Play på nytt.',
-    whatsNew: 'Nyheter',
     later: 'Senere',
-    install: 'Oppdater',
     closeGame: { title: 'Lukk spillet.', text: 'Cabin Play kan bare oppdateres mens spillet ikke kjører.' },
-    downloading: 'Laster ned',
-    installing: 'Installerer, så starter Cabin Play på nytt',
-    failed: 'Oppdateringen kunne ikke installeres.',
     banners: {
-      updating: { title: 'Oppdaterer', text: 'Cabin Play starter på nytt av seg selv' },
       updated: { title: 'Oppdatert', text: 'Den nye Cabin Play er i spillet ditt' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Programtillegget til den nye Cabin Play legges i spillet ditt. Windows ber om tillatelse, som ved installasjonen.',
       button: 'Fortsett',
     },
-  },
-  support: {
-    title: 'Støtt meg',
-    sub: 'Cabin Play er gratis. Gjør det turene dine bedre, kan du støtte utviklingen på Kreosus, én gang eller hver måned.',
-    button: 'Støtt på Kreosus',
-    note: 'Åpner Kreosus i nettleseren din.',
   },
 }

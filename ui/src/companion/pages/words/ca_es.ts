@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Configuració',
     about: 'Quant a',
-    support: 'Dona’m suport',
   },
   state: {
     starting: 'S’està iniciant…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'El teu mapa, creat a partir del teu joc. Es torna a preparar quan canvien el joc o els teus mods de mapa.',
       setup: 'On està instal·lat Cabin Play, amb Reinstal·la i Desinstal·la per si mai els necessites.',
       about: 'La teva versió i un informe per copiar si alguna cosa no va bé.',
-      support: 'Si t’agrada Cabin Play, aquí pots donar suport al seu desenvolupament.',
     },
     finish: 'Fet',
   },
@@ -283,24 +281,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Actualització de programari',
-    upToDate: 'Actualitzat',
-    available: '{version} disponible',
-    badge: 'Actualització disponible',
-    title: 'Cabin Play {version}',
-    sub: 'Hi ha una versió nova de Cabin Play a punt. Es baixa i s’instal·la sola, i després Cabin Play es reinicia.',
-    whatsNew: 'Novetats',
     later: 'Més tard',
-    install: 'Actualitza',
     closeGame: {
       title: 'Tanca el joc, si us plau.',
       text: 'Cabin Play només es pot actualitzar mentre el joc no està obert.',
     },
-    downloading: 'Baixant',
-    installing: 'Instal·lant; després Cabin Play es reinicia',
-    failed: 'No s’ha pogut instal·lar l’actualització.',
     banners: {
-      updating: { title: 'Actualitzant', text: 'Cabin Play es reinicia sol' },
       updated: { title: 'Actualitzat', text: 'El nou Cabin Play ja és al teu joc' },
     },
     finish: {
@@ -308,11 +294,5 @@ export const words: CompanionWords = {
       text: 'El connector del nou Cabin Play va al teu joc. Windows demana permís, com quan el vas instal·lar.',
       button: 'Continua',
     },
-  },
-  support: {
-    title: 'Dona’m suport',
-    sub: 'Cabin Play és gratuït. Si et fa millors els trajectes, pots donar suport al seu desenvolupament a Kreosus, un cop o cada mes.',
-    button: 'Dona suport a Kreosus',
-    note: 'Obre Kreosus al teu navegador.',
   },
 }

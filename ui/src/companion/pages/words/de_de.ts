@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Karte',
     setup: 'Einrichtung',
     about: 'Info',
-    support: 'Unterstütze mich',
   },
   state: {
     starting: 'Wird gestartet …',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'Deine Karte, aus deinem Spiel erstellt. Sie wird neu vorbereitet, wenn sich das Spiel oder deine Karten-Mods ändern.',
       setup: 'Wo Cabin Play installiert ist, mit Neu installieren und Deinstallieren, falls du sie je brauchst.',
       about: 'Deine Version, und ein Bericht zum Kopieren, falls etwas nicht stimmt.',
-      support: 'Wenn dir Cabin Play gefällt, kannst du hier seine Entwicklung unterstützen.',
     },
     finish: 'Fertig',
   },
@@ -283,24 +281,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Softwareupdate',
-    upToDate: 'Aktuell',
-    available: '{version} verfügbar',
-    badge: 'Update verfügbar',
-    title: 'Cabin Play {version}',
-    sub: 'Eine neue Version von Cabin Play ist bereit. Sie lädt und installiert sich selbst, dann startet Cabin Play neu.',
-    whatsNew: 'Neuerungen',
     later: 'Später',
-    install: 'Aktualisieren',
     closeGame: {
       title: 'Bitte schließe das Spiel.',
       text: 'Cabin Play kann nur aktualisiert werden, während das Spiel nicht läuft.',
     },
-    downloading: 'Wird geladen',
-    installing: 'Wird installiert, dann startet Cabin Play neu',
-    failed: 'Das Update konnte nicht installiert werden.',
     banners: {
-      updating: { title: 'Wird aktualisiert', text: 'Cabin Play startet von selbst neu' },
       updated: { title: 'Aktualisiert', text: 'Das neue Cabin Play ist in deinem Spiel' },
     },
     finish: {
@@ -308,11 +294,5 @@ export const words: CompanionWords = {
       text: 'Das Plug-in des neuen Cabin Play kommt in dein Spiel. Windows fragt nach der Erlaubnis, wie bei der Installation.',
       button: 'Weiter',
     },
-  },
-  support: {
-    title: 'Unterstütze mich',
-    sub: 'Cabin Play ist kostenlos. Wenn es deine Fahrten besser macht, kannst du die Entwicklung auf Kreosus unterstützen, einmalig oder jeden Monat.',
-    button: 'Auf Kreosus unterstützen',
-    note: 'Öffnet Kreosus in deinem Browser.',
   },
 }

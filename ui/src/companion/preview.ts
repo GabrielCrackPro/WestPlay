@@ -1,7 +1,6 @@
 import type { GameCheck, GameInfo, InstallReport, SetupState } from './setup'
 import type { Customizations } from '../shared/customize'
 import type { Added } from './customize'
-import type { Offer } from './update'
 import type { HostStatus, MapStatus } from './useHostStatus'
 import type { Settings } from './useSettings'
 
@@ -13,7 +12,6 @@ import type { Settings } from './useSettings'
  * - `?game=off|on|live|unsupported`: the game not running, running (the cab not on the screen), the screen live, or
  *   the player in a truck Cabin Play doesn't show in.
  * - `?map=building|ready|waiting|failed`: the map's state (`building` runs to `ready`).
- * - `?update`: an update found (its sheet offers it; installing it downloads, then stays installing).
  * - `?custom`: some wallpapers and an icon set of the player's (adding gives more, with a file left out).
  * - `?leftOut`: the played profile's map made without a map mod it couldn't read.
  * - `?elevated`: the game run as administrator (Cabin Play can't read its route, guidance or weather).
@@ -42,18 +40,6 @@ const setup: SetupState = {
   gameRunning: gameState !== 'off',
   language: query.get('lang'),
 }
-
-const UPDATE: Offer | null = query.has('update')
-  ? {
-      version: '1.1.0',
-      notes: [
-        '- Song lyrics on the Now Playing screen.',
-        '- The map follows the route around roundabouts.',
-        '- **Fixed:** YouTube Music skipping the first song.',
-      ].join('\n'),
-      date: '2026-11-02',
-    }
-  : null
 
 let settings: Settings = {
   interaction: { key: 0xa4, mode: 'hold', sensitivity: 1.4 },
@@ -309,9 +295,6 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
     case 'apple_music_sign_in':
       signIn('appleMusic')
       return later(undefined)
-    case 'open_support_page':
-      window.open('https://kreosus.com/enes-less', '_blank', 'noopener')
-      return later(undefined)
     case 'app_log_place':
       return later('C:\\Users\\Player\\Documents\\WestPlay\\logs\\app.log')
     case 'youtube_sign_out':
@@ -371,19 +354,6 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
       custom.iconSets = custom.iconSets.filter((set) => set.name !== args?.name)
       if (settings.look.iconSet === args?.name) setLook({ iconSet: null })
       return later(undefined)
-    case 'update_offer':
-      return later(UPDATE)
-    case 'look_for_update':
-      if (UPDATE) emit('update-found', UPDATE)
-      return later(UPDATE, 700)
-    case 'install_update': {
-      const total = 48_000_000
-      for (let step = 1; step <= 20; step++) {
-        setTimeout(() => emit('update-progress', { done: (total * step) / 20, total }), step * 150)
-      }
-      // The app quits for the installer: nothing comes back.
-      return new Promise(() => {})
-    }
     default:
       return Promise.reject(new Error(`preview: no answer for ${command}`))
   }

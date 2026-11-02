@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Térkép',
     setup: 'Beállítás',
     about: 'Névjegy',
-    support: 'Támogass engem',
   },
   state: {
     starting: 'Indul…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'A térképed, a játékodból készítve. Újra elkészül, ha a játék vagy a térképmodjaid változnak.',
       setup: 'Hová van telepítve a Cabin Play, újratelepítéssel és eltávolítással, ha valaha kellenének.',
       about: 'A verziód és egy másolható jelentés, ha valami nem stimmel.',
-      support: 'Ha tetszik a Cabin Play, itt támogathatod a fejlesztését.',
     },
     finish: 'Kész',
   },
@@ -283,21 +281,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Szoftverfrissítés',
-    upToDate: 'Naprakész',
-    available: 'Elérhető: {version}',
-    badge: 'Frissítés érhető el',
-    title: 'Cabin Play {version}',
-    sub: 'Elkészült a Cabin Play új verziója. Magától letöltődik és települ, majd a Cabin Play újraindul.',
-    whatsNew: 'Újdonságok',
     later: 'Később',
-    install: 'Frissítés',
     closeGame: { title: 'Zárd be a játékot.', text: 'A Cabin Play csak akkor frissíthető, amikor a játék nem fut.' },
-    downloading: 'Letöltés',
-    installing: 'Telepítés, majd a Cabin Play újraindul',
-    failed: 'A frissítést nem sikerült telepíteni.',
     banners: {
-      updating: { title: 'Frissítés folyamatban', text: 'A Cabin Play magától újraindul' },
       updated: { title: 'Frissítve', text: 'Az új Cabin Play a játékodban van' },
     },
     finish: {
@@ -305,11 +291,5 @@ export const words: CompanionWords = {
       text: 'Az új Cabin Play bővítménye a játékodba kerül. A Windows engedélyt kér, mint a telepítéskor.',
       button: 'Tovább',
     },
-  },
-  support: {
-    title: 'Támogass engem',
-    sub: 'A Cabin Play ingyenes. Ha jobbá teszi az utaidat, a Kreosuson támogathatod a fejlesztését, egyszer vagy havonta.',
-    button: 'Támogatás a Kreosuson',
-    note: 'Megnyitja a Kreosust a böngésződben.',
   },
 }

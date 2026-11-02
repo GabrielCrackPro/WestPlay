@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Kort',
     setup: 'Opsætning',
     about: 'Om',
-    support: 'Støt mig',
   },
   state: {
     starting: 'Starter…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'Dit kort, lavet ud fra dit spil. Det gøres klar igen, når spillet eller dine kortmods ændrer sig.',
       setup: 'Hvor Cabin Play er installeret, med Geninstaller og Afinstaller, hvis du nogensinde får brug for dem.',
       about: 'Din version og en rapport, du kan kopiere, hvis noget ikke er, som det skal være.',
-      support: 'Kan du lide Cabin Play, kan du støtte udviklingen her.',
     },
     finish: 'Færdig',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Softwareopdatering',
-    upToDate: 'Opdateret',
-    available: '{version} er tilgængelig',
-    badge: 'Opdatering tilgængelig',
-    title: 'Cabin Play {version}',
-    sub: 'En ny version af Cabin Play er klar. Den henter og installerer sig selv, og så starter Cabin Play igen.',
-    whatsNew: 'Nyheder',
     later: 'Senere',
-    install: 'Opdater',
     closeGame: { title: 'Luk spillet.', text: 'Cabin Play kan kun opdateres, mens spillet ikke kører.' },
-    downloading: 'Henter',
-    installing: 'Installerer, så starter Cabin Play igen',
-    failed: 'Opdateringen kunne ikke installeres.',
     banners: {
-      updating: { title: 'Opdaterer', text: 'Cabin Play starter igen af sig selv' },
       updated: { title: 'Opdateret', text: 'Det nye Cabin Play er i dit spil' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Det nye Cabin Plays plugin lægges i dit spil. Windows beder om tilladelse ligesom ved installationen.',
       button: 'Fortsæt',
     },
-  },
-  support: {
-    title: 'Støt mig',
-    sub: 'Cabin Play er gratis. Gør det dine ture bedre, kan du støtte udviklingen på Kreosus, én gang eller hver måned.',
-    button: 'Støt på Kreosus',
-    note: 'Åbner Kreosus i din browser.',
   },
 }

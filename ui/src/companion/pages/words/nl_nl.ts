@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Kaart',
     setup: 'Set-up',
     about: 'Over',
-    support: 'Steun mij',
   },
   state: {
     starting: 'Bezig met starten…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'Je kaart, gemaakt van je game. Hij wordt opnieuw klaargemaakt als de game of je kaartmods veranderen.',
       setup: 'Waar Cabin Play geïnstalleerd is, met Opnieuw installeren en Verwijderen als je ze ooit nodig hebt.',
       about: 'Je versie, en een rapport om te kopiëren als er iets niet klopt.',
-      support: 'Vind je Cabin Play leuk, dan kun je hier de ontwikkeling steunen.',
     },
     finish: 'Klaar',
   },
@@ -283,21 +281,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Software-update',
-    upToDate: 'Bijgewerkt',
-    available: '{version} beschikbaar',
-    badge: 'Update beschikbaar',
-    title: 'Cabin Play {version}',
-    sub: 'Er is een nieuwe versie van Cabin Play klaar. Die wordt vanzelf gedownload en geïnstalleerd, daarna start Cabin Play opnieuw.',
-    whatsNew: 'Nieuw',
     later: 'Later',
-    install: 'Bijwerken',
     closeGame: { title: 'Sluit de game.', text: 'Cabin Play kan alleen worden bijgewerkt als de game niet draait.' },
-    downloading: 'Downloaden',
-    installing: 'Installeren, daarna start Cabin Play opnieuw',
-    failed: 'De update kon niet worden geïnstalleerd.',
     banners: {
-      updating: { title: 'Bijwerken', text: 'Cabin Play start vanzelf opnieuw' },
       updated: { title: 'Bijgewerkt', text: 'De nieuwe Cabin Play zit in je game' },
     },
     finish: {
@@ -305,11 +291,5 @@ export const words: CompanionWords = {
       text: 'De plug-in van de nieuwe Cabin Play gaat in je game. Windows vraagt om toestemming, net als bij de installatie.',
       button: 'Doorgaan',
     },
-  },
-  support: {
-    title: 'Steun mij',
-    sub: 'Cabin Play is gratis. Maakt het je ritten beter, dan kun je de ontwikkeling steunen op Kreosus, eenmalig of elke maand.',
-    button: 'Steunen via Kreosus',
-    note: 'Opent Kreosus in je browser.',
   },
 }

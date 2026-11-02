@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'マップ',
     setup: 'セットアップ',
     about: '情報',
-    support: '応援する',
   },
   state: {
     starting: '起動中…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'あなたのゲームから作られたマップです。ゲームやマップ MOD が変わると、もう一度準備されます。',
       setup: 'Cabin Play のインストール場所です。必要なときのために、再インストールとアンインストールもあります。',
       about: 'バージョンと、うまくいかないときにコピーできるレポートです。',
-      support: 'Cabin Play を気に入ったら、ここで開発を応援できます。',
     },
     finish: '完了',
   },
@@ -282,24 +280,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'ソフトウェアアップデート',
-    upToDate: '最新です',
-    available: '{version} を利用できます',
-    badge: 'アップデートあり',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Play の新しいバージョンの準備ができました。自動でダウンロードとインストールが行われ、Cabin Play が再起動します。',
-    whatsNew: '新機能',
     later: 'あとで',
-    install: 'アップデート',
     closeGame: {
       title: 'ゲームを終了してください。',
       text: 'Cabin Play のアップデートは、ゲームが起動していないときだけできます。',
     },
-    downloading: 'ダウンロード中',
-    installing: 'インストール中。終わると Cabin Play が再起動します',
-    failed: 'アップデートをインストールできませんでした。',
     banners: {
-      updating: { title: 'アップデート中', text: 'Cabin Play は自動で再起動します' },
       updated: { title: 'アップデート完了', text: '新しい Cabin Play がゲームに入りました' },
     },
     finish: {
@@ -307,11 +293,5 @@ export const words: CompanionWords = {
       text: '新しい Cabin Play のプラグインをゲームに入れます。インストール時と同じく、Windows が許可を求めます。',
       button: '続ける',
     },
-  },
-  support: {
-    title: '応援する',
-    sub: 'Cabin Play は無料です。ドライブが楽しくなったら、Kreosus で開発を応援できます（1 回だけでも、毎月でも）。',
-    button: 'Kreosus で応援する',
-    note: 'ブラウザで Kreosus が開きます。',
   },
 }

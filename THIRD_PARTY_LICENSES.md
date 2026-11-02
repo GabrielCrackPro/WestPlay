@@ -200,7 +200,6 @@ each printed once with the libraries it covers. Written for each release by the 
 | tauri | 2.12.2 | Apache-2.0 OR MIT | Rust crate |
 | tauri-codegen | 2.7.1 | Apache-2.0 OR MIT | Rust crate |
 | tauri-macros | 2.7.1 | Apache-2.0 OR MIT | Rust crate |
-| tauri-plugin-updater | 2.14.0 | Apache-2.0 OR MIT | Rust crate |
 | tauri-runtime | 2.12.1 | Apache-2.0 OR MIT | Rust crate |
 | tauri-runtime-wry | 2.12.1 | Apache-2.0 OR MIT | Rust crate |
 | tauri-utils | 2.10.2 | Apache-2.0 OR MIT | Rust crate |
@@ -4648,7 +4647,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 51. Used by fdeflate 0.3.7, image 0.25.10, image-webp 0.2.4, miniz_oxide 0.8.9, miniz_oxide 0.9.1, num-conv 0.2.2, pin-project-lite 0.2.17, raw-window-handle 0.6.2, sync_wrapper 1.0.2, tauri 2.12.2, tauri-codegen 2.7.1, tauri-macros 2.7.1, tauri-plugin-updater 2.14.0, tauri-runtime 2.12.1, tauri-runtime-wry 2.12.1, tauri-utils 2.10.2, time 0.3.55, time-core 0.1.9, time-macros 0.2.32, @tauri-apps/api 2.12.2
+### 51. Used by fdeflate 0.3.7, image 0.25.10, image-webp 0.2.4, miniz_oxide 0.8.9, miniz_oxide 0.9.1, num-conv 0.2.2, pin-project-lite 0.2.17, raw-window-handle 0.6.2, sync_wrapper 1.0.2, tauri 2.12.2, tauri-codegen 2.7.1, tauri-macros 2.7.1, tauri-runtime 2.12.1, tauri-runtime-wry 2.12.1, tauri-utils 2.10.2, time 0.3.55, time-core 0.1.9, time-macros 0.2.32, @tauri-apps/api 2.12.2
 
 ```
 Apache License
@@ -10149,7 +10148,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tao.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-### 147. Used by tauri 2.12.2, tauri-codegen 2.7.1, tauri-macros 2.7.1, tauri-plugin-updater 2.14.0, tauri-runtime 2.12.1, tauri-runtime-wry 2.12.1, tauri-utils 2.10.2, @tauri-apps/api 2.12.2
+### 147. Used by tauri 2.12.2, tauri-codegen 2.7.1, tauri-macros 2.7.1, tauri-runtime 2.12.1, tauri-runtime-wry 2.12.1, tauri-utils 2.10.2, @tauri-apps/api 2.12.2
 
 ```
 MIT License
@@ -10175,32 +10174,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 148. Used by tauri-plugin-updater 2.14.0
-
-```
-SPDXVersion: SPDX-2.1
-DataLicense: CC0-1.0
-PackageName: tauri
-DataFormat: SPDXRef-1
-PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
-PackageHomePage: https://tauri.app
-PackageLicenseDeclared: Apache-2.0
-PackageLicenseDeclared: MIT
-PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
-PackageSummary: <text>Tauri is a rust project that enables developers to make secure
-and small desktop applications using a web frontend.
-                </text>
-PackageComment: <text>The package includes the following libraries; see
-Relationship information.
-                </text>
-Created: 2019-05-20T09:00:00Z
-PackageDownloadLocation: git://github.com/tauri-apps/tauri
-PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
-PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
-Creator: Person: Daniel Thompson-Yvetot
-```
-
-### 149. Used by tempfile 3.27.0
+### 148. Used by tempfile 3.27.0
 
 ```
 Copyright (c) 2015 Steven Allen
@@ -10230,7 +10204,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 150. Used by tendril 0.5.1
+### 149. Used by tendril 0.5.1
 
 ```
 Copyright (c) 2015 Keegan McAllister
@@ -10260,7 +10234,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 151. Used by time 0.3.55, time-core 0.1.9, time-macros 0.2.32
+### 150. Used by time 0.3.55, time-core 0.1.9, time-macros 0.2.32
 
 ```
 Copyright (c) Jacob Pratt et al.
@@ -10284,7 +10258,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 152. Used by tokio 1.53.2, tokio-util 0.7.20
+### 151. Used by tokio 1.53.2, tokio-util 0.7.20
 
 ```
 MIT License
@@ -10310,7 +10284,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 153. Used by tokio-rustls 0.26.6
+### 152. Used by tokio-rustls 0.26.6
 
 ```
 Apache License
@@ -10516,7 +10490,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 154. Used by tokio-rustls 0.26.6
+### 153. Used by tokio-rustls 0.26.6
 
 ```
 Copyright (c) 2017 quininer kel
@@ -10546,7 +10520,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 155. Used by tower 0.5.3, tower-layer 0.3.3, tower-service 0.3.3
+### 154. Used by tower 0.5.3, tower-layer 0.3.3, tower-service 0.3.3
 
 ```
 Copyright (c) 2019 Tower Contributors
@@ -10576,7 +10550,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 156. Used by tower-http 0.6.11
+### 155. Used by tower-http 0.6.11
 
 ```
 Copyright (c) 2019-2021 Tower Contributors
@@ -10606,7 +10580,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 157. Used by tracing 0.1.44, tracing-attributes 0.1.31, tracing-core 0.1.36
+### 156. Used by tracing 0.1.44, tracing-attributes 0.1.31, tracing-core 0.1.36
 
 ```
 Copyright (c) 2019 Tokio Contributors
@@ -10636,7 +10610,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 158. Used by try-lock 0.2.5
+### 157. Used by try-lock 0.2.5
 
 ```
 Copyright (c) 2018-2023 Sean McArthur
@@ -10661,13 +10635,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 159. Used by typenum 1.20.1
+### 158. Used by typenum 1.20.1
 
 ```
 MIT OR Apache-2.0
 ```
 
-### 160. Used by typenum 1.20.1
+### 159. Used by typenum 1.20.1
 
 ```
 Apache License
@@ -10873,7 +10847,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 161. Used by typenum 1.20.1
+### 160. Used by typenum 1.20.1
 
 ```
 The MIT License (MIT)
@@ -10899,7 +10873,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 162. Used by unicode-ident 1.0.26
+### 161. Used by unicode-ident 1.0.26
 
 ```
 UNICODE LICENSE V3
@@ -10943,7 +10917,7 @@ dealings in these Data Files or Software without prior written
 authorization of the copyright holder.
 ```
 
-### 163. Used by untrusted 0.9.0
+### 162. Used by untrusted 0.9.0
 
 ```
 // Copyright 2015-2016 Brian Smith.
@@ -10961,7 +10935,7 @@ authorization of the copyright holder.
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### 164. Used by urlpattern 0.6.0
+### 163. Used by urlpattern 0.6.0
 
 ```
 MIT License
@@ -10987,7 +10961,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 165. Used by utf8_iter 1.0.4
+### 164. Used by utf8_iter 1.0.4
 
 ```
 Copyright Mozilla Foundation
@@ -11017,7 +10991,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 166. Used by uuid 1.27.0
+### 165. Used by uuid 1.27.0
 
 ```
 Copyright (c) 2014 The Rust Project Developers
@@ -11048,7 +11022,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 167. Used by want 0.3.2
+### 166. Used by want 0.3.2
 
 ```
 Copyright (c) 2018-2019 Sean McArthur
@@ -11072,7 +11046,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 168. Used by web-time 1.1.0
+### 167. Used by web-time 1.1.0
 
 ```
 Apache License
@@ -11278,7 +11252,7 @@ Apache License
    limitations under the License.
 ```
 
-### 169. Used by web-time 1.1.0
+### 168. Used by web-time 1.1.0
 
 ```
 MIT License
@@ -11304,7 +11278,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 170. Used by weezl 0.1.12
+### 169. Used by weezl 0.1.12
 
 ```
 The MIT License (MIT)
@@ -11330,7 +11304,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 171. Used by window-vibrancy 0.8.1
+### 170. Used by window-vibrancy 0.8.1
 
 ```
 MIT License
@@ -11356,7 +11330,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 172. Used by window-vibrancy 0.8.1
+### 171. Used by window-vibrancy 0.8.1
 
 ```
 SPDXVersion: SPDX-2.1
@@ -11380,7 +11354,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/window-vibrancy.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-### 173. Used by windows 0.62.2, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-registry 0.6.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.61.2, windows-threading 0.2.1, windows-version 0.1.7
+### 172. Used by windows 0.62.2, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-registry 0.6.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.61.2, windows-threading 0.2.1, windows-version 0.1.7
 
 ```
 Apache License
@@ -11586,7 +11560,7 @@ Apache License
    limitations under the License.
 ```
 
-### 174. Used by windows 0.62.2, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-registry 0.6.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.61.2, windows-threading 0.2.1, windows-version 0.1.7, @types/geojson 7946.0.16, @types/react 19.3.0
+### 173. Used by windows 0.62.2, windows-collections 0.3.2, windows-core 0.62.2, windows-future 0.3.2, windows-implement 0.60.2, windows-interface 0.59.3, windows-link 0.2.1, windows-numerics 0.3.1, windows-registry 0.6.1, windows-result 0.4.1, windows-strings 0.5.1, windows-sys 0.61.2, windows-threading 0.2.1, windows-version 0.1.7, @types/geojson 7946.0.16, @types/react 19.3.0
 
 ```
 MIT License
@@ -11612,7 +11586,7 @@ MIT License
     SOFTWARE
 ```
 
-### 175. Used by winnow 1.0.4
+### 174. Used by winnow 1.0.4
 
 ```
 Permission is hereby granted, free of charge, to any person obtaining
@@ -11635,7 +11609,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 176. Used by wry 0.57.0
+### 175. Used by wry 0.57.0
 
 ```
 MIT License
@@ -11661,7 +11635,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 177. Used by wry 0.57.0
+### 176. Used by wry 0.57.0
 
 ```
 SPDXVersion: SPDX-2.1
@@ -11686,7 +11660,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/wry.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-### 178. Used by zeroize 1.9.1
+### 177. Used by zeroize 1.9.1
 
 ```
 Copyright (c) 2018-2026 The RustCrypto Project Developers
@@ -11716,7 +11690,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### 179. Used by zip 4.6.1
+### 178. Used by zip 4.6.1
 
 ```
 The MIT License (MIT)
@@ -11745,7 +11719,7 @@ Some files in the "tests/data" subdirectory of this repository are under other
 licences; see files named LICENSE.*.txt for details.
 ```
 
-### 180. Used by zlib-rs 0.6.8
+### 179. Used by zlib-rs 0.6.8
 
 ```
 (C) 2024 Trifecta Tech Foundation 
@@ -11769,7 +11743,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 181. Used by zune-core 0.5.3, zune-jpeg 0.5.15
+### 180. Used by zune-core 0.5.3, zune-jpeg 0.5.15
 
 ```
 MIT License
@@ -11795,7 +11769,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 182. Used by zune-core 0.5.3, zune-jpeg 0.5.15
+### 181. Used by zune-core 0.5.3, zune-jpeg 0.5.15
 
 ```
 zlib License
@@ -11819,7 +11793,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### 183. Used by @fontsource-variable/figtree 5.3.0
+### 182. Used by @fontsource-variable/figtree 5.3.0
 
 ```
 Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree) Figtree-Italic[wght].ttf: Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
@@ -11917,7 +11891,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### 184. Used by @fontsource-variable/instrument-sans 5.3.0
+### 183. Used by @fontsource-variable/instrument-sans 5.3.0
 
 ```
 Copyright 2022 The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans) InstrumentSans-Italic[wdth,wght].ttf: Copyright 2022 The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans)
@@ -12015,7 +11989,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### 185. Used by @fontsource-variable/inter 5.3.0
+### 184. Used by @fontsource-variable/inter 5.3.0
 
 ```
 Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) Inter-Italic[opsz,wght].ttf: Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
@@ -12113,7 +12087,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### 186. Used by @fontsource-variable/roboto 5.3.0
+### 185. Used by @fontsource-variable/roboto 5.3.0
 
 ```
 Copyright 2011 The Roboto Project Authors (https://github.com/googlefonts/roboto-classic) Roboto-Italic[wdth,wght].ttf: Copyright 2011 The Roboto Project Authors (https://github.com/googlefonts/roboto-classic)
@@ -12211,7 +12185,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
-### 187. Used by @mapbox/jsonlint-lines-primitives 2.0.3
+### 186. Used by @mapbox/jsonlint-lines-primitives 2.0.3
 
 ```
 MIT License
@@ -12237,7 +12211,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 188. Used by @mapbox/point-geometry 1.1.0
+### 187. Used by @mapbox/point-geometry 1.1.0
 
 ```
 Copyright (c) 2024, Mapbox
@@ -12255,7 +12229,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### 189. Used by @mapbox/tiny-sdf 2.3.0
+### 188. Used by @mapbox/tiny-sdf 2.3.0
 
 ```
 BSD-2-Clause
@@ -12269,7 +12243,7 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 190. Used by @mapbox/unitbezier 0.0.1, @mapbox/unitbezier 1.0.0
+### 189. Used by @mapbox/unitbezier 0.0.1, @mapbox/unitbezier 1.0.0
 
 ```
 BSD-2-Clause
@@ -12302,7 +12276,7 @@ Ported from Webkit
 http://svn.webkit.org/repository/webkit/trunk/Source/WebCore/platform/graphics/UnitBezier.h
 ```
 
-### 191. Used by @mapbox/vector-tile 2.0.5
+### 190. Used by @mapbox/vector-tile 2.0.5
 
 ```
 Copyright (c) 2024, Mapbox
@@ -12334,7 +12308,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 192. Used by @mapbox/whoots-js 3.1.0
+### 191. Used by @mapbox/whoots-js 3.1.0
 
 ```
 ISC License
@@ -12354,7 +12328,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 193. Used by @maplibre/geojson-vt 6.1.2
+### 192. Used by @maplibre/geojson-vt 6.1.2
 
 ```
 The MIT License (MIT)
@@ -12398,7 +12372,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 194. Used by @maplibre/maplibre-gl-style-spec 24.10.0
+### 193. Used by @maplibre/maplibre-gl-style-spec 24.10.0
 
 ```
 Copyright (c) 2020, MapLibre contributors
@@ -12519,7 +12493,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 195. Used by @maplibre/mlt 1.3.0
+### 194. Used by @maplibre/mlt 1.3.0
 
 ```
 ===== MIT License =====
@@ -12755,7 +12729,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### 196. Used by @maplibre/vt-pbf 4.3.2
+### 195. Used by @maplibre/vt-pbf 4.3.2
 
 ```
 The MIT License (MIT)
@@ -12815,7 +12789,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 197. Used by @tauri-apps/api 2.12.2
+### 196. Used by @tauri-apps/api 2.12.2
 
 ```
 SPDXVersion: SPDX-2.1
@@ -12840,7 +12814,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-### 198. Used by csstype 3.2.3
+### 197. Used by csstype 3.2.3
 
 ```
 Copyright (c) 2017-2018 Fredrik Nicol
@@ -12864,7 +12838,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 199. Used by earcut 3.2.4
+### 198. Used by earcut 3.2.4
 
 ```
 ISC License
@@ -12884,7 +12858,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 200. Used by gl-matrix 3.4.4
+### 199. Used by gl-matrix 3.4.4
 
 ```
 Copyright (c) 2015-2025, Brandon Jones, Colin MacKenzie IV.
@@ -12908,7 +12882,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 201. Used by json-stringify-pretty-compact 4.0.0
+### 200. Used by json-stringify-pretty-compact 4.0.0
 
 ```
 The MIT License (MIT)
@@ -12934,7 +12908,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 202. Used by kdbush 4.1.0
+### 201. Used by kdbush 4.1.0
 
 ```
 ISC License
@@ -12954,7 +12928,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 203. Used by maplibre-gl 5.24.0
+### 202. Used by maplibre-gl 5.24.0
 
 ```
 Copyright (c) 2023, MapLibre contributors
@@ -13075,7 +13049,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 204. Used by minimist 1.2.8
+### 203. Used by minimist 1.2.8
 
 ```
 This software is released under the MIT license:
@@ -13098,7 +13072,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### 205. Used by pbf 4.0.2
+### 204. Used by pbf 4.0.2
 
 ```
 Copyright (c) 2024, Mapbox
@@ -13130,7 +13104,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 206. Used by pbf 5.1.2
+### 205. Used by pbf 5.1.2
 
 ```
 Copyright (c) 2026, Mapbox
@@ -13162,7 +13136,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### 207. Used by potpack 2.1.0
+### 206. Used by potpack 2.1.0
 
 ```
 ISC License
@@ -13182,7 +13156,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 208. Used by protocol-buffers-schema 3.6.1, resolve-protobuf-schema 2.1.0
+### 207. Used by protocol-buffers-schema 3.6.1, resolve-protobuf-schema 2.1.0
 
 ```
 The MIT License (MIT)
@@ -13208,7 +13182,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### 209. Used by quickselect 3.0.0
+### 208. Used by quickselect 3.0.0
 
 ```
 ISC License
@@ -13228,7 +13202,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 210. Used by react 19.3.0, react-dom 19.3.0, scheduler 0.28.0
+### 209. Used by react 19.3.0, react-dom 19.3.0, scheduler 0.28.0
 
 ```
 MIT License
@@ -13254,7 +13228,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### 211. Used by tinyqueue 3.0.0
+### 210. Used by tinyqueue 3.0.0
 
 ```
 ISC License
@@ -13274,7 +13248,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-### 212. Used by zustand 5.0.15
+### 211. Used by zustand 5.0.15
 
 ```
 MIT License

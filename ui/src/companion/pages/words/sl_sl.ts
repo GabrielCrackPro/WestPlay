@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Zemljevid',
     setup: 'Namestitev',
     about: 'O programu',
-    support: 'Podpri me',
   },
   state: {
     starting: 'Zaganjanje …',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Tvoj zemljevid, ustvarjen iz tvoje igre. Znova se pripravi, ko se spremenijo igra ali tvoje modifikacije zemljevida.',
       setup: 'Kje je Cabin Play nameščen, z vnovično namestitvijo in odstranitvijo, če ju kdaj potrebuješ.',
       about: 'Tvoja različica in poročilo za kopiranje, če kaj ni v redu.',
-      support: 'Če ti je Cabin Play všeč, lahko tukaj podpreš njegov razvoj.',
     },
     finish: 'Končano',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Posodobitev programske opreme',
-    upToDate: 'Posodobljeno',
-    available: 'Na voljo je različica {version}',
-    badge: 'Na voljo je posodobitev',
-    title: 'Cabin Play {version}',
-    sub: 'Nova različica Cabin Playa je pripravljena. Sama se prenese in namesti, nato se Cabin Play znova zažene.',
-    whatsNew: 'Novosti',
     later: 'Pozneje',
-    install: 'Posodobi',
     closeGame: { title: 'Zapri igro.', text: 'Cabin Play lahko posodobiš samo, ko igra ni zagnana.' },
-    downloading: 'Prenašanje',
-    installing: 'Nameščanje, nato se Cabin Play znova zažene',
-    failed: 'Posodobitve ni bilo mogoče namestiti.',
     banners: {
-      updating: { title: 'Posodabljanje', text: 'Cabin Play se sam znova zažene' },
       updated: { title: 'Posodobljeno', text: 'Novi Cabin Play je v tvoji igri' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Vtičnik novega Cabin Playa gre v tvojo igro. Windows te prosi za dovoljenje, kot pri namestitvi.',
       button: 'Nadaljuj',
     },
-  },
-  support: {
-    title: 'Podpri me',
-    sub: 'Cabin Play je brezplačen. Če ti polepša vožnje, lahko podpreš njegov razvoj na Kreosusu, enkratno ali vsak mesec.',
-    button: 'Podpri na Kreosusu',
-    note: 'Odpre Kreosus v tvojem brskalniku.',
   },
 }

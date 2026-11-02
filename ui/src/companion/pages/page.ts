@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { checkGame, type GameCheck, type SetupState } from '../setup'
 import type { SignedIn } from '../accounts'
 import type { Customizations } from '../../shared/customize'
-import type { Offer } from '../update'
 import type { MapProgress } from '../mapProgress'
 import type { HostStatus } from '../useHostStatus'
 import type { SettingsState } from '../useSettings'
@@ -26,9 +25,6 @@ export interface PageProps {
   /** The player's wallpapers and icon sets (`null` until listed), and listing them again after a change. */
   custom: Customizations | null
   refreshCustom(): void
-  /** The update found, if one is, and its sheet. */
-  update: Offer | null
-  showUpdate(): void
   /** The tutorial again, from its start. */
   tutorial(): void
 }

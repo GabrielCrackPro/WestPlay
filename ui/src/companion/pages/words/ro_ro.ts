@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Hartă',
     setup: 'Configurare',
     about: 'Despre',
-    support: 'Susține-mă',
   },
   state: {
     starting: 'Pornește…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'Harta ta, creată din jocul tău. Se pregătește din nou când se schimbă jocul sau modurile tale de hartă.',
       setup: 'Unde este instalat Cabin Play, cu Reinstalează și Dezinstalează dacă vei avea vreodată nevoie.',
       about: 'Versiunea ta și un raport de copiat dacă ceva nu e în regulă.',
-      support: 'Dacă îți place Cabin Play, aici îi poți susține dezvoltarea.',
     },
     finish: 'Gata',
   },
@@ -289,21 +287,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Actualizare software',
-    upToDate: 'La zi',
-    available: 'Versiunea {version} e disponibilă',
-    badge: 'Actualizare disponibilă',
-    title: 'Cabin Play {version}',
-    sub: 'O versiune nouă a Cabin Play e gata. Se descarcă și se instalează singură, apoi Cabin Play repornește.',
-    whatsNew: 'Noutăți',
     later: 'Mai târziu',
-    install: 'Actualizează',
     closeGame: { title: 'Închide jocul.', text: 'Cabin Play poate fi actualizat doar cât timp jocul nu rulează.' },
-    downloading: 'Se descarcă',
-    installing: 'Se instalează, apoi Cabin Play repornește',
-    failed: 'Actualizarea nu a putut fi instalată.',
     banners: {
-      updating: { title: 'Se actualizează', text: 'Cabin Play repornește singur' },
       updated: { title: 'Actualizat', text: 'Noul Cabin Play e în jocul tău' },
     },
     finish: {
@@ -311,11 +297,5 @@ export const words: CompanionWords = {
       text: 'Pluginul noului Cabin Play intră în jocul tău. Windows cere permisiunea, ca la instalare.',
       button: 'Continuă',
     },
-  },
-  support: {
-    title: 'Susține-mă',
-    sub: 'Cabin Play este gratuit. Dacă îți face drumurile mai bune, poți susține dezvoltarea lui pe Kreosus, o dată sau în fiecare lună.',
-    button: 'Susține pe Kreosus',
-    note: 'Deschide Kreosus în browserul tău.',
   },
 }

@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: '地圖',
     setup: '設定',
     about: '關於',
-    support: '支持我',
   },
   state: {
     starting: '正在啟動…',
@@ -195,7 +194,6 @@ export const words: CompanionWords = {
       map: '你的地圖，根據你的遊戲製作。遊戲或地圖 MOD 變更時，它會重新準備。',
       setup: 'Cabin Play 安裝在哪裡，以及需要時可用的重新安裝和解除安裝。',
       about: '你的版本，以及出問題時可以複製的報告。',
-      support: '如果你喜歡 Cabin Play，可以在這裡支持它的開發。',
     },
     finish: '完成',
   },
@@ -277,21 +275,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: '軟體更新',
-    upToDate: '已是最新版本',
-    available: '{version} 可用',
-    badge: '有可用的更新',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Play 的新版本已準備就緒。它會自動下載並安裝，然後 Cabin Play 會重新啟動。',
-    whatsNew: '新功能',
     later: '稍後',
-    install: '更新',
     closeGame: { title: '請關閉遊戲。', text: '只有在遊戲未執行時才能更新 Cabin Play。' },
-    downloading: '正在下載',
-    installing: '正在安裝，完成後 Cabin Play 會重新啟動',
-    failed: '無法安裝更新。',
     banners: {
-      updating: { title: '正在更新', text: 'Cabin Play 會自動重新啟動' },
       updated: { title: '已更新', text: '新的 Cabin Play 已在你的遊戲中' },
     },
     finish: {
@@ -299,11 +285,5 @@ export const words: CompanionWords = {
       text: '新 Cabin Play 的外掛程式會放入你的遊戲。和安裝時一樣，Windows 會請求許可。',
       button: '繼續',
     },
-  },
-  support: {
-    title: '支持我',
-    sub: 'Cabin Play 是免費的。如果它讓你的駕駛更愉快，你可以在 Kreosus 上支持它的開發，一次或每月都可以。',
-    button: '在 Kreosus 上支持',
-    note: '會在你的瀏覽器中開啟 Kreosus。',
   },
 }

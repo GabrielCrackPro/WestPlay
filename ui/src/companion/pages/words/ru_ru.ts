@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Карта',
     setup: 'Установка',
     about: 'О программе',
-    support: 'Поддержать меня',
   },
   state: {
     starting: 'Запуск…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Ваша карта, созданная по вашей игре. Она готовится заново, когда меняется игра или ваши моды карты.',
       setup: 'Где установлен Cabin Play, с переустановкой и удалением на случай, если понадобятся.',
       about: 'Ваша версия и отчёт, который можно скопировать, если что-то не так.',
-      support: 'Если вам нравится Cabin Play, здесь можно поддержать его разработку.',
     },
     finish: 'Готово',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Обновление ПО',
-    upToDate: 'Последняя версия',
-    available: 'Доступна версия {version}',
-    badge: 'Есть обновление',
-    title: 'Cabin Play {version}',
-    sub: 'Новая версия Cabin Play готова. Она сама загрузится и установится, затем Cabin Play перезапустится.',
-    whatsNew: 'Что нового',
     later: 'Позже',
-    install: 'Обновить',
     closeGame: { title: 'Закройте игру.', text: 'Cabin Play можно обновить, только когда игра не запущена.' },
-    downloading: 'Загрузка',
-    installing: 'Установка, затем Cabin Play перезапустится',
-    failed: 'Не удалось установить обновление.',
     banners: {
-      updating: { title: 'Обновление', text: 'Cabin Play перезапустится сам' },
       updated: { title: 'Обновлено', text: 'Новый Cabin Play уже в вашей игре' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Плагин нового Cabin Play устанавливается в вашу игру. Windows запросит разрешение, как при установке.',
       button: 'Продолжить',
     },
-  },
-  support: {
-    title: 'Поддержать меня',
-    sub: 'Cabin Play бесплатен. Если он делает ваши поездки лучше, вы можете поддержать его разработку на Kreosus — разово или каждый месяц.',
-    button: 'Поддержать на Kreosus',
-    note: 'Откроет Kreosus в браузере.',
   },
 }

@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Inštalácia',
     about: 'O aplikácii',
-    support: 'Podporte ma',
   },
   state: {
     starting: 'Spúšťa sa…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Vaša mapa, vytvorená z vašej hry. Pripraví sa znova, keď sa zmení hra alebo vaše mapové módy.',
       setup: 'Kde je Cabin Play nainštalovaný, s preinštalovaním a odinštalovaním pre prípad potreby.',
       about: 'Vaša verzia a správa na skopírovanie, keď niečo nefunguje.',
-      support: 'Ak sa vám Cabin Play páči, môžete tu podporiť jeho vývoj.',
     },
     finish: 'Hotovo',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Aktualizácia softvéru',
-    upToDate: 'Aktuálne',
-    available: 'Dostupná verzia {version}',
-    badge: 'Dostupná aktualizácia',
-    title: 'Cabin Play {version}',
-    sub: 'Nová verzia Cabin Play je pripravená. Sama sa stiahne a nainštaluje a potom sa Cabin Play znova spustí.',
-    whatsNew: 'Čo je nové',
     later: 'Neskôr',
-    install: 'Aktualizovať',
     closeGame: { title: 'Zatvorte, prosím, hru.', text: 'Cabin Play sa dá aktualizovať, len keď hra nebeží.' },
-    downloading: 'Sťahovanie',
-    installing: 'Inštalácia, potom sa Cabin Play znova spustí',
-    failed: 'Aktualizáciu sa nepodarilo nainštalovať.',
     banners: {
-      updating: { title: 'Aktualizácia', text: 'Cabin Play sa znova spustí sám' },
       updated: { title: 'Aktualizované', text: 'Nový Cabin Play je vo vašej hre' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Plugin nového Cabin Play sa nainštaluje do vašej hry. Windows požiada o povolenie ako pri inštalácii.',
       button: 'Pokračovať',
     },
-  },
-  support: {
-    title: 'Podporte ma',
-    sub: 'Cabin Play je zadarmo. Ak vám spríjemňuje jazdy, môžete podporiť jeho vývoj na Kreosus, jednorazovo alebo každý mesiac.',
-    button: 'Podporiť na Kreosus',
-    note: 'Otvorí Kreosus v prehliadači.',
   },
 }

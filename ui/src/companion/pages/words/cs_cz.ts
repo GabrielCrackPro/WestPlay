@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Instalace',
     about: 'O aplikaci',
-    support: 'Podpořte mě',
   },
   state: {
     starting: 'Spouštění…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Vaše mapa, vytvořená z vaší hry. Připraví se znovu, když se změní hra nebo vaše mapové módy.',
       setup: 'Kde je Cabin Play nainstalovaný, s přeinstalací a odinstalací pro případ potřeby.',
       about: 'Vaše verze a zpráva ke zkopírování, když něco nefunguje.',
-      support: 'Pokud se vám Cabin Play líbí, můžete tu podpořit jeho vývoj.',
     },
     finish: 'Hotovo',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Aktualizace softwaru',
-    upToDate: 'Aktuální',
-    available: 'Dostupná verze {version}',
-    badge: 'Dostupná aktualizace',
-    title: 'Cabin Play {version}',
-    sub: 'Nová verze Cabin Play je připravená. Sama se stáhne a nainstaluje a pak se Cabin Play znovu spustí.',
-    whatsNew: 'Co je nového',
     later: 'Později',
-    install: 'Aktualizovat',
     closeGame: { title: 'Zavřete prosím hru.', text: 'Cabin Play lze aktualizovat, jen když hra neběží.' },
-    downloading: 'Stahování',
-    installing: 'Instalace, pak se Cabin Play znovu spustí',
-    failed: 'Aktualizaci se nepodařilo nainstalovat.',
     banners: {
-      updating: { title: 'Aktualizace', text: 'Cabin Play se znovu spustí sám' },
       updated: { title: 'Aktualizováno', text: 'Nový Cabin Play je ve vaší hře' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Plugin nového Cabin Play se nainstaluje do vaší hry. Windows požádá o svolení jako při instalaci.',
       button: 'Pokračovat',
     },
-  },
-  support: {
-    title: 'Podpořte mě',
-    sub: 'Cabin Play je zdarma. Pokud vám zpříjemňuje jízdy, můžete podpořit jeho vývoj na Kreosus, jednorázově nebo každý měsíc.',
-    button: 'Podpořit na Kreosus',
-    note: 'Otevře Kreosus v prohlížeči.',
   },
 }

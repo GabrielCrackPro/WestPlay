@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Karta',
     setup: 'Konfiguration',
     about: 'Om',
-    support: 'Stöd mig',
   },
   state: {
     starting: 'Startar…',
@@ -197,7 +196,6 @@ export const words: CompanionWords = {
       map: 'Din karta, gjord av ditt spel. Den förbereds igen när spelet eller dina kartmoddar ändras.',
       setup: 'Var Cabin Play är installerat, med Installera om och Avinstallera om du någon gång behöver dem.',
       about: 'Din version, och en rapport att kopiera om något inte stämmer.',
-      support: 'Gillar du Cabin Play kan du stödja utvecklingen här.',
     },
     finish: 'Klar',
   },
@@ -282,21 +280,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Programuppdatering',
-    upToDate: 'Uppdaterad',
-    available: '{version} är tillgänglig',
-    badge: 'Uppdatering tillgänglig',
-    title: 'Cabin Play {version}',
-    sub: 'En ny version av Cabin Play är klar. Den hämtar och installerar sig själv, sedan startar Cabin Play om.',
-    whatsNew: 'Nyheter',
     later: 'Senare',
-    install: 'Uppdatera',
     closeGame: { title: 'Stäng spelet.', text: 'Cabin Play kan bara uppdateras medan spelet inte körs.' },
-    downloading: 'Hämtar',
-    installing: 'Installerar, sedan startar Cabin Play om',
-    failed: 'Uppdateringen kunde inte installeras.',
     banners: {
-      updating: { title: 'Uppdaterar', text: 'Cabin Play startar om av sig själv' },
       updated: { title: 'Uppdaterad', text: 'Nya Cabin Play finns i ditt spel' },
     },
     finish: {
@@ -304,11 +290,5 @@ export const words: CompanionWords = {
       text: 'Nya Cabin Plays plugin läggs i ditt spel. Windows ber om tillåtelse, som vid installationen.',
       button: 'Fortsätt',
     },
-  },
-  support: {
-    title: 'Stöd mig',
-    sub: 'Cabin Play är gratis. Gör det dina resor bättre kan du stödja utvecklingen på Kreosus, en gång eller varje månad.',
-    button: 'Stöd på Kreosus',
-    note: 'Öppnar Kreosus i din webbläsare.',
   },
 }

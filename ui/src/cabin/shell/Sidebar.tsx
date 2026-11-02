@@ -11,8 +11,7 @@ import { cabClock } from '../../shared/host'
 import { unreadCount, useNotes } from './notesShown'
 
 /**
- * The CarPlay sidebar: the truck's brand and clock, the recent apps (the open one on top), and at the bottom
- * the truck button (back to the truck's own screen, like CarPlay's car button) and the Home button.
+ * The CarPlay sidebar: the truck's brand and clock, the recent apps (the open one on top), and the Home button.
  *
  * The clock is the player's own time or the game's, as Settings › Dashboard has it; the player's is their PC's,
  * so it keeps time while the game is paused.
@@ -51,14 +50,6 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="sidebar-actions">
-        <button
-          type="button"
-          className="sidebar-button"
-          aria-label="Truck screen"
-          onClick={() => useCabin.getState().setTruckScreen(true)}
-        >
-          <TruckGlyph />
-        </button>
         {/* Its icon is where it goes: the app grid (Home) or the Dashboard. */}
         <button
           type="button"
@@ -148,28 +139,6 @@ function DashboardGlyph({ shown }: { shown: boolean }) {
       <rect x="3" y="4" width="10" height="16" rx="2.5" />
       <rect x="15" y="4" width="6" height="7" rx="2" />
       <rect x="15" y="13" width="6" height="7" rx="2" />
-    </svg>
-  )
-}
-
-/** Back to the truck: the front of a truck cab (our own glyph, not CarPlay's car). */
-function TruckGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="36"
-      height="36"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinejoin="round"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <path d="M6.5 3.5h11a2 2 0 0 1 2 2V17h-15V5.5a2 2 0 0 1 2-2Z" />
-      <path d="M7 6.5h10v4.5H7Z" />
-      <path d="M7.5 14h1.5M15 14h1.5" />
-      <path d="M6 17v2.5h2.5V17M15.5 17v2.5H18V17" />
     </svg>
   )
 }

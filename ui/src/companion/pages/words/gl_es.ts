@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Mapa',
     setup: 'Configuración',
     about: 'Acerca de',
-    support: 'Apóiame',
   },
   state: {
     starting: 'Iniciando…',
@@ -198,7 +197,6 @@ export const words: CompanionWords = {
       map: 'O teu mapa, creado a partir do teu xogo. Prepárase de novo cando cambian o xogo ou os teus mods de mapa.',
       setup: 'Onde está instalado Cabin Play, con Reinstalar e Desinstalar por se algunha vez os necesitas.',
       about: 'A túa versión e un informe para copiar se algo non vai ben.',
-      support: 'Se che gusta Cabin Play, aquí podes apoiar o seu desenvolvemento.',
     },
     finish: 'Feito',
   },
@@ -283,24 +281,12 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Actualización de software',
-    upToDate: 'Actualizado',
-    available: '{version} dispoñible',
-    badge: 'Actualización dispoñible',
-    title: 'Cabin Play {version}',
-    sub: 'Hai unha nova versión de Cabin Play lista. Descárgase e instálase soa, e despois Cabin Play reiníciase.',
-    whatsNew: 'Novidades',
     later: 'Máis tarde',
-    install: 'Actualizar',
     closeGame: {
       title: 'Pecha o xogo, por favor.',
       text: 'Cabin Play só se pode actualizar mentres o xogo non está aberto.',
     },
-    downloading: 'Descargando',
-    installing: 'Instalando; despois Cabin Play reiníciase',
-    failed: 'Non se puido instalar a actualización.',
     banners: {
-      updating: { title: 'Actualizando', text: 'Cabin Play reiníciase só' },
       updated: { title: 'Actualizado', text: 'O novo Cabin Play xa está no teu xogo' },
     },
     finish: {
@@ -308,11 +294,5 @@ export const words: CompanionWords = {
       text: 'O complemento do novo Cabin Play vai ao teu xogo. Windows pide permiso, como cando o instalaches.',
       button: 'Continuar',
     },
-  },
-  support: {
-    title: 'Apóiame',
-    sub: 'Cabin Play é de balde. Se fai mellores as túas viaxes, podes apoiar o seu desenvolvemento en Kreosus, unha vez ou cada mes.',
-    button: 'Apoiar en Kreosus',
-    note: 'Abre Kreosus no teu navegador.',
   },
 }

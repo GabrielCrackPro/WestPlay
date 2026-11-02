@@ -9,7 +9,6 @@ export const words: CompanionWords = {
     map: 'Kaart',
     setup: 'Seadistus',
     about: 'Teave',
-    support: 'Toeta mind',
   },
   state: {
     starting: 'Käivitub…',
@@ -196,7 +195,6 @@ export const words: CompanionWords = {
       map: 'Sinu kaart, tehtud sinu mängust. See valmistatakse uuesti, kui mäng või sinu kaardimodid muutuvad.',
       setup: 'Kuhu Cabin Play on paigaldatud, koos uuesti paigaldamise ja eemaldamisega, kui neid kunagi vaja läheb.',
       about: 'Sinu versioon ja kopeeritav aruanne, kui miski pole õige.',
-      support: 'Kui Cabin Play sulle meeldib, saad siin selle arendust toetada.',
     },
     finish: 'Valmis',
   },
@@ -280,21 +278,9 @@ export const words: CompanionWords = {
     },
   },
   update: {
-    row: 'Tarkvarauuendus',
-    upToDate: 'Ajakohane',
-    available: 'Saadaval on {version}',
-    badge: 'Uuendus saadaval',
-    title: 'Cabin Play {version}',
-    sub: 'Cabin Play uus versioon on valmis. See laadib ja paigaldab end ise, seejärel käivitub Cabin Play uuesti.',
-    whatsNew: 'Mis on uut',
     later: 'Hiljem',
-    install: 'Uuenda',
     closeGame: { title: 'Sulge mäng.', text: 'Cabin Playd saab uuendada ainult siis, kui mäng ei tööta.' },
-    downloading: 'Laadin alla',
-    installing: 'Paigaldan, seejärel käivitub Cabin Play uuesti',
-    failed: 'Uuendust ei õnnestunud paigaldada.',
     banners: {
-      updating: { title: 'Uuendan', text: 'Cabin Play käivitub ise uuesti' },
       updated: { title: 'Uuendatud', text: 'Uus Cabin Play on sinu mängus' },
     },
     finish: {
@@ -302,11 +288,5 @@ export const words: CompanionWords = {
       text: 'Uue Cabin Play pistikprogramm läheb sinu mängu. Windows küsib luba nagu paigaldamisel.',
       button: 'Jätka',
     },
-  },
-  support: {
-    title: 'Toeta mind',
-    sub: 'Cabin Play on tasuta. Kui see teeb su sõidud paremaks, saad selle arendust toetada Kreosuses ühekordselt või igal kuul.',
-    button: 'Toeta Kreosuses',
-    note: 'Avab Kreosuse sinu brauseris.',
   },
 }
