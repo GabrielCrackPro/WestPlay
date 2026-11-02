@@ -50,9 +50,28 @@ const NOTE_OUT_MS = 220
 
 /** One note's pill. */
 function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) {
+  const words = useText().notificationsApp
   return (
     <div className={`notification ${note.tone}${leaving ? ' leaving' : ''}`} aria-hidden={leaving || undefined}>
-      <span className="notification-title">{note.title}</span>
+      <span className="notification-icon" aria-hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          {note.tone === 'alarm' ? (
+            <>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7.5v5.5m0 3h.01" />
+            </>
+          ) : (
+            <>
+              <path d="m10.3 4.7-7.1 12.4A2 2 0 0 0 5 20h14a2 2 0 0 0 1.8-2.9L13.7 4.7a2 2 0 0 0-3.4 0Z" />
+              <path d="M12 9v4m0 3h.01" />
+            </>
+          )}
+        </svg>
+      </span>
+      <span className="notification-copy">
+        <span className="notification-level">{note.tone === 'alarm' ? words.alert : words.warning}</span>
+        <span className="notification-title">{note.title}</span>
+      </span>
       <span className="notification-detail">{note.detail}</span>
     </div>
   )

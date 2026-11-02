@@ -126,6 +126,8 @@ interface CabinState {
   reduceMotion: boolean
   /** The cabin's own sounds (Settings › Sound): the press's tick, the notes' chime, the volume's pip. */
   uiSounds: boolean
+  /** The cabin's own sounds' level, independent of the music and game volume (Settings › Sound). */
+  uiSoundVolume: number
   /** The Diagnostics app's page last opened, so its tabs come back where the player left them. */
   diagnosticsPage: DiagnosticsPage
   /** The Dashboard's widgets in the order the player put them (Settings › Dashboard), and whether the cab orders
@@ -198,6 +200,7 @@ interface CabinState {
   setMapPinParking(mapPinParking: boolean): void
   setMapPinService(mapPinService: boolean): void
   setUiSounds(uiSounds: boolean): void
+  setUiSoundVolume(uiSoundVolume: number): void
   setMapDetail(detail: MapDetail): void
   setMapNight(on: boolean): void
   setMapJunction(on: boolean): void
@@ -256,6 +259,7 @@ type Persisted = Pick<
   | 'mapPinParking'
   | 'mapPinService'
   | 'uiSounds'
+  | 'uiSoundVolume'
 >
 
 /** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
@@ -319,6 +323,7 @@ export const useCabin = create<CabinState>()(
       mapPinParking: true,
       mapPinService: true,
       uiSounds: true,
+      uiSoundVolume: 1,
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
@@ -370,6 +375,7 @@ export const useCabin = create<CabinState>()(
       setMapPinParking: (mapPinParking) => set({ mapPinParking }),
       setMapPinService: (mapPinService) => set({ mapPinService }),
       setUiSounds: (uiSounds) => set({ uiSounds }),
+      setUiSoundVolume: (uiSoundVolume) => set({ uiSoundVolume: Math.max(0, Math.min(1, uiSoundVolume)) }),
       setEqualizerBand: (band, db) => {
         const equalizer = toEqualizer({ ...useCabin.getState().equalizer, [band]: db })
         set({ equalizer, equalizerCustom: true })
@@ -446,6 +452,7 @@ export const useCabin = create<CabinState>()(
         mapPinParking: state.mapPinParking,
         mapPinService: state.mapPinService,
         uiSounds: state.uiSounds,
+        uiSoundVolume: state.uiSoundVolume,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -513,6 +520,9 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.mapPinParking === 'boolean') result.mapPinParking = stored.mapPinParking
   if (typeof stored.mapPinService === 'boolean') result.mapPinService = stored.mapPinService
   if (typeof stored.uiSounds === 'boolean') result.uiSounds = stored.uiSounds
+  if (typeof stored.uiSoundVolume === 'number' && Number.isFinite(stored.uiSoundVolume)) {
+    result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))
+  }
   return result
 }
 

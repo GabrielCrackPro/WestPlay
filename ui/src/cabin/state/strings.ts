@@ -520,6 +520,7 @@ export interface Strings {
     sound: string
     /** The cabin's own sounds (presses, notes, the volume): what they do, in a line. */
     uiSounds: string
+    uiSoundVolume: string
     uiSoundsFooter: string
     equalizer: string
     recommended: string
@@ -1149,8 +1150,8 @@ const ENGLISH_STRINGS: Strings = {
     showAlbumArt: 'Show Album Art',
     sound: 'Sound',
     uiSounds: 'Interface Sounds',
-    uiSoundsFooter:
-      'A soft tick when you press something, a gentle chime when the truck has something to say, and a quiet pip for the volume.',
+    uiSoundVolume: 'Interface Sound Volume',
+    uiSoundsFooter: 'Set the cabin’s clicks and alerts independently. This does not change music or game volume.',
     equalizer: 'Equalizer',
     recommended: 'Recommended',
     custom: 'Custom',
@@ -1790,8 +1791,8 @@ const TURKISH_STRINGS: Strings = {
     showAlbumArt: 'Albüm Kapağını Göster',
     sound: 'Ses',
     uiSounds: 'Arayüz Sesleri',
-    uiSoundsFooter:
-      'Bir şeye bastığında yumuşak bir tık, aracın söyleyecek bir şeyi olduğunda hafif bir zil ve ses seviyesi için kısa bir pip.',
+    uiSoundVolume: 'Arayüz Sesi Seviyesi',
+    uiSoundsFooter: 'Kabin tıklarını ve uyarılarını ayrı ayarla. Müzik veya oyun ses seviyesini değiştirmez.',
     equalizer: 'Ekolayzır',
     recommended: 'Önerilen',
     custom: 'Özel',
@@ -2442,8 +2443,9 @@ const SPANISH_STRINGS: Strings = {
     showAlbumArt: 'Mostrar carátula del álbum',
     sound: 'Sonido',
     uiSounds: 'Sonidos de la Interfaz',
+    uiSoundVolume: 'Volumen de sonidos de la interfaz',
     uiSoundsFooter:
-      'Un clic suave al pulsar, un tintineo amable cuando el camión tiene algo que decir y un pitido corto para el volumen.',
+      'Ajusta por separado los clics y avisos de la cabina. No cambia el volumen de la música ni del juego.',
     equalizer: 'Ecualizador',
     recommended: 'Recomendado',
     custom: 'Personalizado',

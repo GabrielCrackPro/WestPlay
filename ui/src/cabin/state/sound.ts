@@ -41,6 +41,11 @@ const ATTACK = 0.014
 let context: AudioContext | null = null
 let master: GainNode | null = null
 
+useCabin.subscribe((state, previous) => {
+  if (state.uiSoundVolume === previous.uiSoundVolume || !context || !master) return
+  master.gain.setTargetAtTime(0.9 * state.uiSoundVolume, context.currentTime, 0.02)
+})
+
 /** The page's audio, made (and resumed) on the first press: browsers start one suspended. */
 function audio(): AudioContext | null {
   if (context) {
@@ -50,7 +55,7 @@ function audio(): AudioContext | null {
   try {
     context = new AudioContext()
     master = context.createGain()
-    master.gain.value = 0.9
+    master.gain.value = 0.9 * useCabin.getState().uiSoundVolume
     master.connect(context.destination)
     return context
   } catch {

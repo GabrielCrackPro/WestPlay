@@ -781,9 +781,11 @@ function SoundPage() {
   const setSounds = useCabin((state) => state.setUiSounds)
   return (
     <Page title={text.settings.sound}>
-      {/* The cab's own sounds and the speakers' tone, together: everything the player hears. */}
       <Group footer={text.settings.uiSoundsFooter}>
         <SwitchRow label={text.settings.uiSounds} on={sounds} onToggle={setSounds} />
+        <InterfaceSoundVolume />
+      </Group>
+      <Group>
         <NavRow
           label={text.settings.equalizer}
           value={custom ? text.settings.custom : text.settings.recommended}
@@ -791,6 +793,38 @@ function SoundPage() {
         />
       </Group>
     </Page>
+  )
+}
+
+/** The interface cues' own level, independent of music and game audio. */
+function InterfaceSoundVolume() {
+  const text = useText()
+  const volume = useCabin((state) => state.uiSoundVolume)
+  const setVolume = useCabin((state) => state.setUiSoundVolume)
+  const percent = Math.round(volume * 100)
+  return (
+    <div className="settings-volume">
+      <div className="settings-volume-heading">
+        <label htmlFor="interface-sound-volume">{text.settings.uiSoundVolume}</label>
+        <output htmlFor="interface-sound-volume">{percent}%</output>
+      </div>
+      <input
+        id="interface-sound-volume"
+        className="settings-volume-slider"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        value={percent}
+        aria-valuetext={`${percent}%`}
+        style={{ '--volume-fill': `${percent}%` } as CSSProperties}
+        onChange={(event) => setVolume(Number(event.currentTarget.value) / 100)}
+      />
+      <div className="settings-volume-scale" aria-hidden>
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+    </div>
   )
 }
 

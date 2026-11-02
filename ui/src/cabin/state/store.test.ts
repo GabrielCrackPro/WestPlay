@@ -64,6 +64,20 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().appearanceMode).toBe('dark')
     // The sidebar's clock: the player's own time, unless they chose the game's.
     expect(useCabin.getState().clock).toBe('real')
+    expect(useCabin.getState().uiSoundVolume).toBe(1)
+  })
+
+  it('keeps interface sound volume separate and within its range', async () => {
+    const storage = savedStorage({ uiSounds: false, uiSoundVolume: 0.35 })
+    vi.stubGlobal('localStorage', storage)
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().uiSoundVolume).toBe(0.35)
+    expect(useCabin.getState().uiSounds).toBe(false)
+
+    useCabin.getState().setUiSoundVolume(1.4)
+    expect(useCabin.getState().uiSoundVolume).toBe(1)
+    expect(useCabin.getState().uiSounds).toBe(false)
+    expect(JSON.parse(storage.getItem('westplay.cabin')!).state.uiSoundVolume).toBe(1)
   })
 })
 

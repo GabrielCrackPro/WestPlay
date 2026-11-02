@@ -199,6 +199,102 @@
   background: var(--apple-card-raised);
 }
 
+.settings-volume {
+  padding: 18px 26px 15px;
+}
+
+.settings-volume-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+.settings-volume-heading label {
+  min-width: 0;
+  color: var(--apple-label);
+}
+
+.settings-volume-heading output {
+  flex: none;
+  color: var(--apple-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-volume-slider {
+  display: block;
+  width: 100%;
+  height: 42px;
+  margin: 8px 0 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.settings-volume-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--apple-blue) 0%,
+    var(--apple-blue) var(--volume-fill),
+    var(--apple-fill-secondary) var(--volume-fill),
+    var(--apple-fill-secondary) 100%
+  );
+}
+
+.settings-volume-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--apple-fill-secondary);
+}
+
+.settings-volume-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--apple-blue);
+}
+
+.settings-volume-slider::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 3px 8px rgb(0 0 0 / 0.2);
+}
+
+.settings-volume-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 3px 8px rgb(0 0 0 / 0.2);
+}
+
+.settings-volume-slider:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.settings-volume-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--apple-label-tertiary);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+}
+
 .settings-tile {
   flex: none;
   width: 40px;
