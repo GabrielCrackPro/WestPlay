@@ -47,9 +47,10 @@ function BootMark({ withBrand }: { withBrand: boolean }) {
       {withBrand && <BrandLine />}
       <span className="boot-pair">
         <span className="boot-intro-mark">
-          {/* Its own light, thrown once as the mark lands (boot.css). */}
+          {/* Its own light, thrown once as the mark lands (boot.css). The AMOLED mark, so the tile is black on the
+              panel's black and only the cab and its play are lit. */}
           <span className="boot-intro-halo" aria-hidden />
-          <img src="/cabinplay.png" alt="" />
+          <img src="/cabinplay-amoled.svg" alt="" />
         </span>
         <span className="boot-intro-wordmark">Cabin Play</span>
       </span>
