@@ -5,6 +5,7 @@ import { prepareMapsAgain } from '../setup'
 import { banner, WordsContext } from '../room/room'
 import { GLOW, ON_SCREEN, useScreenAt, useTour } from '../room/screen'
 import { percent } from '../onboarding/words'
+import { SectionGlyph } from './glyphs'
 import { memoryNote, type PageProps, useGameCheck } from './page'
 
 /**
@@ -87,6 +88,7 @@ export function MapPage(props: PageProps) {
       place="page"
       title={title}
       sub={cw.map.sub}
+      icon={<SectionGlyph id="map" />}
       action={
         map.state !== 'noGame' &&
         map.state !== 'unknown' && (

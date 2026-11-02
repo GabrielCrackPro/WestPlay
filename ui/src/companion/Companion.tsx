@@ -11,6 +11,7 @@ import { Accounts } from './pages/Accounts'
 import { Controls } from './pages/Controls'
 import { Customize } from './pages/Customize'
 import { type MapProgress, useMapProgress } from './mapProgress'
+import { SectionGlyph } from './pages/glyphs'
 import { MapPage } from './pages/MapPage'
 import { screenState } from './pages/page'
 import { ScreenPage } from './pages/ScreenPage'
@@ -266,6 +267,8 @@ function Room({
       style={{ '--section-glow': SECTION_GLOW[section] } as CSSProperties}
       onPointerMove={tilt}
     >
+      {/* The light of the open section, on the stage the screen stands on (companion.css .cp-stage). */}
+      <div className="cp-stage" aria-hidden />
       <TruckScreen frame={demo.frame} ready={demo.ready} pose={pose} glow={glow} banner={banner} scanning={scanning}>
         <GlassCursor
           x={cursor?.x ?? 640}
@@ -417,10 +420,20 @@ function SectionList({
               style={n(place++)}
               data-section={id}
               data-here={id === section || undefined}
+              aria-current={id === section ? 'page' : undefined}
               onClick={() => open(id)}
             >
-              <b>{cw.sections[id]}</b>
-              <span>{value[id]}</span>
+              <span className="cp-row-icon">
+                <SectionGlyph id={id} />
+              </span>
+              {/* What it is now under what it is: the rail is narrow, so they stack rather than push each other
+                  out (companion.css .cp-row-text). */}
+              <span className="cp-row-text">
+                <b>{cw.sections[id]}</b>
+                <span key={value[id]} className="cp-row-value" data-value="">
+                  {value[id]}
+                </span>
+              </span>
             </button>
           ))}
         </div>

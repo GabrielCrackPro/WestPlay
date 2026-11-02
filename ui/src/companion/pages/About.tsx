@@ -4,6 +4,7 @@ import { Button, Group, Panel, Row } from '../room/parts'
 import { banner } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
 import { appLogPlace, type HostStatus } from '../useHostStatus'
+import { SectionGlyph } from './glyphs'
 import { type PageProps, screenState } from './page'
 
 /** How long the screen says the report was copied. */
@@ -45,6 +46,7 @@ export function About({ status, setup, cw }: PageProps) {
       place="page"
       title={w.title}
       sub={w.sub}
+      icon={<SectionGlyph id="about" />}
       action={
         <Button glass onClick={copy}>
           {w.copy}

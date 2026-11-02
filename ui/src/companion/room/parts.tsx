@@ -35,6 +35,7 @@ export function Panel({
   children,
   back,
   action,
+  icon,
 }: {
   /** Beside the screen, under it, or a companion page (between its list and the screen). */
   place: 'side' | 'below' | 'page'
@@ -43,11 +44,14 @@ export function Panel({
   children?: ReactNode
   back?: () => void
   action?: ReactNode
+  /** The companion section's mark, on a tile above its title (the sidebar's, larger). */
+  icon?: ReactNode
 }) {
   const screen = useScreen()
   const text = useContext(RoomText)
   return (
     <section className="ob-words" data-place={place} data-leaving={screen.leaving || undefined}>
+      {icon && <span className="ob-tile">{icon}</span>}
       {/* A new headline rises in again. */}
       <h1 key={title} className="ob-letters" aria-label={title}>
         {headline(title, text.locale).map((word, w) => (

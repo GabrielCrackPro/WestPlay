@@ -3,6 +3,7 @@ import { Button, Checking, Group, Note, Panel, Row, Status, Tick } from '../room
 import { banner, explain, gameSummary, useGameRunning, useWords } from '../room/room'
 import { GLOW, useScreen, useScreenAt } from '../room/screen'
 import { checkGame, type InstallReport, installIntoGame } from '../setup'
+import { SectionGlyph } from './glyphs'
 import { type PageProps, useGameCheck } from './page'
 
 /**
@@ -68,6 +69,7 @@ export function Setup(props: PageProps) {
       place="page"
       title={w.title}
       sub={w.sub}
+      icon={<SectionGlyph id="setup" />}
       action={
         game && (
           <Button glass onClick={() => reinstall(asAdministrator)} busy={installing} disabled={running !== false}>

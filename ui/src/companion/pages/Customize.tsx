@@ -17,6 +17,7 @@ import { list } from '../onboarding/words'
 import { useWords } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
 import type { Settings } from '../useSettings'
+import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 import type { CompanionWords } from './words'
 
@@ -101,7 +102,7 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
   )
 
   return (
-    <Panel place="page" title={w.title} sub={w.sub}>
+    <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="customize" />}>
       <Group title={w.wallpapers} place={4}>
         <div className="cz-wallpapers">
           {wallpapers.map((wallpaper) => (

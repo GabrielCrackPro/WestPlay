@@ -43,6 +43,18 @@ button {
   color: inherit;
 }
 
+/* The light of what's on the screen: the window's accent. Registered, so the rail's capsule and the stage
+   behind the screen ease from one section's light to the next's instead of switching. */
+@property --section-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.6 0.17 285);
+}
+
+.cp {
+  transition: --section-glow 900ms ease;
+}
+
 .cp-blank {
   display: grid;
   place-items: center;
@@ -55,6 +67,30 @@ button {
 }
 
 /* ---------- The screen, turned aside at the right ---------- */
+
+/* The stage it stands on: the right of the window, lit by the open section's own light and falling away into
+   the room's dark, so the screen is the only bright thing in it. */
+.cp-stage {
+  position: absolute;
+  inset: -8% -4% -12% 44%;
+  z-index: 0;
+  background:
+    radial-gradient(58% 44% at 52% 44%, color-mix(in oklch, var(--section-glow), transparent 84%), transparent 74%),
+    linear-gradient(180deg, transparent 56%, rgb(0 0 0 / 0.45));
+  pointer-events: none;
+  animation: cp-stage 1400ms var(--ease) backwards;
+}
+
+@keyframes cp-stage {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The screen stands on the stage. */
+.cp .ts {
+  z-index: 1;
+}
 
 /* Smaller than in the onboarding's steps, and turned further towards the page: it's what each section is
    about, beside it. It comes out of the dive the onboarding ends in. */
@@ -72,38 +108,70 @@ button {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   width: 200px;
+}
+
+/* The rail the sections sit on: glass, thinning out towards the bottom so the list has no edge of its own,
+   and stepping out of the room when the companion opens. */
+.cp-list::before {
+  content: '';
+  position: absolute;
+  inset: -8px -10px -16px;
+  z-index: -1;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgb(27 27 31 / 0.7), rgb(14 14 17 / 0.28));
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  backdrop-filter: blur(24px) saturate(1.35);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 0 0 1px rgb(255 255 255 / 0.03);
+  mask-image: linear-gradient(to bottom, #000 68%, transparent);
+  animation: cp-rail 1100ms var(--ease) backwards;
+}
+
+@keyframes cp-rail {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
 }
 
 .cp-brand {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 2px 12px 8px;
+  padding: 4px 10px 10px;
 }
 
 .cp-brand img {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 18px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
 }
 
 .cp-brand b {
   display: block;
   font-size: 15.5px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
 }
 
-/* Where WestPlay is now: a dot, and a line. */
+/* Where Cabin Play is now: a pill, its light and its words. */
 .cp-state {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 1px;
-  font-size: 12px;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.04);
+  font-size: 11.5px;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -122,6 +190,14 @@ button {
 .cp-state[data-state='live'] i {
   background: var(--green);
   box-shadow: 0 0 8px rgb(48 209 88 / 0.7);
+  /* A live light breathes, slowly enough to read as a pulse and not a flicker. */
+  animation: cp-live 3.4s ease-in-out infinite;
+}
+
+@keyframes cp-live {
+  50% {
+    box-shadow: 0 0 13px 2px rgb(48 209 88 / 0.8);
+  }
 }
 
 .cp-state[data-state='original'] i,
@@ -142,7 +218,7 @@ button {
 .cp-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .cp-row {
@@ -150,15 +226,15 @@ button {
   z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  height: 40px;
-  padding: 0 12px;
+  gap: 9px;
+  height: 46px;
+  margin-inline: 4px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 13.5px;
   text-align: left;
   cursor: pointer;
   transition:
@@ -166,16 +242,66 @@ button {
     transform 450ms var(--ease);
 }
 
-.cp-row b {
-  font-weight: 500;
-  white-space: nowrap;
+/* The pointer's light under a section: it wells up from a hair narrower than the row, so passing over the list
+   reads as the rows lifting rather than as blocks flashing. */
+.cp-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.055);
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity 240ms ease,
+    transform 280ms var(--ease);
 }
 
-/* What it is now: a value as iOS's lists put it, quieter. */
-.cp-row span {
+.cp-row:hover::before,
+.cp-row:focus-visible::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* Its name, and what it is now under it: the rail has room for one line each, not for a row that pushes its
+   value out to a margin. */
+.cp-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cp-row-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  color: var(--text-faint);
+  transition: color 320ms ease;
+}
+
+.cp-row-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cp-row b {
   overflow: hidden;
-  max-width: 96px;
-  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* What it is now: a value as iOS's lists put it, quieter, under the name. */
+.cp-row-value {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11.5px;
+  line-height: 1.35;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
@@ -183,12 +309,27 @@ button {
   transition: color 300ms ease;
 }
 
+/* A section with nothing to say is one line, its name centred. */
+.cp-row-value:empty {
+  display: none;
+}
+
 .cp-row:hover,
 .cp-row[data-here] {
   color: var(--text);
 }
 
-.cp-row[data-here] span {
+.cp-row:hover .cp-row-icon,
+.cp-row[data-here] .cp-row-icon {
+  color: var(--text-dim);
+}
+
+/* The open section's mark takes its light. */
+.cp-row[data-here] .cp-row-icon {
+  color: color-mix(in oklch, var(--section-glow), white 45%);
+}
+
+.cp-row[data-here] .cp-row-value {
   color: var(--text-dim);
 }
 
@@ -196,63 +337,285 @@ button {
   transform: scale(0.97);
 }
 
-/* The open section's light: one capsule of glass that glides to it, on a spring. */
+/* A section's value, as it changes (Cabin Play on, who's signed in): it drops in, so a value that changed while
+   the pointer was elsewhere is noticed. */
+.cp-row-value[data-value] {
+  animation: cp-value 320ms var(--ease) backwards;
+}
+
+@keyframes cp-value {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+/* The open section's light: one capsule of glass that glides to it, on a spring, lit by what's on the screen
+   beside it (--section-glow). */
 .cp-lit {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 4px;
+  right: 4px;
   z-index: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--fill-strong);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 10px 26px -14px color-mix(in oklch, var(--section-glow, transparent), transparent 45%);
   transition:
     top 700ms var(--spring),
-    height 700ms var(--spring);
+    height 700ms var(--spring),
+    box-shadow 700ms ease;
   animation: ob-in 900ms var(--ease) 300ms backwards;
 }
 
 /* ---------- The page, between them ---------- */
 
+/* The section's page: a pane of frosted glass with its own title held at the top and its cards on it, so the
+   window reads as three columns — the sections, the page, the screen it's about. */
 .ob-words[data-place='page'] {
-  top: 36px;
-  bottom: 24px;
+  top: 22px;
+  bottom: 22px;
   left: 236px;
   z-index: 2;
   width: 304px;
+  padding: 20px 14px 14px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgb(27 27 31 / 0.74), rgb(17 17 20 / 0.7));
+  -webkit-backdrop-filter: blur(30px) saturate(1.4);
+  backdrop-filter: blur(30px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    inset 0 0 0 1px rgb(255 255 255 / 0.035),
+    0 30px 70px rgb(0 0 0 / 0.45);
 }
 
+/* Turning the page: the last one sinks away into the blur (room.css, LEAVE_MS), the next rises out of it while
+   its own parts follow a beat apart (--n). */
+.cp .ob-words[data-place='page'] {
+  animation: cp-page 520ms var(--ease) backwards;
+}
+
+@keyframes cp-page {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+}
+
+.cp .ob-words[data-place='page'][data-leaving] {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.99);
+  filter: blur(4px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms var(--ease),
+    filter 220ms ease;
+}
+
+/* The page's mark: the section's glyph on a tile lit by the same light as the stage, so a page says which
+   section it is before its title does. */
+.cp .ob-tile {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 13px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.11), rgb(255 255 255 / 0.045)),
+    color-mix(in oklch, var(--section-glow), transparent 88%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 10px 22px -12px color-mix(in oklch, var(--section-glow), transparent 20%);
+  color: var(--text);
+  animation: cp-tile 700ms var(--ease) backwards;
+}
+
+.cp .ob-tile svg {
+  width: 21px;
+  height: 21px;
+}
+
+@keyframes cp-tile {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.86);
+  }
+}
+
+/* Its title, held at the top of the pane, over a hairline: what the page is, while its cards move under it. */
 .cp h1 {
-  font-size: 31px;
+  font-size: 26px;
+  line-height: 1.07;
+  letter-spacing: -0.025em;
 }
 
-/* The page's cards: iOS's dark grouped grey, nearly solid and frosted, so the screen's light behind them
-   never muddies their words. */
+.cp .ob-words[data-place='page'] .ob-sub {
+  margin-top: 7px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+  font-size: 12.5px;
+}
+
+/* The companion's parts arrive a little quicker than the onboarding's, the page arriving with them. */
+.cp .ob-words[data-place='page'] .ob-in {
+  animation-duration: 720ms;
+  animation-delay: calc(var(--n, 0) * 52ms + 60ms);
+}
+
+/* The cards, on the pane: plates of light rather than slabs of near-black, the pane behind them already keeping
+   the screen's light off their words. */
 .cp .ob-group,
 .cp .ob-key {
-  background: rgb(28 28 31 / 0.88);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  border-radius: 13px;
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.045);
 }
 
 .cp .ob-key:hover {
-  background: rgb(44 44 48 / 0.9);
+  background: rgb(255 255 255 / 0.095);
+}
+
+/* Its words scroll from the hairline to the pane's foot, fading at both ends. */
+.cp .ob-words[data-place='page'] .ob-content {
+  gap: 10px;
+  margin: 14px 0 0;
+  padding-block: 4px 6px;
+  padding-inline: 0;
+  mask-image: linear-gradient(to bottom, transparent, black 8px, black calc(100% - 18px), transparent);
+}
+
+/* ---------- The screen's connection ---------- */
+
+/* A path, not a list: the engine, the game, the screen in the truck, each a stop on one line. The line is live
+   as far as the signals have got, so a break in it is where the connection broke. */
+.cp-path {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.04));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.055);
+}
+
+.cp-step {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 15px;
+}
+
+.cp-step:last-child {
+  padding-bottom: 0;
+}
+
+/* The line on to the next stop: grey until both ends talk, then the section's light. */
+.cp-step::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  bottom: 1px;
+  left: 4.5px;
+  width: 1.5px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.12);
+  transition: background 500ms ease;
+}
+
+.cp-step[data-reached]::before {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--section-glow), white 25%), rgb(255 255 255 / 0.16));
+}
+
+.cp-step:last-child::before {
+  content: none;
+}
+
+.cp-step-dot {
+  position: relative;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 4px;
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.2);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.035);
+  transition:
+    background 400ms ease,
+    box-shadow 400ms ease;
+}
+
+.cp-step[data-tone='good'] .cp-step-dot {
+  background: var(--green);
+  box-shadow:
+    0 0 0 4px rgb(48 209 88 / 0.12),
+    0 0 10px rgb(48 209 88 / 0.5);
+}
+
+.cp-step[data-tone='busy'] .cp-step-dot {
+  background: var(--blue);
+  box-shadow: 0 0 0 4px rgb(10 132 255 / 0.14);
+  animation: ob-pulse 1.4s ease-in-out infinite;
+}
+
+.cp-step[data-tone='bad'] .cp-step-dot {
+  background: var(--red);
+  box-shadow:
+    0 0 0 4px rgb(255 69 58 / 0.12),
+    0 0 10px rgb(255 69 58 / 0.5);
+}
+
+.cp-step[data-tone='idle'] .cp-step-dot {
+  background: var(--orange);
+  box-shadow: 0 0 0 4px rgb(255 159 10 / 0.1);
+}
+
+.cp-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cp-step-text b {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.cp-step-text span {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.cp .ob-words[data-place='page'] .ob-group-title {
+  margin-left: 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+}
+
+.cp .ob-words[data-place='page'] .ob-actions {
+  padding-top: 12px;
 }
 
 /* The keycaps, a little more compact beside the screen than in the onboarding. */
 .cp .ob-keys {
-  gap: 8px;
+  gap: 7px;
 }
 
 .cp .ob-key {
-  gap: 10px;
-  padding: 11px 12px;
+  gap: 8px;
+  padding: 10px 8px;
 }
 
 .cp .ob-cap {
-  height: 34px;
-  min-width: 46px;
-  font-size: 14px;
+  height: 32px;
+  min-width: 42px;
+  font-size: 13px;
 }
 
 .cp .ob-mouse {
@@ -766,4 +1129,17 @@ button {
 
 .cp-keybind[data-listening] {
   box-shadow: inset 0 0 0 2px var(--blue);
+}
+
+/* ---------- The keyboard ---------- */
+
+/* Everything here is reachable by Tab: what has the keyboard says so, outside its own box (the rows' light
+   inside it is the pointer's). */
+.cp :is(button, [role='switch'], [role='slider'], [tabindex]):focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.cp .cp-row:focus-visible {
+  color: var(--text);
 }

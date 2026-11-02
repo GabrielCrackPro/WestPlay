@@ -1,8 +1,10 @@
 import { setWestplayOpen } from '../useHostStatus'
-import { Group, Note, Panel, Row, Status, Switch, Tick } from '../room/parts'
-import { banner } from '../room/room'
+import { Group, Note, Panel, Row, Switch, Tick } from '../room/parts'
+import { banner, n } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
-import { type PageProps, screenState } from './page'
+import { SectionGlyph } from './glyphs'
+import { type PageProps, type ScreenState, screenState } from './page'
+import type { CompanionWords } from './words'
 
 /**
  * The truck's screen: where Cabin Play is now (its headline), Cabin Play on it or the truck's own, and the
@@ -31,8 +33,9 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
   )
   const fps = status?.framesPerSecond ?? 0
   return (
-    <Panel place="page" title={w.titles[state]} sub={w.subs[state]}>
-      <Group place={4}>
+    <Panel place="page" title={w.titles[state]} sub={w.subs[state]} icon={<SectionGlyph id="screen" />}>
+      <ConnectionPath status={status} state={state} w={w} cw={cw} fps={fps} place={4} />
+      <Group place={5}>
         <Row
           title={w.show}
           detail={w.showDetail}
@@ -48,41 +51,6 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
           }
         />
       </Group>
-      <Group title={w.connection} place={5}>
-        <Row
-          title={w.engine}
-          value={status?.error ? cw.values.failed : status ? w.engineRunning : w.engineStarting}
-          accessory={<Status tone={status?.error ? 'bad' : status ? 'good' : 'busy'} />}
-        />
-        <Row
-          title={w.game}
-          value={status?.gameConnected ? w.gameConnected : w.gameNotRunning}
-          accessory={<Status tone={status?.gameConnected ? 'good' : 'idle'} />}
-        />
-        <Row
-          title={w.truckScreen}
-          value={
-            state === 'unsupported'
-              ? w.screenUnsupported
-              : status?.screenDrawing
-                ? w.screenLive.replace('{fps}', String(fps))
-                : w.screenNotInView
-          }
-          accessory={
-            <Status
-              tone={
-                state === 'unsupported'
-                  ? 'idle'
-                  : status?.screenDrawing
-                    ? 'good'
-                    : status?.gameConnected
-                      ? 'busy'
-                      : 'idle'
-              }
-            />
-          }
-        />
-      </Group>
       {status?.gameElevated && (
         <Note tone="bad">
           <b>{w.elevated.title}</b> {w.elevated.text}
@@ -91,6 +59,76 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
       <GpuChooser status={status} settings={settings} cw={cw} />
       {status?.error && <Note tone="bad">{status.error}</Note>}
     </Panel>
+  )
+}
+
+/** How a step of the connection is doing: as iOS's dots say it. */
+type Tone = 'good' | 'bad' | 'busy' | 'idle'
+
+/**
+ * The connection to the game's screen, as the three things it takes, in order: Cabin Play's engine, the game, and
+ * the screen in the truck. Each lights when it's reached, and the line between two of them lights only where
+ * both ends are talking, so where the line stops is where to look.
+ */
+function ConnectionPath({
+  status,
+  state,
+  w,
+  cw,
+  fps,
+  place,
+}: {
+  status: PageProps['status']
+  state: ScreenState
+  w: CompanionWords['screen']
+  cw: CompanionWords
+  fps: number
+  place: number
+}) {
+  const steps: { label: string; value: string; tone: Tone }[] = [
+    {
+      label: w.engine,
+      value: status?.error ? cw.values.failed : status ? w.engineRunning : w.engineStarting,
+      tone: status?.error ? 'bad' : status ? 'good' : 'busy',
+    },
+    {
+      label: w.game,
+      value: status?.gameConnected ? w.gameConnected : w.gameNotRunning,
+      tone: status?.gameConnected ? 'good' : 'idle',
+    },
+    {
+      label: w.truckScreen,
+      value:
+        state === 'unsupported'
+          ? w.screenUnsupported
+          : status?.screenDrawing
+            ? w.screenLive.replace('{fps}', String(fps))
+            : w.screenNotInView,
+      tone: state === 'unsupported' ? 'idle' : status?.screenDrawing ? 'good' : status?.gameConnected ? 'busy' : 'idle',
+    },
+  ]
+  return (
+    <>
+      <p className="ob-group-title ob-in" style={n(place)}>
+        {w.connection}
+      </p>
+      <ol className="cp-path ob-in" style={n(place)}>
+        {steps.map((step) => (
+          <li
+            key={step.label}
+            className="cp-step"
+            data-tone={step.tone}
+            data-reached={step.tone === 'good' || undefined}
+          >
+            <i className="cp-step-dot" />
+            <span className="cp-step-text">
+              <b>{step.label}</b>
+              <span>{step.value}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </>
   )
 }
 

@@ -5,6 +5,7 @@ import { n, useWords } from '../room/room'
 import { GLOW, openAndClose, useScreenAt, useTour } from '../room/screen'
 import { type Binding, DEFAULT_KEY, KEYBIND_IDS, type KeybindId, SENSITIVITY, type Settings } from '../useSettings'
 import { KeyButton } from './KeyButton'
+import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 
 /**
@@ -19,7 +20,7 @@ export function Controls({ settings: state, cw }: PageProps) {
   useScreenAt('home', GLOW.home, null)
   useTour([...openAndClose('music', GLOW.music), ...openAndClose('maps', GLOW.maps)])
   return (
-    <Panel place="page" title={w.title} sub={w.sub}>
+    <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="controls" />}>
       <p className="ob-group-title ob-in" style={n(4)}>
         {settings?.interaction.mode === 'toggle' ? w.keyToggle : w.key}
       </p>
