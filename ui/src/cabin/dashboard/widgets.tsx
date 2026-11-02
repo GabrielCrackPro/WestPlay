@@ -31,7 +31,7 @@ import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { JobGlyph } from './JobGlyph'
-import { EMPTY, useDestinationView, useDiagnosticsView, useJobView } from './widgetState'
+import { EMPTY, useDestinationView, useDiagnosticsView } from './widgetState'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -225,8 +225,9 @@ function MusicWidget({
 
 /**
  * Where the truck is headed, our "live activity" (destination.ts): the job's pickup and then its delivery
- * (deadline and distance left), or where the game's route ends; folded away without either, as the
- * guidance card comes and goes.
+ * (deadline and distance left), or where the game's route ends. A job also brings what it carries and what it
+ * pays, so its work is on the same card as the place it goes. Folded away without either, as the guidance card
+ * comes and goes.
  */
 export function DestinationWidget() {
   const view = useDestinationView()
@@ -234,37 +235,18 @@ export function DestinationWidget() {
   return (
     <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-destination' }}>
       {shown && (
-        <article className="widget glass job">
+        <article className="widget glass job trip-card">
           <div className="kicker">{view.kicker}</div>
           <div className="destination">{view.title}</div>
           {view.subtitle && <div className="place">{view.subtitle}</div>}
-          <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>
-        </article>
-      )}
-    </div>
-  )
-}
-
-/**
- * The job: what the truck carries, what it pays, and the deadline (or the pickup still to make). The
- * destination card says where it goes; this one says what the work is worth and how long there is. Folded
- * away without a job, like the destination's card.
- */
-export function JobWidget() {
-  const text = useText()
-  const view = useJobView()
-  const shown = useCabin((state) => state.dashboardWidgets.job) && view !== null
-  return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-job' }}>
-      {shown && view && (
-        <article className="widget glass job job-card" aria-label={text.job}>
-          <div className="job-text">
-            <div className="kicker">{text.job}</div>
-            <div className="destination">{view.cargo}</div>
-            <div className="place">{view.pay}</div>
-            <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>
-          </div>
-          <JobGlyph size={GLYPH} />
+          {view.detail && <div className={`deadline${view.late ? ' late' : ''}`}>{view.detail}</div>}
+          {view.cargo && (
+            <div className="job-meta">
+              <JobGlyph size={26} />
+              <span className="cargo">{view.cargo}</span>
+              {view.pay && <span className="pay">{view.pay}</span>}
+            </div>
+          )}
         </article>
       )}
     </div>
@@ -318,7 +300,7 @@ function Extra({ label, value, state }: { label: string; value: string; state: S
   )
 }
 
-/** The job and fuel cards' glyphs, the weather symbol's size. */
+/** The fuel card's glyph, the weather symbol's size. */
 const GLYPH = 72
 
 /**
@@ -332,22 +314,19 @@ export function WeatherWidget() {
   const labels = useMapData()?.labels
   const widgets = useCabin((state) => state.dashboardWidgets)
   const destination = useDestinationView()
-  const job = useJobView()
   const diagnostics = useDiagnosticsView()
   const loaded = useAnythingLoaded()
-  const hasJob = job !== null
   const others = [
     // Now Playing only while a player has something: nothing loaded, and the card is away, so it isn't one of
     // the column's.
     widgets.nowPlaying && loaded,
     widgets.destination && destination !== EMPTY,
-    widgets.job && hasJob,
     widgets.diagnostics && diagnostics !== null,
   ].filter(Boolean).length
   // Weather is never dropped when the column is full: it comes in tight instead (a smaller card), so a widget the
   // player turned on doesn't disappear without saying why.
   const room = widgets.weather
-  const tight = others >= 4
+  const tight = others >= 3
   const weather = useLive((state) => state.weather)
   const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : 0))
   const place = useLive((state) => {

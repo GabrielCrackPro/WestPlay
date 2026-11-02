@@ -40,6 +40,8 @@ describe('destinationView', () => {
       subtitle: 'Kraków',
       detail: 'Arrive by 18:40 · 214 km',
       late: false,
+      cargo: 'Tomatoes · 18.4 t',
+      pay: 'Income 52,000',
     })
   })
 
@@ -80,8 +82,10 @@ describe('destinationView', () => {
       kicker: 'Pickup',
       title: 'Agrominta',
       subtitle: 'Bari',
-      detail: 'Tomatoes · 18.4 t',
+      detail: '',
       late: false,
+      cargo: 'Tomatoes · 18.4 t',
+      pay: 'Income 52,000',
     })
   })
 
@@ -92,7 +96,7 @@ describe('destinationView', () => {
 
   it('without a job, names a map point after its nearest city', () => {
     const view = destinationView(null, [900, 0], telemetry, [label('Bari', 1000), label('Taranto', 5000)], text, 0)
-    expect(view).toMatchObject({ kicker: 'Destination', title: 'Bari' })
+    expect(view).toMatchObject({ kicker: 'Destination', title: 'Bari', cargo: null, pay: null })
     expect(view?.detail).toBe('17:00 arrival · 3:00 hrs')
   })
 

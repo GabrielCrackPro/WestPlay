@@ -529,7 +529,6 @@ function DashboardPage() {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
     weather: text.apps.weather,
-    job: text.job,
     diagnostics: text.apps.diagnostics,
   }
   return (

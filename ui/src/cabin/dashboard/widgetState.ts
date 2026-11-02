@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { cabClock } from '../../shared/host'
 import type { DashboardWidget } from '../state/store'
 import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } from '../apps/diagnostics/readings'
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
-import { destinationView, formatDeadline } from './destination'
+import { destinationView } from './destination'
 import { useAnythingLoaded } from './useNowPlaying'
 
 /* What the Dashboard's widget column shows, for the widgets (widgets.tsx) and the Dashboard itself. */
@@ -24,7 +23,7 @@ export function useDestinationView() {
 }
 
 /** No destination (one object, so the store's shallow comparison sees "still nothing"). */
-export const EMPTY = { kicker: '', title: '', subtitle: null, detail: '', late: false }
+export const EMPTY = { kicker: '', title: '', subtitle: null, detail: '', late: false, cargo: null, pay: null }
 
 /** Whether the column has a widget to show: one turned on in Settings with something to show (Now Playing while
  * a player has something, paused or not). Turn-by-turn isn't one of them: it's over the map (MapView). */
@@ -32,13 +31,11 @@ export function useAnyWidget(): boolean {
   const widgets = useCabin((state) => state.dashboardWidgets)
   const loaded = useAnythingLoaded()
   const destination = useDestinationView() !== EMPTY
-  const job = useJobView() !== null
   const diagnostics = useDiagnosticsView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
     (widgets.nowPlaying && loaded) ||
     (widgets.destination && destination) ||
-    (widgets.job && job) ||
     (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
@@ -75,8 +72,8 @@ export function useWidgetOrder(): DashboardWidget[] {
     if (!auto) return ids
     const score: Record<DashboardWidget, number> = {
       diagnostics: warn ? 100 : 20,
-      destination: late ? 96 : 25,
-      job: late ? 95 : soon ? 90 : 30,
+      // The destination card carries the job too: a closing or missed deadline lifts it as it did the job card.
+      destination: late ? 96 : soon ? 90 : 25,
       nowPlaying: 10,
       weather: 0,
     }
@@ -137,44 +134,6 @@ export function useDiagnosticsView(): DiagnosticsView | null {
         fuelState: telemetry.fuelWarning ? 'alarm' : (tank?.state ?? 'ok'),
         adblueState: urea.state,
         batteryState: volts.state,
-      }
-    }),
-  )
-}
-
-/** The job card's words: what it carries, what it pays, and the deadline (or the pickup still to make). */
-export interface JobView {
-  /** "Cement · 24.0 t". */
-  cargo: string
-  /** "Income 52,000". */
-  pay: string
-  /** "Arrive by 18:40", "Late", or "Pickup". */
-  detail: string
-  /** Past the delivery deadline. */
-  late: boolean
-}
-
-/** The Dashboard's job widget, from the game's job (`JobInfo`); null without one, so the card folds away. */
-export function useJobView(): JobView | null {
-  const text = useText()
-  return useLive(
-    useShallow((state) => {
-      const { job, telemetry, clockShift } = state
-      if (!job) return null
-      const tonnes = (job.cargoMass / 1000).toFixed(1).replace('.', text.decimal)
-      const now = telemetry?.gameTime ?? 0
-      const clock = telemetry ? cabClock(telemetry, clockShift) : 0
-      const late = job.deliveryTime > 0 && now > job.deliveryTime
-      let detail = text.delivery
-      if (!job.cargoLoaded) detail = text.pickup
-      else if (job.deliveryTime > 0) {
-        detail = late ? text.late : text.arriveBy(formatDeadline(job.deliveryTime + (clock - now), clock, text.days))
-      }
-      return {
-        cargo: job.cargo ? `${job.cargo} · ${tonnes} t` : `${tonnes} t`,
-        pay: `${text.income} ${text.number(job.income)}`,
-        detail,
-        late,
       }
     }),
   )

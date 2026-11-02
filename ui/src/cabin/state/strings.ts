@@ -155,7 +155,6 @@ export interface Strings {
   openMusicApp: string
   nothingLoaded: string
   playing: string
-  job: string
   fuel: string
   income: string
   range: (distance: string) => string
@@ -786,7 +785,6 @@ const ENGLISH_STRINGS: Strings = {
   openMusicApp: 'Open Apple Music, Spotify or YouTube Music on your PC.',
   nothingLoaded: 'Nothing loaded',
   playing: 'Playing',
-  job: 'Job',
   fuel: 'Fuel',
   income: 'Income',
   range: (distance) => `${distance} range`,
@@ -1422,7 +1420,6 @@ const TURKISH_STRINGS: Strings = {
   openMusicApp: 'Bilgisayarınızda Apple Music, Spotify veya YouTube Music’i açın.',
   nothingLoaded: 'Hiçbir şey yüklenmedi',
   playing: 'Çalıyor',
-  job: 'İş',
   fuel: 'Yakıt',
   income: 'Kazanç',
   range: (distance) => `${distance} menzil`,
@@ -2067,7 +2064,6 @@ const SPANISH_STRINGS: Strings = {
   openMusicApp: 'Abre Apple Music, Spotify o YouTube Music en tu PC.',
   nothingLoaded: 'Nada cargado',
   playing: 'Sonando',
-  job: 'Trabajo',
   fuel: 'Combustible',
   income: 'Ingresos',
   range: (distance) => `${distance} de autonomía`,

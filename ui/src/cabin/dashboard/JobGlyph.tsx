@@ -1,5 +1,5 @@
 /**
- * The job/cargo glyph on the Dashboard's job card: similar to the fuel pump icon,
+ * The job/cargo glyph on the Dashboard's destination card: similar to the fuel pump icon,
  * drawn in the text's own colour as the weather's symbol is — it says "job" where the words would otherwise be alone.
  */
 export function JobGlyph({ size }: { size: number }) {

@@ -71,15 +71,9 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'job' | 'diagnostics'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'diagnostics'
 
-export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
-  'nowPlaying',
-  'destination',
-  'weather',
-  'job',
-  'diagnostics',
-]
+export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = ['nowPlaying', 'destination', 'weather', 'diagnostics']
 
 /** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
 export type Clock = 'game' | 'real'
@@ -267,13 +261,14 @@ const SYSTEM_REDUCES_MOTION = typeof matchMedia === 'function' && matchMedia('(p
 
 /** The Dashboard's own order for a new player, top to bottom (the weather last: it's the one that comes in when
  * there's room). */
-const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'job', 'diagnostics', 'weather']
+const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'diagnostics', 'weather']
 
-/** A saved order, made whole: every widget once, in the order saved, any the save doesn't know about after them. */
+/** A saved order, made whole: every widget once, in the order saved, any the save doesn't know about after them.
+ * An older save's Job widget is the destination card now: it keeps the place that card had. */
 function orderOf(saved: unknown): DashboardWidget[] {
-  const kept = (Array.isArray(saved) ? saved : []).filter((id): id is DashboardWidget =>
-    DASHBOARD_WIDGETS.includes(id as DashboardWidget),
-  )
+  const kept = (Array.isArray(saved) ? saved : [])
+    .map((id) => (id === 'job' ? 'destination' : id))
+    .filter((id): id is DashboardWidget => DASHBOARD_WIDGETS.includes(id as DashboardWidget))
   return [...new Set(kept), ...DASHBOARD_WIDGETS.filter((id) => !kept.includes(id))]
 }
 
@@ -282,7 +277,6 @@ const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
   nowPlaying: true,
   destination: true,
   weather: true,
-  job: true,
   diagnostics: true,
 }
 
@@ -478,9 +472,11 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   // Any id: one of the player's wallpapers is only known once the host lists them (one gone shows the default).
   if (typeof stored.wallpaperId === 'string') result.wallpaperId = stored.wallpaperId
   if (typeof stored.dashboardWidgets === 'object' && stored.dashboardWidgets !== null) {
-    const widgets = stored.dashboardWidgets as Partial<Record<DashboardWidget, unknown>>
+    const widgets = stored.dashboardWidgets as Partial<Record<DashboardWidget, unknown>> & { job?: unknown }
+    // The Job and Destination cards are one now: it's shown if either of them was.
+    const destination = widgets.destination !== false || (widgets.job !== undefined && widgets.job !== false)
     result.dashboardWidgets = Object.fromEntries(
-      DASHBOARD_WIDGETS.map((widget) => [widget, widgets[widget] !== false]),
+      DASHBOARD_WIDGETS.map((widget) => [widget, widget === 'destination' ? destination : widgets[widget] !== false]),
     ) as Record<DashboardWidget, boolean>
   }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock

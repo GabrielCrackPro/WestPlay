@@ -27,11 +27,16 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: false,
       destination: true,
-      job: true,
       diagnostics: true,
       weather: false,
     })
     expect(useCabin.getState().albumArt).toBe(false)
+  })
+
+  it('keep the older Job card’s choice on the destination card it joined', async () => {
+    vi.stubGlobal('localStorage', savedStorage({ dashboardWidgets: { destination: false, job: true } }))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().dashboardWidgets.destination).toBe(true)
   })
 
   it('keep a widget shown unless it was turned off, and ignore what isn’t a choice', async () => {
@@ -43,7 +48,6 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: true,
       destination: true,
-      job: true,
       diagnostics: true,
       weather: false,
     })
@@ -57,7 +61,6 @@ describe('the saved Settings choices', () => {
       nowPlaying: true,
       destination: true,
       weather: true,
-      job: true,
       diagnostics: true,
     })
     expect(useCabin.getState().albumArt).toBe(true)

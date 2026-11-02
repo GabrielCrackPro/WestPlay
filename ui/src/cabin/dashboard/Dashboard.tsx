@@ -4,14 +4,13 @@ import { launchingNow } from '../state/launch'
 import { type DashboardWidget, useCabin } from '../state/store'
 import { MapView } from './MapView'
 import { useWidgetOrder } from './widgetState'
-import { DestinationWidget, DiagnosticsWidget, JobWidget, NowPlayingWidget, WeatherWidget } from './widgets'
+import { DestinationWidget, DiagnosticsWidget, NowPlayingWidget, WeatherWidget } from './widgets'
 import './dashboard.css'
 
 /** Each widget, by its id: the column is drawn from an order of ids (the player's, or Auto order's). */
 const WIDGETS: Record<DashboardWidget, ComponentType> = {
   nowPlaying: NowPlayingWidget,
   destination: DestinationWidget,
-  job: JobWidget,
   diagnostics: DiagnosticsWidget,
   weather: WeatherWidget,
 }
@@ -20,8 +19,8 @@ const WIDGETS: Record<DashboardWidget, ComponentType> = {
  * CarPlay-style Dashboard: the map takes most of the space (with one ETA pill), and a column of one-job
  * widgets sits on the right: turn-by-turn on top while there's a route, then the widgets in the order the
  * player set (Settings › Dashboard) or, with Auto order, the order the drive asks for — a warning first, then a
- * closing deadline. A reorder slides each card to its new place (the widgets' transition names); with Reduce
- * Motion, or while a screen change is animating, they just move.
+ * closing deadline. The destination and its job share one card. A reorder slides each card to its new place
+ * (the widgets' transition names); with Reduce Motion, or while a screen change is animating, they just move.
  */
 export function Dashboard() {
   // No widget to show (those turned on in Settings have nothing, and no route): the map has the whole width.
