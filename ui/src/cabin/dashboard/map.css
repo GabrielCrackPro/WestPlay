@@ -12,6 +12,24 @@
   box-shadow: var(--shadow-raised-large);
 }
 
+.map-open-app {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-open-app:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -6px;
+}
+
 /* The live map, rounded with the tile: its canvas is a layer of its own, and overflow's rounded clip alone
    can drop to square corners on and off in the cab's offscreen page as layers come and go; a clip path
    holds (on the map, not the tile, whose shadow it would cut off). */

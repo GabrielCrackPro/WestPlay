@@ -9,7 +9,7 @@ import { nextStop } from '../maps/nextStop'
 import { StopsStrip } from '../maps/StopsStrip'
 import { useMapData } from '../maps/mapData'
 import { RoadMap } from '../maps/RoadMap'
-import { useCabin, useLive } from '../state/store'
+import { go, useCabin, useLive } from '../state/store'
 import { useTicker } from '../state/ticker'
 import { useText } from '../state/text'
 import './map.css'
@@ -71,6 +71,14 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
             </svg>
           </div>
         </>
+      )}
+      {!interactive && (
+        <button
+          type="button"
+          className="map-open-app"
+          aria-label={text.apps.maps}
+          onClick={() => go({ type: 'openApp', app: 'maps' })}
+        />
       )}
       <div className="map-shade" />
       {wipers && <div className={`map-rain ${rain}`} aria-hidden />}

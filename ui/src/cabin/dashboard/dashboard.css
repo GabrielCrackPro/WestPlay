@@ -76,6 +76,10 @@ button.widget {
   transition: transform 140ms var(--motion-ease);
 }
 
+button.widget.glass {
+  background: var(--glass);
+}
+
 button.widget:active {
   transform: scale(0.985);
 }
