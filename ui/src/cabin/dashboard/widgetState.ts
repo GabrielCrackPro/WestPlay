@@ -7,6 +7,7 @@ import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { destinationView, formatDeadline } from './destination'
+import { useAnythingLoaded } from './useNowPlaying'
 
 /* What the Dashboard's widget column shows, for the widgets (widgets.tsx) and the Dashboard itself. */
 
@@ -25,16 +26,17 @@ export function useDestinationView() {
 /** No destination (one object, so the store's shallow comparison sees "still nothing"). */
 export const EMPTY = { kicker: '', title: '', subtitle: null, detail: '', late: false }
 
-/** Whether the column has a widget to show: one turned on in Settings with something to show (Now Playing
- * always has). Turn-by-turn isn't one of them: it's over the map (MapView). */
+/** Whether the column has a widget to show: one turned on in Settings with something to show (Now Playing while
+ * a player has something, paused or not). Turn-by-turn isn't one of them: it's over the map (MapView). */
 export function useAnyWidget(): boolean {
   const widgets = useCabin((state) => state.dashboardWidgets)
+  const loaded = useAnythingLoaded()
   const destination = useDestinationView() !== EMPTY
   const job = useJobView() !== null
   const diagnostics = useDiagnosticsView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
-    widgets.nowPlaying ||
+    (widgets.nowPlaying && loaded) ||
     (widgets.destination && destination) ||
     (widgets.job && job) ||
     (widgets.diagnostics && diagnostics) ||

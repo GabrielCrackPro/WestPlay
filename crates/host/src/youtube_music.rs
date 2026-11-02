@@ -765,8 +765,9 @@ impl Timing {
 }
 
 /// What the host tells YouTube Music's page of the cab (never the cabin page's to send): the truck's speakers
-/// (`None`: as it is, a truck whose speakers aren't known), the driver's head, and the camera outside (its
-/// distance, metres; 0: not known). As Apple Music's (apple_music.rs).
+/// (`None`: as it is, a truck whose speakers aren't known), the driver's head, and the camera outside (nothing
+/// of its sound is heard then: the speakers are in the cab; `distance`, metres; 0: not known). As Apple Music's
+/// (apple_music.rs).
 #[derive(Debug, PartialEq, serde::Serialize)]
 #[serde(tag = "action", rename_all = "camelCase")]
 enum Cab {

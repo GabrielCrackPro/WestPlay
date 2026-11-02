@@ -566,6 +566,8 @@ export interface LiveState {
   spectrum: readonly number[]
   /** The host draws the screen's cursor (`cursor` message): the page draws none of its own then. */
   cursorByHost: boolean
+  /** Whether the game's camera is outside the cab: everything CabinPlay plays is the cab's, heard in it only. */
+  outsideCab: boolean
 }
 
 /** TruckersMP's players around the player, from its SDK: its game server's id, the player's own number on it,
@@ -600,6 +602,7 @@ export const useLive = create<LiveState>()(() => ({
   nearby: null,
   spectrum: [],
   cursorByHost: false,
+  outsideCab: false,
 }))
 
 /** Plain browser previews have no game to report the screen: `?layout=scania-2025` stands in for it. */
@@ -747,6 +750,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
       case 'screen':
         // A layout this UI doesn't know yet (newer plugin) is treated like a screen without a profile.
         useLive.setState({ screenLayout: isScreenLayoutId(message.layout) ? message.layout : null })
+        break
+      case 'camera':
+        useLive.setState({ outsideCab: message.outside })
         break
       case 'settings': {
         const cabin = useCabin.getState()

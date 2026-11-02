@@ -37,6 +37,12 @@ export function useNowPlaying() {
   return { showing, playing, spotify, appleMusic, youtubeMusic, video }
 }
 
+/** Whether any player has something to play, playing or paused: the Dashboard's Now Playing card is there only
+ * then (a paused song keeps its card, `shownSource`). */
+export function useAnythingLoaded(): boolean {
+  return useNowPlaying().showing !== null
+}
+
 /**
  * How far into what plays Now Playing reads, in seconds: the position its player last said, run on by the clock
  * while it plays, and the track's length. It ticks once a second — a bar that moves without the card redrawing

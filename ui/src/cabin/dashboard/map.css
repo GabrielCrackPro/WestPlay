@@ -264,9 +264,8 @@
   }
 }
 
-/* The trip pill's tail (MapView.tsx): the next rest the game asks for, and the tank's range when it doesn't reach
-   the destination (the one thing in the pill to act on, so it takes the amber). The pill's width is the map's;
-   these ride its line, and give way to it as it runs out of room. */
+/* The trip pill's tail (MapView.tsx): the next rest the game asks for. The pill's width is the map's; it rides
+   its line, and gives way to it as it runs out of room. */
 .eta-rest {
   display: inline-block;
   margin-left: 10px;
@@ -274,11 +273,6 @@
   border-radius: 999px;
   background: rgb(255 255 255 / 0.16);
   font-weight: 600;
-}
-
-.eta-range {
-  color: var(--apple-orange);
-  font-weight: 650;
 }
 
 /* How much of the route is behind the truck: a line along the bottom of the pill, the bar growing as it goes. */

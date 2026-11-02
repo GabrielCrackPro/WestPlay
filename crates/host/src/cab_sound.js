@@ -18,35 +18,35 @@ window.westplayCabSound = (media, say) => {
   const fall = (at, from) => NEAR / Math.max(NEAR, Math.hypot(at[0] - from.x, at[1] - from.y, at[2] - from.z))
   let speakers = null
   let head = null
-  // The camera outside the cab: the sound through its closed walls, only its bass, at once; quieter and
-  // duller the further away, and from 16 m it fades out, silent at 20 m (`distance`: from the driver's head,
-  // metres; 0: not known). Each row: distance (m), level (dB), and the lowpass (Hz, 250 × √(4 / distance));
-  // between rows both change smoothly with the distance (as heard: by its doublings).
+  // The camera outside the cab: the truck's speakers aren't heard out there at all — the sound is the cab's
+  // (owner 2026-11-02). The walls' cut still shapes the moment it comes back: a lowpass, lower the further
+  // away the camera is (`distance`: from the driver's head, metres; 0: not known). Each row: distance (m) and
+  // the lowpass (Hz, 250 × √(4 / distance)); between rows it changes smoothly with the distance (as heard: by
+  // its doublings).
   let outside = false
   let distance = 0
   const MUFFLE = [
-    [4, -6, 250],
-    [5, -9, 224],
-    [6, -12, 204],
-    [8, -16, 177],
-    [16, -24, 125],
+    [4, 250],
+    [5, 224],
+    [6, 204],
+    [8, 177],
+    [16, 125],
   ]
-  const SILENT = 20
-  const muffled = () => {
+  // The walls' cut with the camera `distance` out: the lowpass it comes back through.
+  const cutOff = () => {
     const last = MUFFLE.at(-1)
     const d = Math.min(Math.max(MUFFLE[0][0], distance), last[0])
     const after = Math.max(1, MUFFLE.findIndex(([at]) => at >= d))
     const [from, to] = [MUFFLE[after - 1], MUFFLE[after]]
     const t = Math.log2(d / from[0]) / Math.log2(to[0] / from[0])
-    const level = from[1] + (to[1] - from[1]) * t
-    const frequency = from[2] * (to[2] / from[2]) ** t
-    const fade = Math.min(1, Math.max(0, (SILENT - distance) / (SILENT - last[0])))
-    return { frequency, gain: 10 ** (level / 20) * fade }
+    return from[1] * (to[1] / from[1]) ** t
   }
   const muffle = (cut) => {
     if (!audio?.muffle) return
     const { currentTime } = audio.context
-    const { frequency, gain } = outside ? muffled() : { frequency: 20000, gain: 1 }
+    // Outside the cab: silent (the speakers are in it), through its walls' cut.
+    const frequency = outside ? cutOff() : 20000
+    const gain = outside ? 0 : 1
     // In or out at once, as the game cuts from one camera to the other; further or nearer as the camera moves.
     for (const [param, value] of [[audio.muffle.filter.frequency, frequency], [audio.muffle.gain.gain, gain]]) {
       if (cut) param.setValueAtTime(value, currentTime)
@@ -186,8 +186,8 @@ window.westplayCabSound = (media, say) => {
     audio.analyser = keep(new AnalyserNode(context, { fftSize: 4096, smoothingTimeConstant: 0.5, minDecibels: -80, maxDecibels: -22 }))
     trim.connect(audio.analyser)
     // Last of all, the cab's walls (open while the camera is in it).
-    const walls = keep(new BiquadFilterNode(context, { type: 'lowpass', frequency: outside ? muffled().frequency : 20000, Q: Math.SQRT1_2 }))
-    const through = keep(new GainNode(context, { gain: outside ? muffled().gain : 1 }))
+    const walls = keep(new BiquadFilterNode(context, { type: 'lowpass', frequency: outside ? cutOff() : 20000, Q: Math.SQRT1_2 }))
+    const through = keep(new GainNode(context, { gain: outside ? 0 : 1 }))
     walls.connect(through)
     audio.muffle = { filter: walls, gain: through }
     if (!speakers) {

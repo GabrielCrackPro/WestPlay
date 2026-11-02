@@ -186,6 +186,9 @@ export type HostMessage =
   /** The music's spectrum as it plays, while the page asks for it (`spectrum`): bars from the lows to the
    * highs, spaced by octaves, each 0 (silent) to 255; all 0 when it stops. */
   | { type: 'spectrum'; bars: number[] }
+  /** Whether the game's camera is outside the cab: everything CabinPlay plays (the music, its presses, the GPS
+   * voice) is the cab's, and is heard in it only. */
+  | { type: 'camera'; outside: boolean }
   /** Whether the host draws the screen's cursor (into the frames the game takes, where the mouse is at once), or
    * the page draws its own (crates/host cursor.rs). */
   | { type: 'cursor'; host: boolean }

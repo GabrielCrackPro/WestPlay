@@ -189,8 +189,7 @@ function TripPill() {
       // How much of the route is behind the truck: the route's own length, as the game counts its distances.
       const planned = state.route?.distances[0] ?? 0
       const progress = planned > 0 ? Math.min(1, Math.max(0, 1 - telemetry.navigationDistance / planned)) : null
-      // The next rest the game's fatigue simulation asks for, while it's within the hour, and the tank's range
-      // against the way left (amber when it doesn't reach: a fill-up has to come first).
+      // The next rest the game's fatigue simulation asks for, while it's within the hour.
       const rest = telemetry.restStop
       return {
         arrival: formatGameTime(Math.round(cabClock(telemetry, state.clockShift) + minutes)),
@@ -198,16 +197,11 @@ function TripPill() {
         distance: formatTripDistance(telemetry.navigationDistance, text.decimal),
         progress,
         rest: rest >= 0 && rest <= 60 ? `${text.diagnostics.restStop} ${formatTripTime(rest, text)}` : null,
-        // The tank only when it doesn't reach: the one piece of the pill that has to be acted on.
-        range:
-          telemetry.fuelRange > 0 && telemetry.fuelRange < telemetry.navigationDistance
-            ? `${text.diagnostics.range} ${formatTripDistance(telemetry.fuelRange, text.decimal)}`
-            : null,
       }
     }),
   )
   if (!trip) return null
-  const { arrival, time, distance, progress, rest, range } = trip
+  const { arrival, time, distance, progress, rest } = trip
   return (
     <div className="eta-pill glass">
       <span className="eta-line">
@@ -217,12 +211,6 @@ function TripPill() {
           {time}
         </span>{' '}
         <span className="dot">·</span> {distance}
-        {range && (
-          <>
-            {' '}
-            <span className="dot">·</span> <span className="eta-range">{range}</span>
-          </>
-        )}
       </span>
       {rest && <span className="eta-rest">{rest}</span>}
       {progress !== null && (

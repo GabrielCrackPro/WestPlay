@@ -25,7 +25,7 @@ import { useMapData } from '../maps/mapData'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
 import { nearestCity } from './destination'
-import { clock, useNowPlaying, useProgress } from './useNowPlaying'
+import { clock, useAnythingLoaded, useNowPlaying, useProgress } from './useNowPlaying'
 import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
@@ -36,19 +36,21 @@ import { cabClock } from '../../shared/host'
 
 /**
  * Now Playing: what plays, the video YouTube plays first (VideoWidget), then the Spotify app's music, then
- * Apple Music's (the Music app), then YouTube Music's; nothing playing, what played last (nowPlaying.ts); none
- * of them with anything, Not Playing. Turned off in Settings, its room goes to the others.
+ * Apple Music's (the Music app), then YouTube Music's. Only while a player has something — playing or paused:
+ * a paused song keeps its card, and its controls bring it back — so nothing loaded at all leaves the card away,
+ * the column's room going to the drive's own cards and the map. Turned off in Settings, its room goes to the
+ * others too.
  */
 export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
   const { showing, spotify, appleMusic, youtubeMusic } = useNowPlaying()
+  const open = shown && showing !== null
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-nowPlaying' }}>
-      {shown && showing === 'video' && <VideoWidget />}
-      {shown && showing === 'spotify' && spotify && <SpotifyWidget spotify={spotify} />}
-      {shown && showing === 'appleMusic' && appleMusic && <AppleMusicWidget appleMusic={appleMusic} />}
-      {shown && showing === 'youtubeMusic' && youtubeMusic && <YouTubeMusicWidget youtubeMusic={youtubeMusic} />}
-      {shown && showing === null && <MusicWidget source={null} artwork={null} onControl={() => {}} />}
+    <div className={`widget-slot${open ? ' open' : ''}`} style={{ viewTransitionName: 'widget-nowPlaying' }}>
+      {open && showing === 'video' && <VideoWidget />}
+      {open && showing === 'spotify' && spotify && <SpotifyWidget spotify={spotify} />}
+      {open && showing === 'appleMusic' && appleMusic && <AppleMusicWidget appleMusic={appleMusic} />}
+      {open && showing === 'youtubeMusic' && youtubeMusic && <YouTubeMusicWidget youtubeMusic={youtubeMusic} />}
     </div>
   )
 }
@@ -332,9 +334,12 @@ export function WeatherWidget() {
   const destination = useDestinationView()
   const job = useJobView()
   const diagnostics = useDiagnosticsView()
+  const loaded = useAnythingLoaded()
   const hasJob = job !== null
   const others = [
-    widgets.nowPlaying,
+    // Now Playing only while a player has something: nothing loaded, and the card is away, so it isn't one of
+    // the column's.
+    widgets.nowPlaying && loaded,
     widgets.destination && destination !== EMPTY,
     widgets.job && hasJob,
     widgets.diagnostics && diagnostics !== null,

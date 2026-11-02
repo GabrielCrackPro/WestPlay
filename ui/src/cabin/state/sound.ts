@@ -1,4 +1,4 @@
-import { useCabin } from './store'
+import { useCabin, useLive } from './store'
 
 /**
  * The cabin's own sounds (Settings › Sound): a soft tick under a press, a chime when the truck has something to
@@ -7,7 +7,8 @@ import { useCabin } from './store'
  * exponential tail, at a level a driver can ignore.
  *
  * The context is made on the page's first press (browsers don't allow one before that), and each cue is dropped if
- * the player turned sounds off or the page is hidden: nothing plays to an empty cab.
+ * the player turned sounds off, the camera is outside the cab (the speakers are in it) or the page is hidden:
+ * nothing plays to an empty cab.
  */
 export type Cue = 'press' | 'volume' | 'note' | 'alarm'
 
@@ -59,7 +60,7 @@ function audio(): AudioContext | null {
 
 /** Plays one cue, if the player has sounds on and the page is being looked at. */
 export function playCue(cue: Cue): void {
-  if (!useCabin.getState().uiSounds || document.hidden) return
+  if (!useCabin.getState().uiSounds || useLive.getState().outsideCab || document.hidden) return
   const ctx = audio()
   if (!ctx || !master) return
   // Captured once: the module's master can be replaced under a hot reload, and a narrowed `let` doesn't carry into

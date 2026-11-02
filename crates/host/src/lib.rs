@@ -301,8 +301,10 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // The game's menu gone while it's still paused (`camera::MenuGone`), and as last told to the page.
     let mut menu = camera::MenuGone::default();
     let mut menu_gone = false;
-    // Whether the camera was outside the cab, as last said in the log.
+    // Whether the camera was outside the cab, as last said in the log, and as last told the page (whose own sounds
+    // — the GPS voice, the presses — are the cab's too, and silent outside it).
     let mut was_outside = false;
+    let mut outside_told: Option<bool> = None;
     // The players' tone (the cab's Settings › Equalizer), passed on with the cab ([`settings::SoundSettings`]).
     let mut equalizer = config.settings.get().sound.playing();
     // The music's spectrum wanted by the cab (its Equalizer open): asked of the players with the cab.
@@ -360,8 +362,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut typing_state: Option<westplay_shared::TypingState> = None;
     // YouTube's player, while the page uses it, and how it last played (sent again when the page reloads).
     let mut youtube: Option<youtube::YouTube> = None;
-    // Whether the game's camera is outside the cab (YouTube's sound muffled then), and the player's camera
-    // settings in the game (it turns with the steering).
+    // Whether the game's camera is outside the cab (the cab's sound is heard in it only then), and the player's
+    // camera settings in the game (it turns with the steering).
     let mut camera = camera::Camera::default();
     let mut game_settings = game_settings::GameSettings::new();
     let mut youtube_message: Option<String> = None;
@@ -744,6 +746,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     // A page loaded anew asks again if it wants it.
                     spectrum = false;
                     cursor_told = None;
+                    outside_told = None;
                     startup::mark("page: running (its scripts loaded)");
                     last_telemetry = None;
                     last_truck = None;
@@ -1407,7 +1410,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         }
 
         // YouTube's, Apple Music's, YouTube Music's and Spotify's sound from the truck's own speakers, heard from the
-        // driver's head (as last told, every 50 ms); muffled with the camera outside the cab, seen on every pass (as
+        // driver's head (as last told, every 50 ms); silent with the camera outside the cab, seen on every pass (as
         // quick as the game's cut).
         if let (Some(truck), Some(telemetry)) = (&last_truck, &last_telemetry) {
             let plugin = &bridge.bridge().plugin;
@@ -1422,6 +1425,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             if outside != was_outside {
                 was_outside = outside;
                 log!("camera: {} the cab", if outside { "outside" } else { "in" });
+            }
+            // The cabin page, for its own sounds: the cab's, so heard in it only.
+            if outside_told != Some(outside) {
+                outside_told = Some(outside);
+                let message = serde_json::json!({ "type": "camera", "outside": outside });
+                let _ = webview.post_json(&message.to_string());
             }
             // The game's menu gone while it's still paused: the music back as its still picture shows.
             let gone = menu.update(paused, camera::drawn(cab_drawn, game_frame), outside);
@@ -1501,8 +1510,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             // The trailer under the truck, as the game describes it: to the page when it changes (none
             // hitched sends the empty one).
-            static LAST_TRAILER: std::sync::Mutex<Option<westplay_shared::TrailerInfo>> =
-                std::sync::Mutex::new(None);
+            static LAST_TRAILER: std::sync::Mutex<Option<westplay_shared::TrailerInfo>> = std::sync::Mutex::new(None);
             if let Some(trailer) = plugin.trailer.read() {
                 let mut last = LAST_TRAILER.lock().unwrap_or_else(|error| error.into_inner());
                 if *last != Some(trailer) {
@@ -1678,12 +1686,7 @@ fn is_shown(game: u32) -> bool {
                 return BOOL(1);
             }
             let mut cloaked = 0u32;
-            let read = DwmGetWindowAttribute(
-                window,
-                DWMWA_CLOAKED,
-                (&raw mut cloaked).cast(),
-                size_of::<u32>() as u32,
-            );
+            let read = DwmGetWindowAttribute(window, DWMWA_CLOAKED, (&raw mut cloaked).cast(), size_of::<u32>() as u32);
             looking.shown = read.is_err() || cloaked == 0;
             // Found one showing: done.
             BOOL(i32::from(!looking.shown))

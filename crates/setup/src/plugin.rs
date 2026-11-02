@@ -104,12 +104,10 @@ pub fn other_apps(game: &Game) -> Vec<&'static str> {
 
 fn other_apps_in(plugins: &Path) -> Vec<&'static str> {
     let Ok(entries) = std::fs::read_dir(plugins) else { return Vec::new() };
-    let names: Vec<String> = entries.flatten().map(|entry| entry.file_name().to_string_lossy().to_lowercase()).collect();
-    let mut found: Vec<&'static str> = OTHER_APPS
-        .iter()
-        .filter(|(file, _)| names.iter().any(|name| name == file))
-        .map(|(_, app)| *app)
-        .collect();
+    let names: Vec<String> =
+        entries.flatten().map(|entry| entry.file_name().to_string_lossy().to_lowercase()).collect();
+    let mut found: Vec<&'static str> =
+        OTHER_APPS.iter().filter(|(file, _)| names.iter().any(|name| name == file)).map(|(_, app)| *app).collect();
     found.dedup();
     found
 }
