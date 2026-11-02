@@ -702,6 +702,53 @@
   cursor: default;
 }
 
+/* More under the page's foot than shows (SettingsApp.tsx `useMoreBelow`): a small glass chevron at the bottom,
+   breathing until it's reached, so a long list never looks like the whole of it. It takes no presses. */
+.settings-more {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--apple-card-raised);
+  color: var(--apple-label-secondary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 6px 18px rgb(0 0 0 / 0.22);
+  translate: -50% 0;
+  pointer-events: none;
+  animation:
+    settings-more-in 240ms var(--motion-ease) both,
+    settings-more-bob 2400ms 300ms ease-in-out infinite;
+}
+
+/* The list's chevron, turned to point down the page. */
+.settings-more svg {
+  width: 14px;
+  height: 22px;
+  rotate: 90deg;
+}
+
+@keyframes settings-more-in {
+  from {
+    opacity: 0;
+    translate: -50% 10px;
+  }
+}
+
+@keyframes settings-more-bob {
+  50% {
+    translate: -50% 4px;
+  }
+}
+
+html[data-motion='reduced'] .settings-more {
+  animation: none;
+}
+
 /* Keyboard: the cab is driven by mouse, but Tab and the arrows walk these too (the Text Size slider and the
    Equalizer's bands), so focus has to show. The ring is drawn inside the row: a card clips what spills out of it. */
 .settings-app button:focus-visible,

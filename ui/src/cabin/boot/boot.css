@@ -1,10 +1,12 @@
-/* Boot sequence (BootScreen.tsx). Covers the whole screen, including the OEM strip. Durations below must
-   add up to SPLASH_MS (2400 ms) and CONNECTING_MS (2600 ms) in state/power.ts.
+/* Boot sequence (BootScreen.tsx): one screen, one animation, from the electrics to CarPlay. The panel's light
+   comes up, Cabin Play's mark and name arrive, the truck's brand settles in under them, the pair holds, and the
+   light goes down. The power phases (state/power.ts) only set its length — SPLASH_MS + CONNECTING_MS on a screen
+   of the truck's own, CONNECTING_MS when the boot starts mid-drive — carried in `--boot-ms`; every delay below is
+   a share of it, so a shorter boot plays the same screen, compressed. */
 
-   Both phases are a backlit panel coming up: black glass, a soft pool of light behind the mark, a vignette at
-   the edges. The brand splash lights its mark on from the left; the Cabin Play intro brings the mark in, the
-   name out of it, and a halo as they settle. */
 .boot {
+  --boot-ms: 5000ms;
+
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -15,7 +17,7 @@
   color: #fff;
 }
 
-/* The glass's edge: the vignette over whatever the phase shows. */
+/* The glass's edge: the vignette over the panel. */
 .boot::after {
   content: '';
   position: absolute;
@@ -24,9 +26,8 @@
   background: radial-gradient(120% 92% at 50% 50%, transparent 40%, rgb(0 0 0 / 0.6) 88%);
 }
 
-/* The panel's light, behind both phases' content: one element for the whole boot (BootScreen.tsx), so it comes up
-   once with the electrics and doesn't dip between the brand splash and the intro — the two are the same panel,
-   not two. Its clock is longer than either phase: it only settles here; the intro's light-out takes it down. */
+/* The panel's light, behind the mark: it comes up once with the electrics, breathes while the name lands, and is
+   taken down by the light-out at the end. */
 .boot-glow {
   position: absolute;
   inset: 0;
@@ -38,7 +39,7 @@
     transparent 72%
   );
   opacity: 0;
-  animation: boot-power 5000ms var(--motion-ease) both;
+  animation: boot-power var(--boot-ms) var(--motion-ease) both;
 }
 
 /* Doing up, then a slow breath: a panel's backlight settling, not a lamp switched on. */
@@ -61,153 +62,47 @@
   }
 }
 
-/* --- Brand splash: the maker's mark lighting up, holding, going (2400 ms) ------------------------- */
+/* --- The screen ------------------------------------------------------------------------------------ */
 
-.boot-brand {
+.boot-panel {
   position: relative;
   display: grid;
-  justify-items: center;
-  row-gap: calc(34px * var(--text-scale, 1));
-  animation: brand-life 2400ms var(--motion-ease) both;
-}
-
-/* The mark settles as it comes in: no bounce, a shade small at first and easing up to its size. */
-.boot-brand-mark {
-  display: grid;
   place-items: center;
-  animation: brand-mark 2400ms var(--motion-ease) both;
 }
 
-/* The logos and the wordmarks follow the Text Size, as the rest of the screen's text does (owner 2026-10-24). */
-.boot-brand-logo {
-  width: calc(560px * var(--text-scale, 1));
-  max-height: calc(260px * var(--text-scale, 1));
-  object-fit: contain;
-  /* The same mark the sidebar shows, white on black as truck boot screens have it, whatever the logo file's
-     own colour. */
-  filter: brightness(0) invert(1) drop-shadow(0 10px 40px rgb(255 255 255 / 0.14));
-  /* Lit from its left edge to its right, as a dash's mark comes up with the panel. */
-  animation: brand-wipe 900ms var(--motion-ease) 140ms both;
-}
-
-.boot-brand-wordmark {
-  font-size: calc(92px * var(--text-scale, 1));
-  font-weight: 700;
-  /* Opens out from tight lettering as it fades in, the way a wordmark settles. */
-  animation: brand-word 1100ms var(--motion-ease) 120ms both;
-}
-
-/* A hairline under the mark, drawn out from its middle: the panel's rule, not a progress bar. */
-.boot-brand-rule {
-  width: calc(120px * var(--text-scale, 1));
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.9), transparent);
-  animation: brand-rule 2400ms var(--motion-ease) both;
-}
-
-@keyframes brand-life {
-  0% {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  24%,
-  79% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-6px) scale(1.015);
-  }
-}
-
-@keyframes brand-mark {
-  0% {
-    transform: scale(0.965);
-  }
-  24%,
-  79% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.01);
-  }
-}
-
-@keyframes brand-wipe {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes brand-word {
-  0% {
-    opacity: 0;
-    letter-spacing: 0.4em;
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
-    letter-spacing: 0.18em;
-  }
-}
-
-@keyframes brand-rule {
-  0%,
-  26% {
-    opacity: 0;
-    transform: scaleX(0.15);
-  }
-  52% {
-    opacity: 0.9;
-    transform: scaleX(1);
-  }
-  80% {
-    opacity: 0.9;
-    transform: scaleX(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scaleX(1.08);
-  }
-}
-
-/* --- Cabin Play intro (2600 ms) ---------------------------------------------------------------------- */
-/*   0–520 ms     the mark scales in at the centre, settling onto its size
-     520–1220     it glides left (by --mark-shift) while "Cabin Play" is wiped in out of it to the right
-     880–1800     a halo breathes out from behind the mark, as the pair lands
-     900–2200     hold, the backlight breathing gently
-     2200–2600    the pair fades out a shade smaller; the CarPlay screen fades in after                       */
-
+/* The whole composition breathes a little while it holds, then goes down a shade smaller as CarPlay comes up:
+   one object on the glass, not parts that each finish and stop. */
 .boot-intro {
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  column-gap: calc(30px * var(--text-scale, 1));
-  animation: intro-life 2600ms var(--motion-ease) both;
+  row-gap: calc(30px * var(--text-scale, 1));
+  animation: intro-life var(--boot-ms) var(--motion-ease) both;
+}
+
+/* Cabin Play's mark and name, under the brand: the pair that follows it. */
+.boot-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  row-gap: calc(14px * var(--text-scale, 1));
 }
 
 .boot-intro-mark {
   display: block;
-  /* In front of the wordmark, so the text appears to come out from behind the mark. */
   position: relative;
   z-index: 1;
-  animation: mark-glide 700ms var(--motion-ease) 520ms both;
 }
 
-/* Its own light, thrown once as it lands: the mark is the screen waking up, not a picture on it. */
+/* Its own light, thrown once as the mark lands: the mark is the screen waking up, not a picture on it. */
 .boot-intro-halo {
   position: absolute;
   inset: -60%;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06) 62%, transparent 74%);
   opacity: 0;
-  animation: mark-halo 1000ms var(--motion-ease) 880ms both;
+  animation: mark-halo 1100ms var(--motion-ease) calc(var(--boot-ms) * 0.26) both;
 }
 
 .boot-intro-mark img {
@@ -221,15 +116,63 @@
   box-shadow:
     0 20px 60px rgb(0 0 0 / 0.6),
     0 0 0 1px rgb(255 255 255 / 0.08);
-  animation: mark-in 620ms var(--motion-ease) both;
+  animation: mark-in 700ms var(--motion-ease) calc(var(--boot-ms) * 0.18) both;
 }
 
 .boot-intro-wordmark {
   font-size: calc(84px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: -0.01em;
-  /* Sits behind the mark's starting position and wipes in from its left edge. */
-  animation: wordmark-reveal 700ms var(--motion-ease) 520ms both;
+  animation: wordmark-reveal 800ms var(--motion-ease) calc(var(--boot-ms) * 0.22) both;
+}
+
+/* The truck's brand, above Cabin Play's: it's the truck's screen booting, so its maker leads and Cabin Play
+   follows as the app it's booting into. White on black, as truck boot screens have their mark, whatever the logo
+   file's own colour. */
+.boot-brand {
+  position: relative;
+  display: block;
+  opacity: 0;
+  animation: brand-line calc(var(--boot-ms) * 0.26) var(--motion-ease) calc(var(--boot-ms) * 0.06) both;
+}
+
+.boot-brand-logo {
+  max-width: calc(560px * var(--text-scale, 1));
+  max-height: calc(190px * var(--text-scale, 1));
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 10px 40px rgb(255 255 255 / 0.14));
+}
+
+.boot-brand-wordmark {
+  font-size: calc(84px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+@keyframes brand-line {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Under a brand, Cabin Play takes the second size: a smaller mark and name, still legible, clearly secondary. */
+.boot-intro[data-brand] .boot-intro-mark img {
+  width: calc(84px * var(--text-scale, 1));
+  height: calc(84px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+}
+
+.boot-intro[data-brand] .boot-intro-wordmark {
+  font-size: calc(38px * var(--text-scale, 1));
+}
+
+.boot-intro[data-brand] {
+  row-gap: calc(26px * var(--text-scale, 1));
 }
 
 @keyframes mark-in {
@@ -261,42 +204,40 @@
   }
 }
 
-@keyframes mark-glide {
-  from {
-    transform: translateX(var(--mark-shift));
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 @keyframes wordmark-reveal {
   from {
-    clip-path: inset(0 100% 0 0);
-    transform: translateX(-28px);
     opacity: 0;
+    transform: translateY(16px);
+    filter: blur(8px);
   }
   to {
-    clip-path: inset(0 0 0 0);
-    transform: translateX(0);
     opacity: 1;
+    transform: none;
+    filter: blur(0);
   }
 }
 
+/* Hold, then down: it fades a shade smaller into the light-out, so the handover to CarPlay has no edge. */
 @keyframes intro-life {
-  0%,
-  84% {
+  0% {
+    transform: none;
+  }
+  30%,
+  90% {
     opacity: 1;
     transform: scale(1);
   }
+  92% {
+    transform: scale(1.008);
+  }
   100% {
     opacity: 0;
-    transform: scale(0.985);
+    transform: scale(0.99);
   }
 }
 
-/* The light going down at the end of the intro, over the glow and the pair: the panel dims to black as the screen
-   hands over to CarPlay. 2120 ms + 480 ms = CONNECTING_MS (2600), as state/power.ts. */
+/* The light going down: the panel dims to black as the screen hands over to CarPlay. The last tenth of the boot,
+   over the glow and the mark. */
 .boot-light-out {
   position: absolute;
   inset: 0;
@@ -304,7 +245,7 @@
   pointer-events: none;
   background: #000;
   opacity: 0;
-  animation: light-out 480ms var(--motion-ease) 2120ms both;
+  animation: light-out calc(var(--boot-ms) * 0.1) var(--motion-ease) calc(var(--boot-ms) * 0.9) both;
 }
 
 @keyframes light-out {
@@ -314,8 +255,8 @@
 }
 
 /* Reduced motion (Settings › Appearance's Reduce Motion, or the PC's own; CabinApp sets data-motion): the boot's
-   motion cut, the mark and the name at rest for as long as their phase lasts — the screen still boots, it just
-   doesn't animate, and nothing is left hidden by an animation that never ran. */
+   motion cut — the screen still boots, it just shows its one composition at rest, and nothing is left hidden by
+   an animation that never ran. */
 html[data-motion='reduced'] .boot::after,
 html[data-motion='reduced'] .boot * {
   animation: none !important;
@@ -326,11 +267,7 @@ html[data-motion='reduced'] .boot-glow {
   transform: none;
 }
 
-html[data-motion='reduced'] .boot-brand,
-html[data-motion='reduced'] .boot-brand-mark,
-html[data-motion='reduced'] .boot-brand-logo,
 html[data-motion='reduced'] .boot-intro,
-html[data-motion='reduced'] .boot-intro-mark,
 html[data-motion='reduced'] .boot-intro-mark img,
 html[data-motion='reduced'] .boot-intro-wordmark {
   opacity: 1;
@@ -338,12 +275,9 @@ html[data-motion='reduced'] .boot-intro-wordmark {
   clip-path: none;
 }
 
-html[data-motion='reduced'] .boot-brand-wordmark {
-  letter-spacing: 0.18em;
-}
-
-html[data-motion='reduced'] .boot-brand-rule {
-  opacity: 0.85;
+html[data-motion='reduced'] .boot-brand {
+  opacity: 1;
+  transform: none;
 }
 
 html[data-motion='reduced'] .boot-intro-halo {

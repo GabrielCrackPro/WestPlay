@@ -1,4 +1,12 @@
-import { type CSSProperties, type PointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { NoteGlyph, PauseGlyph, PlayGlyph } from '../music/glyphs'
 import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
 import { smoothThrough } from './curve'
@@ -116,8 +124,23 @@ function ListPage() {
   const open = useSettings((state) => state.open)
   const mode = useCabin((state) => state.appearanceMode)
   const wanted = useWantedAppearance()
+  const wallpapers = useWallpapers()
+  const wallpaperId = useCabin((state) => state.wallpaperId)
+  const iconSet = useLooks((state) => state.iconSet)
+  const iconStyle = useLooks((state) => state.iconStyle)
+  const detail = useCabin((state) => state.mapDetail)
+  // What each row is set to now, as iOS's Settings says it: the screen's look, its wallpaper, its icons, and how
+  // much the map draws.
+  const wallpaper = wallpapers.find((each) => each.id === wallpaperId) ?? wallpapers[0]
+  const icons = iconStyle === 'android' ? 'Android Auto' : (iconSet ?? 'Cabin Play')
+  const drawn: Record<MapDetail, string> = {
+    high: text.settings.high,
+    balanced: text.destinations.mapBalanced,
+    low: text.settings.low,
+  }
   return (
     <Page title={text.apps.settings} list>
+      {/* The screen's own look, in one card: how it looks, what's on it, how its apps are drawn. */}
       <Group>
         <NavRow
           tile="var(--apple-blue)"
@@ -130,15 +153,18 @@ function ListPage() {
           tile="var(--apple-cyan)"
           icon={<WallpaperGlyph />}
           label={text.settings.wallpaper}
+          value={wallpaper?.name}
           onOpen={() => open('wallpaper')}
         />
         <NavRow
           tile="var(--apple-purple)"
           icon={<IconsGlyph />}
           label={text.settings.icons}
+          value={icons}
           onOpen={() => open('icons')}
         />
       </Group>
+      {/* The apps' own settings, in the order they're met on the screen, the sound with the playing. */}
       <Group>
         <NavRow
           tile="var(--apple-indigo)"
@@ -146,15 +172,19 @@ function ListPage() {
           label={text.settings.dashboard}
           onOpen={() => open('dashboard')}
         />
-        <NavRow tile="var(--apple-green)" icon={<MapGlyph />} label={text.apps.maps} onOpen={() => open('map')} />
+        <NavRow
+          tile="var(--apple-green)"
+          icon={<MapGlyph />}
+          label={text.apps.maps}
+          value={drawn[detail]}
+          onOpen={() => open('map')}
+        />
         <NavRow
           tile="var(--apple-pink)"
           icon={<NowPlayingGlyph />}
           label={text.nowPlaying}
           onOpen={() => open('nowPlaying')}
         />
-      </Group>
-      <Group>
         <NavRow
           tile="var(--apple-red)"
           icon={<SoundGlyph />}
@@ -635,19 +665,20 @@ function MapPage() {
         <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
         <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
       </Group>
+      {/* When the night's dimming starts, with the night it belongs to. */}
+      <Group header={words.mapNightFrom} radio={words.mapNightFrom}>
+        {MAP_NIGHT_STARTS.map((hour) => (
+          <CheckRow
+            key={hour}
+            label={`${String(hour).padStart(2, '0')}:00`}
+            on={nightStart === hour}
+            onPick={() => setNightStart(hour)}
+          />
+        ))}
+      </Group>
       <Group>
         <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
         <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
-      </Group>
-      <Group header={words.mapRecentre} radio={words.mapRecentre}>
-        {MAP_RECENTRES.map((seconds) => (
-          <CheckRow
-            key={seconds}
-            label={seconds === 0 ? words.mapNever : `${seconds} s`}
-            on={recentre === seconds}
-            onPick={() => setRecentre(seconds)}
-          />
-        ))}
       </Group>
       <Group header={words.routeColour} radio={words.routeColour}>
         {MAP_ROUTE_COLOURS.map((each) => (
@@ -657,6 +688,17 @@ function MapPage() {
       <Group header={words.routeWeight} radio={words.routeWeight}>
         {MAP_ROUTE_WEIGHTS.map((each) => (
           <CheckRow key={each} label={weightNames[each]} on={weight === each} onPick={() => setWeight(each)} />
+        ))}
+      </Group>
+      {/* How long a map the player moved stays put, after the route it's about. */}
+      <Group header={words.mapRecentre} radio={words.mapRecentre}>
+        {MAP_RECENTRES.map((seconds) => (
+          <CheckRow
+            key={seconds}
+            label={seconds === 0 ? words.mapNever : `${seconds} s`}
+            on={recentre === seconds}
+            onPick={() => setRecentre(seconds)}
+          />
         ))}
       </Group>
       <Group header={words.marker} radio={words.marker}>
@@ -685,16 +727,6 @@ function MapPage() {
         <SwitchRow label={words.mapOver} on={over} onToggle={setOver} />
         <SwitchRow label={words.mapCompass} on={compass} onToggle={setCompass} />
         <SwitchRow label={words.mapScale} on={scale} onToggle={setScale} />
-      </Group>
-      <Group header={words.mapNightFrom} radio={words.mapNightFrom}>
-        {MAP_NIGHT_STARTS.map((hour) => (
-          <CheckRow
-            key={hour}
-            label={`${String(hour).padStart(2, '0')}:00`}
-            on={nightStart === hour}
-            onPick={() => setNightStart(hour)}
-          />
-        ))}
       </Group>
     </Page>
   )
@@ -991,9 +1023,14 @@ function Page({ title, list = false, children }: { title: string; list?: boolean
   const back = useSettings((state) => state.back)
   const [scrolled, setScrolled] = useState(false)
   const [largeTitleGone, setLargeTitleGone] = useState(false)
+  // More under the page's foot than shows: a small chevron at the bottom says so until the end is reached.
+  const scroll = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState(false)
+  useMoreBelow(scroll, setMore)
   return (
     <>
       <div
+        ref={scroll}
         className={list ? 'settings-scroll list' : 'settings-scroll'}
         onScroll={(event) => {
           const top = event.currentTarget.scrollTop
@@ -1004,6 +1041,11 @@ function Page({ title, list = false, children }: { title: string; list?: boolean
         {list && <h1 className="settings-large-title">{title}</h1>}
         {children}
       </div>
+      {more && (
+        <span className="settings-more" aria-hidden>
+          <ChevronGlyph />
+        </span>
+      )}
       <header className={scrolled ? 'settings-bar scrolled' : 'settings-bar'}>
         {!list && (
           <button type="button" className="settings-back" aria-label={text.settings.back} onClick={back}>
@@ -1018,6 +1060,32 @@ function Page({ title, list = false, children }: { title: string; list?: boolean
 
 /** How far the list scrolls before its large title is under the bar (settings.css: .settings-large-title). */
 const LARGE_TITLE_HEIGHT = 56
+
+/** Below this much left to scroll, the page is at its end (the chevron's own height, so it goes as it's reached). */
+const MORE_BELOW = 24
+
+/**
+ * Whether a page has more under its foot than shows, measured whenever its content or its box changes (a page's
+ * rows come and go: the Equalizer's curve, the map's lists) and as it scrolls. The chevron it drives sits over the
+ * page's foot and takes no presses: it's a sign, not a control.
+ */
+function useMoreBelow(ref: RefObject<HTMLDivElement | null>, set: (more: boolean) => void) {
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const measure = () => set(element.scrollHeight - element.scrollTop - element.clientHeight > MORE_BELOW)
+    measure()
+    // The box, and each of its parts (a group growing as rows are added to it).
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    for (const child of Array.from(element.children)) observer.observe(child)
+    element.addEventListener('scroll', measure, { passive: true })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', measure)
+    }
+  }, [ref, set])
+}
 
 function Group({
   header,

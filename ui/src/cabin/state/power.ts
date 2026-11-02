@@ -5,10 +5,11 @@
  *    ▲                                                                       │
  *    └────────────────────────────── electrics off ◀─────────────────────────┘
  *
- * `splash` is the truck's own boot screen (brand logo); `connecting` is the phone connecting, like CarPlay
- * starting up. If WestPlay first sees the truck with the electrics already on (the app or plugin started
- * mid-drive), it skips the brand splash and only reconnects. A screen that isn't the truck's own (WestPlay's
- * tablet: owner 2026-10-24) skips it too: it boots no truck.
+ * The phases time the boot, which is one screen (boot/BootScreen.tsx): `splash` is the first part of it, the
+ * panel lighting up with the truck's brand on it, and `connecting` the part that carries Cabin Play's mark and
+ * name. If WestPlay first sees the truck with the electrics already on (the app or plugin started mid-drive),
+ * it skips the brand part and the boot is shorter by `SPLASH_MS`. A screen that isn't the truck's own
+ * (WestPlay's tablet: owner 2026-10-24) skips it too: it boots no truck.
  *
  * The game itself hides the screen while the electrics are off, so `off` is mostly bookkeeping.
  * The pairing step ("Connect your phone?") will sit between `connecting` and `on` once there is input (M2).
