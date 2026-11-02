@@ -3,7 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url'
 import { mapFrameDue } from './frameCap'
 import { create as createStore } from 'zustand'
-import type { Telemetry } from '../../shared/host'
+import { cabClock, type Telemetry } from '../../shared/host'
 import type { Appearance } from '../state/appearance'
 import { type LiveState, type MapDetail, useCabin, useLive } from '../state/store'
 import { MAP_FPS } from './frameCap'
@@ -62,6 +62,7 @@ import {
   routeOverrides,
   TRAFFIC_SOURCE,
 } from './style'
+import { estimatedTraffic } from './estimatedTraffic'
 import { corridorOf, type TrafficStretch, trafficAlong } from './traffic'
 import { setMapView, setRouteAhead, useTruckersMp } from './truckersmp'
 import { type Area, type OtherPlayer, trackAt } from './truckersmpFeed'
@@ -150,6 +151,17 @@ interface LiveMap {
   ahead: Point[] | null
   aheadTold: number
   aheadShown: readonly OtherPlayer[] | null
+  /** In single player, the game's time (minutes, to the quarter hour) the estimate on the route ahead was drawn
+   * for (`null`: to draw). */
+  aheadEstimate: number | null
+  /** The traffic found on the route ahead (traffic.ts, or the estimate), and that found on the roads around the
+   * truck when no route is driven (estimatedTraffic.ts): both drawn together. */
+  routeTraffic: readonly TrafficStretch[]
+  nearbyTraffic: readonly TrafficStretch[]
+  /** What the roads around the truck were last looked at for (the hour, the radius, where the truck was), and
+   * when. */
+  nearbyKey: string | null
+  nearbyTold: number
   /** The following camera's damped bearing and zoom. */
   camera: { bearing: number; zoom: number } | null
   mode: Mode
@@ -334,6 +346,11 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     ahead: null,
     aheadTold: 0,
     aheadShown: null,
+    aheadEstimate: null,
+    routeTraffic: [],
+    nearbyTraffic: [],
+    nearbyKey: null,
+    nearbyTold: 0,
     camera: null,
     mode: 'follow',
     interactive: false,
@@ -753,36 +770,121 @@ const TRAFFIC_AHEAD = 25000
 /** How often (ms) the route ahead is worked out again, for its traffic. */
 const AHEAD_EVERY = 2000
 
-/** Under TruckersMP, driving a route: the traffic on the route ahead, over its blue line (owner 2026-10-21),
- * from the trucks along it (truckersmp.ts reads its corridor). While routes are offered, theirs is shown
+/** Driving a route: the traffic on the route ahead, over its blue line. Under TruckersMP, from the trucks along
+ * it (truckersmp.ts reads its corridor, owner 2026-10-21); in single player, where the game tells nothing of its
+ * AI traffic, from the hour and the road (estimatedTraffic.ts). While routes are offered, theirs is shown
  * instead (Destinations.tsx). */
 function syncRouteTraffic(target: LiveMap, now: number) {
   if (target.overview) return
   const shown = target.routeShown
   const progress = target.progress
-  if (!useLive.getState().truckersmp || !shown?.route || !progress) {
+  if (!shown?.route || !progress) {
     if (target.ahead) {
       target.ahead = null
       target.aheadShown = null
+      target.aheadEstimate = null
       setRouteAhead(null)
-      showTraffic([])
+      target.routeTraffic = []
+      paintTraffic(target)
     }
     return
   }
+  const truckersmp = useLive.getState().truckersmp
   if (!target.ahead || now - target.aheadTold >= AHEAD_EVERY) {
     target.aheadTold = now
     target.ahead = routeAhead(shown.spans, progress.span, TRAFFIC_AHEAD)
     target.aheadShown = null
-    setRouteAhead(corridorOf(target.ahead))
+    target.aheadEstimate = null
+    // Only TruckersMP's read needs a corridor: the estimate is worked out on the line itself.
+    setRouteAhead(truckersmp ? corridorOf(target.ahead) : null)
   }
-  const { aheadAlong } = useTruckersMp.getState()
-  if (aheadAlong !== target.aheadShown) {
-    target.aheadShown = aheadAlong
-    showTraffic(trafficAlong(target.ahead, aheadAlong))
+  if (truckersmp) {
+    const { aheadAlong } = useTruckersMp.getState()
+    if (aheadAlong !== target.aheadShown) {
+      target.aheadShown = aheadAlong
+      target.routeTraffic = trafficAlong(target.ahead, aheadAlong)
+      paintTraffic(target)
+    }
+    return
+  }
+  // Single player: the estimate changes with the game's day, so it's drawn anew each quarter of an hour.
+  const live = useLive.getState()
+  const minute = live.telemetry ? Math.floor(cabClock(live.telemetry, live.clockShift) / 15) * 15 : 0
+  if (minute !== target.aheadEstimate) {
+    target.aheadEstimate = minute
+    target.routeTraffic = estimatedTraffic(target.ahead, minute)
+    paintTraffic(target)
   }
 }
 
-/** Shows the traffic on the route previewed (traffic.ts: TruckersMP's), over it; none to clear it. */
+/** How often (ms) the roads around the truck are looked at again, at the most (they change with the hour, and
+ * every half kilometre driven). */
+const NEARBY_EVERY = 2000
+/** At most this many stretches are drawn around the truck: a town's whole road network is not the point. */
+const NEARBY_MOST = 140
+
+/**
+ * Without a route to draw it along, the traffic around the truck: the roads the map has loaded, estimated at the
+ * game's hour (estimatedTraffic.ts). In single player only — under TruckersMP the roads are its players', which
+ * the route's own traffic reads. Nothing around is drawn when the setting says only on a route.
+ */
+function syncNearbyTraffic(target: LiveMap, now: number) {
+  if (target.overview) return
+  const live = useLive.getState()
+  const truck = live.telemetry
+  const { mapTraffic, mapTrafficAround } = useCabin.getState()
+  const radius = mapTraffic ? mapTrafficAround : 0
+  const key =
+    !truck || !radius || live.truckersmp
+      ? ''
+      : `${Math.floor(cabClock(truck, live.clockShift) / 15)}:${radius}:${Math.round(truck.x / 500)}:${Math.round(truck.z / 500)}`
+  if (key === target.nearbyKey) return
+  if (key && now - target.nearbyTold < NEARBY_EVERY) return
+  target.nearbyKey = key
+  target.nearbyTold = now
+  if (!key || !truck) {
+    target.nearbyTraffic = []
+    paintTraffic(target)
+    return
+  }
+  const minute = Math.floor(cabClock(truck, live.clockShift) / 15) * 15
+  const stretches: TrafficStretch[] = []
+  for (const road of roadsAround(target, truck, radius)) {
+    stretches.push(...estimatedTraffic(road, minute))
+    if (stretches.length >= NEARBY_MOST) break
+  }
+  target.nearbyTraffic = stretches.slice(0, NEARBY_MOST)
+  paintTraffic(target)
+}
+
+/** The roads the map has loaded within `radius` m of the truck, as lines of the game's metres. */
+function roadsAround(target: LiveMap, truck: { x: number; z: number }, radius: number): Point[][] {
+  const lines: Point[][] = []
+  for (const feature of target.map.querySourceFeatures(MAP_SOURCE, { sourceLayer: 'road' })) {
+    const geometry = feature.geometry
+    if (!geometry) continue
+    const parts =
+      geometry.type === 'LineString'
+        ? [geometry.coordinates]
+        : geometry.type === 'MultiLineString'
+          ? geometry.coordinates
+          : []
+    for (const part of parts) {
+      const line = part.map(([lng, lat]: [number, number]) => fromLngLat(lng, lat))
+      if (!line.some(([x, z]: Point) => Math.hypot(x - truck.x, z - truck.z) <= radius)) continue
+      lines.push(line)
+    }
+  }
+  return lines
+}
+
+/** Draws what's been found: the roads around the truck, then the route's own traffic over them. */
+function paintTraffic(target: LiveMap) {
+  showTraffic([...target.nearbyTraffic, ...target.routeTraffic])
+}
+
+/** Shows the traffic on the route previewed (traffic.ts: TruckersMP's; estimatedTraffic.ts in single player), over
+ * it; none to clear it. */
 export function showTraffic(stretches: readonly TrafficStretch[]) {
   const source = live?.map.getSource<GeoJSONSource>(TRAFFIC_SOURCE)
   if (!source) return
@@ -887,6 +989,7 @@ function place() {
       syncMapSettings(current)
       syncPlayers(current, now)
       syncRouteTraffic(current, now)
+      syncNearbyTraffic(current, now)
       syncRoute(current, now)
       syncCanopies(current, now)
       updateCamera(current, now, dt)

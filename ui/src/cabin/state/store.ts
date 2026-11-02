@@ -48,6 +48,7 @@ import {
   MAP_PIN_STYLES,
   MAP_ROUTE_COLOURS,
   MAP_ROUTE_WEIGHTS,
+  MAP_TRAFFIC_AROUND,
   type MapMarker,
   type MapMarkerSize,
   type MapPinStyle,
@@ -138,6 +139,8 @@ interface CabinState {
   mapJunction: boolean
   mapTrucks: boolean
   mapTraffic: boolean
+  /** How far around the truck traffic is drawn when no route is driven, metres (`0`: only on a route). */
+  mapTrafficAround: number
   mapRecentre: MapRecentre
   /** The route's colour and weight, north up, the truck's marker and its size, the speed-limit sign and whether
    * it warns, the compass and the scale bar, and the hour the map dims from. */
@@ -200,6 +203,8 @@ interface CabinState {
   setMapJunction(on: boolean): void
   setMapTrucks(on: boolean): void
   setMapTraffic(on: boolean): void
+  /** How far around the truck traffic is drawn without a route, metres (`0`: only on a route). */
+  setMapTrafficAround(metres: number): void
   setMapRecentre(seconds: MapRecentre): void
   /** One band of the curve, set in Settings › Equalizer (choosing Custom): played by every player, and kept with
    * WestPlay's settings. */
@@ -234,6 +239,7 @@ type Persisted = Pick<
   | 'mapJunction'
   | 'mapTrucks'
   | 'mapTraffic'
+  | 'mapTrafficAround'
   | 'mapRecentre'
   | 'mapRoute'
   | 'mapWeight'
@@ -296,6 +302,7 @@ export const useCabin = create<CabinState>()(
       mapJunction: true,
       mapTrucks: true,
       mapTraffic: true,
+      mapTrafficAround: 3000,
       mapRecentre: 15,
       mapRoute: 'blue',
       mapWeight: 'standard',
@@ -346,6 +353,7 @@ export const useCabin = create<CabinState>()(
       setMapJunction: (mapJunction) => set({ mapJunction }),
       setMapTrucks: (mapTrucks) => set({ mapTrucks }),
       setMapTraffic: (mapTraffic) => set({ mapTraffic }),
+      setMapTrafficAround: (mapTrafficAround) => set({ mapTrafficAround }),
       setMapRecentre: (mapRecentre) => set({ mapRecentre }),
       setMapRoute: (mapRoute) => set({ mapRoute }),
       setMapWeight: (mapWeight) => set({ mapWeight }),
@@ -421,6 +429,7 @@ export const useCabin = create<CabinState>()(
         mapJunction: state.mapJunction,
         mapTrucks: state.mapTrucks,
         mapTraffic: state.mapTraffic,
+        mapTrafficAround: state.mapTrafficAround,
         mapRecentre: state.mapRecentre,
         mapRoute: state.mapRoute,
         mapWeight: state.mapWeight,
@@ -481,6 +490,9 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.mapJunction === 'boolean') result.mapJunction = stored.mapJunction
   if (typeof stored.mapTrucks === 'boolean') result.mapTrucks = stored.mapTrucks
   if (typeof stored.mapTraffic === 'boolean') result.mapTraffic = stored.mapTraffic
+  if (MAP_TRAFFIC_AROUND.includes(stored.mapTrafficAround as number)) {
+    result.mapTrafficAround = stored.mapTrafficAround as number
+  }
   if (MAP_RECENTRES.includes(stored.mapRecentre as MapRecentre)) result.mapRecentre = stored.mapRecentre
   if (MAP_ROUTE_COLOURS.includes(stored.mapRoute as MapRouteColour)) result.mapRoute = stored.mapRoute as MapRouteColour
   if (MAP_ROUTE_WEIGHTS.includes(stored.mapWeight as MapRouteWeight)) {

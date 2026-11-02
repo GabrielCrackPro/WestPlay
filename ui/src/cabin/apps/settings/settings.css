@@ -152,6 +152,8 @@
 .settings-card {
   border-radius: 34px;
   background: var(--apple-card);
+  /* A hairline round it, so its edge holds where a busy wallpaper shows through the app's own background. */
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
   overflow: hidden;
   display: flex;
   flex-direction: column;

@@ -42,5 +42,10 @@ export const MAP_PIN_STYLES: readonly MapPinStyle[] = ['filled', 'outlined']
  * otherwise. */
 export const MAP_NIGHT_STARTS: readonly number[] = [18, 19, 20, 21, 22]
 
+/** How far around the truck the map's traffic is drawn when no route is driven, metres (`0`: only on a route).
+ * In single player that traffic is estimated (maps/estimatedTraffic.ts): the game tells nothing of its AI
+ * traffic. */
+export const MAP_TRAFFIC_AROUND: readonly number[] = [0, 1000, 3000, 5000, 10000]
+
 /** How much wider or narrower the line is than standard. */
 export const ROUTE_WEIGHT_SCALE: Record<MapRouteWeight, number> = { thin: 0.68, standard: 1, bold: 1.45 }

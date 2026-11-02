@@ -20,6 +20,7 @@ import {
   MAP_PIN_STYLES,
   MAP_ROUTE_COLOURS,
   MAP_ROUTE_WEIGHTS,
+  MAP_TRAFFIC_AROUND,
   type MapMarker,
   type MapMarkerSize,
   type MapPinStyle,
@@ -234,10 +235,9 @@ function AppearancePage() {
           onToggle={(on) => setMode(on ? 'auto' : wanted)}
         />
       </Group>
-      <Group>
-        <NavRow label={text.settings.textSize} onOpen={() => open('textSize')} />
-      </Group>
+      {/* Text and motion together: how big the screen's words are, and whether it moves. */}
       <Group footer={text.settings.reduceMotionFooter}>
+        <NavRow label={text.settings.textSize} onOpen={() => open('textSize')} />
         <SwitchRow
           label={text.settings.reduceMotion}
           on={useCabin((state) => state.reduceMotion)}
@@ -596,6 +596,8 @@ function MapPage() {
   const setTrucks = useCabin((state) => state.setMapTrucks)
   const traffic = useCabin((state) => state.mapTraffic)
   const setTraffic = useCabin((state) => state.setMapTraffic)
+  const around = useCabin((state) => state.mapTrafficAround)
+  const setAround = useCabin((state) => state.setMapTrafficAround)
   const recentre = useCabin((state) => state.mapRecentre)
   const setRecentre = useCabin((state) => state.setMapRecentre)
   const route = useCabin((state) => state.mapRoute)
@@ -663,7 +665,6 @@ function MapPage() {
       </Group>
       <Group>
         <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
-        <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
       </Group>
       {/* When the night's dimming starts, with the night it belongs to. */}
       <Group header={words.mapNightFrom} radio={words.mapNightFrom}>
@@ -676,9 +677,24 @@ function MapPage() {
           />
         ))}
       </Group>
+      {/* On the road: the camera easing out at junctions, and what else is out there — other players' trucks and
+          the traffic. */}
       <Group>
+        <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
         <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
         <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
+      </Group>
+      {/* How far around the truck the traffic is drawn when no route is driven (in single player it's estimated, as
+          the game tells nothing of its AI traffic). Digits and kilometres need no words of their own. */}
+      <Group header={words.mapTraffic} radio={words.mapTraffic}>
+        {MAP_TRAFFIC_AROUND.map((metres) => (
+          <CheckRow
+            key={metres}
+            label={metres === 0 ? words.mapNever : `${metres / 1000} km`}
+            on={around === metres}
+            onPick={() => setAround(metres)}
+          />
+        ))}
       </Group>
       <Group header={words.routeColour} radio={words.routeColour}>
         {MAP_ROUTE_COLOURS.map((each) => (
@@ -765,10 +781,9 @@ function SoundPage() {
   const setSounds = useCabin((state) => state.setUiSounds)
   return (
     <Page title={text.settings.sound}>
+      {/* The cab's own sounds and the speakers' tone, together: everything the player hears. */}
       <Group footer={text.settings.uiSoundsFooter}>
         <SwitchRow label={text.settings.uiSounds} on={sounds} onToggle={setSounds} />
-      </Group>
-      <Group>
         <NavRow
           label={text.settings.equalizer}
           value={custom ? text.settings.custom : text.settings.recommended}
