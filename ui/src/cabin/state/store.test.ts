@@ -31,6 +31,7 @@ describe('the saved Settings choices', () => {
       nowPlaying: false,
       destination: true,
       driverHours: false,
+      driver: true,
       diagnostics: true,
       weather: false,
     })
@@ -53,6 +54,7 @@ describe('the saved Settings choices', () => {
       nowPlaying: true,
       destination: true,
       driverHours: true,
+      driver: true,
       diagnostics: true,
       weather: false,
     })
@@ -66,6 +68,7 @@ describe('the saved Settings choices', () => {
       nowPlaying: true,
       destination: true,
       driverHours: true,
+      driver: true,
       weather: true,
       diagnostics: true,
     })

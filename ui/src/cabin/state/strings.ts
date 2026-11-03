@@ -620,6 +620,22 @@ export interface Strings {
     plate: string
     body: string
   }
+  /** Career totals from the game's latest profile save. */
+  driver: {
+    profile: string
+    noProfile: string
+    savedCareer: string
+    experience: string
+    totalDistance: string
+    gameTime: string
+    realTime: string
+    fuelUsed: string
+    citiesVisited: string
+    cancelledJobs: string
+    history: string
+    historyUnavailable: string
+    saveUnavailable: string
+  }
   /** The Notifications app: the notes the cab has shown, and what they read. */
   notificationsApp: {
     empty: string
@@ -1256,6 +1272,22 @@ const ENGLISH_STRINGS: Strings = {
     plate: 'Plate',
     body: 'Body',
   },
+  driver: {
+    profile: 'Career profile',
+    noProfile: 'No game profile loaded',
+    savedCareer: 'Lifetime totals across all game modes',
+    experience: 'Experience',
+    totalDistance: 'Real distance',
+    gameTime: 'Game time',
+    realTime: 'Real time',
+    fuelUsed: 'Fuel consumed',
+    citiesVisited: 'Cities discovered',
+    cancelledJobs: 'Cancelled jobs',
+    history: 'Career history',
+    historyUnavailable:
+      'This save provides lifetime totals, but not a delivery-by-delivery history. The statistics above come directly from the game.',
+    saveUnavailable: 'Load a game profile to see career statistics.',
+  },
   notificationsApp: {
     empty: 'No notifications yet',
     hint: 'The truck’s own warnings — battery, oil pressure, brake air, fuel and AdBlue — and the rest clocks show here as they come on: on the screen for six seconds, then in this list. A warning that stays on is one note, not one a second. The list is kept on this PC, so it’s still here after a restart.',
@@ -1280,6 +1312,7 @@ const ENGLISH_STRINGS: Strings = {
     weather: 'Weather',
     settings: 'Settings',
     diagnostics: 'Diagnostics',
+    driver: 'Career',
     notifications: 'Notifications',
   },
   notBuiltYet: 'Not built yet',
@@ -1904,6 +1937,22 @@ const TURKISH_STRINGS: Strings = {
     plate: 'Plaka',
     body: 'Kasa',
   },
+  driver: {
+    profile: 'Kariyer profili',
+    noProfile: 'Oyun profili yüklenmedi',
+    savedCareer: 'Tüm oyun modlarında kariyer toplamları',
+    experience: 'Deneyim',
+    totalDistance: 'Gerçek mesafe',
+    gameTime: 'Oyun süresi',
+    realTime: 'Gerçek süre',
+    fuelUsed: 'Harcanan yakıt',
+    citiesVisited: 'Keşfedilen şehirler',
+    cancelledJobs: 'İptal edilen işler',
+    history: 'Kariyer geçmişi',
+    historyUnavailable:
+      'Bu kayıt toplam istatistikleri içeriyor, ancak teslimat geçmişini içermiyor. Yukarıdaki istatistikler doğrudan oyundan alınır.',
+    saveUnavailable: 'Kariyer istatistiklerini görmek için bir oyun profili yükleyin.',
+  },
   notificationsApp: {
     empty: 'Henüz bildirim yok',
     hint: 'Aracın kendi uyarıları — akü, yağ basıncı, fren havası, yakıt ve AdBlue — ile mola saatleri geldikçe burada görünür: ekranda altı saniye, sonra bu listede. Yanmaya devam eden bir uyarı tek bildirimdir, saniyede bir yeni bildirim değil. Liste bu bilgisayarda saklanır, yeniden başlatınca da burada kalır.',
@@ -1928,6 +1977,7 @@ const TURKISH_STRINGS: Strings = {
     weather: 'Hava Durumu',
     settings: 'Ayarlar',
     diagnostics: 'Tanılama',
+    driver: 'Kariyer',
     notifications: 'Bildirimler',
   },
   notBuiltYet: 'Henüz hazır değil',
@@ -2564,6 +2614,22 @@ const SPANISH_STRINGS: Strings = {
     plate: 'Matrícula',
     body: 'Carrocería',
   },
+  driver: {
+    profile: 'Perfil de carrera',
+    noProfile: 'No hay ningún perfil de juego cargado',
+    savedCareer: 'Totales de carrera en todos los modos',
+    experience: 'Experiencia',
+    totalDistance: 'Distancia real',
+    gameTime: 'Tiempo de juego',
+    realTime: 'Tiempo real',
+    fuelUsed: 'Combustible consumido',
+    citiesVisited: 'Ciudades descubiertas',
+    cancelledJobs: 'Trabajos cancelados',
+    history: 'Historial de carrera',
+    historyUnavailable:
+      'Este guardado contiene totales, pero no un historial de entregas. Las estadísticas anteriores provienen directamente del juego.',
+    saveUnavailable: 'Carga un perfil del juego para ver las estadísticas de carrera.',
+  },
   notificationsApp: {
     empty: 'Aún no hay notificaciones',
     hint: 'Los avisos del propio camión —batería, presión de aceite, aire de frenos, combustible y AdBlue— y los relojes de descanso aparecen aquí al activarse: seis segundos en pantalla y luego en esta lista. Un aviso que sigue activo es una sola notificación, no una por segundo. La lista se guarda en este PC, así que sigue aquí tras reiniciar.',
@@ -2588,6 +2654,7 @@ const SPANISH_STRINGS: Strings = {
     weather: 'Tiempo',
     settings: 'Ajustes',
     diagnostics: 'Diagnóstico',
+    driver: 'Carrera',
     notifications: 'Notificaciones',
   },
   notBuiltYet: 'Aún no disponible',

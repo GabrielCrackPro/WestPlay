@@ -18,6 +18,7 @@ const ROLES: AppIconRole[] = [
   'youtube',
   'youtubeMusic',
   'diagnostics',
+  'driver',
   'notifications',
 ]
 

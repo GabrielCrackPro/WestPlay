@@ -157,6 +157,21 @@ export interface JobInfo {
   income: number
 }
 
+/** Lifetime career totals read from the profile's latest game save, not live-drive telemetry. */
+export interface CareerStats {
+  profileName: string | null
+  experiencePoints: number | null
+  /** Metres, as stored by the game. */
+  totalDistanceMeters: number | null
+  totalFuelLitres: number | null
+  /** Career-wide game-clock time across all game modes, seconds. */
+  gameTimeSeconds: number | null
+  /** Career-wide real-world play time across all game modes, seconds. */
+  realTimeSeconds: number | null
+  visitedCities: number | null
+  cancelledJobs: number | null
+}
+
 /** What a keybind does: the music's volume a step up or down, or it paused or played on. */
 export type KeybindAction = 'volumeUp' | 'volumeDown' | 'playPause'
 
@@ -165,6 +180,7 @@ export type HostMessage =
   | { type: 'truck'; data: TruckInfo }
   | { type: 'job'; data: JobInfo }
   | { type: 'trailer'; data: TrailerInfo }
+  | { type: 'career'; data: CareerStats }
   /** `null` until the game has drawn a WestPlay screen. Checked against the known ids on arrival. */
   | { type: 'screen'; layout: string | null }
   /** The settings the page applies: whether the truck's own strip stays beside WestPlay

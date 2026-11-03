@@ -12,6 +12,7 @@ describe('the apps this release has', () => {
       'weather',
       'settings',
       'diagnostics',
+      'driver',
       'notifications',
     ])
   })

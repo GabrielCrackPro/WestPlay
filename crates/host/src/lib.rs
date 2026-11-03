@@ -2113,16 +2113,14 @@ fn parse_page_message(message: &str) -> Option<PageMessage> {
     serde_json::from_str(message).ok()
 }
 
-/// What the player's latest save says, for the page: `{"type":"garages","owned":["calais",...],
-/// "headquarters":"calais"}` (the cities whose garages they own, and their headquarters', `null` if none),
-/// `{"type":"mapBlock","hvt":true,"language":"tr_tr"}` (they play on a map by HVT, which WestPlay
-/// doesn't allow, and the game's language to say so in), and `{"type":"timeZones","on":true}` (their
-/// profile has the game's time zones on: the clock is the time where the truck is).
+/// What the player's latest save says, for the page: garages, lifetime career totals, the map restriction,
+/// language and time-zone setting. Career totals are distinct from the telemetry of the current drive.
 fn player_messages_for(player: &Player) -> Vec<String> {
     let garages = &player.garages;
     vec![
         serde_json::json!({ "type": "garages", "owned": garages.owned, "headquarters": garages.headquarters })
             .to_string(),
+        serde_json::json!({ "type": "career", "data": player.career }).to_string(),
         serde_json::json!({ "type": "mapBlock", "hvt": player.hvt_map, "language": player.language }).to_string(),
         serde_json::json!({ "type": "timeZones", "on": player.time_zones }).to_string(),
     ]
@@ -2523,6 +2521,16 @@ mod tests {
                 owned: ["calais".to_owned(), "dover".to_owned()].into(),
                 headquarters: Some("calais".into()),
             },
+            career: crate::player::CareerStats {
+                profile_name: Some("Western".into()),
+                experience_points: Some(12345),
+                total_distance_meters: Some(1250000.0),
+                total_fuel_litres: Some(810.5),
+                game_time_seconds: Some(144000.0),
+                real_time_seconds: Some(48000.0),
+                visited_cities: Some(32),
+                cancelled_jobs: Some(2),
+            },
             hvt_map: true,
             language: Some("tr_tr".into()),
             time_zones: true,
@@ -2531,6 +2539,7 @@ mod tests {
             super::player_messages_for(&player),
             [
                 r#"{"headquarters":"calais","owned":["calais","dover"],"type":"garages"}"#,
+                r#"{"data":{"cancelledJobs":2,"experiencePoints":12345,"gameTimeSeconds":144000.0,"profileName":"Western","realTimeSeconds":48000.0,"totalDistanceMeters":1250000.0,"totalFuelLitres":810.5,"visitedCities":32},"type":"career"}"#,
                 r#"{"hvt":true,"language":"tr_tr","type":"mapBlock"}"#,
                 r#"{"on":true,"type":"timeZones"}"#
             ]

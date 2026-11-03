@@ -83,6 +83,7 @@ export function useWidgetOrder(): DashboardWidget[] {
       destination: late ? 96 : soon ? 90 : 25,
       // A rest or a break within the hour is the next thing the drive needs after a closing deadline.
       driverHours: restDue ? 85 : 15,
+      driver: 35,
       nowPlaying: 10,
       weather: 0,
     }

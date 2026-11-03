@@ -171,6 +171,27 @@ describe('connectHost', () => {
     disconnect()
   })
 
+  it('keeps lifetime career stats from the selected game save', async () => {
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useLive } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    const career = {
+      profileName: 'Western',
+      experiencePoints: 12345,
+      totalDistanceMeters: 1250000,
+      totalFuelLitres: 810.5,
+      gameTimeSeconds: 144000,
+      realTimeSeconds: 48000,
+      visitedCities: 32,
+      cancelledJobs: 2,
+    }
+
+    webview.send({ type: 'career', data: career })
+    expect(useLive.getState().career).toEqual(career)
+    disconnect()
+  })
+
   it("tells the host the field selected, and types what the player's keyboard typed", async () => {
     const webview = fakeWebView()
     vi.stubGlobal('window', { chrome: { webview: webview.bridge } })

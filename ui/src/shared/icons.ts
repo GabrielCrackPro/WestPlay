@@ -23,6 +23,7 @@ export type AppIconRole =
   | 'youtube'
   | 'youtubeMusic'
   | 'diagnostics'
+  | 'driver'
   | 'notifications'
 
 /** Each role's files' name. */
@@ -38,6 +39,7 @@ const FILES: Record<AppIconRole, string> = {
   youtube: 'youtube',
   youtubeMusic: 'youtube-music',
   diagnostics: 'diagnostics',
+  driver: 'driver',
   notifications: 'notifications',
 }
 

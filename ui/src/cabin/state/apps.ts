@@ -13,6 +13,7 @@ export const APP_IDS = [
   'weather',
   'settings',
   'diagnostics',
+  'driver',
   'notifications',
 ] as const
 
@@ -36,6 +37,7 @@ export const APPS: Record<AppId, AppDefinition> = {
   weather: { id: 'weather', icon: 'weather' },
   settings: { id: 'settings', icon: 'settings' },
   diagnostics: { id: 'diagnostics', icon: 'diagnostics' },
+  driver: { id: 'driver', icon: 'driver' },
   notifications: { id: 'notifications', icon: 'notifications' },
 }
 

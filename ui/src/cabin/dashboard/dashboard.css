@@ -178,6 +178,63 @@ button.widget:active {
   gap: 12px;
 }
 
+.widget.driver-widget {
+  gap: calc(15px * var(--text-scale, 1));
+  padding: 14px 18px;
+}
+
+.driver-widget-portrait {
+  flex: none;
+  width: calc(62px * var(--text-scale, 1));
+  height: calc(62px * var(--text-scale, 1));
+  color: var(--apple-blue);
+}
+
+.driver-widget-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: calc(3px * var(--text-scale, 1));
+}
+
+.driver-widget .kicker {
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.driver-widget-distance {
+  overflow: hidden;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-widget-name,
+.driver-widget-meta,
+.driver-widget-stats {
+  overflow: hidden;
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-widget-name {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.driver-widget-meta,
+.driver-widget-stats {
+  color: var(--text-dim);
+}
+
 .widget.driver-hours .hours-text {
   flex: 1;
   min-width: 0;
@@ -613,6 +670,26 @@ button.widget:active {
   .widgets .now-playing .controls button {
     width: 44px;
     height: 44px;
+  }
+
+  .widgets .driver-widget {
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .widgets .driver-widget-portrait {
+    width: 42px;
+    height: 42px;
+  }
+
+  .widgets .driver-widget-distance {
+    font-size: calc(21px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-name,
+  .widgets .driver-widget-meta,
+  .widgets .driver-widget-stats {
+    font-size: calc(12px * var(--text-scale, 1));
   }
 
   .widgets .job .destination {

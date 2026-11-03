@@ -34,6 +34,7 @@ import { JobGlyph } from './JobGlyph'
 import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
 import { HoursTabIcon } from '../apps/diagnostics/tabIcons'
 import { cabClock } from '../../shared/host'
+import { DriverPortrait } from '../apps/driver/DriverPortrait'
 
 /**
  * Now Playing: what plays, the video YouTube plays first (VideoWidget), then the Spotify app's music, then
@@ -291,6 +292,59 @@ export function DriverHoursWidget() {
           <span className="hours-glyph">
             <HoursTabIcon />
           </span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** A profile-led snapshot of the lifetime career totals from the game's latest save. */
+export function DriverWidget() {
+  const text = useText()
+  const words = text.driver
+  const career = useLive((state) => state.career)
+  const xp = career?.experiencePoints == null ? '—' : `${text.number(career.experiencePoints)} XP`
+  const distance =
+    career?.totalDistanceMeters == null
+      ? '—'
+      : `${text.number(Math.round(career.totalDistanceMeters / 1000))} ${text.diagnostics.km}`
+  const cities = career?.visitedCities == null ? '—' : text.number(career.visitedCities)
+  const gameTime =
+    career?.gameTimeSeconds == null
+      ? '—'
+      : `${text.number(Math.round(career.gameTimeSeconds / 3600))} ${text.diagnostics.hours}`
+  const realTime =
+    career?.realTimeSeconds == null
+      ? '—'
+      : `${text.number(Math.round(career.realTimeSeconds / 3600))} ${text.diagnostics.hours}`
+  const shown = useCabin((state) => state.dashboardWidgets.driver)
+
+  return (
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-driver' }}>
+      {shown && (
+        <button
+          type="button"
+          className="widget glass driver-widget"
+          aria-label={text.apps.driver}
+          onClick={() => go({ type: 'openApp', app: 'driver' })}
+        >
+          <DriverPortrait className="driver-widget-portrait" />
+          <div className="driver-widget-text">
+            <div className="kicker">{text.apps.driver}</div>
+            <div className="driver-widget-name">
+              {career?.profileName || (career ? words.profile : words.noProfile)}
+            </div>
+            <div className="driver-widget-distance">{xp}</div>
+            <div className="driver-widget-meta">
+              {distance} · {words.totalDistance}
+            </div>
+            <div className="driver-widget-stats">
+              {cities} {words.citiesVisited.toLowerCase()}
+            </div>
+            <div className="driver-widget-stats">
+              {words.gameTime}: {gameTime} · {words.realTime}: {realTime}
+            </div>
+          </div>
         </button>
       )}
     </div>

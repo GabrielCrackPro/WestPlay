@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
+  type CareerStats,
   type Equalizer,
   FLAT,
   type HostMessage,
@@ -71,12 +72,13 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget = 'nowPlaying' | 'destination' | 'driverHours' | 'weather' | 'diagnostics'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'driverHours' | 'driver' | 'weather' | 'diagnostics'
 
 export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'nowPlaying',
   'destination',
   'driverHours',
+  'driver',
   'weather',
   'diagnostics',
 ]
@@ -278,7 +280,14 @@ const SYSTEM_REDUCES_MOTION = typeof matchMedia === 'function' && matchMedia('(p
 
 /** The Dashboard's own order for a new player, top to bottom (the weather last: it's the one that comes in when
  * there's room). */
-const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'driverHours', 'diagnostics', 'weather']
+const DEFAULT_WIDGET_ORDER: DashboardWidget[] = [
+  'nowPlaying',
+  'driver',
+  'destination',
+  'driverHours',
+  'diagnostics',
+  'weather',
+]
 
 /** A saved order, made whole: every widget once, in the order saved, any the save doesn't know about after them.
  * An older save's Job widget is the destination card now: it keeps the place that card had. */
@@ -294,6 +303,7 @@ const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
   nowPlaying: true,
   destination: true,
   driverHours: true,
+  driver: true,
   weather: true,
   diagnostics: true,
 }
@@ -579,6 +589,8 @@ export interface LiveState {
   job: JobInfo | null
   /** The trailer under the truck (`null`: none hitched). */
   trailer: TrailerInfo | null
+  /** Lifetime statistics read from the profile's latest game save. */
+  career: CareerStats | null
   /** The kind of screen the game draws WestPlay on; `null` until it has drawn one. */
   screenLayout: ScreenLayoutId | null
   /** The cities whose garages the player owns, and their headquarters' (none until the host has read their
@@ -645,6 +657,7 @@ export const useLive = create<LiveState>()(() => ({
   truck: previewTruck(),
   job: null,
   trailer: null,
+  career: null,
   screenLayout: previewLayout(),
   ownedGarages: [],
   headquarters: null,
@@ -738,6 +751,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'trailer':
         useLive.setState({ trailer: message.data.attached ? message.data : null })
+        break
+      case 'career':
+        useLive.setState({ career: message.data })
         break
       case 'garages':
         useLive.setState({ ownedGarages: message.owned, headquarters: message.headquarters })
