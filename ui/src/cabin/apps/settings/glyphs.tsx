@@ -45,6 +45,15 @@ export function DashboardGlyph() {
   )
 }
 
+/** Home Screen: a house, the screen the apps live on. */
+export function HomeGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M3.4 11.2 12 4l8.6 7.2v8.4a1 1 0 0 1-1 1h-5.2v-6.1h-4.8v6.1H4.4a1 1 0 0 1-1-1Z" />
+    </TileGlyph>
+  )
+}
+
 /** Now Playing: a pair of beamed notes. */
 export function NowPlayingGlyph() {
   return (

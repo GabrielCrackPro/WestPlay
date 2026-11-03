@@ -4,13 +4,14 @@ import { launchingNow } from '../state/launch'
 import { type DashboardWidget, useCabin } from '../state/store'
 import { MapView } from './MapView'
 import { useWidgetOrder } from './widgetState'
-import { DestinationWidget, DiagnosticsWidget, NowPlayingWidget, WeatherWidget } from './widgets'
+import { DestinationWidget, DiagnosticsWidget, DriverHoursWidget, NowPlayingWidget, WeatherWidget } from './widgets'
 import './dashboard.css'
 
 /** Each widget, by its id: the column is drawn from an order of ids (the player's, or Auto order's). */
 const WIDGETS: Record<DashboardWidget, ComponentType> = {
   nowPlaying: NowPlayingWidget,
   destination: DestinationWidget,
+  driverHours: DriverHoursWidget,
   diagnostics: DiagnosticsWidget,
   weather: WeatherWidget,
 }

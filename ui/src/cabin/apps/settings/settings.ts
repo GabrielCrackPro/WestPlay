@@ -9,6 +9,7 @@ export type SettingsPage =
   | 'wallpaper'
   | 'icons'
   | 'dashboard'
+  | 'home'
   | 'nowPlaying'
   | 'sound'
   | 'equalizer'

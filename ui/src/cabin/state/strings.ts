@@ -510,6 +510,12 @@ export interface Strings {
     moveDown: string
     dashboard: string
     widgets: string
+    /** Home Screen: which apps show there, and their order. */
+    homeScreen: string
+    homeScreenFooter: string
+    showOnHome: string
+    homeOrder: string
+    resetHomeScreen: string
     /** The sidebar's clock: the player's own time, or the game's. */
     realClock: string
     clockFooter: string
@@ -626,6 +632,9 @@ export interface Strings {
     clear: string
     /** Above the list: how many the list holds (it's kept on this PC, so past drives are in it too). */
     summary: (count: number) => string
+    /** A note's action: open Maps (a fuel or rest stop) or Diagnostics. */
+    openMaps: string
+    openDiagnostics: string
   }
   apps: Record<AppId, string>
   notBuiltYet: string
@@ -1143,6 +1152,12 @@ const ENGLISH_STRINGS: Strings = {
     moveDown: 'Move down',
     dashboard: 'Dashboard',
     widgets: 'Widgets',
+    homeScreen: 'Home Screen',
+    homeScreenFooter:
+      'Choose which apps appear on Home and the order they appear in. Hiding an app keeps it in Settings and the sidebar’s recents.',
+    showOnHome: 'Show on Home',
+    homeOrder: 'Order',
+    resetHomeScreen: 'Reset Home Screen',
     realClock: 'Real Time',
     clockFooter: 'The sidebar’s clock: your own time, or the game’s.',
     showAlbumArt: 'Show Album Art',
@@ -1250,6 +1265,8 @@ const ENGLISH_STRINGS: Strings = {
     warning: 'Warning',
     clear: 'Clear',
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
+    openMaps: 'Open Maps',
+    openDiagnostics: 'Open Diagnostics',
   },
   apps: {
     maps: 'Maps',
@@ -1783,6 +1800,12 @@ const TURKISH_STRINGS: Strings = {
     moveDown: 'Aşağı taşı',
     dashboard: 'Gösterge Paneli',
     widgets: 'Widget’lar',
+    homeScreen: 'Ana Ekran',
+    homeScreenFooter:
+      'Ana Ekran’da hangi uygulamaların görüneceğini ve sırasını seçin. Gizlenen uygulama Ayarlar’da ve kenar çubuğunun son kullanılanlarında kalır.',
+    showOnHome: 'Ana Ekran’da Göster',
+    homeOrder: 'Sıra',
+    resetHomeScreen: 'Ana Ekranı Sıfırla',
     realClock: 'Gerçek Saat',
     clockFooter: 'Kenar çubuğundaki saat: kendi saatiniz ya da oyunun saati.',
     showAlbumArt: 'Albüm Kapağını Göster',
@@ -1890,6 +1913,8 @@ const TURKISH_STRINGS: Strings = {
     warning: 'Uyarı',
     clear: 'Temizle',
     summary: (count) => `${count} bildirim`,
+    openMaps: 'Haritalar’ı Aç',
+    openDiagnostics: 'Tanılamayı Aç',
   },
   apps: {
     maps: 'Haritalar',
@@ -2434,6 +2459,12 @@ const SPANISH_STRINGS: Strings = {
     moveDown: 'Bajar',
     dashboard: 'Panel',
     widgets: 'Widgets',
+    homeScreen: 'Pantalla de inicio',
+    homeScreenFooter:
+      'Elige qué apps aparecen en Inicio y en qué orden. Una app oculta sigue en Ajustes y en los recientes de la barra lateral.',
+    showOnHome: 'Mostrar en Inicio',
+    homeOrder: 'Orden',
+    resetHomeScreen: 'Restablecer pantalla de inicio',
     realClock: 'Hora real',
     clockFooter: 'El reloj de la barra lateral: tu hora o la del juego.',
     showAlbumArt: 'Mostrar carátula del álbum',
@@ -2542,6 +2573,8 @@ const SPANISH_STRINGS: Strings = {
     warning: 'Aviso',
     clear: 'Borrar',
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
+    openMaps: 'Abrir Mapas',
+    openDiagnostics: 'Abrir Diagnóstico',
   },
   apps: {
     maps: 'Mapas',

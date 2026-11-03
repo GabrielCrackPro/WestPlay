@@ -21,12 +21,16 @@ describe('the saved Settings choices', () => {
   it('come back as they were', async () => {
     vi.stubGlobal(
       'localStorage',
-      savedStorage({ dashboardWidgets: { nowPlaying: false, destination: true, weather: false }, albumArt: false }),
+      savedStorage({
+        dashboardWidgets: { nowPlaying: false, destination: true, driverHours: false, weather: false },
+        albumArt: false,
+      }),
     )
     const { useCabin } = await import('./store')
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: false,
       destination: true,
+      driverHours: false,
       diagnostics: true,
       weather: false,
     })
@@ -48,6 +52,7 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: true,
       destination: true,
+      driverHours: true,
       diagnostics: true,
       weather: false,
     })
@@ -60,6 +65,7 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: true,
       destination: true,
+      driverHours: true,
       weather: true,
       diagnostics: true,
     })

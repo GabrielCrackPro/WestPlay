@@ -1,8 +1,14 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-/** How long a note stays up, ms (long enough to read at the wheel, short enough not to sit over the map). */
+/** How long a note's pill stays up, ms (long enough to read at the wheel, short enough not to sit over the map). */
 export const NOTE_SHOWN_MS = 6000
+
+/** A note with an action stays a little longer: long enough to reach for it, still not over the map all drive. */
+export const NOTE_ACTION_SHOWN_MS = 10000
+
+/** What a note can open: the Maps app (a fuel or rest stop) or the Diagnostics app (a fault's readings). */
+export type NoteAction = 'maps' | 'diagnostics'
 
 /** The most notes up at once: a brake fault and a low tank can come together; a fourth waits its turn. */
 const MAX_NOTES = 3
@@ -18,6 +24,8 @@ export interface Note {
   /** What the reading is now, e.g. "118 psi". */
   detail: string
   tone: 'warn' | 'alarm'
+  /** The app the note can open for what it's about (none: a note to read and let go). */
+  action?: NoteAction
 }
 
 /** A note as it was shown: the note itself, when it was raised, and what the game's clock said then. */
@@ -96,7 +104,7 @@ export const useNotes = create<{
           setTimeout(() => {
             timers.delete(note.key)
             get().dismiss(note.key)
-          }, NOTE_SHOWN_MS),
+          }, note.action ? NOTE_ACTION_SHOWN_MS : NOTE_SHOWN_MS),
         )
       },
       dismiss: (key) => {
@@ -137,6 +145,7 @@ function validHistory(history: unknown): NoteRecord[] {
         typeof note.title === 'string' &&
         typeof note.detail === 'string' &&
         (note.tone === 'warn' || note.tone === 'alarm') &&
+        (note.action === undefined || note.action === 'maps' || note.action === 'diagnostics') &&
         Number.isFinite(note.id) &&
         Number.isFinite(note.at),
     )

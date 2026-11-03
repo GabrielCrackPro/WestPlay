@@ -1,5 +1,5 @@
 /* The truck's diagnostic alerts (Notifications.tsx): instrument-cluster cards, stacked under the volume HUD.
-   Nothing to press, and nothing of the app's moves for them. */
+   A note with an action carries one small button; nothing else of the app's moves for them. */
 
 .notifications {
   position: absolute;
@@ -117,6 +117,14 @@
   white-space: nowrap;
 }
 
+.notification-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(4px * var(--text-scale, 1));
+}
+
 .notification-detail {
   min-width: 0;
   max-width: calc(160px * var(--text-scale, 1));
@@ -129,6 +137,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A note with somewhere to go: a small button under its reading, the only part of the pill that takes a press. */
+.shell .notification-action {
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--text-scale, 1));
+  padding: calc(3px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--notification-tone) 18%, transparent);
+  color: var(--notification-tone);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.shell .notification-action:hover {
+  background: color-mix(in srgb, var(--notification-tone) 28%, transparent);
+}
+
+.shell .notification-action:active {
+  scale: 0.97;
 }
 
 /* Each note springs in as it arrives, and fades out as it goes: the store drops one the instant it's taken down,
@@ -168,9 +200,12 @@
     height: calc(40px * var(--text-scale, 1));
   }
 
-  .notification-detail {
+  .notification-side {
     grid-column: 2;
-    max-width: 100%;
+    align-items: flex-start;
+  }
+
+  .notification-detail {
     padding-left: 0;
     border-left: 0;
     color: var(--text-dim);

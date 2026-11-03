@@ -31,7 +31,8 @@ import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
 import { JobGlyph } from './JobGlyph'
-import { EMPTY, useDestinationView, useDiagnosticsView } from './widgetState'
+import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
+import { HoursTabIcon } from '../apps/diagnostics/tabIcons'
 import { cabClock } from '../../shared/host'
 
 /**
@@ -254,6 +255,49 @@ export function DestinationWidget() {
 }
 
 /**
+ * Driver hours: the game's own rest stop and mandatory break, counting down, with the trip still to drive under
+ * them (or the fuel's range without a route). Opening it shows the Diagnostics app's driver-hours page. Folded
+ * away without the game.
+ */
+export function DriverHoursWidget() {
+  const text = useText()
+  const words = text.diagnostics
+  const view = useDriverHoursView()
+  const shown = useCabin((state) => state.dashboardWidgets.driverHours) && view !== null
+  return (
+    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-driverHours' }}>
+      {shown && view && (
+        <button
+          type="button"
+          className="widget glass driver-hours"
+          aria-label={words.driverHours}
+          onClick={() => {
+            useCabin.getState().setDiagnosticsPage('driver')
+            go({ type: 'openApp', app: 'diagnostics' })
+          }}
+        >
+          <div className="hours-text">
+            <div className="kicker">{words.driverHours}</div>
+            <div className="hours-line">
+              <span className={`hours-value ${view.restState}`}>{view.rest}</span>
+              <span className="hours-label">{words.restStop}</span>
+            </div>
+            <div className="hours-line small">
+              <span className={`hours-value ${view.breakState}`}>{view.break}</span>
+              <span className="hours-label">{words.mandatoryBreak}</span>
+            </div>
+            <div className="hours-detail">{view.detail}</div>
+          </div>
+          <span className="hours-glyph">
+            <HoursTabIcon />
+          </span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
  * Diagnostics: the engine's coolant and the brake air on one card — the readings a driver watches while
 driving — with the fuel left in the tank, the AdBlue and the battery under them. A reading out of its range,
  * or the game's own warning, takes the tone, so a glance says whether it's worth opening the app. Folded away
@@ -315,12 +359,14 @@ export function WeatherWidget() {
   const widgets = useCabin((state) => state.dashboardWidgets)
   const destination = useDestinationView()
   const diagnostics = useDiagnosticsView()
+  const driverHours = useDriverHoursView()
   const loaded = useAnythingLoaded()
   const others = [
     // Now Playing only while a player has something: nothing loaded, and the card is away, so it isn't one of
     // the column's.
     widgets.nowPlaying && loaded,
     widgets.destination && destination !== EMPTY,
+    widgets.driverHours && driverHours !== null,
     widgets.diagnostics && diagnostics !== null,
   ].filter(Boolean).length
   // Weather is never dropped when the column is full: it comes in tight instead (a smaller card), so a widget the

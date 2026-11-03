@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAppIcon } from '../state/hooks'
-import { type AppId, APPS, RELEASED_APP_IDS } from '../state/apps'
+import { type AppId, APPS, visibleHomeApps } from '../state/apps'
 import { launchingNow, useLaunchStyle } from '../state/launch'
 import { unreadCount, useNotes } from '../shell/notesShown'
 import { go, useCabin } from '../state/store'
@@ -20,6 +20,10 @@ export function Home() {
   const [page, setPage] = useState(0)
   // The labels grow with the player's Text Size, and the cells with them.
   const scale = textScale(useCabin((state) => state.textSize))
+  // Home's apps, in the player's order, less the ones hidden in Settings › Home Screen.
+  const order = useCabin((state) => state.homeOrder)
+  const hidden = useCabin((state) => state.homeHidden)
+  const apps = useMemo(() => visibleHomeApps(order, hidden), [order, hidden])
   const names = useText().apps
   // The notes the cab raised while the driver wasn't looking at the Notifications app: its icon's badge.
   const unread = useNotes((state) => unreadCount(state.history, state.seen))
@@ -64,7 +68,7 @@ export function Home() {
         const text = label.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
         found[app] = line > 0 ? Math.min(LABEL_LINES, Math.max(1, Math.round(text / line))) : 1
       }
-      setLines((current) => (RELEASED_APP_IDS.every((app) => current[app] === found[app]) ? current : found))
+      setLines((current) => (apps.every((app) => current[app] === found[app]) ? current : found))
     }
     count()
     let active = true
@@ -72,7 +76,7 @@ export function Home() {
     return () => {
       active = false
     }
-  }, [size.columns, size.compact, scale, names])
+  }, [size.columns, size.compact, scale, names, apps])
 
   const cell = size.compact ? COMPACT_CELL : CELL
   const rows = rowLayout(
@@ -81,9 +85,15 @@ export function Home() {
     size.height,
     size.columns,
     size.rows,
-    RELEASED_APP_IDS.map((app) => lines[app] ?? 1),
+    apps.map((app) => lines[app] ?? 1),
   )
-  const pages = pagesOf(RELEASED_APP_IDS, size.columns * rows.rows)
+  const pages = pagesOf(apps, size.columns * rows.rows)
+  // Hiding the apps on the page the player is on brings the screen back to the first one.
+  useEffect(() => {
+    if (page < pages.length) return
+    setPage(0)
+    pagesElement.current?.scrollTo({ left: 0 })
+  }, [page, pages.length])
   const turnTo = (index: number) => {
     const element = pagesElement.current
     element?.scrollTo({ left: index * element.clientWidth, behavior: 'smooth' })

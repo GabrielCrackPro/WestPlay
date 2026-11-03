@@ -39,7 +39,7 @@ import { receiveMapFolder } from '../maps/mapData'
 import { receiveDetours, receiveFollowed, receiveRouteAnswer, receiveRoutes } from '../maps/routeChange'
 import type { Point, RouteNode } from '../maps/route'
 import { DEFAULT_WALLPAPER_ID } from '../wallpapers'
-import { isReleasedApp } from './apps'
+import { homeOrderOf, hiddenHomeApps, isReleasedApp, RELEASED_APP_IDS, visibleHomeApps, type AppId } from './apps'
 import type { AppearanceMode } from './appearance'
 import {
   MAP_MARKERS,
@@ -71,9 +71,15 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget = 'nowPlaying' | 'destination' | 'weather' | 'diagnostics'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'driverHours' | 'weather' | 'diagnostics'
 
-export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = ['nowPlaying', 'destination', 'weather', 'diagnostics']
+export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
+  'nowPlaying',
+  'destination',
+  'driverHours',
+  'weather',
+  'diagnostics',
+]
 
 /** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
 export type Clock = 'game' | 'real'
@@ -128,6 +134,9 @@ interface CabinState {
    * them itself (Auto order): by what the drive needs (widgetState.ts's `useWidgetOrder`). */
   dashboardOrder: DashboardWidget[]
   autoOrder: boolean
+  /** Home's apps in the player's order, and the ones hidden from it (Settings › Home Screen). */
+  homeOrder: AppId[]
+  homeHidden: AppId[]
   /** The live map's own settings (Settings › Maps): how much it draws, how it behaves at night and at
    * junctions, whose trucks it shows, and when it comes back to the truck. */
   mapDetail: MapDetail
@@ -179,6 +188,12 @@ interface CabinState {
   setAutoOrder(on: boolean): void
   /** Moves a widget up (`by` -1) or down (+1) the Dashboard's own order. */
   moveWidget(widget: DashboardWidget, by: number): void
+  /** Shows or hides an app on Home; the last one shown can't be hidden. */
+  setHomeAppHidden(app: AppId, hidden: boolean): void
+  /** Moves an app up (`by` -1) or down (+1) Home's order. */
+  moveHomeApp(app: AppId, by: number): void
+  /** Home's apps back in their own order, all shown. */
+  resetHomeScreen(): void
   setMapRoute(mapRoute: MapRouteColour): void
   setMapWeight(mapWeight: MapRouteWeight): void
   setMapNorth(mapNorth: boolean): void
@@ -231,6 +246,8 @@ type Persisted = Pick<
   | 'diagnosticsPage'
   | 'dashboardOrder'
   | 'autoOrder'
+  | 'homeOrder'
+  | 'homeHidden'
   | 'mapDetail'
   | 'mapNight'
   | 'mapJunction'
@@ -261,7 +278,7 @@ const SYSTEM_REDUCES_MOTION = typeof matchMedia === 'function' && matchMedia('(p
 
 /** The Dashboard's own order for a new player, top to bottom (the weather last: it's the one that comes in when
  * there's room). */
-const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'diagnostics', 'weather']
+const DEFAULT_WIDGET_ORDER: DashboardWidget[] = ['nowPlaying', 'destination', 'driverHours', 'diagnostics', 'weather']
 
 /** A saved order, made whole: every widget once, in the order saved, any the save doesn't know about after them.
  * An older save's Job widget is the destination card now: it keeps the place that card had. */
@@ -276,6 +293,7 @@ function orderOf(saved: unknown): DashboardWidget[] {
 const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
   nowPlaying: true,
   destination: true,
+  driverHours: true,
   weather: true,
   diagnostics: true,
 }
@@ -294,6 +312,8 @@ export const useCabin = create<CabinState>()(
       diagnosticsPage: 'overview',
       dashboardOrder: DEFAULT_WIDGET_ORDER,
       autoOrder: true,
+      homeOrder: [...RELEASED_APP_IDS],
+      homeHidden: [],
       // Balanced: the buildings still, a little less often than the game, for the PCs that share its GPU.
       mapDetail: 'balanced',
       mapNight: true,
@@ -347,6 +367,25 @@ export const useCabin = create<CabinState>()(
           dashboardOrder.splice(to, 0, widget)
           return { dashboardOrder }
         }),
+      setHomeAppHidden: (app, hidden) =>
+        set((state) => {
+          if (!hidden) return { homeHidden: state.homeHidden.filter((each) => each !== app) }
+          const homeHidden = hiddenHomeApps([...state.homeHidden, app])
+          // The last app stays: Home with nothing on it couldn't open Settings again.
+          if (visibleHomeApps(state.homeOrder, homeHidden).length === 0) return {}
+          return { homeHidden }
+        }),
+      moveHomeApp: (app, by) =>
+        set((state) => {
+          const from = state.homeOrder.indexOf(app)
+          const to = Math.min(state.homeOrder.length - 1, Math.max(0, from + by))
+          if (from < 0 || to === from) return {}
+          const homeOrder = [...state.homeOrder]
+          homeOrder.splice(from, 1)
+          homeOrder.splice(to, 0, app)
+          return { homeOrder }
+        }),
+      resetHomeScreen: () => set({ homeOrder: [...RELEASED_APP_IDS], homeHidden: [] }),
       setMapDetail: (mapDetail) => set({ mapDetail }),
       setMapNight: (mapNight) => set({ mapNight }),
       setMapJunction: (mapJunction) => set({ mapJunction }),
@@ -424,6 +463,8 @@ export const useCabin = create<CabinState>()(
         diagnosticsPage: state.diagnosticsPage,
         dashboardOrder: state.dashboardOrder,
         autoOrder: state.autoOrder,
+        homeOrder: state.homeOrder,
+        homeHidden: state.homeHidden,
         mapDetail: state.mapDetail,
         mapNight: state.mapNight,
         mapJunction: state.mapJunction,
@@ -488,6 +529,8 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   }
   if (stored.dashboardOrder !== undefined) result.dashboardOrder = orderOf(stored.dashboardOrder)
   if (typeof stored.autoOrder === 'boolean') result.autoOrder = stored.autoOrder
+  if (stored.homeOrder !== undefined) result.homeOrder = homeOrderOf(stored.homeOrder)
+  if (stored.homeHidden !== undefined) result.homeHidden = hiddenHomeApps(stored.homeHidden)
   if (MAP_DETAILS.includes(stored.mapDetail as MapDetail)) result.mapDetail = stored.mapDetail
   if (typeof stored.mapNight === 'boolean') result.mapNight = stored.mapNight
   if (typeof stored.mapJunction === 'boolean') result.mapJunction = stored.mapJunction

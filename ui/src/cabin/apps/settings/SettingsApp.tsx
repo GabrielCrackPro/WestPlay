@@ -46,6 +46,7 @@ import {
   CheckGlyph,
   ChevronGlyph,
   DashboardGlyph,
+  HomeGlyph,
   IconsGlyph,
   NowPlayingGlyph,
   SoundGlyph,
@@ -99,6 +100,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <IconsPage />
     case 'dashboard':
       return <DashboardPage />
+    case 'home':
+      return <HomeScreenPage />
     case 'map':
       return <MapPage />
     case 'nowPlaying':
@@ -172,6 +175,12 @@ function ListPage() {
           icon={<DashboardGlyph />}
           label={text.settings.dashboard}
           onOpen={() => open('dashboard')}
+        />
+        <NavRow
+          tile="var(--apple-blue)"
+          icon={<HomeGlyph />}
+          label={text.settings.homeScreen}
+          onOpen={() => open('home')}
         />
         <NavRow
           tile="var(--apple-green)"
@@ -528,6 +537,7 @@ function DashboardPage() {
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
+    driverHours: text.diagnostics.driverHours,
     weather: text.apps.weather,
     diagnostics: text.apps.diagnostics,
   }
@@ -572,6 +582,61 @@ function DashboardPage() {
           on={clock === 'real'}
           onToggle={(on) => setClock(on ? 'real' : 'game')}
         />
+      </Group>
+    </Page>
+  )
+}
+
+/**
+ * Home Screen (Settings › Home Screen): the apps Home shows, one switch each, and the order they appear in, moved
+ * up or down as the Dashboard's widgets are. An app hidden here keeps its place in the order, so showing it again
+ * puts it back where it was.
+ */
+function HomeScreenPage() {
+  const text = useText()
+  const order = useCabin((state) => state.homeOrder)
+  const hidden = useCabin((state) => state.homeHidden)
+  const setHidden = useCabin((state) => state.setHomeAppHidden)
+  const move = useCabin((state) => state.moveHomeApp)
+  const reset = useCabin((state) => state.resetHomeScreen)
+  const names = text.apps
+  return (
+    <Page title={text.settings.homeScreen}>
+      <Group header={text.settings.showOnHome} footer={text.settings.homeScreenFooter}>
+        {order.map((app) => (
+          <SwitchRow key={app} label={names[app]} on={!hidden.includes(app)} onToggle={(on) => setHidden(app, !on)} />
+        ))}
+      </Group>
+      {/* The order the apps show in, top to bottom. Hidden apps keep their place here. */}
+      <Group header={text.settings.homeOrder}>
+        {order.map((app, index) => (
+          <div key={app} className="settings-row settings-order">
+            <span className="settings-label">{names[app]}</span>
+            <span className="settings-order-buttons">
+              <button
+                type="button"
+                aria-label={`${text.settings.moveUp} ${names[app]}`}
+                disabled={index === 0}
+                onClick={() => move(app, -1)}
+              >
+                <span aria-hidden>▲</span>
+              </button>
+              <button
+                type="button"
+                aria-label={`${text.settings.moveDown} ${names[app]}`}
+                disabled={index === order.length - 1}
+                onClick={() => move(app, 1)}
+              >
+                <span aria-hidden>▼</span>
+              </button>
+            </span>
+          </div>
+        ))}
+      </Group>
+      <Group>
+        <button type="button" className="settings-row settings-action" onClick={reset}>
+          {text.settings.resetHomeScreen}
+        </button>
       </Group>
     </Page>
   )

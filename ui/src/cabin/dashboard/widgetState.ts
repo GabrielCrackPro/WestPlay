@@ -6,6 +6,7 @@ import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { destinationView } from './destination'
+import { driverHoursView } from './hours'
 import { useAnythingLoaded } from './useNowPlaying'
 
 /* What the Dashboard's widget column shows, for the widgets (widgets.tsx) and the Dashboard itself. */
@@ -32,10 +33,12 @@ export function useAnyWidget(): boolean {
   const loaded = useAnythingLoaded()
   const destination = useDestinationView() !== EMPTY
   const diagnostics = useDiagnosticsView() !== null
+  const driverHours = useDriverHoursView() !== null
   const weather = useLive((state) => state.weather !== null)
   return (
     (widgets.nowPlaying && loaded) ||
     (widgets.destination && destination) ||
+    (widgets.driverHours && driverHours) ||
     (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
@@ -50,7 +53,7 @@ export function useWidgetOrder(): DashboardWidget[] {
   const order = useCabin((state) => state.dashboardOrder)
   const enabled = useCabin((state) => state.dashboardWidgets)
   const auto = useCabin((state) => state.autoOrder)
-  const { late, soon, warn } = useLive(
+  const { late, soon, warn, restDue } = useLive(
     useShallow((state) => {
       const telemetry = state.telemetry
       const job = state.job
@@ -64,7 +67,11 @@ export function useWidgetOrder(): DashboardWidget[] {
           telemetry.batteryWarning ||
           telemetry.oilPressureWarning ||
           telemetry.brakeAirWarning)
-      return { late, soon, warn }
+      const restDue =
+        telemetry !== null &&
+        ((telemetry.restStop >= 0 && telemetry.restStop <= 60) ||
+          (telemetry.mandatoryBreak >= 0 && telemetry.mandatoryBreak <= 60))
+      return { late, soon, warn, restDue }
     }),
   )
   return useMemo(() => {
@@ -74,11 +81,13 @@ export function useWidgetOrder(): DashboardWidget[] {
       diagnostics: warn ? 100 : 20,
       // The destination card carries the job too: a closing or missed deadline lifts it as it did the job card.
       destination: late ? 96 : soon ? 90 : 25,
+      // A rest or a break within the hour is the next thing the drive needs after a closing deadline.
+      driverHours: restDue ? 85 : 15,
       nowPlaying: 10,
       weather: 0,
     }
     return [...ids].sort((a, b) => score[b] - score[a] || order.indexOf(a) - order.indexOf(b))
-  }, [order, enabled, auto, late, soon, warn])
+  }, [order, enabled, auto, late, soon, warn, restDue])
 }
 
 /** The diagnostics card's readings: the coolant and the brake air, then the fuel left in the tank, the AdBlue
@@ -135,6 +144,20 @@ export function useDiagnosticsView(): DiagnosticsView | null {
         adblueState: urea.state,
         batteryState: volts.state,
       }
+    }),
+  )
+}
+
+/**
+ * The Dashboard's driver-hours card, from the game's own rest clocks and the trip still to drive. Without the game
+ * there is nothing to count down, so it folds away as the diagnostics card does.
+ */
+export function useDriverHoursView() {
+  const text = useText()
+  return useLive(
+    useShallow((state) => {
+      const telemetry = state.telemetry
+      return telemetry ? driverHoursView(telemetry, text, state.clockShift) : null
     }),
   )
 }

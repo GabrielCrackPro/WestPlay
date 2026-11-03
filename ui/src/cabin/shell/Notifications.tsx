@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { cabClock } from '../../shared/host'
 import { formatGameTime } from '../../shared/format'
-import { useLive } from '../state/store'
+import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
-import { type Note, useNotes } from './notesShown'
+import { type Note, type NoteAction, useNotes } from './notesShown'
 import { playCue } from '../state/sound'
 import './notifications.css'
 
@@ -15,8 +15,9 @@ import './notifications.css'
  */
 export function Notifications() {
   const notes = useNotes((state) => state.notes)
+  const latest = useNotes((state) => state.history[0])
   const leaving = useLeaving(notes)
-  useNoteCue(notes)
+  useNoteCue(latest)
   useGameAlerts()
   return (
     <div className={notes.length + leaving.length > 0 ? 'notifications shown' : 'notifications'} aria-live="polite">
@@ -32,17 +33,16 @@ export function Notifications() {
 }
 
 /**
- * The chime as a note comes up: soft for a warning, firmer for an alarm (state/sound.ts). Only when the stack grows,
- * so a note leaving (and the one under it becoming the newest) says nothing.
+ * The chime as a note is recorded: soft for a warning, firmer for an alarm (state/sound.ts). Dismissing a note
+ * leaves the newest history entry alone, so the pill underneath becoming newest says nothing.
  */
-function useNoteCue(notes: { tone: 'warn' | 'alarm' }[]): void {
-  const count = useRef(0)
+function useNoteCue(note: { id: number; tone: 'warn' | 'alarm' } | undefined): void {
+  const lastId = useRef(note?.id ?? 0)
   useEffect(() => {
-    const added = notes.length > count.current
-    count.current = notes.length
-    if (!added) return
-    playCue(notes.at(-1)?.tone === 'alarm' ? 'alarm' : 'note')
-  }, [notes])
+    if (!note || note.id === lastId.current) return
+    lastId.current = note.id
+    playCue(note.tone === 'alarm' ? 'alarm' : 'note')
+  }, [note])
 }
 
 /** How long a note that has gone stays up to fade out, ms (notifications.css' note-out). */
@@ -50,9 +50,23 @@ const NOTE_OUT_MS = 220
 
 /** One note's pill. */
 function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) {
-  const words = useText().notificationsApp
+  const text = useText()
+  const words = text.notificationsApp
+  const dismiss = useNotes((state) => state.dismiss)
+  const action = !leaving && note.action ? note.action : null
+  const open = (what: NoteAction) => {
+    if (what === 'maps') go({ type: 'openApp', app: 'maps' })
+    else {
+      useCabin.getState().setDiagnosticsPage('overview')
+      go({ type: 'openApp', app: 'diagnostics' })
+    }
+    dismiss(note.key)
+  }
   return (
-    <div className={`notification ${note.tone}${leaving ? ' leaving' : ''}`} aria-hidden={leaving || undefined}>
+    <div
+      className={`notification ${note.tone}${leaving ? ' leaving' : ''}${action ? ' actionable' : ''}`}
+      aria-hidden={leaving || undefined}
+    >
       <span className="notification-icon" aria-hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           {note.tone === 'alarm' ? (
@@ -72,7 +86,15 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
         <span className="notification-level">{note.tone === 'alarm' ? words.alert : words.warning}</span>
         <span className="notification-title">{note.title}</span>
       </span>
-      <span className="notification-detail">{note.detail}</span>
+      <span className="notification-side">
+        <span className="notification-detail">{note.detail}</span>
+        {action && (
+          <button type="button" className="notification-action" onClick={() => open(action)}>
+            {action === 'maps' ? words.openMaps : words.openDiagnostics}
+            <span aria-hidden>›</span>
+          </button>
+        )}
+      </span>
     </div>
   )
 }
@@ -134,6 +156,7 @@ function useGameAlerts() {
         title: text.destinations.routeChanged,
         detail: `${arrival} ${text.arrival}`,
         tone: 'warn',
+        action: 'maps',
       },
       // The game's clock, as the rest of the list keeps it (without this the app showed the player's own time in a
       // column that is the game's).
@@ -166,7 +189,14 @@ function useGameAlerts() {
       value >= 60
         ? `${n(Math.floor(value / 60))} ${words.hours} ${String(Math.floor(value % 60)).padStart(2, '0')}`
         : `${n(Math.round(value))} ${words.minutes}`
-    const raise = (key: string, on: boolean, title: string, detail: string, tone: 'warn' | 'alarm') => {
+    const raise = (
+      key: string,
+      on: boolean,
+      title: string,
+      detail: string,
+      tone: 'warn' | 'alarm',
+      action: NoteAction,
+    ) => {
       const held = raised.current.get(key)
       if (!on) {
         // Gone right: it may be raised again, but only once it has stayed right for a moment (a sensor that
@@ -185,7 +215,7 @@ function useGameAlerts() {
         raised.current.set(key, null)
         return
       } else return
-      useNotes.getState().push({ key, title, detail, tone }, when)
+      useNotes.getState().push({ key, title, detail, tone, action }, when)
     }
 
     raise(
@@ -194,20 +224,36 @@ function useGameAlerts() {
       words.battery,
       `${n(Math.round(telemetry.batteryVoltage * 10) / 10)} ${words.volts}`,
       'alarm',
+      'diagnostics',
     )
-    raise('oilPressure', telemetry.oilPressureWarning, words.oilPressure, psi(telemetry.oilPressure), 'alarm')
-    raise('brakeAir', telemetry.brakeAirWarning, words.brakeAir, psi(telemetry.brakeAirPressure), 'alarm')
-    raise('fuel', telemetry.fuelWarning, words.fuel, litres(telemetry.fuel), 'alarm')
-    raise('adblue', telemetry.adblueWarning, words.adblue, litres(telemetry.adblue), 'alarm')
+    raise(
+      'oilPressure',
+      telemetry.oilPressureWarning,
+      words.oilPressure,
+      psi(telemetry.oilPressure),
+      'alarm',
+      'diagnostics',
+    )
+    raise(
+      'brakeAir',
+      telemetry.brakeAirWarning,
+      words.brakeAir,
+      psi(telemetry.brakeAirPressure),
+      'alarm',
+      'diagnostics',
+    )
+    raise('fuel', telemetry.fuelWarning, words.fuel, litres(telemetry.fuel), 'alarm', 'maps')
+    raise('adblue', telemetry.adblueWarning, words.adblue, litres(telemetry.adblue), 'alarm', 'maps')
     const rest = telemetry.restStop
     const mandatoryBreak = telemetry.mandatoryBreak
-    raise('rest', rest >= 0 && rest <= 15, words.restStop, minutes(Math.max(0, rest)), 'warn')
+    raise('rest', rest >= 0 && rest <= 15, words.restStop, minutes(Math.max(0, rest)), 'warn', 'maps')
     raise(
       'mandatoryBreak',
       mandatoryBreak >= 0 && mandatoryBreak <= 15,
       words.mandatoryBreak,
       minutes(Math.max(0, mandatoryBreak)),
       'warn',
+      'maps',
     )
   }, [telemetry, text, clockShift])
 }
