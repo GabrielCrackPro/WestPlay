@@ -298,25 +298,29 @@ export function DriverHoursWidget() {
   )
 }
 
-/** A profile-led snapshot of the lifetime career totals from the game's latest save. */
+/**
+ * A profile-led snapshot of the driver and their lifetime totals, from the game's latest save: the same totals the
+ * Driver app lays out in full (experience, distance, the time played and the fuel burnt, the cities found), so a
+ * glance at the Dashboard says what the app would.
+ */
 export function DriverWidget() {
   const text = useText()
   const words = text.driver
   const career = useLive((state) => state.career)
+  // A missing total is a dash with no unit after it, as the app's rows show it.
+  const withUnit = (value: number | null | undefined, unit: string, digits = 0) =>
+    value == null ? '—' : `${text.number(Number(value.toFixed(digits)))} ${unit}`
+  const hours = (seconds: number | null | undefined) =>
+    withUnit(seconds == null ? null : seconds / 3600, text.diagnostics.hours, 1)
   const xp = career?.experiencePoints == null ? '—' : `${text.number(career.experiencePoints)} XP`
   const distance =
     career?.totalDistanceMeters == null
       ? '—'
       : `${text.number(Math.round(career.totalDistanceMeters / 1000))} ${text.diagnostics.km}`
+  const gameTime = hours(career?.gameTimeSeconds)
+  const realTime = hours(career?.realTimeSeconds)
+  const fuel = withUnit(career?.totalFuelLitres, text.diagnostics.litres)
   const cities = career?.visitedCities == null ? '—' : text.number(career.visitedCities)
-  const gameTime =
-    career?.gameTimeSeconds == null
-      ? '—'
-      : `${text.number(Math.round(career.gameTimeSeconds / 3600))} ${text.diagnostics.hours}`
-  const realTime =
-    career?.realTimeSeconds == null
-      ? '—'
-      : `${text.number(Math.round(career.realTimeSeconds / 3600))} ${text.diagnostics.hours}`
   const shown = useCabin((state) => state.dashboardWidgets.driver)
 
   return (
@@ -335,19 +339,27 @@ export function DriverWidget() {
               {career?.profileName || (career ? words.profile : words.noProfile)}
             </div>
             <div className="driver-widget-distance">{xp}</div>
-            <div className="driver-widget-meta">
-              {distance} · {words.totalDistance}
-            </div>
-            <div className="driver-widget-stats">
-              {cities} {words.citiesVisited.toLowerCase()}
-            </div>
-            <div className="driver-widget-stats">
-              {words.gameTime}: {gameTime} · {words.realTime}: {realTime}
+            <div className="driver-widget-totals">
+              <WidgetTotal label={words.totalDistance} value={distance} />
+              <WidgetTotal label={words.gameTime} value={gameTime} />
+              <WidgetTotal label={words.realTime} value={realTime} />
+              <WidgetTotal label={words.fuelUsed} value={fuel} />
+              <WidgetTotal label={words.citiesVisited} value={cities} />
             </div>
           </div>
         </button>
       )}
     </div>
+  )
+}
+
+/** One of the card's lifetime totals: the app's figures, a step smaller, each under its name. */
+function WidgetTotal({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="driver-widget-total">
+      <span className="driver-widget-total-label">{label}</span>
+      <span className="driver-widget-total-value">{value}</span>
+    </span>
   )
 }
 

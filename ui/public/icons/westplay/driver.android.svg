@@ -1,10 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <rect width="48" height="48" rx="12" fill="#EF6C00"/>
-  <g transform="translate(10.2 10.2) scale(1.15)" fill="#fff" stroke="#fff" stroke-linecap="round">
-      <circle cx="12" cy="12" r="7.8" fill="none" stroke-width="2.3"/>
-      <circle cx="12" cy="12" r="2.7" stroke="none"/>
-      <path d="M9.4 12H5.4" fill="none" stroke-width="2.3"/>
-      <path d="M14.6 12H18.6" fill="none" stroke-width="2.3"/>
-      <path d="M12 14.6V18.6" fill="none" stroke-width="2.3"/>
+  <defs>
+    <linearGradient id="play" x1="474" y1="406" x2="650" y2="616" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#63e3d6"/><stop offset="1" stop-color="#12a9a4"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="#1a1a1e"/>
+  <g transform="translate(10.2 10.2) scale(1.15)">
+    <g transform="translate(12 12) scale(0.037) translate(-512 -515)">
+      <path d="M 372 302 L 652 302 Q 682 302 689 331 L 748 692 Q 756 728 719 728 L 305 728 Q 268 728 276 692 L 335 331 Q 342 302 372 302 Z" fill="none" stroke="#f2f2f5" stroke-width="46" stroke-linejoin="round"/>
+      <path d="M 474 424 Q 474 406 490 415 L 634 502 Q 650 511 634 520 L 490 607 Q 474 616 474 598 Z" fill="url(#play)"/>
+    </g>
   </g>
 </svg>

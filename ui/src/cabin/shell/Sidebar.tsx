@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatGameTime, formatRealTime } from '../../shared/format'
 import { logoSources } from '../boot/brand'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
+import { BrandIcon } from './BrandIcon'
 import { type AppId, APPS } from '../state/apps'
 import { LAUNCH_STYLE, useCarriesLaunch } from '../state/launch'
 import { homeButtonTarget } from '../state/navigation'
@@ -99,13 +100,23 @@ function RecentApp({ app, current, badge }: { app: AppId; current: boolean; badg
       aria-label={text.apps[app]}
       onClick={() => go({ type: 'openApp', app }, 'sidebar')}
     >
-      <img src={icon} alt="" style={{ viewTransitionName: `recent-${app}`, viewTransitionClass: 'recent' }} />
+      {/* The Driver app's icon is the truck's brand, as it is on Home. */}
+      {app === 'driver' ? (
+        <BrandIcon style={{ viewTransitionName: `recent-${app}`, viewTransitionClass: 'recent' }} />
+      ) : (
+        <img src={icon} alt="" style={{ viewTransitionName: `recent-${app}`, viewTransitionClass: 'recent' }} />
+      )}
       {badge > 0 && (
         <span className="recent-badge" aria-label={text.notificationsApp.summary(badge)}>
           {badge > 99 ? '99+' : badge}
         </span>
       )}
-      {launching && <img className="launch-copy" src={icon} alt="" style={LAUNCH_STYLE} />}
+      {launching &&
+        (app === 'driver' ? (
+          <BrandIcon className="launch-copy" style={LAUNCH_STYLE} />
+        ) : (
+          <img className="launch-copy" src={icon} alt="" style={LAUNCH_STYLE} />
+        ))}
     </button>
   )
 }

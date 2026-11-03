@@ -11,6 +11,7 @@ import { followBearing, northUpLiveMap, overviewLiveMap, recentreLiveMap, useMap
  */
 export function MapControls() {
   const browsing = useMapBrowsing((state) => state.browsing)
+  const overview = useMapBrowsing((state) => state.overview)
   const routed = useLive((state) => state.route !== null)
   const compass = useCabin((state) => state.mapCompass)
   const text = useText()
@@ -31,8 +32,9 @@ export function MapControls() {
       {routed && (
         <button
           type="button"
-          className="map-control map-overview glass shown"
+          className={overview ? 'map-control map-overview glass shown on' : 'map-control map-overview glass shown'}
           aria-label={text.destinations.wholeRoute}
+          aria-pressed={overview}
           onClick={overviewLiveMap}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">

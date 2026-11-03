@@ -435,7 +435,7 @@ function PlaceCard({
     // Under TruckersMP, the trucks along it; in single player, the hour's estimate (estimatedTraffic.ts).
     const live = useLive.getState()
     if (live.truckersmp) showTraffic(trafficAlong(line, playersAlong))
-    else showTraffic(estimatedTraffic(line, live.telemetry ? cabClock(live.telemetry, live.clockShift) : 0))
+    else showTraffic(estimatedTraffic(line, live.telemetry ? cabClock(live.telemetry, live.clockShift) : 0), true)
   }, [directions, playersAlong])
   const start = async () => {
     if (typeof directions !== 'object' || directions === null) return

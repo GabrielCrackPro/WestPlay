@@ -51,6 +51,17 @@
   min-height: 0;
 }
 
+/* Every card's small label above its figure: one size, one weight, sentence case. The cards had four sizes and
+   three different tracked capitals between them, which read as captions from other apps rather than one column
+   of the cab's own cards. A card that needs the label larger (Diagnostics) sets it itself. */
+.widget .kicker {
+  color: var(--text-dim);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 /* A widget that comes and goes (turn-by-turn, the destination): in a slot that grows into the column as it
    comes (the other widgets making room) and gives the room back as it goes; the column's gap goes with it. */
 .widget-slot {
@@ -198,14 +209,6 @@ button.widget:active {
   gap: calc(3px * var(--text-scale, 1));
 }
 
-.driver-widget .kicker {
-  color: var(--text-dim);
-  font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .driver-widget-distance {
   overflow: hidden;
   font-size: calc(26px * var(--text-scale, 1));
@@ -215,33 +218,52 @@ button.widget:active {
   white-space: nowrap;
 }
 
-.driver-widget-name,
-.driver-widget-meta,
-.driver-widget-stats {
+.driver-widget-name {
   overflow: hidden;
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 550;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.driver-widget-name {
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 650;
+/* The app's lifetime totals, a step down: two to a row, each figure under its name, as a card's readings are. */
+.driver-widget-totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(2px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  min-width: 0;
+  margin-top: calc(3px * var(--text-scale, 1));
 }
 
-.driver-widget-meta,
-.driver-widget-stats {
+.driver-widget-total {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.driver-widget-total-label {
+  overflow: hidden;
   color: var(--text-dim);
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-widget-total-value {
+  overflow: hidden;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .widget.driver-hours .hours-text {
   flex: 1;
   min-width: 0;
-}
-
-.widget.driver-hours .kicker {
-  font-size: calc(17px * var(--text-scale, 1));
 }
 
 .widget.driver-hours .hours-line {
@@ -386,13 +408,12 @@ button.widget:active {
 }
 
 /* Which app plays it, above the name: a card's kicker, in the card's own dim. */
+/* Which app plays it, above the name: a small sentence-case line, as CarPlay's Now Playing has it. */
 .now-playing .service {
   overflow: hidden;
-  font-size: calc(13px * var(--text-scale, 1));
-  font-weight: 650;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
   line-height: 1.3;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--text-dim);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -484,14 +505,6 @@ button.widget:active {
   gap: 2px;
 }
 
-.job .kicker {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
 .job .destination {
   font-size: calc(28px * var(--text-scale, 1));
   font-weight: 650;
@@ -510,7 +523,7 @@ button.widget:active {
 
 /* Past the delivery deadline. */
 .job .deadline.late {
-  color: #ff453a;
+  color: var(--apple-red);
 }
 
 /* The fuel card: its words on the left, its glyph beside them, as the weather card has its symbol. It's denser
@@ -528,10 +541,6 @@ button.widget:active {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-}
-
-.fuel .kicker {
-  font-size: calc(16px * var(--text-scale, 1));
 }
 
 .fuel .destination {
@@ -686,10 +695,16 @@ button.widget:active {
     font-size: calc(21px * var(--text-scale, 1));
   }
 
-  .widgets .driver-widget-name,
-  .widgets .driver-widget-meta,
-  .widgets .driver-widget-stats {
+  .widgets .driver-widget-name {
     font-size: calc(12px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-total-label {
+    font-size: calc(11px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-total-value {
+    font-size: calc(13px * var(--text-scale, 1));
   }
 
   .widgets .job .destination {

@@ -67,8 +67,11 @@
 /* The Maps app's buttons (MapControls.tsx): at the right edge, glass a little denser than elsewhere so it
    reads over the busy map, as the ETA pill does. Recentre appears above the zoom pair once the map has
    been moved away from the truck. */
+/* Above the Dashboard tile's open-the-app button (dashboard/map.css), which covers the rest of the map: the
+   zoom pair and the compass are pressed, not the app. */
 .map-controls {
   position: absolute;
+  z-index: 2;
   right: 22px;
   bottom: 24px;
   display: flex;
@@ -174,8 +177,15 @@
   font-weight: 600;
 }
 
-/* The end of the GPS route: a red pin with a flag, as Apple's destination. */
+/* The end of the GPS route: a flag, as Apple's destination; on a job, the dock the trailer is going to, named
+   under it, or the pickup it's going to (an amber crate) before the cargo is on. */
 .map-destination {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.map-destination-badge {
   display: grid;
   place-items: center;
   width: 44px;
@@ -187,9 +197,84 @@
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.35);
 }
 
-.map-destination svg {
+.map-destination[data-kind='pickup'] .map-destination-badge {
+  background: #ff9f0a;
+}
+
+.map-destination-badge svg {
   width: 22px;
   height: 22px;
+}
+
+/* Its name, under it: the job's company and city, so the flag says where it goes (the game's own map names the
+   company; Apple's names nothing). */
+.map-destination-name {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 5px);
+  translate: -50% 0;
+  max-width: 240px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  color: #fff;
+  background: rgb(20 22 26 / 0.62);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.appearance-light .map-destination-name {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.85);
+}
+
+/* The chip at the map's edge pointing at a destination off screen (liveMap's updateEdge): turned to it, with
+   how far it is on the game's own scale. */
+.map-destination-edge {
+  position: absolute;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(20 22 26 / 0.7);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.map-destination-edge.shown {
+  display: flex;
+}
+
+.map-destination-edge-arrow {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #ff453a;
+}
+
+.map-destination-edge-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.appearance-light .map-destination-edge {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.85);
+}
+
+.appearance-light .map-destination-edge-arrow {
+  color: #d1342a;
 }
 
 /* Turn-by-turn (GuidanceCard.tsx): route guidance is blue, whatever the appearance. In
@@ -326,6 +411,7 @@
 .map-tile .map-search-button,
 .map-tile .map-search {
   position: absolute;
+  z-index: 3;
   color: #fff;
   background: rgb(20 22 26 / 0.55);
 }
@@ -363,7 +449,8 @@
 .map-tile .map-search {
   left: 16px;
   top: 16px;
-  width: 500px;
+  /* A narrow tile (an app on a small screen) keeps the panel inside it, and its rows still have room. */
+  width: min(500px, calc(100% - 32px));
   /* Down to the map's bottom, or to just above the keyboard while it's up (keyboard.css: its top is 376 px
      above the screen's bottom, the panel's 48 px below its top). */
   max-height: calc(100% - 32px);
@@ -377,7 +464,7 @@
 
 /* Offering routes (Directions), narrower: the map shows them all beside it (liveMap.ts frames them there). */
 .map-tile .map-search:has(.directions) {
-  width: 400px;
+  width: min(400px, calc(100% - 32px));
 }
 
 .map-tile .map-search.typing {
@@ -727,6 +814,7 @@
 /* The word that the game took a change, over the map's top, for a moment. */
 .map-confirmation {
   position: absolute;
+  z-index: 3;
   left: 50%;
   top: 22px;
   translate: -50% 0;
@@ -946,7 +1034,7 @@
 }
 
 /* The destination's flag drops onto the map when a route is set (liveMap adds its marker then). */
-.map-destination {
+.map-destination-badge {
   animation: destination-drop 420ms var(--motion-ease) both;
 }
 

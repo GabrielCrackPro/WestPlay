@@ -1,48 +1,65 @@
+/* The Driver app (DriverApp.tsx): the driver's game profile and the lifetime totals the game keeps for it, drawn
+   as the native apps are — iOS 26's grouped cards and rows, on Apple's colours (shell/apple.css), with the same
+   hairline separators, sentence-case labels and secondary-label text Settings and Weather use.
+
+   It is drawn on Settings' own cab scale (settings.css: 1.35 px per iPhone point, so a 52 pt row is 70 px and
+   17 pt text is 24 px), not one of its own: the native apps' pages are one size in this cab, as they are on a
+   phone. */
+
 .driver-app {
-  display: block;
-  overflow: auto;
+  border-radius: var(--panel-radius);
+  background: var(--apple-background);
+  color: var(--apple-label);
+  overflow: hidden;
+}
+
+/* The page scrolls: a short screen keeps the profile and the totals, and the note under them follows. */
+.driver-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
-.driver-app::-webkit-scrollbar {
+.driver-scroll::-webkit-scrollbar {
   display: none;
 }
 
 .driver-page {
-  display: grid;
-  gap: calc(16px * var(--text-scale, 1));
+  display: flex;
+  flex-direction: column;
+  /* Settings' gap between groups of cards. */
+  gap: calc(34px * var(--text-scale, 1));
   width: min(100%, 1120px);
   min-height: 100%;
   margin: 0 auto;
-  align-content: start;
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(36px * var(--text-scale, 1));
 }
 
+/* The profile: the driver's portrait beside their name, as Contacts and Settings' account row have them. The
+   portrait is a tinted fill, not a bordered badge. */
 .driver-profile {
   display: flex;
   align-items: center;
-  gap: calc(20px * var(--text-scale, 1));
+  gap: calc(18px * var(--text-scale, 1));
   min-width: 0;
-  padding: calc(12px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1));
 }
 
 .driver-portrait {
   flex: none;
   display: grid;
   place-items: center;
-  width: calc(88px * var(--text-scale, 1));
-  height: calc(88px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
+  width: calc(84px * var(--text-scale, 1));
+  height: calc(84px * var(--text-scale, 1));
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--apple-blue) 30%, transparent), transparent 68%),
-    var(--apple-fill);
+  background: var(--apple-fill);
   color: var(--apple-blue);
-  box-shadow: var(--shadow-raised);
 }
 
 .driver-portrait svg {
-  width: 90%;
-  height: 90%;
+  width: 88%;
+  height: 88%;
 }
 
 .driver-identity {
@@ -50,210 +67,152 @@
   flex: 1;
 }
 
-.driver-eyebrow {
-  color: var(--text-dim);
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 650;
-  letter-spacing: 0.11em;
-  line-height: 1.25;
-  text-transform: uppercase;
-}
-
 .driver-identity h1 {
   overflow: hidden;
-  margin: calc(3px * var(--text-scale, 1)) 0;
-  font-size: calc(30px * var(--text-scale, 1));
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  margin: 0;
+  font-size: calc(34px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .driver-identity p {
   overflow: hidden;
-  margin: 0;
-  color: var(--text-dim);
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 550;
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.driver-career-hero {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: calc(142px * var(--text-scale, 1));
-  padding: calc(24px * var(--text-scale, 1)) calc(32px * var(--text-scale, 1));
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--apple-blue) 24%, var(--apple-separator));
-  border-radius: var(--panel-radius);
-  background:
-    radial-gradient(80% 180% at 90% 50%, color-mix(in srgb, var(--apple-blue) 23%, transparent), transparent 72%),
-    linear-gradient(115deg, color-mix(in srgb, var(--apple-blue) 13%, var(--apple-card)), var(--apple-card) 64%);
+/* A card, as Settings draws one: the raised fill, its corners (the card's 34, not the panel's), and a hairline
+   round the edge. */
+.driver-card {
+  border-radius: 34px;
+  background: var(--apple-card);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
 }
 
-.driver-career-copy {
-  position: relative;
-  z-index: 1;
+.driver-totals {
+  padding: calc(20px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(6px * var(--text-scale, 1));
+}
+
+/* The one figure the app is about, at the size Weather's readings have. */
+.driver-career {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--text-scale, 1));
+}
+
+.driver-label {
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
 }
 
 .driver-career-value {
-  margin-top: calc(4px * var(--text-scale, 1));
-  font-size: calc(42px * var(--text-scale, 1));
-  font-weight: 720;
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
 .driver-career-value span {
-  color: var(--text-dim);
-  font-size: 0.48em;
+  color: var(--apple-label-secondary);
+  font-size: 0.44em;
   font-weight: 650;
   letter-spacing: 0;
 }
 
-.driver-road-mark {
-  position: absolute;
-  inset: -70% 3% -70% auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(18px * var(--text-scale, 1));
-  width: 30%;
-  opacity: 0.34;
-  transform: rotate(28deg);
-}
-
-.driver-road-mark::before,
-.driver-road-mark::after {
-  content: '';
-  width: 2px;
-  height: 100%;
-  background: var(--apple-blue);
-}
-
-.driver-road-mark span {
-  width: 3px;
-  height: 26%;
-  border-radius: 99px;
-  background: var(--apple-blue);
-}
-
-.driver-road-mark span:nth-child(2) {
-  height: 38%;
-}
-
-.driver-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: calc(10px * var(--text-scale, 1));
-}
-
-.driver-stat {
+/* The totals: the name on the left, the figure on the right, a hairline under each but the first. */
+.driver-rows {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: calc(8px * var(--text-scale, 1));
-  min-width: 0;
-  min-height: calc(104px * var(--text-scale, 1));
-  padding: calc(16px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: var(--panel-radius);
-  background: var(--apple-card);
+  margin-top: calc(14px * var(--text-scale, 1));
+  border-top: 1px solid var(--apple-separator);
 }
 
-.driver-stat span {
-  overflow: hidden;
-  color: var(--text-dim);
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 550;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.driver-stat strong {
-  overflow: hidden;
-  font-size: calc(22px * var(--text-scale, 1));
-  font-weight: 680;
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.driver-stat.accent strong {
-  color: var(--apple-blue);
-}
-
-.driver-history {
-  padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: var(--panel-radius);
-  background: var(--apple-card);
-}
-
-.driver-history-heading {
+.driver-row {
   display: flex;
   align-items: center;
-  gap: calc(10px * var(--text-scale, 1));
+  gap: calc(12px * var(--text-scale, 1));
+  /* Settings' 52 pt row. */
+  min-height: calc(70px * var(--text-scale, 1));
+  min-width: 0;
 }
 
-.driver-history-mark {
-  position: relative;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: calc(28px * var(--text-scale, 1));
-  height: calc(28px * var(--text-scale, 1));
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--apple-blue) 14%, var(--apple-card));
-  color: var(--apple-blue);
+.driver-row + .driver-row {
+  border-top: 1px solid var(--apple-separator);
 }
 
-.driver-history-mark::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: translate(-1px, 1px) rotate(45deg);
+.driver-row-label {
+  overflow: hidden;
+  /* A row's 17 pt. */
+  font-size: calc(24px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.driver-history h2 {
-  margin: 0;
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 680;
+.driver-row-value {
+  margin-left: auto;
+  color: var(--apple-label-secondary);
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.driver-history p {
-  margin: calc(10px * var(--text-scale, 1)) 0 0;
-  color: var(--text-dim);
-  font-size: calc(15px * var(--text-scale, 1));
-  line-height: 1.45;
+/* A group under the card: its header, and the note that follows it (Settings' group footer). */
+.driver-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.driver-group-header {
+  margin: 0 calc(22px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  /* A group header's 15 pt. */
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.driver-group-footer {
+  margin: 0 calc(22px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  /* A group footer's 13 pt. */
+  font-size: calc(19px * var(--text-scale, 1));
+  line-height: 1.4;
 }
 
 @media (max-width: 760px) {
+  .driver-page {
+    gap: calc(22px * var(--text-scale, 1));
+    padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
+  }
+
   .driver-profile {
-    gap: calc(12px * var(--text-scale, 1));
+    gap: calc(14px * var(--text-scale, 1));
   }
 
   .driver-portrait {
-    width: calc(66px * var(--text-scale, 1));
-    height: calc(66px * var(--text-scale, 1));
+    width: calc(64px * var(--text-scale, 1));
+    height: calc(64px * var(--text-scale, 1));
   }
 
-  .driver-career-hero {
-    min-height: calc(116px * var(--text-scale, 1));
-    padding: calc(18px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  .driver-identity h1 {
+    font-size: calc(28px * var(--text-scale, 1));
   }
 
   .driver-career-value {
-    font-size: calc(36px * var(--text-scale, 1));
+    font-size: calc(38px * var(--text-scale, 1));
   }
 
-  .driver-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .driver-row {
+    min-height: calc(62px * var(--text-scale, 1));
   }
 }

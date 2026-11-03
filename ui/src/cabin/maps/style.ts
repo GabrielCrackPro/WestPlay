@@ -474,26 +474,32 @@ export const PLAYERS_SOURCE = 'westplay-players'
  * badge of their kind, over the map's own places. */
 export const NEARBY_SOURCE = 'westplay-nearby'
 
-/** The traffic over the route previewed: yellow where it's slow, red where it's jammed, as Apple's. The
- * same colours in light and dark. */
+/**
+ * The traffic over the route previewed: yellow where it's slow, red where it's jammed, as Apple's. The same
+ * colours in light and dark. Single player has no reading of the game's traffic, only the hour's estimate
+ * (estimatedTraffic.ts): those stretches are drawn dashed and a little fainter, so an estimate never reads as
+ * a reading.
+ */
 function trafficLayers(): LayerSpecification[] {
-  return [
-    {
-      id: 'traffic',
-      type: 'line',
-      source: TRAFFIC_SOURCE,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': ['match', ['get', 'level'], 'jammed', '#ff3b30', '#ffcc00'],
-        'line-width': [
-          'interpolate',
-          ['exponential', 2],
-          ['zoom'],
-          ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels]),
-        ] as ExpressionSpecification,
-      },
-    },
+  const width: ExpressionSpecification = [
+    'interpolate',
+    ['exponential', 2],
+    ['zoom'],
+    ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels]),
   ]
+  const layer = (id: string, estimated: boolean): LayerSpecification => ({
+    id,
+    type: 'line',
+    source: TRAFFIC_SOURCE,
+    filter: ['==', ['coalesce', ['get', 'estimated'], false], estimated] as ExpressionSpecification,
+    layout: { 'line-cap': estimated ? 'butt' : 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': ['match', ['get', 'level'], 'jammed', '#ff3b30', '#ffcc00'],
+      'line-width': width,
+      ...(estimated ? { 'line-dasharray': [1.6, 1.4], 'line-opacity': 0.62 } : {}),
+    },
+  })
+  return [layer('traffic-estimated', true), layer('traffic', false)]
 }
 
 /** The other players' trucks: small dots in Apple's blue with a white edge, see-through so they hide nothing

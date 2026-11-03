@@ -10,6 +10,9 @@ import './notificationsApp.css'
  * was an alert or a warning, and the clock it came at (the game's own, which is what the rest clocks are counted
  * in). The list is kept on this PC (shell/notesShown.ts saves it with the cabin's other state), so a note from an
  * earlier drive is still here after a restart.
+ *
+ * Drawn as the native apps draw a page: a large title with its figures beside it, then the notes in one grouped
+ * card with hairline rows, rather than a card per note.
  */
 export function NotificationsApp() {
   const text = useText()
@@ -28,49 +31,55 @@ export function NotificationsApp() {
 
   return (
     <section className="app-panel notifications-app" aria-label={text.apps.notifications}>
-      <div className="notes-shell">
-        <header className="notes-head">
-          <div className="notes-title">
-            <h1>{text.apps.notifications}</h1>
-            <p className="notes-sub">{history.length > 0 ? words.summary(history.length) : words.empty}</p>
-          </div>
-          <div className="notes-stats">
-            <div className="notes-stat alarm">
-              <span className="notes-stat-label">{words.alerts}</span>
-              <span className="notes-stat-value">{alerts}</span>
+      <div className="notes-scroll">
+        <div className="notes-page">
+          <header className="notes-head">
+            <div className="notes-title">
+              <h1>{text.apps.notifications}</h1>
+              <p className="notes-sub">{history.length > 0 ? words.summary(history.length) : words.empty}</p>
             </div>
-            <div className="notes-stat warn">
-              <span className="notes-stat-label">{words.warnings}</span>
-              <span className="notes-stat-value">{warnings}</span>
+            <div className="notes-counts">
+              <Count label={words.alerts} value={alerts} tone="alarm" />
+              <Count label={words.warnings} value={warnings} tone="warn" />
+              {history.length > 0 && (
+                <button type="button" className="notes-clear" onClick={clear}>
+                  {words.clear}
+                </button>
+              )}
             </div>
-            {history.length > 0 && (
-              <button type="button" className="notes-clear" onClick={clear}>
-                {words.clear}
-              </button>
-            )}
-          </div>
-        </header>
-        {history.length === 0 ? (
-          <div className="notes-empty">
-            <Bell />
-            <p className="notes-empty-title">{words.empty}</p>
-            <p className="notes-empty-hint">{words.hint}</p>
-          </div>
-        ) : (
-          <ol className="notes-list">
-            {history.map((note) => (
-              <NoteRow
-                key={note.id}
-                note={note}
-                day={dayOf(note.at, language)}
-                alert={words.alert}
-                warning={words.warning}
-              />
-            ))}
-          </ol>
-        )}
+          </header>
+          {history.length === 0 ? (
+            <div className="notes-empty">
+              <Bell />
+              <p className="notes-empty-title">{words.empty}</p>
+              <p className="notes-empty-hint">{words.hint}</p>
+            </div>
+          ) : (
+            <ol className="notes-list">
+              {history.map((note) => (
+                <NoteRow
+                  key={note.id}
+                  note={note}
+                  day={dayOf(note.at, language)}
+                  alert={words.alert}
+                  warning={words.warning}
+                />
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </section>
+  )
+}
+
+/** One of the two counts, as a page header shows a figure: its name beside it, the figure in its tone. */
+function Count({ label, value, tone }: { label: string; value: number; tone: 'alarm' | 'warn' }) {
+  return (
+    <div className={`notes-count ${tone}`}>
+      <span className="notes-count-label">{label}</span>
+      <span className="notes-count-value">{value}</span>
+    </div>
   )
 }
 

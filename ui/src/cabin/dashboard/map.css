@@ -228,11 +228,13 @@
    units): the arrival pill, the speeds and the zoom pair don't fit side by side along its bottom (owner
    2026-10-21: they overlapped). The pill goes to the top, where nothing else is, and all three are smaller. */
 @container carplay (max-height: 520px) {
+  /* Kept at the bottom, clear of the speed stack and the zoom pair (the turn-by-turn has the top): narrower,
+     and a size down. */
   .dashboard .eta-pill {
-    top: 14px;
-    bottom: auto;
-    padding: 6px 14px;
-    font-size: calc(17px * var(--text-scale, 1));
+    bottom: 12px;
+    max-width: calc(100% - 136px);
+    padding: 5px 12px;
+    font-size: calc(16px * var(--text-scale, 1));
   }
 
   .dashboard .eta-pill .dot {
@@ -280,6 +282,26 @@
   .dashboard .map-zoom-divider {
     width: 24px;
   }
+
+  /* The end of the drive (there's no arrival pill to share the bottom with then): clear of the speed stack and
+     the zoom pair. */
+  .dashboard .map-arrived {
+    max-width: calc(100% - 136px);
+    padding: 8px 16px;
+  }
+}
+
+/* Words for a screen reader only: the map is a canvas, and what it shows is drawn (MapView's TripSummary). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* The trip pill's tail (MapView.tsx): the next rest the game asks for. The pill's width is the map's; it rides

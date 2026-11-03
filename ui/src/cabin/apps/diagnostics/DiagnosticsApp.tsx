@@ -21,7 +21,6 @@ import {
 import { Sparkline } from './Sparkline'
 import { ChassisTabIcon, EngineTabIcon, HoursTabIcon, OverviewTabIcon } from './tabIcons'
 import { clock, tripAverage } from './trip'
-import { TruckFigure } from './TruckFigure'
 import { useDamped } from './useDamped'
 import { useTrends } from './useTrends'
 import './diagnostics.css'
@@ -34,52 +33,16 @@ const TAB_ICONS: Record<DiagnosticsPage, ReactNode> = {
   chassis: <ChassisTabIcon />,
 }
 
-/**
- * One telltale of the dash: a small lamp, lit in its own colour while what it stands for is on, and dark while it
- * isn't. The indicators blink with the truck's own (`blink`), as they do on any panel.
- */
-function Lamp({
-  on,
-  label,
-  tone = 'green',
-  blink = false,
-  children,
-}: {
-  on: boolean
-  label: string
-  tone?: 'green' | 'blue' | 'amber' | 'red'
-  blink?: boolean
-  children: ReactNode
-}) {
-  return (
-    <span
-      className={`diag-lamp ${tone}${on ? ' lit' : ''}${on && blink ? ' blink' : ''}`}
-      role="img"
-      aria-label={label}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        {children}
-      </svg>
-    </span>
-  )
-}
+/** A telltale that's on: the capsule the hero shows it as, in its own tone. */
+type Lit = { label: string; tone: 'green' | 'blue' | 'amber' | 'red'; blink?: boolean; icon: ReactNode }
 
 /**
- * The Diagnostics app: the truck's own health as the game reports it, on three pages under a bar of tabs so a
- * page fits the panel and nothing has to be scrolled to be seen. The overview is the truck with its speed, its
- * gear and the four readings a driver watches without thinking (coolant, oil, brake air, battery), one pill
- * saying whether anything wants attention, and the trip computer. The engine page holds the engine and the fuel
- * (its tank, its consumption and the AdBlue, which are read together). The chassis page holds the brakes and how
- * worn the truck and its trailer are. Every reading is on its own gauge, and a reading the host doesn't send (an
- * older host) stands at zero.
+ * The Diagnostics app: the truck's health as the game reports it, on four pages — the drive's own readings, the
+ * engine and fuel, the driver's hours, and the chassis and trailer. It's built as a native app is: a large title
+ * with one status word beside it, a segmented control under it, then grouped cards whose readings are rows with a
+ * hairline between them. Only what's wrong takes a tone; a healthy truck is quiet. The telltales are shown only
+ * while they're lit, so the panel isn't a wall of dark lamps, and every reading the game sends is still here —
+ * nothing is inferred or hidden.
  */
 export function DiagnosticsApp() {
   const text = useText()
@@ -113,7 +76,7 @@ export function DiagnosticsApp() {
 
   const heat = coolant(t.coolantTemperature)
   const oilHeat = oil(t.oilTemperature)
-  // The game's own warnings come first: where its dash says a reading is wrong, the gauge is an alarm.
+  // The game's own warnings come first: where its dash says a reading is wrong, the reading is an alarm.
   const pressure = warned(oilPressure(t.oilPressure), t.oilPressureWarning)
   const volts = warned(battery(t.batteryVoltage), t.batteryWarning)
   const air = warned(brakeAir(t.brakeAirPressure), t.brakeAirWarning)
@@ -135,8 +98,6 @@ export function DiagnosticsApp() {
     capacity > 0 && worstRead.fuelLow !== null
       ? fuelLevel(worstRead.fuelLow / capacity, truck?.fuelWarningFactor ?? 0)
       : null
-  const summaryReads = [peakHeat, lowAir, lowOil, lowTank].filter((read): read is Reading => read !== null)
-  const summaryState = summaryReads.map((read) => read.state).reduce(worst, 'ok')
   const engineWear = wear(t.wearEngine)
   const tireWear = wear(t.wearWheels)
   const gearboxWear = wear(t.wearTransmission)
@@ -156,15 +117,10 @@ export function DiagnosticsApp() {
     : 'ok'
   const overall = [engineState, brakeState, fuelState, chassisState, trailerState].reduce(worst, 'ok')
 
-  // Too hot, or too little: the two ways a reading turns serious; wear is its own.
-  const byHeat: Record<State, string> = { ok: words.normal, warn: words.warm, alarm: words.high }
-  const byLow: Record<State, string> = { ok: words.normal, warn: words.low, alarm: words.check }
-  const byWear: Record<State, string> = { ok: words.normal, warn: words.worn, alarm: words.service }
   const byOverall: Record<State, string> = { ok: words.normal, warn: words.check, alarm: words.service }
 
   const celsius = (value: number) => `${n(Math.round(value))} ${words.celsius}`
   const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
-  const speed = speedShown
   const gear = t.displayedGear < 0 ? 'R' : t.displayedGear === 0 ? 'N' : n(t.displayedGear)
   // Minutes as the cab writes them: an hour and a half is "1 h 30", twenty minutes "20 min".
   const inMinutes = (value: number) =>
@@ -176,310 +132,355 @@ export function DiagnosticsApp() {
     t.retarderLevel > 0
       ? `${n(t.retarderLevel)}${truck && truck.retarderSteps > 0 ? ` / ${n(truck.retarderSteps)}` : ''}`
       : words.off
-  // The cab's own attitude, as the game has it (pitch and roll in turns): the hero's truck leans into the road
-  // under it, a couple of degrees at most, so a hill and a camber read without the drawing waving about.
-  const lean = Math.max(-2.5, Math.min(2.5, t.roll * 360))
   const lights =
     [t.lowBeam ? words.lowBeam : null, t.highBeam ? words.highBeam : null, t.parkingLight ? words.parkingLight : null]
       .filter(Boolean)
       .join(' · ') || words.off
 
-  // The tabs: each page's name, and the tone of the worst reading it holds, so a page worth opening shows it.
   // The game's own driver hours, in in-game minutes (-1 where the profile has the simulation off).
   const rest = t.restStop
   const breakIn = t.mandatoryBreak
   const hoursState: State = rest >= 0 && rest <= 15 ? 'warn' : 'ok'
 
+  // Only what's lit: an off telltale says nothing a glance needs, and the dash's own lamps are there when they're
+  // on. The indicators blink with the truck's.
+  const lit: Lit[] = []
+  if (t.leftBlinker)
+    lit.push({ label: words.indicatorLeft, tone: 'green', blink: true, icon: <path d="M14 5 7 12l7 7" /> })
+  if (t.rightBlinker)
+    lit.push({ label: words.indicatorRight, tone: 'green', blink: true, icon: <path d="M10 5l7 7-7 7" /> })
+  if (t.highBeam) lit.push({ label: words.highBeam, tone: 'blue', icon: <path d="M3 12h8m0-6 4-3v18l-4-3" /> })
+  else if (t.lowBeam) lit.push({ label: words.lowBeam, tone: 'blue', icon: <path d="M3 8h6M3 12h8M3 16h6" /> })
+  if (t.parkingBrake)
+    lit.push({ label: words.parkingBrake, tone: 'red', icon: <path d="M9 17V7h3.5a3.2 3.2 0 0 1 0 6.4H9" /> })
+  if (t.retarderLevel > 0)
+    lit.push({
+      label: `${words.retarder} ${n(t.retarderLevel)}`,
+      tone: 'amber',
+      icon: <path d="M5 8h14M5 12h14M5 16h9" />,
+    })
+  if (t.cruiseControlSpeed > 0.5)
+    lit.push({
+      label: `${words.cruiseControl} ${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}`,
+      tone: 'green',
+      icon: (
+        <>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+        </>
+      ),
+    })
+
+  // The tabs: each page's name, and the tone of the worst reading it holds, so a page worth opening shows it.
   const pages: { id: DiagnosticsPage; label: string; state: State }[] = [
     { id: 'overview', label: words.overview, state: overall },
     { id: 'engine', label: words.engine, state: worst(engineState, fuelState) },
     { id: 'driver', label: words.driverHours, state: hoursState },
-    { id: 'chassis', label: words.chassis, state: [brakeState, chassisState, trailerState].reduce(worst, 'ok') },
+    {
+      id: 'chassis',
+      label: words.chassis,
+      state: [brakeState, chassisState, trailerState].reduce(worst, 'ok'),
+    },
   ]
 
   return (
     <section className="app-panel diagnostics-app" aria-label={text.apps.diagnostics}>
-      <div className={animateIn ? `diag-shell page-${page}` : `diag-shell page-${page} no-enter`}>
-        <nav className="diag-tabs" role="tablist" aria-label={text.apps.diagnostics}>
-          {pages.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={page === tab.id}
-              className={`diag-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
-              onClick={() => setPage(tab.id)}
-            >
-              <span className="diag-tab-icon" aria-hidden>
-                {TAB_ICONS[tab.id]}
-              </span>
-              <span className="diag-tab-label">{tab.label}</span>
-              {tab.state !== 'ok' && <span className={`diag-dot ${tab.state}`} aria-hidden />}
-            </button>
-          ))}
-        </nav>
-        {/* Its name is the Dashboard's Diagnostics widget's too: opened from there, the card becomes this hero
-            (shell/transitions.css), rather than growing out of an icon somewhere else. */}
-        <section className={`diag-overview diag-hero ${overall}`} style={{ viewTransitionName: 'widget-diagnostics' }}>
-          <div className="diag-art" style={{ transform: `rotate(${lean.toFixed(2)}deg)` }}>
-            <TruckFigure />
-          </div>
-          <div className="diag-main">
-            <header className="diag-top">
-              <h2 className="diag-model">{truck ? `${truck.brand} ${truck.name}` : text.apps.diagnostics}</h2>
-              <span className="diag-pill">{byOverall[overall]}</span>
-            </header>
-            <div className="diag-speed">
-              <span className="diag-speed-value">{n(speed)}</span>
-              <span className="diag-speed-unit">{words.kmh}</span>
+      <div className="diag-scroll">
+        <div className={animateIn ? 'diag-page' : 'diag-page no-enter'}>
+          <header className="diag-header">
+            <div className="diag-heading">
+              <h1 className="diag-title">{truck ? `${truck.brand} ${truck.name}` : text.apps.diagnostics}</h1>
+              <p className="diag-sub">
+                {words.gear} {gear} · {t.engineEnabled ? words.running : words.engineOff}
+              </p>
             </div>
-            <div className="diag-tags">
-              <Tag label={words.gear} value={gear} />
-              <Tag label={words.engine} value={t.engineEnabled ? words.running : words.engineOff} />
-              <Tag label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
-            </div>
-            {/* The panel's telltales: the indicators (blinking with the truck's), the beams, the parking brake, and
-                the retarder and the cruise when either is holding the truck back or keeping its speed. */}
-            <div className="diag-telltales" aria-label={words.controls}>
-              <Lamp on={t.leftBlinker} blink label={words.indicatorLeft}>
-                <path d="M14 5 7 12l7 7" />
-              </Lamp>
-              <Lamp on={t.rightBlinker} blink label={words.indicatorRight}>
-                <path d="M10 5l7 7-7 7" />
-              </Lamp>
-              <Lamp on={t.lowBeam && !t.highBeam} tone="blue" label={words.lowBeam}>
-                <path d="M3 8h6M3 12h8M3 16h6" />
-              </Lamp>
-              <Lamp on={t.highBeam} tone="blue" label={words.highBeam}>
-                <path d="M3 12h8m0-6 4-3v18l-4-3" />
-              </Lamp>
-              <Lamp on={t.parkingBrake} tone="red" label={words.parkingBrake}>
-                <path d="M9 17V7h3.5a3.2 3.2 0 0 1 0 6.4H9" />
-              </Lamp>
-              {t.retarderLevel > 0 && (
-                <Lamp on tone="amber" label={`${words.retarder} ${n(t.retarderLevel)}`}>
-                  <path d="M5 8h14M5 12h14M5 16h9" />
-                </Lamp>
-              )}
-              {t.cruiseControlSpeed > 0.5 && (
-                <Lamp on label={`${words.cruiseControl} ${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}`}>
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-                </Lamp>
-              )}
-            </div>
-            <div className="diag-quick">
-              <Quick
-                read={heat}
-                label={words.coolant}
-                value={n(Math.round(t.coolantTemperature))}
-                unit={words.celsius}
-              />
-              <Quick read={oilHeat} label={words.oil} value={n(Math.round(t.oilTemperature))} unit={words.celsius} />
-              <Quick read={air} label={words.brakeAir} value={n(Math.round(t.brakeAirPressure))} unit={words.psi} />
-              <Quick
-                read={volts}
-                label={words.battery}
-                value={n(Math.round(t.batteryVoltage * 10) / 10)}
-                unit={words.volts}
-              />
-            </div>
-          </div>
-        </section>
+            <span className={`diag-status ${overall}`}>{byOverall[overall]}</span>
+          </header>
 
-        {/* Keyed by the page: the cards come in each time the tabs turn (diagnostics.css). */}
-        <div className="diag-cards" key={page}>
-          <Card name={words.engine} state={engineState} note={byHeat[engineState]} page="engine" span={6}>
-            <Lead read={heat} value={n(Math.round(t.coolantTemperature))} unit={words.celsius} label={words.coolant} />
-            <Sparkline values={trends.coolant} />
-            <div className="diag-rows">
-              <Row label={words.oil} value={celsius(t.oilTemperature)} read={oilHeat} />
-              <Row label={words.oilPressure} value={psi(t.oilPressure)} read={pressure} />
-              <Row
-                label={words.battery}
-                value={`${n(Math.round(t.batteryVoltage * 10) / 10)} ${words.volts}`}
-                read={volts}
-              />
-              <Row label={words.rpm} value={t.engineEnabled ? `${n(Math.round(t.engineRpm))} rpm` : words.stopped} />
-            </div>
-          </Card>
-
-          <Card name={words.brakes} state={brakeState} note={byLow[brakeState]} page="chassis">
-            <Lead read={air} value={n(Math.round(t.brakeAirPressure))} unit={words.psi} label={words.airPressure} />
-            <Sparkline values={trends.brakes} />
-            <div className="diag-rows">
-              <Row label={words.brakeTemperature} value={celsius(t.brakeTemperature)} read={brakeHeat} />
-              <Row label={words.retarder} value={t.retarderLevel > 0 ? n(t.retarderLevel) : words.off} />
-              <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
-            </div>
-          </Card>
-
-          <Card name={words.fuel} state={fuelState} note={byLow[fuelState]} page="engine" span={6}>
-            <Lead read={fuel} value={n(Math.round(t.fuel))} unit={words.litres} label={words.fuel} />
-            <div className="diag-rows">
-              <Row label={words.range} value={`${n(Math.round(t.fuelRange))} ${words.km}`} />
-              <Row
-                label={words.consumption}
-                value={`${n(Math.round(t.fuelAverage * 10) / 10)} ${words.lPer100}`}
-                read={economy}
-              />
-              <Row label={words.adblue} value={`${n(Math.round(t.adblue))} ${words.litres}`} read={urea} />
-              <Row label={words.odometer} value={`${n(Math.round(t.odometer))} ${words.km}`} />
-            </div>
-          </Card>
-
-          <Card name={words.trip} state={fuelState} note={byLow[fuelState]} page="overview" span={12}>
-            <div className="diag-trip">
-              <Stat label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
-              <Stat label={words.used} value={`${n(Math.round(trip.fuel * 10) / 10)} ${words.litres}`} />
-              <Stat
-                label={words.average}
-                value={`${n(Math.round(tripAverage(trip) * 10) / 10)} ${words.lPer100}`}
-                state={economy.state}
-              />
-              <Stat label={words.time} value={clock(trip.moving + trip.idle)} />
-              <button type="button" className="diag-reset" onClick={trends.reset}>
-                {words.reset}
+          <nav className="diag-tabs" role="tablist" aria-label={text.apps.diagnostics}>
+            {pages.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={page === tab.id}
+                className={`diag-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
+                onClick={() => setPage(tab.id)}
+              >
+                <span className="diag-tab-icon" aria-hidden>
+                  {TAB_ICONS[tab.id]}
+                </span>
+                <span className="diag-tab-label">{tab.label}</span>
               </button>
-            </div>
-          </Card>
+            ))}
+          </nav>
 
-          <Card name={words.sinceStart} state={summaryState} note={byOverall[summaryState]} page="overview" span={6}>
-            <div className="diag-rows">
-              <Row
-                label={`${words.coolant} · ${words.high}`}
-                value={worstRead.coolantPeak === null ? words.off : celsius(worstRead.coolantPeak)}
-                read={peakHeat ?? undefined}
-              />
-              <Row
-                label={`${words.brakeAir} · ${words.low}`}
-                value={worstRead.airLow === null ? words.off : psi(worstRead.airLow)}
-                read={lowAir ?? undefined}
-              />
-              <Row
-                label={`${words.oilPressure} · ${words.low}`}
-                value={worstRead.oilLow === null ? words.off : psi(worstRead.oilLow)}
-                read={lowOil ?? undefined}
-              />
-              <Row
-                label={`${words.fuel} · ${words.low}`}
-                value={worstRead.fuelLow === null ? words.off : `${n(Math.round(worstRead.fuelLow))} ${words.litres}`}
-                read={lowTank ?? undefined}
-              />
-              <Row label={words.warnings} value={n(worstRead.warnings)} />
-            </div>
-          </Card>
-
-          <Card
-            name={words.driverHours}
-            state={hoursState}
-            note={hoursState === 'warn' ? words.check : words.normal}
-            page="driver"
-            span={6}
-          >
-            <div className="diag-rows">
-              {/* The game's own: its fatigue simulation's next rest, and the mandatory break's. */}
-              <Row label={words.restStop} value={rest >= 0 ? inMinutes(rest) : words.noRest} />
-              <Row label={words.mandatoryBreak} value={breakIn >= 0 ? inMinutes(breakIn) : words.noRest} />
-              <Row label={words.time} value={clock(trip.moving + trip.idle)} />
-              <Row label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
-            </div>
-          </Card>
-
-          <Card name={words.controls} state="ok" note={words.normal} page="driver" span={6}>
-            <div className="diag-rows">
-              <Row label={words.cruiseControl} value={cruise} />
-              <Row label={words.retarder} value={retarder} />
-              <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
-              <Row label={words.lights} value={lights} />
-              <Row label={words.wipers} value={t.wipers ? words.on : words.off} />
-            </div>
-          </Card>
-
-          <Card name={words.chassis} state={chassisState} note={byWear[chassisState]} page="chassis">
-            <div className="diag-wear">
-              <Wear label={words.wearEngine} read={engineWear} />
-              <Wear label={words.wearTransmission} read={gearboxWear} />
-              <Wear label={words.wearChassis} read={chassisWear} />
-              <Wear label={words.tires} read={tireWear} />
-              <Wear label={words.wearCabin} read={cabWear} />
-            </div>
-          </Card>
-
-          <Card name={words.trailer} state={trailerState} note={byWear[trailerState]} page="chassis">
-            {t.trailerAttached ? (
+          <div className="diag-cards" key={page}>
+            {page === 'overview' && (
               <>
-                <div className="diag-lead">
-                  <span className="diag-value">{trailer?.name || words.hitched}</span>
-                  <span className="diag-label">{trailer?.brand || words.trailer}</span>
-                </div>
-                <div className="diag-rows">
-                  {/* How it hangs and what it carries, its plate, and the wheels it rides on. */}
-                  <Row
-                    label={words.trailerType}
-                    value={[trailer?.chainType, trailer?.bodyType].filter(Boolean).join(' · ') || words.off}
-                  />
-                  <Row label={words.plate} value={trailer?.plate || words.off} />
-                  <Row label={words.tires} value={trailer?.wheelCount ? n(trailer.wheelCount) : words.off} />
-                </div>
-                <div className="diag-wear">
-                  <Wear label={words.body} read={trailerBody} />
-                  <Wear label={words.chassis} read={trailerChassis} />
-                  <Wear label={words.wearTrailer} read={trailerWear} />
-                </div>
+                {/* Its name is the Dashboard's Diagnostics widget's too: opened from there, the card becomes this
+                    hero (shell/transitions.css), rather than growing out of an icon somewhere else. */}
+                <section
+                  className="diag-card diag-hero-card"
+                  style={{ viewTransitionName: 'widget-diagnostics' }}
+                  aria-label={words.overview}
+                >
+                  <div className="diag-speed">
+                    <span className="diag-speed-value">{n(speedShown)}</span>
+                    <span className="diag-speed-unit">{words.kmh}</span>
+                  </div>
+                  <p className="diag-hero-meta">
+                    {words.gear} {gear} · {t.engineEnabled ? words.running : words.engineOff} · {words.parkingBrake}{' '}
+                    {t.parkingBrake ? words.applied : words.released}
+                  </p>
+                  {lit.length > 0 && (
+                    <div className="diag-warnings">
+                      {lit.map((lamp) => (
+                        <span
+                          key={lamp.label}
+                          className={`diag-warning ${lamp.tone}${lamp.blink ? ' blink' : ''}`}
+                          role="img"
+                          aria-label={lamp.label}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            {lamp.icon}
+                          </svg>
+                          <span>{lamp.label}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <Card title={words.overview}>
+                  <div className="diag-glance">
+                    <Cell
+                      read={heat}
+                      label={words.coolant}
+                      value={n(Math.round(t.coolantTemperature))}
+                      unit={words.celsius}
+                    />
+                    <Cell
+                      read={air}
+                      label={words.brakeAir}
+                      value={n(Math.round(t.brakeAirPressure))}
+                      unit={words.psi}
+                    />
+                    <Cell
+                      read={volts}
+                      label={words.battery}
+                      value={n(Math.round(t.batteryVoltage * 10) / 10)}
+                      unit={words.volts}
+                    />
+                    <Cell read={fuel} label={words.fuel} value={n(Math.round(t.fuel))} unit={words.litres} />
+                  </div>
+                </Card>
+
+                <Card title={words.trip}>
+                  <div className="diag-trip">
+                    <Stat label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
+                    <Stat label={words.used} value={`${n(Math.round(trip.fuel * 10) / 10)} ${words.litres}`} />
+                    <Stat
+                      label={words.average}
+                      value={`${n(Math.round(tripAverage(trip) * 10) / 10)} ${words.lPer100}`}
+                      state={economy.state}
+                    />
+                    <Stat label={words.time} value={clock(trip.moving + trip.idle)} />
+                  </div>
+                  <button type="button" className="diag-reset" onClick={trends.reset}>
+                    {words.reset}
+                  </button>
+                </Card>
+
+                <Card title={words.sinceStart} wide>
+                  <div className="diag-rows">
+                    <Row
+                      label={`${words.coolant} · ${words.high}`}
+                      value={worstRead.coolantPeak === null ? words.off : celsius(worstRead.coolantPeak)}
+                      state={peakHeat?.state}
+                    />
+                    <Row
+                      label={`${words.brakeAir} · ${words.low}`}
+                      value={worstRead.airLow === null ? words.off : psi(worstRead.airLow)}
+                      state={lowAir?.state}
+                    />
+                    <Row
+                      label={`${words.oilPressure} · ${words.low}`}
+                      value={worstRead.oilLow === null ? words.off : psi(worstRead.oilLow)}
+                      state={lowOil?.state}
+                    />
+                    <Row
+                      label={`${words.fuel} · ${words.low}`}
+                      value={
+                        worstRead.fuelLow === null ? words.off : `${n(Math.round(worstRead.fuelLow))} ${words.litres}`
+                      }
+                      state={lowTank?.state}
+                    />
+                    <Row label={words.warnings} value={n(worstRead.warnings)} />
+                  </div>
+                </Card>
               </>
-            ) : (
-              <p className="diag-empty">{words.unhitched}</p>
             )}
-          </Card>
+
+            {page === 'engine' && (
+              <>
+                <Card title={words.engine}>
+                  <Lead
+                    read={heat}
+                    value={n(Math.round(t.coolantTemperature))}
+                    unit={words.celsius}
+                    label={words.coolant}
+                  />
+                  <Sparkline values={trends.coolant} />
+                  <div className="diag-rows">
+                    <Row label={words.oil} value={celsius(t.oilTemperature)} state={oilHeat.state} />
+                    <Row label={words.oilPressure} value={psi(t.oilPressure)} state={pressure.state} />
+                    <Row
+                      label={words.battery}
+                      value={`${n(Math.round(t.batteryVoltage * 10) / 10)} ${words.volts}`}
+                      state={volts.state}
+                    />
+                    <Row
+                      label={words.rpm}
+                      value={t.engineEnabled ? `${n(Math.round(t.engineRpm))} rpm` : words.stopped}
+                    />
+                  </div>
+                </Card>
+
+                <Card title={words.fuel}>
+                  <Lead read={fuel} value={n(Math.round(t.fuel))} unit={words.litres} label={words.fuel} />
+                  <div className="diag-rows">
+                    <Row label={words.range} value={`${n(Math.round(t.fuelRange))} ${words.km}`} />
+                    <Row
+                      label={words.consumption}
+                      value={`${n(Math.round(t.fuelAverage * 10) / 10)} ${words.lPer100}`}
+                      state={economy.state}
+                    />
+                    <Row label={words.adblue} value={`${n(Math.round(t.adblue))} ${words.litres}`} state={urea.state} />
+                    <Row label={words.odometer} value={`${n(Math.round(t.odometer))} ${words.km}`} />
+                  </div>
+                </Card>
+
+                <Card title={words.brakes} wide>
+                  <Lead
+                    read={air}
+                    value={n(Math.round(t.brakeAirPressure))}
+                    unit={words.psi}
+                    label={words.airPressure}
+                  />
+                  <Sparkline values={trends.brakes} />
+                  <div className="diag-rows">
+                    <Row label={words.brakeTemperature} value={celsius(t.brakeTemperature)} state={brakeHeat.state} />
+                    <Row label={words.retarder} value={t.retarderLevel > 0 ? n(t.retarderLevel) : words.off} />
+                    <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
+                  </div>
+                </Card>
+              </>
+            )}
+
+            {page === 'driver' && (
+              <>
+                <Card title={words.driverHours}>
+                  <div className="diag-rows">
+                    <Row
+                      label={words.restStop}
+                      value={rest >= 0 ? inMinutes(rest) : words.noRest}
+                      state={rest >= 0 && rest <= 15 ? 'warn' : 'ok'}
+                    />
+                    <Row label={words.mandatoryBreak} value={breakIn >= 0 ? inMinutes(breakIn) : words.noRest} />
+                    <Row label={words.time} value={clock(trip.moving + trip.idle)} />
+                    <Row label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
+                  </div>
+                </Card>
+
+                <Card title={words.controls}>
+                  <div className="diag-rows">
+                    <Row label={words.cruiseControl} value={cruise} />
+                    <Row label={words.retarder} value={retarder} />
+                    <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
+                    <Row label={words.lights} value={lights} />
+                    <Row label={words.wipers} value={t.wipers ? words.on : words.off} />
+                  </div>
+                </Card>
+              </>
+            )}
+
+            {page === 'chassis' && (
+              <>
+                <Card title={words.wear}>
+                  <div className="diag-wear">
+                    <Wear label={words.wearEngine} read={engineWear} />
+                    <Wear label={words.wearTransmission} read={gearboxWear} />
+                    <Wear label={words.wearChassis} read={chassisWear} />
+                    <Wear label={words.tires} read={tireWear} />
+                    <Wear label={words.wearCabin} read={cabWear} />
+                  </div>
+                </Card>
+
+                <Card title={words.trailer}>
+                  {t.trailerAttached ? (
+                    <>
+                      <div className="diag-lead">
+                        <span className="diag-value">{trailer?.name || words.hitched}</span>
+                        <span className="diag-label">{trailer?.brand || words.trailer}</span>
+                      </div>
+                      <div className="diag-rows">
+                        <Row
+                          label={words.trailerType}
+                          value={[trailer?.chainType, trailer?.bodyType].filter(Boolean).join(' · ') || words.off}
+                        />
+                        <Row label={words.plate} value={trailer?.plate || words.off} />
+                        <Row label={words.tires} value={trailer?.wheelCount ? n(trailer.wheelCount) : words.off} />
+                      </div>
+                      <div className="diag-wear">
+                        <Wear label={words.body} read={trailerBody} />
+                        <Wear label={words.chassis} read={trailerChassis} />
+                        <Wear label={words.wearTrailer} read={trailerWear} />
+                      </div>
+                    </>
+                  ) : (
+                    <p className="diag-empty">{words.unhitched}</p>
+                  )}
+                </Card>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-/**
- * A card: its name and what its readings say, above them. It belongs to one page, and the page being shown is what
- * puts it in the grid (the other pages' cards stay out of it, their readings cost nothing to keep).
- */
-function Card({
-  name,
-  state,
-  note,
-  page,
-  span = 4,
-  children,
-}: {
-  name: string
-  state: State
-  note: string
-  page: DiagnosticsPage
-  span?: 4 | 6 | 12
-  children: ReactNode
-}) {
+/** A card: its name, then its readings. Half the width, or the whole of it. */
+function Card({ title, wide = false, children }: { title: string; wide?: boolean; children: ReactNode }) {
   return (
-    <article className={`diag-card ${state} span-${span} on-${page}`}>
-      <header className="diag-head">
-        <h2 className="diag-name">{name}</h2>
-        <span className="diag-pill">{note}</span>
-      </header>
+    <section className={`diag-card${wide ? ' span-12' : ' span-6'}`}>
+      <h2 className="diag-card-title">{title}</h2>
       {children}
-    </article>
+    </section>
   )
 }
 
-/** The reading a card is about: its value and unit large, what it is under them, and its gauge. */
+/** The reading a card is about: its value and unit, its name under them, and its gauge. */
 function Lead({ read, value, unit, label }: { read: Reading; value: string; unit: string; label: string }) {
   return (
     <div className="diag-lead">
       <div className="diag-reading">
-        <span className="diag-value">{value}</span>
+        <span className={`diag-value${read.state === 'ok' ? '' : ` ${read.state}`}`}>{value}</span>
         <span className="diag-unit">{unit}</span>
       </div>
       <div className="diag-label">{label}</div>
       {/* A reading with no range of its own (a truck whose tank the game doesn't measure) has no gauge. */}
       {read.percent > 0 && (
-        <div className="diag-meter" aria-hidden>
+        <div className={`diag-meter ${read.state}`} aria-hidden>
           <span style={{ width: `${Math.round(read.percent * 100)}%` }} />
         </div>
       )}
@@ -487,29 +488,16 @@ function Lead({ read, value, unit, label }: { read: Reading; value: string; unit
   )
 }
 
-/** One of the hero's four readings: its name, its value and its gauge. */
-function Quick({ read, label, value, unit }: { read: Reading; label: string; value: string; unit: string }) {
+/** One of the four readings a driver watches without thinking. */
+function Cell({ read, label, value, unit }: { read: Reading; label: string; value: string; unit: string }) {
   return (
-    <div className={`diag-quick-item ${read.state}`}>
-      <span className="diag-quick-label">{label}</span>
-      <span className="diag-quick-value">
+    <div className={`diag-cell ${read.state}`}>
+      <span className="diag-cell-label">{label}</span>
+      <span className="diag-cell-value">
         {value}
-        <span className="diag-quick-unit">{unit}</span>
+        <span className="diag-cell-unit">{unit}</span>
       </span>
-      <div className="diag-quick-meter" aria-hidden>
-        <span style={{ width: `${Math.round(read.percent * 100)}%` }} />
-      </div>
     </div>
-  )
-}
-
-/** A tag of the hero: what it is on the left, what it says on the right. */
-function Tag({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="diag-tag">
-      <span className="diag-tag-label">{label}</span>
-      <span className="diag-tag-value">{value}</span>
-    </span>
   )
 }
 
@@ -523,18 +511,17 @@ function Stat({ label, value, state }: { label: string; value: string; state?: S
   )
 }
 
-/** Another reading of a card, with a dot when it's one worth watching. */
-function Row({ label, value, read }: { label: string; value: string; read?: Reading }) {
+/** Another reading of a card: its name on the left, its value on the right, toned when it's worth watching. */
+function Row({ label, value, state }: { label: string; value: string; state?: State }) {
   return (
     <div className="diag-row">
       <span className="diag-row-label">{label}</span>
-      <span className="diag-row-value">{value}</span>
-      {read && <span className={`diag-dot ${read.state}`} aria-hidden />}
+      <span className={`diag-row-value${state && state !== 'ok' ? ` ${state}` : ''}`}>{value}</span>
     </div>
   )
 }
 
-/** A part of the truck and how worn it is, its gauge from new to worn out. */
+/** A part of the truck and how worn it is: its share of life left, from new to worn out. */
 function Wear({ label, read }: { label: string; read: Reading }) {
   return (
     <div className={`diag-wear-item ${read.state}`}>

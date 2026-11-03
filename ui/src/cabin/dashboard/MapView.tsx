@@ -9,6 +9,7 @@ import { nextStop } from '../maps/nextStop'
 import { StopsStrip } from '../maps/StopsStrip'
 import { useMapData } from '../maps/mapData'
 import { RoadMap } from '../maps/RoadMap'
+import { destinationView } from './destination'
 import { go, useCabin, useLive } from '../state/store'
 import { useTicker } from '../state/ticker'
 import { useText } from '../state/text'
@@ -35,6 +36,8 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
   const warnOver = useCabin((state) => state.mapOver)
   const text = useText()
   const arrived = useArrival()
+  // The arrival card has the map's bottom once there's no route left to show in the pill (they share it).
+  const routeLeft = useLive((state) => state.telemetry?.navigationDistance ?? 0)
   const night = useNightMap()
   // The wipers are on: rain runs down the map too, as it runs down the windscreen. How hard it comes down is the
   // game's own wetness (percent): a drizzle as the roads damp, a downpour once they're soaked.
@@ -84,7 +87,7 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
       {wipers && <div className={`map-rain ${rain}`} aria-hidden />}
       <TripPill />
       <StopsStrip compact={!interactive} />
-      <ArrivalCard arrived={arrived} />
+      <ArrivalCard arrived={routeLeft > 0 ? null : arrived} />
       <div className="speed-stack">
         {limit > 0 && showLimit && (
           <div className="speed-limit" aria-label={text.speedLimit(limit)}>
@@ -100,7 +103,35 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
       {data && interactive && <MapControls />}
       {data && !interactive && <DashboardMapControls />}
       {data && interactive && <MapSearch />}
+      <TripSummary />
     </div>
+  )
+}
+
+/**
+ * The trip said in words, for a screen reader: the map itself is a canvas, and what it shows (the job's end, the
+ * distance, the deadline) is drawn, not read. It's announced as the destination or the distance changes, a step
+ * at a time rather than with every frame of telemetry.
+ */
+function TripSummary() {
+  const text = useText()
+  const labels = useMapData()?.labels
+  const state = useLive(
+    useShallow((live) => ({
+      job: live.job,
+      telemetry: live.telemetry,
+      clockShift: live.clockShift,
+      // A new distance each half kilometre: enough to keep it current, not each frame.
+      at: Math.round((live.telemetry?.navigationDistance ?? 0) / 500),
+    })),
+  )
+  const view = destinationView(state.job, null, state.telemetry, labels ?? [], text, state.clockShift)
+  if (!view) return null
+  const said = [view.kicker, view.title, view.subtitle, view.detail].filter(Boolean).join(', ')
+  return (
+    <p className="visually-hidden" role="status" aria-live="polite">
+      {said}
+    </p>
   )
 }
 

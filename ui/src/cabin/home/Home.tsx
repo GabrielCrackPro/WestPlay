@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAppIcon } from '../state/hooks'
+import { BrandIcon } from '../shell/BrandIcon'
 import { type AppId, APPS, visibleHomeApps } from '../state/apps'
 import { launchingNow, useLaunchStyle } from '../state/launch'
 import { unreadCount, useNotes } from '../shell/notesShown'
@@ -169,7 +170,8 @@ function HomeApp({ app, badge, delay }: { app: AppId; badge: number; delay: numb
       onClick={() => go({ type: 'openApp', app }, 'home')}
     >
       <span className="app-icon">
-        <img src={icon} alt="" style={launch} />
+        {/* The Driver app is the player's own truck's: its icon is the truck's brand, as on the boot screen. */}
+        {app === 'driver' ? <BrandIcon style={launch} /> : <img src={icon} alt="" style={launch} />}
         {badge > 0 && (
           <span className="app-badge" aria-label={text.notificationsApp.summary(badge)}>
             {badge > 99 ? '99+' : badge}

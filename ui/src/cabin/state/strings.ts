@@ -620,7 +620,7 @@ export interface Strings {
     plate: string
     body: string
   }
-  /** Career totals from the game's latest profile save. */
+  /** The driver's profile and lifetime totals, from the game's latest save. */
   driver: {
     profile: string
     noProfile: string
@@ -631,7 +631,6 @@ export interface Strings {
     realTime: string
     fuelUsed: string
     citiesVisited: string
-    cancelledJobs: string
     history: string
     historyUnavailable: string
     saveUnavailable: string
@@ -1273,7 +1272,7 @@ const ENGLISH_STRINGS: Strings = {
     body: 'Body',
   },
   driver: {
-    profile: 'Career profile',
+    profile: 'Driver profile',
     noProfile: 'No game profile loaded',
     savedCareer: 'Lifetime totals across all game modes',
     experience: 'Experience',
@@ -1282,11 +1281,10 @@ const ENGLISH_STRINGS: Strings = {
     realTime: 'Real time',
     fuelUsed: 'Fuel consumed',
     citiesVisited: 'Cities discovered',
-    cancelledJobs: 'Cancelled jobs',
-    history: 'Career history',
+    history: 'Driver history',
     historyUnavailable:
       'This save provides lifetime totals, but not a delivery-by-delivery history. The statistics above come directly from the game.',
-    saveUnavailable: 'Load a game profile to see career statistics.',
+    saveUnavailable: 'Load a game profile to see driver statistics.',
   },
   notificationsApp: {
     empty: 'No notifications yet',
@@ -1312,7 +1310,7 @@ const ENGLISH_STRINGS: Strings = {
     weather: 'Weather',
     settings: 'Settings',
     diagnostics: 'Diagnostics',
-    driver: 'Career',
+    driver: 'Driver',
     notifications: 'Notifications',
   },
   notBuiltYet: 'Not built yet',
@@ -1938,20 +1936,19 @@ const TURKISH_STRINGS: Strings = {
     body: 'Kasa',
   },
   driver: {
-    profile: 'Kariyer profili',
+    profile: 'Sürücü profili',
     noProfile: 'Oyun profili yüklenmedi',
-    savedCareer: 'Tüm oyun modlarında kariyer toplamları',
+    savedCareer: 'Tüm oyun modlarında toplamlar',
     experience: 'Deneyim',
     totalDistance: 'Gerçek mesafe',
     gameTime: 'Oyun süresi',
     realTime: 'Gerçek süre',
     fuelUsed: 'Harcanan yakıt',
     citiesVisited: 'Keşfedilen şehirler',
-    cancelledJobs: 'İptal edilen işler',
-    history: 'Kariyer geçmişi',
+    history: 'Sürücü geçmişi',
     historyUnavailable:
       'Bu kayıt toplam istatistikleri içeriyor, ancak teslimat geçmişini içermiyor. Yukarıdaki istatistikler doğrudan oyundan alınır.',
-    saveUnavailable: 'Kariyer istatistiklerini görmek için bir oyun profili yükleyin.',
+    saveUnavailable: 'Sürücü istatistiklerini görmek için bir oyun profili yükleyin.',
   },
   notificationsApp: {
     empty: 'Henüz bildirim yok',
@@ -1977,7 +1974,7 @@ const TURKISH_STRINGS: Strings = {
     weather: 'Hava Durumu',
     settings: 'Ayarlar',
     diagnostics: 'Tanılama',
-    driver: 'Kariyer',
+    driver: 'Sürücü',
     notifications: 'Bildirimler',
   },
   notBuiltYet: 'Henüz hazır değil',
@@ -2615,20 +2612,19 @@ const SPANISH_STRINGS: Strings = {
     body: 'Carrocería',
   },
   driver: {
-    profile: 'Perfil de carrera',
+    profile: 'Perfil del conductor',
     noProfile: 'No hay ningún perfil de juego cargado',
-    savedCareer: 'Totales de carrera en todos los modos',
+    savedCareer: 'Totales de todos los modos de juego',
     experience: 'Experiencia',
     totalDistance: 'Distancia real',
     gameTime: 'Tiempo de juego',
     realTime: 'Tiempo real',
     fuelUsed: 'Combustible consumido',
     citiesVisited: 'Ciudades descubiertas',
-    cancelledJobs: 'Trabajos cancelados',
-    history: 'Historial de carrera',
+    history: 'Historial del conductor',
     historyUnavailable:
       'Este guardado contiene totales, pero no un historial de entregas. Las estadísticas anteriores provienen directamente del juego.',
-    saveUnavailable: 'Carga un perfil del juego para ver las estadísticas de carrera.',
+    saveUnavailable: 'Carga un perfil del juego para ver las estadísticas del conductor.',
   },
   notificationsApp: {
     empty: 'Aún no hay notificaciones',
@@ -2654,7 +2650,7 @@ const SPANISH_STRINGS: Strings = {
     weather: 'Tiempo',
     settings: 'Ajustes',
     diagnostics: 'Diagnóstico',
-    driver: 'Carrera',
+    driver: 'Conductor',
     notifications: 'Notificaciones',
   },
   notBuiltYet: 'Aún no disponible',

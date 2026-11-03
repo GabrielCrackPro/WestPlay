@@ -42,7 +42,7 @@ export interface Destination {
 const loading = new Map<string, Promise<Destination[] | null>>()
 
 /** The places of a map (its `places` file), each loaded once. */
-function loadPlaces(url: string): Promise<Destination[] | null> {
+export function loadPlaces(url: string): Promise<Destination[] | null> {
   let places = loading.get(url)
   if (!places) {
     places = fetch(url)
@@ -128,6 +128,27 @@ export function searchPlaces(
   }
   found.sort((a, b) => a.group - b.group || a.distance - b.distance)
   return found.slice(0, RESULTS).map(({ place }) => place)
+}
+
+/**
+ * The place of a job's destination on the map: the company the game names, in the city it names (or the city
+ * itself, a special transport having no company). `null` without either.
+ */
+export function jobPlace(places: readonly Destination[], city: string, company: string): Destination | null {
+  const wanted = fold(company)
+  const inCity = fold(city)
+  const nearby = (place: Destination) => !inCity || !place.city || fold(place.city) === inCity
+  if (wanted) {
+    const found = places.find(
+      (place) =>
+        place.kind === 'company' &&
+        nearby(place) &&
+        [place.name, place.localized].some((name) => name !== undefined && fold(name) === wanted),
+    )
+    if (found) return found
+  }
+  if (!inCity) return null
+  return places.find((place) => place.kind === 'city' && fold(place.localized ?? place.name ?? '') === inCity) ?? null
 }
 
 /** The nearest places of `kind` to `from`, at most `count`. */

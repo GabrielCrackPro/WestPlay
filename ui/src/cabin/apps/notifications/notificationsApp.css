@@ -1,32 +1,47 @@
-/* The Notifications app (NotificationsApp.tsx): the notes the cab has shown, newest first, with the counts above
-   them. A list that scrolls on its own, under a header that stays put. */
+/* The Notifications app (NotificationsApp.tsx): the notes the cab has shown, newest first, drawn as the native
+   apps draw a page — a large title with its figures beside it, and the notes in one grouped card with hairline
+   rows, on Apple's colours (shell/apple.css). The page scrolls under nothing; the title goes with it.
+
+   The page is on Settings' cab scale (settings.css: 1.35 px per iPhone point: 34 pt titles are 46 px, 17 pt
+   text is 24 px), and its card's rows are separated as Settings' are, from where their text starts. */
 
 .notifications-app {
-  display: flex;
-  align-items: stretch;
+  border-radius: var(--panel-radius);
+  background: var(--apple-background);
+  color: var(--apple-label);
   overflow: hidden;
 }
 
-.notes-shell {
-  display: flex;
-  flex-direction: column;
-  gap: calc(14px * var(--text-scale, 1));
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
+.notes-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
 }
 
-/* What's been shown, and how much of it was serious, above the list. */
+.notes-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-page {
+  display: flex;
+  flex-direction: column;
+  gap: calc(20px * var(--text-scale, 1));
+  width: min(100%, 1120px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(36px * var(--text-scale, 1));
+}
+
+/* The title, what's on the list under it, and the counts beside them (Settings' large title, but this page has
+   nowhere to go back to, so the figures stay on it). */
 .notes-head {
   display: flex;
-  flex: none;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: calc(18px * var(--text-scale, 1));
-  padding: calc(16px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: var(--panel-radius);
-  background: var(--apple-card);
+  min-width: 0;
 }
 
 .notes-title {
@@ -34,91 +49,80 @@
 }
 
 .notes-title h1 {
-  font-size: calc(30px * var(--text-scale, 1));
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  margin: 0;
+  /* A large title: 34 pt, as Settings' list has it. */
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 .notes-sub {
-  margin-top: calc(3px * var(--text-scale, 1));
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 500;
-  color: var(--text-dim);
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  /* The subtitle under a large title: 15 pt. */
+  font-size: calc(21px * var(--text-scale, 1));
 }
 
-.notes-stats {
+.notes-counts {
   display: flex;
   flex: none;
   align-items: center;
-  gap: calc(10px * var(--text-scale, 1));
+  gap: calc(18px * var(--text-scale, 1));
 }
 
-.notes-stat {
+/* A count as a header figure: its name in the secondary label, its number in its tone. */
+.notes-count {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: calc(1px * var(--text-scale, 1));
-  min-width: calc(96px * var(--text-scale, 1));
-  padding: calc(7px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border-radius: calc(16px * var(--text-scale, 1));
-  background: var(--apple-fill);
-}
-
-.notes-stat-label {
-  font-size: calc(12px * var(--text-scale, 1));
+  align-items: baseline;
+  gap: calc(6px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
+  white-space: nowrap;
 }
 
-.notes-stat-value {
-  font-size: calc(24px * var(--text-scale, 1));
+.notes-count-value {
+  color: var(--apple-label);
+  font-size: calc(21px * var(--text-scale, 1));
   font-weight: 700;
-  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
-.notes-stat.alarm .notes-stat-value {
+.notes-count.alarm .notes-count-value {
   color: var(--apple-red);
 }
 
-.notes-stat.warn .notes-stat-value {
+.notes-count.warn .notes-count-value {
   color: var(--apple-orange);
 }
 
+/* A capsule, filled as the native apps' secondary actions are. */
 .notes-clear {
   padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
   border-radius: 999px;
+  background: var(--apple-fill);
   font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
-  color: var(--text);
+  color: var(--apple-label);
   transition: background-color 160ms var(--motion-ease);
 }
 
 .notes-clear:hover {
-  background: var(--apple-fill);
+  background: var(--apple-fill-secondary);
 }
 
-/* The notes, newest first: the oldest scroll away under the header. */
+/* The notes: one card, a row each, a hairline between (Settings' card of rows). */
 .notes-list {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: calc(8px * var(--text-scale, 1));
-  min-height: 0;
   margin: 0;
-  padding: 0 calc(2px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1));
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 0;
   list-style: none;
-  scrollbar-width: none;
-}
-
-.notes-list::-webkit-scrollbar {
-  display: none;
+  border-radius: 34px;
+  background: var(--apple-card);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
+  overflow: hidden;
 }
 
 .notes-item {
@@ -126,16 +130,25 @@
   grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: calc(14px * var(--text-scale, 1));
-  /* Its tone on the left edge, as the diagnostics cards carry theirs. */
-  padding: calc(12px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: calc(18px * var(--text-scale, 1));
-  background: var(--apple-card);
-  box-shadow: inset calc(4px * var(--text-scale, 1)) 0 0 var(--apple-orange);
+  min-height: calc(82px * var(--text-scale, 1));
+  padding: calc(12px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  min-width: 0;
 }
 
-.notes-item.alarm {
-  box-shadow: inset calc(4px * var(--text-scale, 1)) 0 0 var(--apple-red);
+/* A hairline between notes, starting where their text does and running to the card's edge, which is how a
+   grouped card of rows is separated (settings.css). Out of the grid's flow, so it takes no column. */
+.notes-item + .notes-item {
+  position: relative;
+}
+
+.notes-item + .notes-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(22px * var(--text-scale, 1));
+  right: 0;
+  height: 1px;
+  background: var(--apple-separator);
 }
 
 /* The clock, with the day under it for a note from before today (the saved list spans days). */
@@ -146,21 +159,19 @@
 }
 
 .notes-time {
+  color: var(--apple-label-secondary);
   font-size: calc(17px * var(--text-scale, 1));
   font-weight: 600;
-  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
 .notes-day {
-  font-size: calc(12px * var(--text-scale, 1));
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  opacity: 0.8;
+  color: var(--apple-label-tertiary);
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 500;
 }
 
+/* How serious it was: a dot in its tone, the word at the row's end. */
 .notes-mark {
   width: calc(9px * var(--text-scale, 1));
   height: calc(9px * var(--text-scale, 1));
@@ -180,24 +191,29 @@
 }
 
 .notes-name {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 650;
+  overflow: hidden;
+  /* The row's title, at a row's 17 pt. */
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 600;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notes-detail {
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 500;
-  color: var(--text-dim);
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  /* What says it under the title: 13 pt. */
+  font-size: calc(19px * var(--text-scale, 1));
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notes-tone {
-  font-size: calc(12px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  font-size: calc(14px * var(--text-scale, 1));
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
   white-space: nowrap;
 }
 
@@ -207,36 +223,54 @@
 
 /* Nothing shown yet: the bell, and when notes come. */
 .notes-empty {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: calc(10px * var(--text-scale, 1));
-  min-height: 0;
-  padding: calc(24px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: var(--panel-radius);
+  min-height: calc(300px * var(--text-scale, 1));
+  padding: calc(32px * var(--text-scale, 1));
+  border-radius: 34px;
   background: var(--apple-card);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
   text-align: center;
 }
 
 .notes-bell {
-  width: calc(64px * var(--text-scale, 1));
-  height: calc(64px * var(--text-scale, 1));
-  color: var(--text-dim);
-  opacity: 0.75;
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  color: var(--apple-label-tertiary);
 }
 
 .notes-empty-title {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 650;
 }
 
 .notes-empty-hint {
   max-width: calc(560px * var(--text-scale, 1));
-  font-size: calc(16px * var(--text-scale, 1));
-  font-weight: 500;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
   line-height: 1.45;
-  color: var(--text-dim);
+}
+
+@media (max-width: 760px) {
+  .notes-page {
+    gap: calc(16px * var(--text-scale, 1));
+    padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
+  }
+
+  .notes-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: calc(10px * var(--text-scale, 1));
+  }
+
+  .notes-title h1 {
+    font-size: calc(34px * var(--text-scale, 1));
+  }
+
+  .notes-item {
+    min-height: calc(74px * var(--text-scale, 1));
+  }
 }

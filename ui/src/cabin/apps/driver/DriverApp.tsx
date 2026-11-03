@@ -3,6 +3,11 @@ import { useLive } from '../../state/store'
 import { useText } from '../../state/text'
 import './driver.css'
 
+/**
+ * The Driver app: the driver's game profile and the lifetime totals the game keeps for it. Laid out as the native
+ * apps are — a profile heading over iOS 26's grouped cards, hairline-separated rows and sentence-case labels — so
+ * it reads as part of the cab rather than as a dashboard of its own.
+ */
 export function DriverApp() {
   const text = useText()
   const words = text.driver
@@ -19,59 +24,50 @@ export function DriverApp() {
 
   return (
     <section className="app-panel driver-app" aria-label={text.apps.driver}>
-      <div className="driver-page">
-        <header className="driver-profile">
-          <div className="driver-portrait">
-            <DriverPortrait />
-          </div>
-          <div className="driver-identity">
-            <div className="driver-eyebrow">{words.profile}</div>
-            <h1>{career?.profileName || (career ? words.profile : words.noProfile)}</h1>
-            <p>{career ? words.savedCareer : words.saveUnavailable}</p>
-          </div>
-        </header>
-
-        <section className="driver-career-hero" aria-label={words.experience}>
-          <div className="driver-career-copy">
-            <div className="driver-eyebrow">{words.experience}</div>
-            <div className="driver-career-value">
-              {number(career?.experiencePoints)}
-              {career?.experiencePoints != null && <span> XP</span>}
+      <div className="driver-scroll">
+        <div className="driver-page">
+          <header className="driver-profile">
+            <div className="driver-portrait">
+              <DriverPortrait />
             </div>
-          </div>
-          <div className="driver-road-mark" aria-hidden>
-            <span />
-            <span />
-            <span />
-          </div>
-        </section>
+            <div className="driver-identity">
+              <h1>{career?.profileName || (career ? words.profile : words.noProfile)}</h1>
+              <p>{career ? words.savedCareer : words.saveUnavailable}</p>
+            </div>
+          </header>
 
-        <section className="driver-stat-grid" aria-label={words.profile}>
-          <Stat label={words.totalDistance} value={distance} accent />
-          <Stat label={words.gameTime} value={gameTime} />
-          <Stat label={words.realTime} value={realTime} />
-          <Stat label={words.fuelUsed} value={fuel} />
-          <Stat label={words.citiesVisited} value={number(career?.visitedCities)} />
-          <Stat label={words.cancelledJobs} value={number(career?.cancelledJobs)} />
-        </section>
+          <section className="driver-card driver-totals" aria-label={words.profile}>
+            <div className="driver-career">
+              <span className="driver-label">{words.experience}</span>
+              <div className="driver-career-value">
+                {number(career?.experiencePoints)}
+                {career?.experiencePoints != null && <span> XP</span>}
+              </div>
+            </div>
+            <div className="driver-rows">
+              <Row label={words.totalDistance} value={distance} />
+              <Row label={words.gameTime} value={gameTime} />
+              <Row label={words.realTime} value={realTime} />
+              <Row label={words.fuelUsed} value={fuel} />
+            </div>
+          </section>
 
-        <section className="driver-history">
-          <div className="driver-history-heading">
-            <span className="driver-history-mark" aria-hidden />
-            <h2>{words.history}</h2>
-          </div>
-          <p>{career ? words.historyUnavailable : words.saveUnavailable}</p>
-        </section>
+          <section className="driver-group" aria-label={words.history}>
+            <h2 className="driver-group-header">{words.history}</h2>
+            <p className="driver-group-footer">{career ? words.historyUnavailable : words.saveUnavailable}</p>
+          </section>
+        </div>
       </div>
     </section>
   )
 }
 
-function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+/** One lifetime total: its name on the left, its figure on the right, as the native apps' rows have them. */
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`driver-stat${accent ? ' accent' : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className="driver-row">
+      <span className="driver-row-label">{label}</span>
+      <span className="driver-row-value">{value}</span>
     </div>
   )
 }

@@ -101,10 +101,13 @@ export const useNotes = create<{
         stopTimer(note.key)
         timers.set(
           note.key,
-          setTimeout(() => {
-            timers.delete(note.key)
-            get().dismiss(note.key)
-          }, note.action ? NOTE_ACTION_SHOWN_MS : NOTE_SHOWN_MS),
+          setTimeout(
+            () => {
+              timers.delete(note.key)
+              get().dismiss(note.key)
+            },
+            note.action ? NOTE_ACTION_SHOWN_MS : NOTE_SHOWN_MS,
+          ),
         )
       },
       dismiss: (key) => {

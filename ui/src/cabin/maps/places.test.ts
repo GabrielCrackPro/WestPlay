@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { type Destination, type DestinationKind, fold, nearestOfKind, ownGarages, searchPlaces } from './places'
+import {
+  type Destination,
+  type DestinationKind,
+  fold,
+  jobPlace,
+  nearestOfKind,
+  ownGarages,
+  searchPlaces,
+} from './places'
 import { toLngLat } from './projection'
 
 const KINDS: Record<DestinationKind, string> = {
@@ -66,6 +74,29 @@ describe('nearestOfKind', () => {
     const places = [place('fuel', 'A', 'X', 30), place('fuel', 'B', 'X', 2), place('hotel', 'C', 'X', 1)]
     expect(nearestOfKind(places, 'fuel', truck).map((p) => p.name)).toEqual(['B', 'A'])
     expect(nearestOfKind(places, 'fuel', truck, 1).map((p) => p.name)).toEqual(['B'])
+  })
+})
+
+describe('jobPlace', () => {
+  const places = [
+    place('company', 'Wielton', 'Kraków', 9),
+    place('company', 'Tradeaux', 'Taranto', 4),
+    place('company', 'Wielton', 'Bari', 80),
+    place('city', 'Kraków', 'Kraków', 2),
+  ]
+
+  it("finds the job's company in the city it names, whatever the accents", () => {
+    expect(jobPlace(places, 'Krakow', 'WIELTON')?.city).toBe('Kraków')
+    expect(jobPlace(places, 'Taranto', 'Tradeaux')?.name).toBe('Tradeaux')
+  })
+
+  it('falls back to the city itself (a special transport has no company)', () => {
+    expect(jobPlace(places, 'Kraków', '')?.kind).toBe('city')
+  })
+
+  it('finds nothing for a place the map does not have', () => {
+    expect(jobPlace(places, 'Bari', 'Wielton II')).toBe(null)
+    expect(jobPlace(places, '', '')).toBe(null)
   })
 })
 

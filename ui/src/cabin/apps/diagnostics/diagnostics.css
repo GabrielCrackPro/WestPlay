@@ -1,58 +1,117 @@
-/* The Diagnostics app (DiagnosticsApp.tsx): the truck's health as the game reports it: the truck itself on top,
-   then a card each for the engine, the brakes, the fuel and AdBlue, the chassis and the trailer. Every card
-   carries one tone, from the worst of its readings: green, orange, red. */
+/* The Diagnostics app (DiagnosticsApp.tsx): a native app's page rather than a dash. A large title and one status
+   word, a segmented control, then grouped cards of hairline rows on Apple's colours (shell/apple.css). Nothing is
+   drawn for decoration; the only colour is a reading's own tone, and a healthy truck stays quiet.
+
+   On Settings' cab scale (settings.css: 1.35 px per iPhone point: 34 pt titles are 46 px, 52 pt rows are 70 px,
+   17 pt text is 24 px), so its title, cards and rows are the size every native page in the cab has. */
 
 .diagnostics-app {
-  display: flex;
-  align-items: stretch;
+  border-radius: var(--panel-radius);
+  background: var(--apple-background);
+  color: var(--apple-label);
+  overflow: hidden;
+}
+
+.diag-scroll {
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
-.diagnostics-app::-webkit-scrollbar {
+.diag-scroll::-webkit-scrollbar {
   display: none;
 }
 
-/* The panel holds the tab bar and the page under it. `min-height` lets the page fill the panel (its cards spread
-   to its height); only a page taller than the panel scrolls, which is the small screen's case. */
-.diag-shell {
+.diag-page {
   display: flex;
   flex-direction: column;
-  gap: calc(14px * var(--text-scale, 1));
-  min-width: 0;
-  width: 100%;
+  gap: calc(16px * var(--text-scale, 1));
+  width: min(100%, 1120px);
   min-height: 100%;
+  margin: 0 auto;
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(36px * var(--text-scale, 1));
 }
 
-/* The app's pages, as one bar of tabs: an icon and the page's name each, the page being shown raised out of the
-   bar on a card of its own (owner 2026-11-01: "so we dont have to scroll to see info"). */
+/* --- The title ---------------------------------------------------------------------------------------- */
+
+.diag-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(16px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.diag-heading {
+  min-width: 0;
+}
+
+.diag-title {
+  overflow: hidden;
+  margin: 0;
+  /* A large title: 34 pt. */
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diag-sub {
+  overflow: hidden;
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  /* The subtitle under a large title: 15 pt. */
+  font-size: calc(21px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One word for the whole truck, in its tone: the app's summary, as a native app puts its state beside the title. */
+.diag-status {
+  flex: none;
+  padding: calc(7px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill-tertiary);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+  color: var(--apple-label-secondary);
+}
+
+.diag-status.warn {
+  color: var(--apple-orange);
+}
+
+.diag-status.alarm {
+  color: var(--apple-red);
+}
+
+/* --- The pages, as a segmented control ---------------------------------------------------------------- */
+
 .diag-tabs {
   display: flex;
-  flex: none;
-  /* The tabs wrap rather than run off the panel: a narrow screen shows two rows, both readable. */
   flex-wrap: wrap;
   gap: calc(4px * var(--text-scale, 1));
   width: fit-content;
   max-width: 100%;
   padding: calc(5px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  background: var(--apple-fill);
+  background: var(--apple-fill-tertiary);
 }
 
 .diag-tab {
   display: flex;
   align-items: center;
   gap: calc(9px * var(--text-scale, 1));
-  /* A finger's (or a mouse cursor's) target, even at the small screen's size. */
   min-height: calc(46px * var(--text-scale, 1));
-  padding: calc(8px * var(--text-scale, 1)) calc(19px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1))
-    calc(16px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
   border-radius: 999px;
   font-size: calc(17px * var(--text-scale, 1));
   font-weight: 550;
-  color: var(--text-dim);
+  color: var(--apple-label-secondary);
   white-space: nowrap;
   transition:
     background-color 180ms var(--motion-ease),
@@ -67,29 +126,26 @@
 
 .diag-tab.on {
   background: var(--apple-card);
-  color: var(--text);
+  color: var(--apple-label);
   font-weight: 650;
   box-shadow: var(--shadow-raised);
 }
 
-/* The tab's icon: dim beside its name, full once the tab shows, and in the reading's tone when that page has one
-   worth watching (the app's own colours, as its cards and its tab bar's dot use). */
 .diag-tab-icon {
   flex: none;
   display: grid;
   place-items: center;
-  width: calc(24px * var(--text-scale, 1));
-  height: calc(24px * var(--text-scale, 1));
-  opacity: 0.75;
-  transition:
-    opacity 180ms var(--motion-ease),
-    color 180ms var(--motion-ease);
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
+  opacity: 0.7;
+  transition: opacity 180ms var(--motion-ease);
 }
 
 .diag-tab.on .diag-tab-icon {
   opacity: 1;
 }
 
+/* A page with a reading worth watching tints its icon: the tabs carry the tone, not a dot beside them. */
 .diag-tab.warn .diag-tab-icon {
   color: var(--apple-orange);
   opacity: 1;
@@ -106,306 +162,185 @@
   text-overflow: ellipsis;
 }
 
-.diag-tab .diag-dot {
-  flex: none;
-  margin-left: calc(-2px * var(--text-scale, 1));
-}
+/* --- The cards ---------------------------------------------------------------------------------------- */
 
-/* A page shows only its own readings, and the hero only on the overview: the other pages' cards stay out of the
-   grid (their state is the telemetry's, so nothing is lost by keeping them mounted). */
-.diag-shell:not(.page-overview) .diag-hero,
-.diag-shell.page-overview .diag-card:not(.on-overview),
-.diag-shell.page-engine .diag-card:not(.on-engine),
-.diag-shell.page-driver .diag-card:not(.on-driver),
-.diag-shell.page-chassis .diag-card:not(.on-chassis) {
-  display: none;
-}
-
-/* On top: the truck turning on its disc, its speed, and the four readings a driver watches without thinking. */
-.diag-overview {
-  --diag-tone: var(--apple-green);
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  align-items: center;
-  gap: calc(10px * var(--text-scale, 1));
-  padding: calc(6px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1))
-    calc(6px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: var(--panel-radius);
-  background:
-    radial-gradient(120% 130% at 6% 0%, color-mix(in srgb, var(--diag-tone) 20%, transparent), transparent 64%),
-    var(--apple-card);
-  overflow: hidden;
-}
-
-.diag-overview.warn {
-  --diag-tone: var(--apple-orange);
-}
-
-.diag-overview.alarm {
-  --diag-tone: var(--apple-red);
-}
-
-/* A faint grid over the panel, like the screen a gauge is drawn on. */
-.diag-overview::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, var(--apple-separator) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--apple-separator) 1px, transparent 1px);
-  background-size: calc(30px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1));
-  opacity: 0.28;
-  mask-image: radial-gradient(130% 100% at 18% 8%, black, transparent 72%);
-  pointer-events: none;
-}
-
-/* Where the truck is drawn (TruckFigure.tsx). */
-.diag-art {
-  position: relative;
-  align-self: stretch;
-  min-height: calc(160px * var(--text-scale, 1));
-}
-
-.diag-figure {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: calc(8px * var(--text-scale, 1));
-  color: var(--diag-tone);
-}
-
-/* The drawing is wide and low (300 by 120): it takes a little more of the column than a glyph would, so its
-   detail — the trailer's ribs, the twin drive axle — still reads at the hero's size. */
-.diag-figure svg {
-  width: min(100%, calc(360px * var(--text-scale, 1)));
-  height: auto;
-  max-height: 100%;
-}
-
-.diag-main {
-  display: flex;
-  flex-direction: column;
-  gap: calc(10px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.diag-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.diag-model {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 650;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diag-speed {
-  display: flex;
-  align-items: baseline;
-  gap: calc(8px * var(--text-scale, 1));
-}
-
-.diag-speed-value {
-  font-size: calc(66px * var(--text-scale, 1));
-  font-weight: 750;
-  line-height: 0.92;
-  letter-spacing: -0.045em;
-  font-variant-numeric: tabular-nums;
-}
-
-.diag-speed-unit {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.diag-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(8px * var(--text-scale, 1));
-}
-
-.diag-tag {
-  display: flex;
-  align-items: baseline;
-  gap: calc(6px * var(--text-scale, 1));
-  padding: calc(5px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: 999px;
-  font-size: calc(14px * var(--text-scale, 1));
-}
-
-.diag-tag-label {
-  color: var(--text-dim);
-}
-
-.diag-tag-value {
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-}
-
-.diag-quick {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: calc(10px * var(--text-scale, 1));
-  margin-top: calc(2px * var(--text-scale, 1));
-}
-
-.diag-quick-item {
-  display: flex;
-  flex-direction: column;
-  gap: calc(2px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.diag-quick-label {
-  font-size: calc(14px * var(--text-scale, 1));
-  color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diag-quick-value {
-  font-size: calc(19px * var(--text-scale, 1));
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-.diag-quick-unit {
-  margin-left: calc(3px * var(--text-scale, 1));
-  font-size: calc(13.5px * var(--text-scale, 1));
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.diag-quick-meter {
-  height: calc(4px * var(--text-scale, 1));
-  margin-top: calc(3px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill);
-  overflow: hidden;
-}
-
-.diag-quick-meter span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--apple-green);
-  transition: width 300ms var(--motion-ease);
-}
-
-.diag-quick-item.warn .diag-quick-meter span {
-  background: var(--apple-orange);
-}
-
-.diag-quick-item.alarm .diag-quick-meter span {
-  background: var(--apple-red);
-}
-
-/* The cards under it, as tall as the panel leaves them: their readings spread out rather than leaving the page
-   half empty under them. They never shrink under their own content (`flex-shrink: 0`): a panel too short for
-   them scrolls the app instead of clipping a card's rows. */
 .diag-cards {
   display: grid;
-  flex: 1 0 auto;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: calc(16px * var(--text-scale, 1));
-  align-content: stretch;
-  min-height: 0;
-}
-
-/*
- * The overview is the hero and the trip computer under it: the hero takes the height, the trip keeps its own. The
- * hero grows into spare room but never shrinks into its own content — it clips (its `overflow: hidden` keeps the
- * gauge grid inside its corners, and an item with `overflow: hidden` has no automatic minimum size), so on a panel
- * too short for both the shell runs past the panel and the app scrolls, as it did before the pages, rather than
- * losing the speed, the tags or a quick reading.
- */
-.diag-shell.page-overview .diag-hero {
-  flex: 1 0 auto;
-}
-
-.diag-shell.page-overview .diag-cards {
-  flex: none;
+  gap: calc(14px * var(--text-scale, 1));
+  align-content: start;
 }
 
 .diag-card {
-  --diag-tone: var(--apple-green);
   display: flex;
   flex-direction: column;
-  gap: calc(14px * var(--text-scale, 1));
+  gap: calc(10px * var(--text-scale, 1));
   min-width: 0;
-  padding: calc(20px * var(--text-scale, 1));
-  border: 1px solid transparent;
-  border-radius: var(--panel-radius);
+  padding: calc(18px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  /* The card's own corners, as Settings draws them. */
+  border-radius: 34px;
   background: var(--apple-card);
-}
-
-.diag-card.span-4 {
-  grid-column: span 4;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
 }
 
 .diag-card.span-6 {
   grid-column: span 6;
 }
 
-/* The trip and its four figures run the width of the app, under the three cards above them. */
 .diag-card.span-12 {
   grid-column: span 12;
 }
 
-.diag-card.span-12 {
+.diag-card-title {
+  margin: 0;
+  color: var(--apple-label-secondary);
+  /* A section header: 15 pt. */
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+/* --- The hero: the speed, the state, and only the telltales that are lit ------------------------------- */
+
+.diag-hero-card {
   grid-column: span 12;
+  gap: calc(6px * var(--text-scale, 1));
+  padding-bottom: calc(22px * var(--text-scale, 1));
 }
 
-.diag-card.warn {
-  --diag-tone: var(--apple-orange);
-  border-color: color-mix(in srgb, var(--apple-orange) 24%, transparent);
+.diag-speed {
+  display: flex;
+  align-items: baseline;
+  gap: calc(10px * var(--text-scale, 1));
 }
 
-.diag-card.alarm {
-  --diag-tone: var(--apple-red);
-  border-color: color-mix(in srgb, var(--apple-red) 28%, transparent);
+.diag-speed-value {
+  font-size: calc(78px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
 }
 
-.diag-head {
+.diag-speed-unit {
+  color: var(--apple-label-secondary);
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.diag-hero-meta {
+  margin: 0;
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diag-warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--text-scale, 1));
+  margin-top: calc(6px * var(--text-scale, 1));
+}
+
+/* A lit telltale: its symbol and its name, in its own tone on its own faint fill. */
+.diag-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(7px * var(--text-scale, 1));
+  padding: calc(5px * var(--text-scale, 1)) calc(12px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.diag-warning svg {
+  flex: none;
+  width: calc(19px * var(--text-scale, 1));
+  height: calc(19px * var(--text-scale, 1));
+}
+
+.diag-warning.green {
+  color: var(--apple-green);
+}
+
+.diag-warning.blue {
+  color: var(--apple-blue);
+}
+
+.diag-warning.amber {
+  color: var(--apple-orange);
+}
+
+.diag-warning.red {
+  color: var(--apple-red);
+}
+
+/* The indicators blink with the truck's own (Reduce Motion: a gentler pace, as they're the truck's). */
+.diag-warning.blink {
+  animation: diag-telltale-blink 900ms steps(1, end) infinite;
+}
+
+@keyframes diag-telltale-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+html[data-motion='reduced'] .diag-warning.blink {
+  animation-duration: 1600ms;
+}
+
+/* --- Rows: a name on the left, its value on the right, a hairline between --------------------------------- */
+
+.diag-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.diag-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: calc(12px * var(--text-scale, 1));
+  /* A row's 52 pt, as Settings' have. */
+  min-height: calc(70px * var(--text-scale, 1));
+  min-width: 0;
 }
 
-.diag-name {
-  font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 650;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-dim);
+.diag-row + .diag-row {
+  border-top: 1px solid var(--apple-separator);
 }
 
-/* What a card's readings say: normal, or the one word worth knowing. */
-.diag-pill {
-  flex: none;
-  padding: calc(4px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
-  border-radius: 999px;
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 650;
-  color: var(--diag-tone);
+.diag-row-label {
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(24px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* The reading a card is about. */
+.diag-row-value {
+  margin-left: auto;
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.diag-row-value.warn,
+.diag-stat.warn .diag-stat-value {
+  color: var(--apple-orange);
+}
+
+.diag-row-value.alarm,
+.diag-stat.alarm .diag-stat-value {
+  color: var(--apple-red);
+}
+
+/* --- A card's lead reading, and its gauge --------------------------------------------------------------- */
+
 .diag-lead {
   display: flex;
   flex-direction: column;
@@ -415,32 +350,39 @@
 .diag-reading {
   display: flex;
   align-items: baseline;
-  gap: calc(6px * var(--text-scale, 1));
+  gap: calc(7px * var(--text-scale, 1));
 }
 
 .diag-value {
-  font-size: calc(38px * var(--text-scale, 1));
+  font-size: calc(40px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-value.warn {
+  color: var(--apple-orange);
+}
+
+.diag-value.alarm {
+  color: var(--apple-red);
 }
 
 .diag-unit {
-  font-size: calc(17px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
   font-weight: 600;
-  color: var(--text-dim);
 }
 
 .diag-label {
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 500;
-  color: var(--text-dim);
+  color: var(--apple-label-secondary);
+  font-size: calc(15px * var(--text-scale, 1));
 }
 
 .diag-meter {
-  height: calc(7px * var(--text-scale, 1));
-  margin-top: calc(6px * var(--text-scale, 1));
+  height: calc(6px * var(--text-scale, 1));
+  margin-top: calc(8px * var(--text-scale, 1));
   border-radius: 999px;
   background: var(--apple-fill);
   overflow: hidden;
@@ -450,25 +392,77 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--diag-tone);
-  transition: width 300ms var(--motion-ease);
+  background: var(--apple-green);
+  transition: width 320ms var(--motion-ease);
 }
 
-/* The reading's last minute and a half as a line, under its gauge. */
+.diag-meter.warn span {
+  background: var(--apple-orange);
+}
+
+.diag-meter.alarm span {
+  background: var(--apple-red);
+}
+
+/* The reading's last minute and a half as a line under its gauge. */
 .diag-spark {
   width: 100%;
-  height: calc(26px * var(--text-scale, 1));
-  margin-top: calc(4px * var(--text-scale, 1));
-  color: var(--diag-tone);
-  opacity: 0.85;
+  height: calc(30px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  opacity: 0.7;
 }
 
-/* The trip computer: four figures, and the button that starts it again, across the card. */
-.diag-trip {
+/* --- The four readings of the overview --------------------------------------------------------------- */
+
+.diag-glance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(16px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+}
+
+.diag-cell {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: calc(14px * var(--text-scale, 1)) calc(26px * var(--text-scale, 1));
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.diag-cell-label {
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(15px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diag-cell-value {
+  font-size: calc(27px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.diag-cell-unit {
+  margin-left: calc(4px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.diag-cell.warn .diag-cell-value {
+  color: var(--apple-orange);
+}
+
+.diag-cell.alarm .diag-cell-value {
+  color: var(--apple-red);
+}
+
+/* --- The trip computer -------------------------------------------------------------------------------- */
+
+.diag-trip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(14px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
 }
 
 .diag-stat {
@@ -479,8 +473,11 @@
 }
 
 .diag-stat-label {
-  font-size: calc(14px * var(--text-scale, 1));
-  color: var(--text-dim);
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(15px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .diag-stat-value {
@@ -490,83 +487,28 @@
   white-space: nowrap;
 }
 
-.diag-stat.warn .diag-stat-value {
-  color: var(--apple-orange);
-}
-
-.diag-stat.alarm .diag-stat-value {
-  color: var(--apple-red);
-}
-
 .diag-reset {
-  margin-left: auto;
+  align-self: flex-start;
+  margin-top: calc(4px * var(--text-scale, 1));
   padding: calc(8px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border: 1px solid var(--apple-separator);
   border-radius: 999px;
-  font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.diag-reset:active {
   background: var(--apple-fill);
-}
-
-/* The card's other readings: their names on the left, their values on the right. */
-.diag-rows {
-  display: flex;
-  flex-direction: column;
-  margin-top: auto;
-}
-
-.diag-row {
-  display: flex;
-  align-items: center;
-  gap: calc(8px * var(--text-scale, 1));
-  padding: calc(9px * var(--text-scale, 1)) 0;
-  border-top: 1px solid var(--apple-separator);
   font-size: calc(15px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.diag-row-label {
-  color: var(--text-dim);
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diag-row-value {
-  margin-left: auto;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  color: var(--apple-label);
+  transition: background-color 160ms var(--motion-ease);
 }
 
-/* A reading worth watching: its dot takes the tone its card does. */
-.diag-dot {
-  flex: none;
-  width: calc(10px * var(--text-scale, 1));
-  height: calc(10px * var(--text-scale, 1));
-  border-radius: 50%;
-  background: var(--apple-green);
+.diag-reset:hover {
+  background: var(--apple-fill-secondary);
 }
 
-.diag-dot.warn {
-  background: var(--apple-orange);
-}
+/* --- Wear --------------------------------------------------------------------------------------------- */
 
-.diag-dot.alarm {
-  background: var(--apple-red);
-}
-
-/* The truck's parts and how worn they are: a bar each, from new to worn out. */
 .diag-wear {
   display: flex;
   flex-direction: column;
-  gap: calc(10px * var(--text-scale, 1));
-  margin-top: auto;
+  gap: calc(14px * var(--text-scale, 1));
 }
 
 .diag-wear-item {
@@ -578,61 +520,42 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
-  font-size: calc(15px * var(--text-scale, 1));
-  color: var(--text-dim);
+  gap: calc(10px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
 }
 
 .diag-wear-head b {
+  color: var(--apple-label);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
+.diag-wear-item.warn .diag-wear-head b {
+  color: var(--apple-orange);
+}
+
+.diag-wear-item.alarm .diag-wear-head b {
+  color: var(--apple-red);
+}
+
 .diag-empty {
-  margin: auto 0;
-  font-size: calc(15px * var(--text-scale, 1));
-  color: var(--text-dim);
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
 }
 
 /* No telemetry yet (the game isn't running, or hasn't sent a frame). */
 .diag-unavailable {
   margin: auto;
+  padding: 0 calc(40px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
   font-size: calc(22px * var(--text-scale, 1));
   font-weight: 500;
-  color: var(--text-dim);
   text-align: center;
 }
 
-/* A screen too narrow for five across: the hero stacks, the cards take halves, then all of it. */
-@media (max-width: 1120px) {
-  .diag-overview {
-    grid-template-columns: minmax(0, 1fr);
-    padding: calc(6px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
-  }
-
-  .diag-art {
-    min-height: calc(140px * var(--text-scale, 1));
-  }
-
-  .diag-card.span-4 {
-    grid-column: span 6;
-  }
-
-  .diag-card.span-6 {
-    grid-column: span 12;
-  }
-}
-
-@media (max-width: 720px) {
-  .diag-card.span-4,
-  .diag-card.span-6 {
-    grid-column: span 12;
-  }
-
-  .diag-quick {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+/* --- Motion ------------------------------------------------------------------------------------------- */
 
 /* The cards of the page shown come in as the tabs turn (DiagnosticsApp keys the grid by its page): a short rise,
    so a page change reads as one. Reduce Motion cuts it to a blink (shell.css). */
@@ -648,94 +571,8 @@
 }
 
 /* Opening: the window is the launch's, so the cards don't rise in behind it (DiagnosticsApp.tsx). */
-.diag-shell.no-enter .diag-cards {
+.diag-page.no-enter .diag-cards {
   animation: none;
-}
-
-/* A tab under the mouse reads as its own (the one showing already does), and the panel's scrolling stays in it. */
-.diag-tab:hover:not(.on) {
-  color: var(--text);
-}
-
-.diagnostics-app {
-  overscroll-behavior: contain;
-}
-
-/* The hero's truck leans with the cab (DiagnosticsApp.tsx sets the angle from the game's pitch and roll): eased,
-   so a hill or a camber tilts the drawing rather than jerking it. */
-.diag-art {
-  transform-origin: 50% 92%;
-  transition: transform 700ms var(--motion-ease);
-}
-
-html[data-motion='reduced'] .diag-art {
-  transition: none;
-}
-
-/* The panel's telltales (DiagnosticsApp.tsx): off, a faint outline; on, the lamp's own colour, its bezel lit with
-   it, and the indicators blinking as the truck's do. */
-.diag-telltales {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: calc(6px * var(--text-scale, 1));
-}
-
-.diag-lamp {
-  flex: none;
-  width: calc(27px * var(--text-scale, 1));
-  height: calc(27px * var(--text-scale, 1));
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--apple-separator);
-  border-radius: calc(7px * var(--text-scale, 1));
-  color: var(--text-dim);
-  background: color-mix(in srgb, currentColor 8%, transparent);
-  transition:
-    color 140ms var(--motion-ease),
-    border-color 140ms var(--motion-ease),
-    background-color 140ms var(--motion-ease);
-}
-
-.diag-lamp svg {
-  width: 68%;
-  height: 68%;
-}
-
-.diag-lamp.lit {
-  border-color: color-mix(in srgb, currentColor 45%, transparent);
-  background: color-mix(in srgb, currentColor 18%, transparent);
-}
-
-.diag-lamp.lit.green {
-  color: var(--apple-green);
-}
-
-.diag-lamp.lit.blue {
-  color: var(--apple-blue);
-}
-
-.diag-lamp.lit.amber {
-  color: var(--apple-orange);
-}
-
-.diag-lamp.lit.red {
-  color: var(--apple-red);
-}
-
-.diag-lamp.blink {
-  animation: diag-lamp-blink 900ms steps(1, end) infinite;
-}
-
-@keyframes diag-lamp-blink {
-  50% {
-    opacity: 0.18;
-  }
-}
-
-/* Reduce Motion: the indicators still blink — they're the truck's, not the screen's — but at a gentler pace. */
-html[data-motion='reduced'] .diag-lamp.blink {
-  animation-duration: 1600ms;
 }
 
 /* A sparkline draws itself on, left to right, as its card comes in: Sparkline.tsx gives the line a path length of
@@ -748,5 +585,32 @@ html[data-motion='reduced'] .diag-lamp.blink {
 @keyframes spark-draw {
   from {
     stroke-dashoffset: 1;
+  }
+}
+
+/* --- A narrow panel ----------------------------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .diag-card.span-6 {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 760px) {
+  .diag-page {
+    gap: calc(12px * var(--text-scale, 1));
+    padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
+  }
+
+  .diag-title {
+    font-size: calc(34px * var(--text-scale, 1));
+  }
+
+  .diag-speed-value {
+    font-size: calc(62px * var(--text-scale, 1));
+  }
+
+  .diag-row {
+    min-height: calc(60px * var(--text-scale, 1));
   }
 }

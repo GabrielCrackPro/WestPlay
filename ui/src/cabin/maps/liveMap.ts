@@ -3,10 +3,12 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url'
 import { mapFrameDue } from './frameCap'
 import { create as createStore } from 'zustand'
-import { cabClock, type Telemetry } from '../../shared/host'
+import { formatTripDistance } from '../../shared/format'
+import { cabClock, type JobInfo, type Telemetry } from '../../shared/host'
 import type { Appearance } from '../state/appearance'
 import { type LiveState, type MapDetail, useCabin, useLive } from '../state/store'
 import { MAP_FPS } from './frameCap'
+import { languageOf, STRINGS, type Strings } from '../state/strings'
 import { textScale } from '../state/textSize'
 import {
   bearingOf,
@@ -29,6 +31,7 @@ import { labelLines, placeLabels } from './labels'
 import { drawPlaceIcon, parsePlaceIcon } from './placeIcons'
 import type { MapData } from './mapData'
 import { loadView, type SavedView, saveView } from './mapView'
+import { jobPlace, loadPlaces } from './places'
 import { fromLngLat, labelRange, metresBetween, toLngLat } from './projection'
 import {
   approachLine,
@@ -120,8 +123,22 @@ interface LiveMap {
   /** The map's own container, moved into whichever screen shows it. */
   element: HTMLDivElement
   puck: maplibregl.Marker
-  /** The end of the route. */
+  /** The end of the route, or while a job is on, its own end (the crate's pickup, the dock's drop). */
   destination: maplibregl.Marker
+  /** The marker's badge (a flag or a crate) and the name under it (the job's company and city). */
+  destinationBadge: HTMLElement
+  destinationName: HTMLElement
+  /** The chip at the map's edge pointing at a destination off screen, its arrow and its distance. */
+  edge: HTMLElement
+  edgeArrow: HTMLElement
+  edgeAway: HTMLElement
+  /** Where the route last ended for the job end being shown (`key`: [destinationKey]; `null` before it first
+   * ends): kept when the game takes the route away at the yard, so the dock stays marked. */
+  jobEnd: { key: string; at: [number, number] | null }
+  /** The job's own end found on the map instead (places.ts), while there's no route to take it from. */
+  jobPlace: { key: string; at: [number, number] | null }
+  /** Where the destination marker is shown now, and for what (`null`: not on the map). */
+  destinationShown: { at: [number, number]; key: string } | null
   /** The route drawn (`route`, as the store has it), as spans, with the span the rest of it is drawn after
    * and where its head was last drawn from (`null`: not drawn yet). */
   routeShown: { route: LiveState['route']; spans: Spans; restAfter: number | null; headFrom: Point | null } | null
@@ -200,7 +217,11 @@ interface LiveMap {
 }
 
 /** Whether the map is browsing (moved away from the truck): the Maps app shows its recentre button. */
-export const useMapBrowsing = createStore<{ browsing: boolean }>()(() => ({ browsing: false }))
+/** Whether the map is showing the whole route from above (the Maps app's button says so). */
+export const useMapBrowsing = createStore<{ browsing: boolean; overview: boolean }>()(() => ({
+  browsing: false,
+  overview: false,
+}))
 
 /** Those following the map's bearing (the compass), told each time it turns. */
 const bearingListeners = new Set<(bearing: number) => void>()
@@ -318,13 +339,31 @@ function create(data: MapData, appearance: Appearance): LiveMap {
   const puck = new maplibregl.Marker({ element: puckElement, pitchAlignment: 'viewport', rotationAlignment: 'map' })
   const destinationElement = document.createElement('div')
   destinationElement.className = 'map-destination'
-  destinationElement.innerHTML =
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 21V4.2c3.6-1.9 6.6 1.6 11 0v8.6c-4.4 1.6-7.4-1.9-11 0" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'
+  destinationElement.dataset.kind = 'delivery'
+  const destinationBadge = document.createElement('div')
+  destinationBadge.className = 'map-destination-badge'
+  destinationBadge.innerHTML = DESTINATION_GLYPHS.delivery
+  const destinationName = document.createElement('div')
+  destinationName.className = 'map-destination-name'
+  destinationName.hidden = true
+  destinationElement.append(destinationBadge, destinationName)
   const destination = new maplibregl.Marker({
     element: destinationElement,
     pitchAlignment: 'viewport',
     rotationAlignment: 'viewport',
   })
+  // The chip at the map's edge pointing at a destination off screen (updateEdge).
+  const edge = document.createElement('div')
+  edge.className = 'map-destination-edge'
+  edge.setAttribute('aria-hidden', 'true')
+  const edgeArrow = document.createElement('span')
+  edgeArrow.className = 'map-destination-edge-arrow'
+  edgeArrow.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5 18 19l-6-3.2L6 19Z" fill="currentColor"/></svg>'
+  const edgeAway = document.createElement('span')
+  edgeAway.className = 'map-destination-edge-away'
+  edge.append(edgeArrow, edgeAway)
+  element.append(edge)
 
   const created: LiveMap = {
     data,
@@ -332,6 +371,14 @@ function create(data: MapData, appearance: Appearance): LiveMap {
     element,
     puck,
     destination,
+    destinationBadge,
+    destinationName,
+    edge,
+    edgeArrow,
+    edgeAway,
+    jobEnd: { key: '', at: null },
+    jobPlace: { key: '', at: null },
+    destinationShown: null,
     routeShown: null,
     progress: null,
     raised: { roads: [], read: '', stale: true, at: -Infinity },
@@ -431,6 +478,7 @@ function syncMapSettings(target: LiveMap) {
   show(BUILDING_LAYER, mapDetail !== 'low')
   show('players', mapTrucks)
   show('traffic', mapTraffic)
+  show('traffic-estimated', mapTraffic)
   target.settingsShown = key
 }
 
@@ -585,14 +633,17 @@ function viewOf({ map, mode, zoomOffset, browsedFrom }: LiveMap): SavedView {
 function listen(target: LiveMap) {
   const { map } = target
   const canvas = map.getCanvasContainer()
-  canvas.addEventListener('mousedown', () => {
+  // A finger or a mouse: either may start a drag, which moving the camera under it would cancel.
+  canvas.addEventListener('pointerdown', () => {
     if (!target.interactive) return
     target.pressed = true
     target.touched = performance.now()
   })
-  window.addEventListener('mouseup', () => {
-    target.pressed = false
-  })
+  for (const event of ['pointerup', 'pointercancel'] as const) {
+    window.addEventListener(event, () => {
+      target.pressed = false
+    })
+  }
   // Dragging or turning it leaves the truck behind.
   const leave = (event: { originalEvent?: unknown }) => {
     if (event.originalEvent && target.interactive) browse(target)
@@ -659,12 +710,15 @@ function follow(target: LiveMap) {
 function setInteractive(target: LiveMap, interactive: boolean) {
   target.interactive = interactive
   const { map } = target
-  for (const handler of [map.dragPan, map.dragRotate]) {
+  // The wheel and the buttons aren't the only hands: a cab's screen is touched, so the pinch (closer or
+  // further, and turned), the two-finger tilt and the double tap zoom the map too.
+  for (const handler of [map.dragPan, map.dragRotate, map.touchZoomRotate, map.touchPitch, map.doubleClickZoom]) {
     if (interactive) handler.enable()
     else handler.disable()
   }
   if (!interactive) {
     target.pressed = false
+    setOverview(target, false)
     follow(target)
     // Straight onto the truck.
     target.camera = null
@@ -880,12 +934,14 @@ function roadsAround(target: LiveMap, truck: { x: number; z: number }, radius: n
 
 /** Draws what's been found: the roads around the truck, then the route's own traffic over them. */
 function paintTraffic(target: LiveMap) {
-  showTraffic([...target.nearbyTraffic, ...target.routeTraffic])
+  // Single player has no real traffic to draw: what's shown is the hour's estimate (estimatedTraffic.ts), drawn
+  // dashed so it never reads as a reading of the game's.
+  showTraffic([...target.nearbyTraffic, ...target.routeTraffic], !useLive.getState().truckersmp)
 }
 
 /** Shows the traffic on the route previewed (traffic.ts: TruckersMP's; estimatedTraffic.ts in single player), over
  * it; none to clear it. */
-export function showTraffic(stretches: readonly TrafficStretch[]) {
+export function showTraffic(stretches: readonly TrafficStretch[], estimated = false) {
   const source = live?.map.getSource<GeoJSONSource>(TRAFFIC_SOURCE)
   if (!source) return
   source.setData({
@@ -894,7 +950,7 @@ export function showTraffic(stretches: readonly TrafficStretch[]) {
       .filter(({ line }) => line.length > 1)
       .map(({ line, level }) => ({
         type: 'Feature',
-        properties: { level },
+        properties: { level, estimated },
         geometry: { type: 'LineString', coordinates: line.map(([x, z]) => toLngLat(x, z)) },
       })),
   })
@@ -991,6 +1047,7 @@ function place() {
       syncRouteTraffic(current, now)
       syncNearbyTraffic(current, now)
       syncRoute(current, now)
+      syncDestination(current)
       syncCanopies(current, now)
       updateCamera(current, now, dt)
       showLabels(current)
@@ -1043,7 +1100,7 @@ export function showOfferedRoutes(lines: Point[][], picked: number | null, onPic
   // leaves free; gone, it's back on the truck.
   if (lines.length > 0 && !live.overview) {
     browse(live)
-    live.overview = true
+    setOverview(live, true)
     // (A loop: a long route has too many points to spread into Math.min.)
     let [x0, x1, z0, z1] = [Infinity, -Infinity, Infinity, -Infinity]
     for (const [x, z] of lines.flat()) {
@@ -1066,7 +1123,7 @@ export function showOfferedRoutes(lines: Point[][], picked: number | null, onPic
       )
     }
   } else if (lines.length === 0 && live.overview) {
-    live.overview = false
+    setOverview(live, false)
     // Back on the truck at the zoom the player had before the routes were offered: zooming out to show them
     // all was the map's doing, not a zoom they chose (owner 2026-10-21).
     live.browsedFrom = live.map.getZoom()
@@ -1141,7 +1198,7 @@ export function overviewLiveMap() {
   if (points.length < 2) return
   if (!live.overview) {
     browse(live)
-    live.overview = true
+    setOverview(live, true)
   }
   fitPoints(live, points)
 }
@@ -1149,7 +1206,7 @@ export function overviewLiveMap() {
 /** Back onto the truck, behind it: from the whole route's view, or from a map the player moved. */
 export function followRouteLiveMap() {
   if (!live) return
-  live.overview = false
+  setOverview(live, false)
   recentreLiveMap()
 }
 
@@ -1180,8 +1237,16 @@ function fitPoints(target: LiveMap, points: readonly Point[]) {
 export function recentreLiveMap() {
   if (!live || (live.mode !== 'browse' && !live.northUp)) return
   live.northUp = false
+  setOverview(live, false)
   glideToTruck(live)
   useMapBrowsing.setState({ browsing: false })
+}
+
+/** Whether the map shows the whole route from above, told to the maps' buttons as well as kept (the button is
+ * lit while it does). */
+function setOverview(target: LiveMap, overview: boolean) {
+  target.overview = overview
+  useMapBrowsing.setState({ overview })
 }
 
 /** Turns the map north up and looks down from above, following the truck still (the compass tapped, as
@@ -1356,7 +1421,7 @@ function syncCanopies(target: LiveMap, now: number) {
  * there, and the next frame tries again.
  */
 function syncRoute(target: LiveMap, now: number) {
-  const { map, destination } = target
+  const { map } = target
   const rest = map.getSource<GeoJSONSource>(ROUTE_SOURCE)
   const head = map.getSource<GeoJSONSource>(ROUTE_HEAD_SOURCE)
   target.progress = null
@@ -1369,14 +1434,9 @@ function syncRoute(target: LiveMap, now: number) {
       restAfter: null,
       headFrom: null,
     }
-    const end = route?.nodes.at(-1)
-    if (end) {
-      destination.setLngLat(toLngLat(...end.position))
-      if (!destination.getElement().isConnected) destination.addTo(map)
-    } else {
+    if (!route) {
       rest.setData(NO_LINE)
       head.setData(NO_LINE)
-      destination.remove()
     }
   }
   syncRaised(target, now)
@@ -1403,6 +1463,148 @@ function syncRoute(target: LiveMap, now: number) {
     head.setData(lineOf(line, target.raised.roads))
     shown.headFrom = progress.at
   }
+}
+
+/**
+ * The destination marker: where the route drawn ends (the game's GPS), or while a job's cargo is on and the
+ * game has taken the route away at the yard, the job's own destination — kept from where the route ended, or
+ * found among the map's companies until it does (places.ts). The game's own map marks a job's destination the
+ * same way, so the dock is found once the GPS has nothing left to say.
+ */
+function syncDestination(target: LiveMap) {
+  const { job, route } = useLive.getState()
+  const key = destinationKey(job)
+  const end = route?.nodes.at(-1)
+  const endAt: [number, number] | null = end ? toLngLat(...end.position) : null
+  if (key && endAt) target.jobEnd = { key, at: endAt }
+  if (key && !endAt && target.jobPlace.key !== key && job) lookUpJobPlace(target, key, job)
+  const at =
+    endAt ??
+    (key && target.jobEnd.key === key ? target.jobEnd.at : null) ??
+    (key && target.jobPlace.key === key ? target.jobPlace.at : null)
+  const shown = target.destinationShown
+  if (!at) {
+    if (!shown) return
+    target.destination.remove()
+    target.destinationShown = null
+    hideEdge(target)
+    return
+  }
+  if (!shown || shown.at[0] !== at[0] || shown.at[1] !== at[1] || shown.key !== key) {
+    target.destination.setLngLat(at)
+    if (!target.destination.getElement().isConnected) target.destination.addTo(target.map)
+    target.destinationShown = { at, key }
+  }
+  // What the marker is: a crate for the pickup, a flag for the dock being driven to (or any route's end).
+  const kind = job && !job.cargoLoaded ? 'pickup' : 'delivery'
+  const element = target.destination.getElement()
+  if (element.dataset.kind !== kind) {
+    element.dataset.kind = kind
+    target.destinationBadge.innerHTML = DESTINATION_GLYPHS[kind]
+  }
+  const name = job ? jobName(job) : ''
+  if (target.destinationName.textContent !== name) {
+    target.destinationName.textContent = name
+    target.destinationName.hidden = name === ''
+  }
+  updateEdge(target, at)
+}
+
+/** The marker's glyphs: the dock being driven to (the flag Apple's maps end a route with) and the pickup (a
+ * crate), so a job's two ends are told apart as the game's own map tells them. */
+const DESTINATION_GLYPHS: Record<'delivery' | 'pickup', string> = {
+  delivery:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 21V4.2c3.6-1.9 6.6 1.6 11 0v8.6c-4.4 1.6-7.4-1.9-11 0" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  pickup:
+    '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 8.2 12 4.5l8 3.7v7.6L12 19.5l-8-3.7z"/><path d="M4 8.2 12 12l8-3.8M12 12v7.5"/></svg>',
+}
+
+/** What the destination marker is kept for: the job's company and city, and which end of it (`''`: no job, and
+ * the marker shows wherever the game's route ends). */
+function destinationKey(job: JobInfo | null): string {
+  if (!job) return ''
+  return job.cargoLoaded
+    ? `delivery|${job.destinationCity}|${job.destinationCompany}`
+    : `pickup|${job.sourceCity}|${job.sourceCompany}`
+}
+
+/** The marker's name: the job's company in its city ("Wielton · Kraków"), or whichever it has. */
+function jobName(job: JobInfo): string {
+  const [company, city] = job.cargoLoaded
+    ? [job.destinationCompany, job.destinationCity]
+    : [job.sourceCompany, job.sourceCity]
+  return [company, city].filter(Boolean).join(' · ')
+}
+
+/** The cabin's words as of now (the map draws its own labels outside React). */
+function words(): Strings {
+  return STRINGS[languageOf(useLive.getState().gameLanguage)]
+}
+
+/** Looks the job's own end up on the map (its company in its city, places.ts) for while the game has no route
+ * to take it from: found once for each job. */
+function lookUpJobPlace(target: LiveMap, key: string, job: JobInfo) {
+  const found: { key: string; at: [number, number] | null } = { key, at: null }
+  target.jobPlace = found
+  const url = target.data.places
+  if (!url) return
+  const [company, city] = job.cargoLoaded
+    ? [job.destinationCompany, job.destinationCity]
+    : [job.sourceCompany, job.sourceCity]
+  loadPlaces(url)
+    .then((places) => {
+      found.at = (places && jobPlace(places, city, company))?.at ?? null
+    })
+    .catch(() => {})
+}
+
+/** The game counts distances on a map smaller than the world (Destinations' MAP_SCALE): the chip's own.
+ * Worked out from the map's ground, on the game's scale. */
+const MAP_SCALE = 19
+/** How far (px) from the map's edges the chip sits, and how near (the game's metres) counts as arrived. */
+const EDGE_INSET = 58
+const EDGE_NEAR = 25
+
+/**
+ * The chip at the map's edge pointing at the destination while it's off screen (the game's own map always shows
+ * where it goes): an arrow turned to it and how far it is, on the game's own scale. Behind the camera in the
+ * tilted view, or off the tile's side, the dock is still found.
+ */
+function updateEdge(target: LiveMap, at: [number, number]) {
+  const truck = samples.at(-1)
+  if (!truck || target.mode !== 'follow' || target.overview) {
+    hideEdge(target)
+    return
+  }
+  const metres = metresBetween(at, toLngLat(truck.x, truck.z)) * MAP_SCALE
+  if (metres < EDGE_NEAR) {
+    hideEdge(target)
+    return
+  }
+  const { map } = target
+  const width = map.getContainer().clientWidth
+  const height = map.getContainer().clientHeight
+  if (width === 0 || height === 0) {
+    hideEdge(target)
+    return
+  }
+  const point = map.project(at)
+  if (point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= height) {
+    hideEdge(target)
+    return
+  }
+  // Clamped to the edge on the side the destination lies, and turned to it from the map's middle.
+  target.edge.style.left = `${Math.min(width - EDGE_INSET, Math.max(EDGE_INSET, point.x))}px`
+  target.edge.style.top = `${Math.min(height - EDGE_INSET, Math.max(EDGE_INSET, point.y))}px`
+  const degrees = (Math.atan2(point.y - height / 2, point.x - width / 2) * 180) / Math.PI + 90
+  target.edgeArrow.style.transform = `rotate(${degrees}deg)`
+  const distance = formatTripDistance(metres, words().decimal)
+  if (target.edgeAway.textContent !== distance) target.edgeAway.textContent = distance
+  target.edge.classList.add('shown')
+}
+
+function hideEdge(target: LiveMap) {
+  target.edge.classList.remove('shown')
 }
 
 function updateCamera(target: LiveMap, now: number, dt: number) {
