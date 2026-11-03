@@ -131,15 +131,57 @@ button {
   z-index: 1;
 }
 
-/* Turned towards the page and smaller than in the onboarding's steps: it's what the section is about, beside
-   it, and the light it casts is what the room is lit by. It comes out of the dive the onboarding ends in. */
+/* Turned a little towards the page, smaller than in the onboarding's steps: a tablet with its own bezel and
+   glass, the light it casts the only warm thing in the room. It comes out of the dive the onboarding ends in,
+   and settles there as the section beside it opens. */
 .cp .ts[data-pose='aside'] {
-  transform: translate3d(300px, -4svh, 0) scale(0.44) rotateY(-22deg) rotateX(2deg);
+  transform: translate3d(312px, -2.5svh, 0) scale(0.5) rotateY(-20deg) rotateX(2.5deg);
+  transform-origin: 42% 58%;
+}
+
+/* Its bezel reads as a thing with weight, not a line: an edge that catches the room's dark at its top, and a
+   little light under its front edge where it sits on the stage. */
+.cp .ts[data-pose='aside'] .ts-bezel {
+  padding: 10px;
+  border-radius: 26px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    inset 0 -1px 0 rgb(0 0 0 / 0.7),
+    0 2px 4px rgb(0 0 0 / 0.6),
+    0 18px 40px -22px rgb(0 0 0 / 0.85),
+    0 1px 0 rgb(255 255 255 / 0.06) translate3d(0, -1px, 0);
+}
+
+/* Its light: closer, narrower, more the screen's own colour than the room's — the warm puddle a small screen
+   leaves on a dark table, not a wash over the whole window. */
+.cp .ts[data-pose='aside'] .ts-light {
+  inset: -26% -22%;
+  filter: blur(26px);
+  transform: translateZ(-120px) scale(1.18);
+  opacity: var(--power, 0);
+}
+
+/* Its glass is its own dark, not the room's: the cabin's CarPlay only reads against black on the truck, and
+   the tablet should look like it does there — lit from behind, not from the room. */
+.cp .ts[data-pose='aside'] .ts-glass {
+  background: #000;
+}
+
+/* A little rounding to its front corners, as a screen does when it sits face-up and turns away from the one
+   looking at it. */
+.cp .ts[data-pose='aside'] .ts-tilt {
+  border-radius: 18px;
+}
+
+/* The banner keeps its glass, but smaller and a touch closer to the glass, as a CarPlay banner does on the
+   truck's own screen. */
+.cp .ts[data-pose='aside'] .ts-banner {
+  transform: translateY(-140%) scale(0.9);
 }
 
 @media (min-width: 1180px) {
   .cp .ts[data-pose='aside'] {
-    transform: translate3d(300px, -3svh, 0) scale(0.5) rotateY(-22deg) rotateX(2deg);
+    transform: translate3d(332px, -1.5svh, 0) scale(0.56) rotateY(-20deg) rotateX(2.5deg);
   }
 }
 
@@ -791,15 +833,18 @@ button {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  padding: 12px 14px;
+  padding: 12px 88px 12px 16px;
   border-radius: 12px;
   background: var(--card);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.045);
+  /* The dots carry the line, not the padding: keep the right edge clear of text. */
+  overflow: hidden;
 }
 
 .cp-step {
   position: relative;
   display: flex;
+  align-items: flex-start;
   gap: 11px;
   padding-bottom: 13px;
 }
@@ -808,13 +853,14 @@ button {
   padding-bottom: 0;
 }
 
-/* The line on to the next stop: grey until both ends talk, then the section's light. */
+/* The line on to the next stop: grey until both ends talk, then the section's light, drawn past the dot so the
+   line reads as one thing that lights as it reaches its stops. */
 .cp-step::before {
   content: '';
   position: absolute;
-  top: 14px;
+  top: 11px;
   bottom: 1px;
-  left: 3.5px;
+  left: 7px;
   width: 1.5px;
   border-radius: 99px;
   background: rgb(255 255 255 / 0.12);
@@ -829,15 +875,17 @@ button {
   content: none;
 }
 
+/* The stop's dot: a little bigger than a mark, with a soft ring so a live one reads as emitting, not just
+   coloured. */
 .cp-step-dot {
   position: relative;
   flex-shrink: 0;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   margin-top: 4px;
   border-radius: 99px;
-  background: rgb(255 255 255 / 0.2);
-  box-shadow: 0 0 0 3.5px rgb(255 255 255 / 0.035);
+  background: rgb(255 255 255 / 0.18);
+  box-shadow: 0 0 0 3.5px rgb(255 255 255 / 0.04);
   transition:
     background 400ms ease,
     box-shadow 400ms ease;
@@ -846,26 +894,26 @@ button {
 .cp-step[data-tone='good'] .cp-step-dot {
   background: var(--green);
   box-shadow:
-    0 0 0 3.5px rgb(48 209 88 / 0.12),
-    0 0 10px rgb(48 209 88 / 0.5);
+    0 0 0 3.5px rgb(48 209 88 / 0.14),
+    0 0 11px rgb(48 209 88 / 0.55);
 }
 
 .cp-step[data-tone='busy'] .cp-step-dot {
   background: var(--blue);
-  box-shadow: 0 0 0 3.5px rgb(10 132 255 / 0.14);
+  box-shadow: 0 0 0 3.5px rgb(10 132 255 / 0.16);
   animation: ob-pulse 1.4s ease-in-out infinite;
 }
 
 .cp-step[data-tone='bad'] .cp-step-dot {
   background: var(--red);
   box-shadow:
-    0 0 0 3.5px rgb(255 69 58 / 0.12),
-    0 0 10px rgb(255 69 58 / 0.5);
+    0 0 0 3.5px rgb(255 69 58 / 0.14),
+    0 0 11px rgb(255 69 58 / 0.55);
 }
 
 .cp-step[data-tone='idle'] .cp-step-dot {
   background: var(--orange);
-  box-shadow: 0 0 0 3.5px rgb(255 159 10 / 0.1);
+  box-shadow: 0 0 0 3.5px rgb(255 159 10 / 0.12);
 }
 
 .cp-step-text {
