@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { genresOf, groupsOf, matchesOf, stationsOf, streamOf } from './stations'
+import { genresOf, groupsOf, matchesOf, stationsOf, streamOf, titleUrlOf } from './stations'
 
 const told = [
   { name: 'Radio One', genre: 'Pop', language: 'English', bitrate: 128, url: 'https://radio.example/one' },
@@ -65,6 +65,17 @@ describe('a station’s stream', () => {
     expect(through.startsWith(`${door}/s/`)).toBe(true)
     // The host reads the station back from the door's path: its UTF-8 bytes, base64, url-safe and unpadded.
     const encoded = through.slice(`${door}/s/`.length)
+    expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/one?s=1')
+  })
+})
+
+describe('a station’s song', () => {
+  it('is asked of this PC’s door, and of nowhere when there is none', () => {
+    expect(titleUrlOf('https://radio.example/one', null)).toBeNull()
+    const door = 'http://127.0.0.1:49512'
+    const asked = titleUrlOf('https://radio.example/one?s=1', door)
+    expect(asked?.startsWith(`${door}/t/`)).toBe(true)
+    const encoded = (asked ?? '').slice(`${door}/t/`.length)
     expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/one?s=1')
   })
 })

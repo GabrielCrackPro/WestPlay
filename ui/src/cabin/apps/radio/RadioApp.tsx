@@ -11,8 +11,9 @@ const FIELD = 'radio-search'
 
 /**
  * The Radio app: the stations of the game’s own radio list (`live_streams.sii`, read by the host), drawn as the
- * set in the dashboard is — a tuning dial that lights the station playing, its name across the face, the button
- * that plays it and stops it, the buttons either side of it to tune on, and its volume — and under it the
+ * set in the dashboard is — a tuning dial that lights the station playing, its name across the face with the song
+ * it plays under it, the button that plays it and stops it, the buttons either side of it to tune on, and its
+ * volume — and under it the
  * stations as the set’s presets, by genre as the game’s radio menu sorts them, and a search for a station by
  * name among many. A station plays on while the player is elsewhere in the cab (its sound isn’t the app’s
  * window’s, radio.ts), as a car radio does. Pressing Refresh reads the game’s list again, for stations added in
@@ -25,6 +26,7 @@ export function RadioApp() {
   const station = useRadio((state) => state.station)
   const status = useRadio((state) => state.status)
   const failed = useRadio((state) => state.failed)
+  const title = useRadio((state) => state.title)
   const volume = useRadio((state) => state.volume)
   // The genre shown: all of them, or one (a new list keeps a genre it still has); and the name searched for.
   const [genre, setGenre] = useState('all')
@@ -98,6 +100,11 @@ export function RadioApp() {
                   <p className={station ? 'radio-face-name' : 'radio-face-name idle'}>
                     {station ? station.name : words.idle}
                   </p>
+                  {station && title ? (
+                    <p className="radio-face-title" aria-live="polite">
+                      {title}
+                    </p>
+                  ) : null}
                   <p className="radio-face-meta">{station ? metaOf(station) : words.summary(stations.length)}</p>
                   <p className="radio-face-state" aria-live="polite">
                     {failed === station?.url ? words.unavailable : live ? words.playingNow : paused ? words.paused : ''}

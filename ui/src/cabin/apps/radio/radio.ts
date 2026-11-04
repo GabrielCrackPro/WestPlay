@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { postToHost } from '../../../shared/host'
 import type { MediaSource } from '../../../shared/media'
 import type { MusicPlayer } from '../musicWithGame'
-import { type Station, stationsOf, streamOf } from './stations'
+import { type Station, stationsOf, streamOf, titleUrlOf } from './stations'
 
 /** A station as the app plays it now: loading its stream, playing, paused (by the player, another player starting,
  * or the game), or not playing at all (its stream failed). */
@@ -17,6 +17,8 @@ interface RadioState {
   status: RadioStatus
   /** The station whose stream failed (`null`: none). */
   failed: string | null
+  /** The song the station playing says it plays (`null`: it says none, or this PC has no door to hear it). */
+  title: string | null
   /** The player’s volume, 0 to 1. */
   volume: number
   /** This PC’s own door to the stations’ streams (`http://127.0.0.1:…`, the host’s `radio_proxy`); `null` when it
@@ -39,6 +41,7 @@ export const useRadio = create<RadioState>()(() => ({
   station: null,
   status: 'idle',
   failed: null,
+  title: null,
   volume: 0.8,
   proxy: null,
 }))
@@ -64,6 +67,36 @@ const started = new Set<(started: boolean) => void>()
 let element: HTMLAudioElement | null = null
 
 const clamped = (share: number) => Math.max(0, Math.min(1, share))
+
+/** How often the door is asked what a station plays: a song's few minutes, seconds either way. */
+const TITLE_EVERY = 5000
+
+let asking: number | undefined
+
+/**
+ * Asks the door what the station plays, and keeps asking while it is the one chosen: a station slips its song
+ * into its stream every so often, which the door takes off the sound and keeps (radio_proxy.rs's `/t/<station>`).
+ */
+function followTitle(station: Station | null): void {
+  if (asking !== undefined) {
+    clearInterval(asking)
+    asking = undefined
+  }
+  if (!station) return
+  const ask = () => {
+    const asked = titleUrlOf(station.url, useRadio.getState().proxy)
+    if (!asked) return
+    fetch(asked, { cache: 'no-store' })
+      .then((answer) => (answer.ok ? answer.text() : ''))
+      .then((title) => {
+        // Only the station chosen has a song here: one left for another has none.
+        if (useRadio.getState().station?.url === station.url) useRadio.setState({ title: title.trim() || null })
+      })
+      .catch(() => undefined)
+  }
+  ask()
+  asking = window.setInterval(ask, TITLE_EVERY)
+}
 
 /** The element, made once: its events keep the app’s state (and the cab’s other players) told. */
 function audio(): HTMLAudioElement {
@@ -104,7 +137,8 @@ export function radioForSpeakers(): HTMLAudioElement | null {
 export function play(station: Station): void {
   const player = audio()
   const { proxy } = useRadio.getState()
-  useRadio.setState({ station, status: 'loading', failed: null })
+  useRadio.setState({ station, status: 'loading', failed: null, title: null })
+  followTitle(station)
   // The player’s own volume, whatever a fade left it at.
   player.volume = clamped(useRadio.getState().volume)
   // Through the door the stream is the page's own to hear (CORS), so the truck's speakers can play it.
@@ -131,7 +165,8 @@ export function tune(step: number): void {
 
 /** Stops the radio, forgetting the station. */
 export function stopRadio(): void {
-  useRadio.setState({ station: null, status: 'idle', failed: null })
+  useRadio.setState({ station: null, status: 'idle', failed: null, title: null })
+  followTitle(null)
   if (!element) return
   element.pause()
   element.removeAttribute('src')

@@ -8,11 +8,16 @@
 //! speakers' graph has a stream it can play.
 //!
 //! Only `http` and `https` are fetched, one stream per connection, and no more at once than a cab can want.
+//!
+//! Most stations slip the song they play into their stream, a word of it every `icy-metaint` bytes (ICY
+//! metadata): those words are taken out of what the page hears — a player fed them would break the sound — and the
+//! last one is kept, for the page to ask after beside the stream (`/t/<station>`, the song on the set's face).
 
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base64::Engine as _;
@@ -24,6 +29,9 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(8);
 const READ_TIMEOUT: Duration = Duration::from_secs(20);
 const MOST_REDIRECTS: usize = 5;
 const HEAD_MOST: usize = 16 * 1024;
+
+/// What each station last said it plays, by the station's url: told while it plays, forgotten after.
+type Titles = Arc<Mutex<HashMap<String, String>>>;
 
 /// The door: where the page finds it (`http://127.0.0.1:<port>`), open for this run.
 pub struct Stations {
@@ -37,6 +45,7 @@ impl Stations {
         let port = listener.local_addr().ok()?.port();
         let tls = Arc::new(native_tls::TlsConnector::new().ok()?);
         let at_once = Arc::new(AtomicUsize::new(0));
+        let titles: Titles = Arc::new(Mutex::new(HashMap::new()));
         std::thread::spawn(move || {
             for stream in listener.incoming() {
                 let Ok(stream) = stream else { continue };
@@ -48,8 +57,9 @@ impl Stations {
                 }
                 let tls = tls.clone();
                 let at_once = at_once.clone();
+                let titles = titles.clone();
                 std::thread::spawn(move || {
-                    let _ = serve(stream, &tls);
+                    let _ = serve(stream, &tls, &titles);
                     at_once.fetch_sub(1, Ordering::AcqRel);
                 });
             }
@@ -63,22 +73,42 @@ impl Stations {
     }
 }
 
-/// One connection from the page: its request says the station, and the station's bytes go back through it.
-fn serve(mut client: TcpStream, tls: &native_tls::TlsConnector) -> std::io::Result<()> {
+/// One connection from the page: it asks for a station's stream, or for the song it last played.
+fn serve(
+    mut client: TcpStream,
+    tls: &native_tls::TlsConnector,
+    titles: &Mutex<HashMap<String, String>>,
+) -> std::io::Result<()> {
     let _ = client.set_read_timeout(Some(CONNECT_TIMEOUT));
     let asked = read_head(&mut client);
     let _ = client.set_read_timeout(None);
     let _ = client.set_write_timeout(Some(READ_TIMEOUT));
-    let url = match asked {
-        Ok(head) => stream_of(&head),
-        Err(why) => Err(why),
+    let head = match asked {
+        Ok(head) => head,
+        Err(why) => return refuse(client, &why),
     };
-    let Ok(url) = url else { return refuse(client, &url.unwrap_err()) };
+    if let Some(url) = asked_title(&head) {
+        return answer_title(client, titles, &url);
+    }
+    let url = match stream_of(&head) {
+        Ok(url) => url,
+        Err(why) => return refuse(client, &why),
+    };
     match fetch(&url, tls) {
-        Ok((mut station, kind)) => {
+        Ok((mut station, kind, between)) => {
             client.write_all(response_head(&kind).as_bytes())?;
+            // A station's song, kept as it comes: the face asks for it while the page hears the station.
+            let told = |title: &str| {
+                if let Ok(mut last) = titles.lock() {
+                    last.insert(url.clone(), title.to_owned());
+                }
+            };
             // Until the station's stream ends, or the page turns to another (and hangs up).
-            let _ = std::io::copy(&mut station, &mut client);
+            let _ = relay(&mut station, &mut client, between, told);
+            // Whatever it played last, it isn't playing it now.
+            if let Ok(mut last) = titles.lock() {
+                last.remove(&url);
+            }
             Ok(())
         }
         Err(why) => refuse(client, &why),
@@ -106,14 +136,16 @@ fn stream_of(head: &str) -> Result<String, String> {
     Ok(url)
 }
 
-/// A station's stream, opened on its server (through its redirects), and what it says it is.
-fn fetch(url: &str, tls: &native_tls::TlsConnector) -> Result<(Link, String), String> {
+/// A station's stream, opened on its server (through its redirects), and what it says it is: its kind, and how
+/// many bytes of audio it plays before a word of its song (`None`: it says nothing of a song).
+fn fetch(url: &str, tls: &native_tls::TlsConnector) -> Result<(Link, String, Option<usize>), String> {
     let mut url = url.to_owned();
     for _ in 0..=MOST_REDIRECTS {
         let address = address_of(&url)?;
         let mut link = address.open(tls)?;
         let ask = format!(
-            "GET {} HTTP/1.0\r\nHost: {}\r\nUser-Agent: WestPlay\r\nAccept: */*\r\nConnection: close\r\n\r\n",
+            "GET {} HTTP/1.0\r\nHost: {}\r\nUser-Agent: WestPlay\r\nAccept: */*\r\n\
+             Icy-MetaData: 1\r\nConnection: close\r\n\r\n",
             address.path,
             address.host_header()
         );
@@ -132,9 +164,87 @@ fn fetch(url: &str, tls: &native_tls::TlsConnector) -> Result<(Link, String), St
             .map(|said| said.trim().to_owned())
             .filter(|said| said.starts_with("audio/") || said.starts_with("application/ogg"))
             .unwrap_or_else(|| "audio/mpeg".to_owned());
-        return Ok((link, kind));
+        let between = header_of(&head, "icy-metaint")
+            .and_then(|each| each.trim().parse::<usize>().ok())
+            .filter(|each| *each > 0 && *each <= 1024 * 1024);
+        return Ok((link, kind, between));
     }
     Err("the station went round too many redirects".into())
+}
+
+/// A station's bytes to the page: its audio alone, the song it sends between them kept for the face.
+fn relay(
+    station: &mut Link,
+    client: &mut TcpStream,
+    between: Option<usize>,
+    mut titled: impl FnMut(&str),
+) -> std::io::Result<()> {
+    let Some(each) = between.filter(|each| *each > 0) else {
+        std::io::copy(station, client)?;
+        return Ok(());
+    };
+    loop {
+        // The audio the page hears: none left, and the station has stopped.
+        if copy_audio(station, client, each)? < each {
+            return Ok(());
+        }
+        // A byte counting the song's words in 16s, then the words themselves (`StreamTitle='…';`).
+        let mut counted = [0u8; 1];
+        if read_into(station, &mut counted)? == 0 {
+            return Ok(());
+        }
+        let words = counted[0] as usize * 16;
+        if words == 0 {
+            continue;
+        }
+        let mut word = vec![0u8; words];
+        if read_into(station, &mut word)? < words {
+            return Ok(());
+        }
+        if let Some(title) = title_in(&word) {
+            titled(&title);
+        }
+    }
+}
+
+/// Up to `count` bytes of a station's audio, on their way to the page: fewer when the stream ends first.
+fn copy_audio(station: &mut impl Read, client: &mut impl Write, count: usize) -> std::io::Result<usize> {
+    const PIECE: usize = 16 * 1024;
+    let mut left = count;
+    let mut move_on = [0u8; PIECE];
+    while left > 0 {
+        let some = station.read(&mut move_on[..left.min(PIECE)])?;
+        if some == 0 {
+            break;
+        }
+        client.write_all(&move_on[..some])?;
+        left -= some;
+    }
+    Ok(count - left)
+}
+
+/// Reads until what it was given is full, or the station's stream ends first.
+fn read_into(station: &mut impl Read, into: &mut [u8]) -> std::io::Result<usize> {
+    let mut filled = 0;
+    while filled < into.len() {
+        match station.read(&mut into[filled..]) {
+            Ok(0) => break,
+            Ok(some) => filled += some,
+            Err(why) => return Err(why),
+        }
+    }
+    Ok(filled)
+}
+
+/// The song a station sends between its audio: `StreamTitle='Artist - Song';`, and nothing when it sends none.
+fn title_in(word: &[u8]) -> Option<String> {
+    const ASKS: &str = "StreamTitle='";
+    let said = String::from_utf8_lossy(word);
+    let from = said.find(ASKS)? + ASKS.len();
+    let rest = &said[from..];
+    let to = rest.find("';").or_else(|| rest.find('\''))?;
+    let title = rest[..to].trim();
+    (!title.is_empty()).then(|| title.to_owned())
 }
 
 /// Where a station is: how to reach its server, and what to ask it for.
@@ -260,6 +370,27 @@ fn refuse(mut client: TcpStream, why: &str) -> std::io::Result<()> {
     client.write_all(body.as_bytes())
 }
 
+/// The station whose song a request asks for: `GET /t/<its url, base64url> HTTP/1.1`.
+fn asked_title(head: &str) -> Option<String> {
+    let target = head.lines().next()?.split_whitespace().nth(1)?;
+    let asked = target.strip_prefix("/t/")?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(asked).ok()?;
+    String::from_utf8(bytes).ok()
+}
+
+/// What the door says a station plays (nothing at all while it plays nothing, or says nothing of a song).
+fn answer_title(mut client: TcpStream, titles: &Mutex<HashMap<String, String>>, url: &str) -> std::io::Result<()> {
+    let title = titles.lock().ok().and_then(|told| told.get(url).cloned()).unwrap_or_default();
+    let head = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n\
+         Cache-Control: no-store\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        title.len()
+    );
+    client.write_all(head.as_bytes())?;
+    client.write_all(title.as_bytes())
+}
+
 /// A station's stream: its server's plain socket, or the secure one over it.
 enum Link {
     Plain(TcpStream),
@@ -328,6 +459,21 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_song_a_station_sends_between_its_audio() {
+        assert_eq!(title_in(b"StreamTitle='ABBA - Waterloo';").as_deref(), Some("ABBA - Waterloo"));
+        // The words come padded with nothing at all, to a count of 16.
+        let mut padded = [0u8; 48];
+        let said = b"StreamTitle='Daft Punk - One More Time';";
+        padded[..said.len()].copy_from_slice(said);
+        assert_eq!(title_in(&padded).as_deref(), Some("Daft Punk - One More Time"));
+        // A station that sends no song, one that says it plays nothing, and one that says nothing at all.
+        assert_eq!(title_in(b"StreamTitle='';"), None);
+        assert_eq!(title_in(b"StreamUrl='http://radio.example';"), None);
+        assert_eq!(title_in(&[0u8; 16]), None);
+        assert_eq!(title_in(b"StreamTitle="), None);
+    }
+
+    #[test]
     fn follows_a_stations_redirect() {
         assert_eq!(
             resolve("https://radio.example/one", "https://other.example/two").unwrap(),
@@ -374,6 +520,49 @@ mod tests {
         assert!(answer.contains("Content-Type: audio/mpeg"), "{answer}");
         assert!(answer.contains("Access-Control-Allow-Origin: *"), "{answer}");
         assert!(answer.ends_with("singing"), "{answer}");
+    }
+
+    /// A station's song is taken out of the stream the page hears, and kept for the face to ask after.
+    #[test]
+    fn tells_the_song_a_station_plays() {
+        let station = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let said = station.local_addr().unwrap();
+        std::thread::spawn(move || {
+            if let Ok((mut client, _)) = station.accept() {
+                let mut ask = [0u8; 512];
+                let _ = client.read(&mut ask);
+                let _ = client.write_all(b"ICY 200 OK\r\nContent-Type: audio/mpeg\r\nicy-metaint: 8\r\n\r\n");
+                let mut sent = Vec::from(*b"aaaaaaaa");
+                let song = b"StreamTitle='ABBA - Waterloo';";
+                let mut word = [0u8; 32];
+                word[..song.len()].copy_from_slice(song);
+                sent.push(2);
+                sent.extend_from_slice(&word);
+                sent.extend_from_slice(b"bbbbbbbb");
+                let _ = client.write_all(&sent);
+                // The station plays on while the page asks what it is playing.
+                std::thread::sleep(Duration::from_secs(3));
+            }
+        });
+        let stations = Stations::open().unwrap();
+        let url = format!("http://{said}/live.mp3");
+        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(url.as_bytes());
+        let mut door = TcpStream::connect(&stations.base()["http://".len()..]).unwrap();
+        door.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        write!(door, "GET /s/{encoded} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n").unwrap();
+        let head = read_head(&mut door).unwrap();
+        assert!(head.starts_with("HTTP/1.1 200 OK"), "{head}");
+        // The page hears the audio alone: the song's words never reach it.
+        let mut heard = [0u8; 16];
+        read_into(&mut door, &mut heard).unwrap();
+        assert_eq!(&heard, b"aaaaaaaabbbbbbbb");
+        let mut asked = TcpStream::connect(&stations.base()["http://".len()..]).unwrap();
+        asked.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        write!(asked, "GET /t/{encoded} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n").unwrap();
+        let mut answer = Vec::new();
+        let _ = asked.read_to_end(&mut answer);
+        let answer = String::from_utf8_lossy(&answer);
+        assert!(answer.ends_with("ABBA - Waterloo"), "{answer}");
     }
 
     /// A station nothing answers at is a page that says so, not one left waiting.

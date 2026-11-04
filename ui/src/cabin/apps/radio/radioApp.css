@@ -177,6 +177,18 @@
   font-weight: 650;
 }
 
+/* The song the station says it plays, under its name, while it says one. */
+.radio-face-title {
+  margin: calc(2px * var(--text-scale, 1)) 0 0;
+  font-size: calc(23px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .radio-face-meta {
   margin: 0;
   color: var(--apple-label-secondary);

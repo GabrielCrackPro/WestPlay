@@ -67,6 +67,15 @@ export function streamOf(url: string, proxy: string | null): string {
   return `${proxy}/s/${base64url(url)}`
 }
 
+/**
+ * Where the door tells what a station plays (`http://…/t/<station>`: the song it last sent with its audio), or
+ * `null` when this PC has no door: a station played from its own server keeps its song inside its stream, where
+ * the page can't read it.
+ */
+export function titleUrlOf(url: string, proxy: string | null): string | null {
+  return proxy ? `${proxy}/t/${base64url(url)}` : null
+}
+
 /** A station's url as the host's door reads it: its UTF-8 bytes, base64, in the url-safe alphabet and unpadded. */
 function base64url(text: string): string {
   let binary = ''
