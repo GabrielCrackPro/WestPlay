@@ -9,6 +9,7 @@ import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
 import { DriverApp } from './driver/DriverApp'
 import { MusicApp } from './music/MusicApp'
 import { NotificationsApp } from './notifications/NotificationsApp'
+import { RadioApp } from './radio/RadioApp'
 import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
 import { YouTubeMusicApp } from './youtubeMusic/YouTubeMusicApp'
@@ -80,6 +81,8 @@ function AppContent({ app }: { app: AppId }) {
       )
     case 'music':
       return <MusicApp />
+    case 'radio':
+      return <RadioApp />
     case 'youtube':
       return <YouTubeApp />
     case 'spotify':

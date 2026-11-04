@@ -14,6 +14,7 @@ export type IconLook = 'light' | 'dark' | 'android'
 export type AppIconRole =
   | 'maps'
   | 'music'
+  | 'radio'
   | 'spotify'
   | 'podcasts'
   | 'messages'
@@ -30,6 +31,7 @@ export type AppIconRole =
 const FILES: Record<AppIconRole, string> = {
   maps: 'maps',
   music: 'music',
+  radio: 'radio',
   spotify: 'spotify',
   podcasts: 'podcasts',
   messages: 'messages',

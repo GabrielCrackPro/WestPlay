@@ -24,6 +24,8 @@ import {
   receivePlayback as receiveAppleMusicPlayback,
   useAppleMusic,
 } from '../apps/music/appleMusic'
+import { receiveCabSound } from '../apps/radio/cabSound'
+import { receiveStations as receiveRadioStations } from '../apps/radio/radio'
 import {
   receiveAnswer as receiveSpotifyAnswer,
   receivePlayback,
@@ -921,6 +923,12 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'customize':
         useLooks.setState({ custom: { wallpapers: message.wallpapers, iconSets: message.iconSets } })
+        break
+      case 'radio':
+        receiveRadioStations(message.stations)
+        break
+      case 'cabSound':
+        receiveCabSound(message)
         break
       case 'westplay':
         // A close asked for goes nowhere: the cabin page owns that state, and it keeps Cabin Play up (see

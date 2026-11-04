@@ -23,6 +23,7 @@ mod planner;
 mod play_log;
 mod player;
 mod pointer;
+mod radio;
 pub mod route;
 mod route_change;
 pub mod settings;
@@ -249,6 +250,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let webview = OffscreenWebView::new(&stage, config.width, config.height, &config.data_dir.join("webview2"))?;
     stage.add(&webview, true)?;
     startup::mark("host: cabin browser (WebView2) ready");
+    // The cab page's own sound through the truck's speakers (the Radio app): the script the players' pages get,
+    // told the same speakers, head, tone and camera as they are.
+    webview.add_startup_script(include_str!("cab_sound.js"))?;
     match &config.content {
         Content::Url(url) => webview.navigate(url)?,
         Content::Html(html) => webview.navigate_to_string(html)?,
@@ -336,6 +340,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut weather_message: Option<String> = None;
     // Whether the game's window shows (as last told the page; sent again to a reloaded page).
     let mut game_shown = true;
+    // The truck's speakers as last told to the cab page for its own sound (apps/radio: `cabSound`), sent again to
+    // a reloaded page.
+    let mut cab_sound_told: Option<String> = None;
     // Whether the game runs (its process, the plugin's pid), as last told the page. As it closes (or crashes)
     // the web players close with it, so none plays on, unseen, with the game gone (2026-10-21).
     let mut game_running = false;
@@ -785,6 +792,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         }
                     }
                     let _ = webview.post_json(&settings_message(&config.settings.get()));
+                    let _ = webview.post_json(&radio::stations_message(&radio::game_stations()));
+                    // The speakers go again with the reloaded page, as they were last told.
+                    cab_sound_told = None;
                     if let Some(message) = &customize_message {
                         let _ = webview.post_json(message);
                     }
@@ -811,6 +821,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 }
                 Some(PageMessage::Spectrum { on }) => spectrum = on,
                 Some(PageMessage::CursorLight { light }) => cursor.set_light(light, Instant::now()),
+                Some(PageMessage::RadioStations) => {
+                    let _ = webview.post_json(&radio::stations_message(&radio::game_stations()));
+                }
                 Some(PageMessage::Equalizer { equalizer: curve, custom }) => {
                     let sound = settings::SoundSettings { equalizer: curve.clamped(), custom };
                     equalizer = sound.playing();
@@ -1463,6 +1476,21 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             if let Some(player) = &spotify {
                 let _ = player.cab(truck_speakers, head, outside, distance, equalizer, spectrum);
             }
+            // The cab page's own sound (the Radio app): the same speakers, head, tone and camera the players are
+            // told, for the sound its element makes (apps/radio/cabSound.ts).
+            let cab = serde_json::json!({
+                "type": "cabSound",
+                "speakers": truck_speakers,
+                "head": head,
+                "outside": outside,
+                "distance": distance,
+                "equalizer": equalizer,
+            })
+            .to_string();
+            if cab_sound_told.as_deref() != Some(cab.as_str()) {
+                cab_sound_told = Some(cab.clone());
+                let _ = webview.post_json(&cab);
+            }
         }
 
         // TruckersMP's players around the player, as the plugin last wrote them: to the page as they change (each
@@ -2014,6 +2042,9 @@ fn customize_list_message(customizations: &customize::Customizations) -> String 
 enum PageMessage {
     /// Posted when the page (re)loads.
     Ready,
+    /// The game's radio list read again (the Radio app opened, or its Refresh): the stations are sent back
+    /// (`radio`), from the file as it is now.
+    RadioStations,
     /// A startup stage the page reached (the boot screens shown), for the startup log (`startup`).
     Startup { stage: String },
     /// Whether WestPlay is open on the truck's screen: posted as the page loads and whenever it changes.

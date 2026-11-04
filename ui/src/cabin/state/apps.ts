@@ -4,6 +4,7 @@ import type { AppIconRole } from '../../shared/icons'
 export const APP_IDS = [
   'maps',
   'music',
+  'radio',
   'spotify',
   'youtube',
   'youtubeMusic',
@@ -28,6 +29,7 @@ export interface AppDefinition {
 export const APPS: Record<AppId, AppDefinition> = {
   maps: { id: 'maps', icon: 'maps' },
   music: { id: 'music', icon: 'music' },
+  radio: { id: 'radio', icon: 'radio' },
   spotify: { id: 'spotify', icon: 'spotify' },
   youtube: { id: 'youtube', icon: 'youtube' },
   youtubeMusic: { id: 'youtubeMusic', icon: 'youtubeMusic' },

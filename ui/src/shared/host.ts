@@ -175,6 +175,30 @@ export interface CareerStats {
 /** What a keybind does: the music's volume a step up or down, or it paused or played on. */
 export type KeybindAction = 'volumeUp' | 'volumeDown' | 'playPause'
 
+/** A station of the game's own radio list (`live_streams.sii`): the game's words for it, and its stream. */
+export interface RadioStation {
+  name: string
+  /** The game's genre, as its list has it ('' when it has none). */
+  genre: string
+  /** The game's language, as its list has it ('' when it has none). */
+  language: string
+  /** kbit/s (0: not said). */
+  bitrate: number
+  url: string
+}
+
+/** One of the truck's speakers, as `cab_sound.js` places it (cab space, metres): its band, its level and how much
+ * later it plays (ms). */
+export interface Speaker {
+  at: [number, number, number]
+  /** Hz: from `band[0]` up to `band[1]` (0: no limit that way). */
+  band: [number, number]
+  /** dB. */
+  level: number
+  /** ms. */
+  delay: number
+}
+
 export type HostMessage =
   | { type: 'telemetry'; data: Telemetry }
   | { type: 'truck'; data: TruckInfo }
@@ -202,6 +226,20 @@ export type HostMessage =
     }
   /** The player's own wallpapers and icon sets (shared/customize.ts), their files at `CABIN_FILES`. */
   | { type: 'customize'; wallpapers: CustomWallpaper[]; iconSets: IconSet[] }
+  /** The stations of the game's own radio list (`live_streams.sii`, its Documents folder), as the host read them:
+   * sent as the page loads, and whenever the app asks again (`radioStations`). None when there's no list. */
+  | { type: 'radio'; stations: RadioStation[] }
+  /** The truck's speakers and the driver's head, for the cab page's own sound (the Radio app): what the players'
+   * pages get, so a station is heard from the cab's speakers as their music is, and silent outside it. */
+  | {
+      type: 'cabSound'
+      speakers: Speaker[] | null
+      head: { x: number; y: number; z: number; heading: number; pitch: number } | null
+      outside: boolean
+      /** How far the camera is outside the cab, metres. */
+      distance: number
+      equalizer: Equalizer
+    }
   /** The music's spectrum as it plays, while the page asks for it (`spectrum`): bars from the lows to the
    * highs, spaced by octaves, each 0 (silent) to 255; all 0 when it stops. */
   | { type: 'spectrum'; bars: number[] }
@@ -377,6 +415,8 @@ export type PageMessage =
   | ({ type: 'equalizer'; custom: boolean } & Equalizer)
   /** The music's spectrum wanted (Settings › Equalizer open) or not: the host answers `spectrum` as it plays. */
   | { type: 'spectrum'; on: boolean }
+  /** The game's radio list read again (the Radio app opened, or Refresh): the host answers `radio`. */
+  | { type: 'radioStations' }
   /** Whether what's under the cursor is light: the host draws it dark there. */
   | { type: 'cursorLight'; light: boolean }
   /** A change to the game's GPS route (Maps' search), at a map node (its uid, hex) for going or adding a

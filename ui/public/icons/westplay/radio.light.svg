@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="face" x1="0" y1="48" x2="0" y2="975" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffb648"/><stop offset="0.55" stop-color="#f78b16"/><stop offset="1" stop-color="#e25600"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="48" x2="0" y2="975" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffe0b0"/><stop offset="0.5" stop-color="#ffc27a"/><stop offset="1" stop-color="#a83c00"/></linearGradient>
+    <linearGradient id="symbol" x1="0" y1="364" x2="0" y2="684" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#fff2e2"/></linearGradient>
+    <linearGradient id="dial" x1="0" y1="450" x2="0" y2="600" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffe6c9"/></linearGradient>
+  </defs>
+  <rect x="26" y="26" width="972" height="972" rx="224" fill="url(#face)"/>
+  <rect x="26" y="26" width="972" height="972" rx="224" fill="none" stroke="url(#rim)" stroke-width="10" opacity="0.85"/>
+  <g fill="none" stroke="url(#symbol)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M700 364 L806 232" stroke-width="42"/>
+    <rect x="232" y="364" width="560" height="320" rx="64" stroke-width="44"/>
+    <path d="M300 450 H520" stroke-width="34"/>
+    <path d="M300 522 H520" stroke-width="34"/>
+    <path d="M300 594 H520" stroke-width="34"/>
+    <circle cx="668" cy="524" r="74" stroke="url(#dial)" stroke-width="34"/>
+  </g>
+  <path d="M668 524 L708 476" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+</svg>

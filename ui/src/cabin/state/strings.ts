@@ -668,6 +668,27 @@ export interface Strings {
     openMaps: string
     openDiagnostics: string
   }
+  /** The Radio app: the stations of the game's own radio list, by genre, and what plays. */
+  radioApp: {
+    /** How many stations the list has. */
+    summary: (count: number) => string
+    empty: string
+    /** Where the stations come from, and what to do about them. */
+    hint: string
+    /** The genre filter that shows every station. */
+    all: string
+    /** The stations the game gives no genre to. */
+    other: string
+    refresh: string
+    stop: string
+    playingNow: string
+    paused: string
+    /** A station the cab can't play: it streams over http, and the page is https (mixed content). */
+    unavailable: string
+    /** What the row of a station that couldn't play says. */
+    unavailableTag: string
+    volume: string
+  }
   apps: Record<AppId, string>
   notBuiltYet: string
 }
@@ -1327,9 +1348,24 @@ const ENGLISH_STRINGS: Strings = {
     openMaps: 'Open Maps',
     openDiagnostics: 'Open Diagnostics',
   },
+  radioApp: {
+    summary: (count) => (count === 1 ? '1 station' : `${count} stations`),
+    empty: 'No stations found',
+    hint: 'WestPlay lists the stations in the game’s own radio list (live_streams.sii, in the game’s Documents folder). Add stations in the game’s radio menu, then press Refresh.',
+    all: 'All',
+    other: 'Other',
+    refresh: 'Refresh',
+    stop: 'Stop',
+    playingNow: 'Now playing',
+    paused: 'Paused',
+    unavailable: 'This station streams only over http, which the cab’s page can’t play.',
+    unavailableTag: 'Can’t play',
+    volume: 'Volume',
+  },
   apps: {
     maps: 'Maps',
     music: 'Music',
+    radio: 'Radio',
     spotify: 'Spotify',
     youtube: 'YouTube',
     youtubeMusic: 'YouTube Music',
@@ -2003,9 +2039,24 @@ const TURKISH_STRINGS: Strings = {
     openMaps: 'Haritalar’ı Aç',
     openDiagnostics: 'Tanılamayı Aç',
   },
+  radioApp: {
+    summary: (count) => (count === 1 ? '1 istasyon' : `${count} istasyon`),
+    empty: 'İstasyon bulunamadı',
+    hint: 'WestPlay, oyunun kendi radyo listesindeki (oyunun Belgeler klasöründeki live_streams.sii) istasyonları listeler. Oyunun radyo menüsünden istasyon ekleyin, sonra Yenile’ye basın.',
+    all: 'Tümü',
+    other: 'Diğer',
+    refresh: 'Yenile',
+    stop: 'Durdur',
+    playingNow: 'Şimdi çalıyor',
+    paused: 'Duraklatıldı',
+    unavailable: 'Bu istasyon yalnızca http üzerinden yayın yapıyor; kabin sayfası bunu çalamıyor.',
+    unavailableTag: 'Çalınamaz',
+    volume: 'Ses',
+  },
   apps: {
     maps: 'Haritalar',
     music: 'Müzik',
+    radio: 'Radyo',
     spotify: 'Spotify',
     youtube: 'YouTube',
     youtubeMusic: 'YouTube Music',
@@ -2691,9 +2742,24 @@ const SPANISH_STRINGS: Strings = {
     openMaps: 'Abrir Mapas',
     openDiagnostics: 'Abrir Diagnóstico',
   },
+  radioApp: {
+    summary: (count) => (count === 1 ? '1 emisora' : `${count} emisoras`),
+    empty: 'No hay emisoras',
+    hint: 'WestPlay muestra las emisoras de la lista de radio del propio juego (live_streams.sii, en la carpeta Documentos del juego). Añade emisoras en el menú de radio del juego y pulsa Actualizar.',
+    all: 'Todas',
+    other: 'Otras',
+    refresh: 'Actualizar',
+    stop: 'Detener',
+    playingNow: 'Reproduciendo',
+    paused: 'En pausa',
+    unavailable: 'Esta emisora solo emite por http, y la página de la cabina no puede reproducirla.',
+    unavailableTag: 'No se puede',
+    volume: 'Volumen',
+  },
   apps: {
     maps: 'Mapas',
     music: 'Música',
+    radio: 'Radio',
     spotify: 'Spotify',
     youtube: 'YouTube',
     youtubeMusic: 'YouTube Music',
