@@ -699,6 +699,11 @@ export interface Strings {
     /** Nothing in the list has the name typed. */
     noMatches: string
     volume: string
+    /** The stations the player picked, above the genres. */
+    favourites: string
+    /** A station’s star, unpressed, and pressed. */
+    addFavourite: string
+    removeFavourite: string
   }
   apps: Record<AppId, string>
   notBuiltYet: string
@@ -1378,6 +1383,9 @@ const ENGLISH_STRINGS: Strings = {
     search: 'Search stations',
     noMatches: 'No station with that name.',
     volume: 'Volume',
+    favourites: 'Favourites',
+    addFavourite: 'Add to favourites',
+    removeFavourite: 'Remove from favourites',
   },
   apps: {
     maps: 'Maps',
@@ -2075,6 +2083,9 @@ const TURKISH_STRINGS: Strings = {
     search: 'İstasyon ara',
     noMatches: 'Bu adda bir istasyon yok.',
     volume: 'Ses',
+    favourites: 'Favoriler',
+    addFavourite: 'Favorilere ekle',
+    removeFavourite: 'Favorilerden çıkar',
   },
   apps: {
     maps: 'Haritalar',
@@ -2784,6 +2795,9 @@ const SPANISH_STRINGS: Strings = {
     search: 'Buscar emisoras',
     noMatches: 'No hay ninguna emisora con ese nombre.',
     volume: 'Volumen',
+    favourites: 'Favoritas',
+    addFavourite: 'Añadir a favoritas',
+    removeFavourite: 'Quitar de favoritas',
   },
   apps: {
     maps: 'Mapas',

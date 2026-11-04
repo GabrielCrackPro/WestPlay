@@ -3,7 +3,7 @@ import { SearchGlyph } from '../../keyboard/glyphs'
 import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
 import { pauseHere, play, requestStations, resumeHere, setVolume, stopRadio, useRadio, type RadioStatus } from './radio'
-import { genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
+import { favouritesOf, genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
 import './radioApp.css'
 
 /** The search field's id (one on screen: the keyboard types into it). */
@@ -13,19 +13,24 @@ const FIELD = 'radio-search'
  * The Radio app, in CarPlay's shape (as Music's Now Playing is): the station playing across the top as CarPlay
  * draws a track — a square of the station's own colour, its name, the song it plays, and the transport under
  * them — and under it the game’s stations as CarPlay lists them, a tall row each (hit easily while driving),
- * by genre as the game’s radio menu sorts them, with a search by name among many. A station plays on while the
- * player is elsewhere in the cab (its sound isn’t the app’s window’s, radio.ts), as a car radio does. Pressing
- * Refresh reads the game’s list again, for stations added in the game since WestPlay started.
+ * by genre as the game’s radio menu sorts them, the player's favourites above them, and a search by name among
+ * many. The set keeps its tuning and its volume between launches (radio.ts), as a car's radio does, and its
+ * favourites, so the station a drive ended on is the one the next one starts from. A station plays on while the
+ * player is elsewhere in the cab (its sound isn’t the app’s window’s), as a car radio does. Pressing Refresh
+ * reads the game’s list again, for stations added in the game since WestPlay started.
  */
 export function RadioApp() {
   const text = useText()
   const words = text.radioApp
   const stations = useRadio((state) => state.stations)
   const station = useRadio((state) => state.station)
+  const tuned = useRadio((state) => state.tuned)
   const status = useRadio((state) => state.status)
   const failed = useRadio((state) => state.failed)
   const title = useRadio((state) => state.title)
   const volume = useRadio((state) => state.volume)
+  const favourites = useRadio((state) => state.favourites)
+  const toggleFavourite = useRadio((state) => state.toggleFavourite)
   // The genre shown: all of them, or one (a new list keeps a genre it still has); and the name searched for.
   const [genre, setGenre] = useState('all')
   const [query, setQuery] = useState('')
@@ -35,15 +40,20 @@ export function RadioApp() {
   const matching = matchesOf(stations, query)
   const genres = genresOf(matching)
   const groups = groupsOf(matching).filter((group) => genre === 'all' || group.genre === genre)
+  // The player's favourites, the list's own copy of each, and only those the search finds.
+  const loved = favouritesOf(stations, favourites).filter((each) => matchesOf([each], query).length > 0)
   // What the tuning steps across: the stations the list shows, in their order.
   const shown = groups.flatMap((group) => group.stations)
+  // The set's face: what plays, or — before anything plays this launch — the station it was left on.
+  const face = station ?? tuned
   const live = status === 'playing' || status === 'loading'
   const paused = station !== null && status === 'paused'
-  const at = station ? shown.findIndex((each) => each.url === station.url) : -1
+  const at = face ? shown.findIndex((each) => each.url === face.url) : -1
   const chips: [string, string][] = [
     ['all', words.all],
     ...genres.map((each): [string, string] => [each, each || words.other]),
   ]
+  const isFavourite = (each: Station) => favourites.some((one) => one.url === each.url)
 
   /** Tunes to the station `step` on in the list shown, round from the ends. */
   const tune = (step: number) => {
@@ -52,9 +62,8 @@ export function RadioApp() {
     play(shown[(((from + step) % shown.length) + shown.length) % shown.length])
   }
 
-  /** The face’s one button: the station playing pauses, one that isn’t plays on from where it was. */
+  /** The face’s one button: the station playing pauses, one that isn’t plays on (or the one it was left on). */
   const power = () => {
-    if (!station) return
     if (live) pauseHere()
     else resumeHere()
   }
@@ -83,19 +92,17 @@ export function RadioApp() {
             <>
               <section
                 className="radio-now"
-                style={{ '--hue': String(station ? hueOf(station.name) : 210) } as CSSProperties}
-                aria-label={station ? station.name : undefined}
+                style={{ '--hue': String(face ? hueOf(face.name) : 210) } as CSSProperties}
+                aria-label={face ? face.name : undefined}
               >
                 <div className="radio-now-text">
-                  <p className={station ? 'radio-now-name' : 'radio-now-name idle'}>
-                    {station ? station.name : words.idle}
-                  </p>
+                  <p className={face ? 'radio-now-name' : 'radio-now-name idle'}>{face ? face.name : words.idle}</p>
                   {station && title ? (
                     <p className="radio-now-title" aria-live="polite">
                       {title}
                     </p>
                   ) : null}
-                  <p className="radio-now-meta">{station ? metaOf(station) : words.summary(stations.length)}</p>
+                  <p className="radio-now-meta">{face ? metaOf(face) : words.summary(stations.length)}</p>
                   <p className="radio-now-state" aria-live="polite">
                     {failed === station?.url ? (
                       words.unavailable
@@ -109,12 +116,12 @@ export function RadioApp() {
                   </p>
                 </div>
                 <div className="radio-now-art" aria-hidden="true">
-                  {!station ? (
+                  {!face ? (
                     <RadioGlyph />
                   ) : live ? (
                     <WavesGlyph />
                   ) : (
-                    <span className="radio-now-initials">{initialsOf(station.name)}</span>
+                    <span className="radio-now-initials">{initialsOf(face.name)}</span>
                   )}
                 </div>
                 <div className="radio-now-controls">
@@ -133,7 +140,7 @@ export function RadioApp() {
                       className={live ? 'radio-power on' : 'radio-power'}
                       aria-label={live ? words.pause : words.play}
                       onClick={power}
-                      disabled={!station}
+                      disabled={!face}
                     >
                       {live ? <PauseGlyph /> : <PlayGlyph />}
                     </button>
@@ -158,6 +165,17 @@ export function RadioApp() {
                       onChange={(event) => setVolume(Number(event.target.value) / 100)}
                     />
                   </label>
+                  {face ? (
+                    <button
+                      type="button"
+                      className={isFavourite(face) ? 'radio-now-star on' : 'radio-now-star'}
+                      aria-pressed={isFavourite(face)}
+                      aria-label={isFavourite(face) ? words.removeFavourite : words.addFavourite}
+                      onClick={() => toggleFavourite(face)}
+                    >
+                      <StarGlyph on={isFavourite(face)} />
+                    </button>
+                  ) : null}
                 </div>
               </section>
               <div className="radio-filters">
@@ -186,10 +204,29 @@ export function RadioApp() {
                   ))}
                 </div>
               </div>
-              {groups.length === 0 ? (
+              {groups.length === 0 && loved.length === 0 ? (
                 <p className="radio-no-match">{words.noMatches}</p>
               ) : (
                 <div className="radio-groups">
+                  {/* The stations they picked, above the genres: a drive's own few, ready before any scrolling. */}
+                  {genre === 'all' && loved.length > 0 ? (
+                    <section className="radio-group">
+                      <h2>{words.favourites}</h2>
+                      <div className="radio-list">
+                        {loved.map((each) => (
+                          <StationRow
+                            key={each.url}
+                            station={each}
+                            now={station?.url === each.url}
+                            status={status}
+                            failed={failed === each.url}
+                            favourite
+                            onFavourite={() => toggleFavourite(each)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
                   {groups.map((group) => (
                     <section key={group.genre || 'other'} className="radio-group">
                       <h2>{group.genre || words.other}</h2>
@@ -201,6 +238,8 @@ export function RadioApp() {
                             now={station?.url === each.url}
                             status={status}
                             failed={failed === each.url}
+                            favourite={isFavourite(each)}
+                            onFavourite={() => toggleFavourite(each)}
                           />
                         ))}
                       </div>
@@ -216,40 +255,57 @@ export function RadioApp() {
   )
 }
 
-/** A station as CarPlay lists one: its own colour at the left, its name, what it is; pressed, it plays (or the one
- * playing stops). */
+/** A station as CarPlay lists one: its own colour at the left, its name, what it is, and its star at the right.
+ * Pressed, it plays (or the one playing stops); its star keeps it above the genres. */
 function StationRow({
   station,
   now,
   status,
   failed,
+  favourite,
+  onFavourite,
 }: {
   station: Station
   now: boolean
   status: RadioStatus
   failed: boolean
+  favourite: boolean
+  onFavourite(): void
 }) {
   const words = useText().radioApp
   const live = now && (status === 'playing' || status === 'loading')
   return (
-    <button
-      type="button"
-      className={now ? 'radio-row now' : 'radio-row'}
-      aria-current={now ? 'true' : undefined}
-      onClick={() => (now && status !== 'paused' && status !== 'failed' ? stopRadio() : play(station))}
-    >
-      <span className="radio-row-art" style={{ '--hue': String(hueOf(station.name)) } as CSSProperties}>
-        {live ? <WavesGlyph /> : <span className="radio-row-initials">{initialsOf(station.name)}</span>}
-      </span>
-      <span className="radio-row-text">
-        <span className="radio-row-name">{station.name}</span>
-        <span className="radio-row-meta">
-          {failed ? words.unavailableTag : [station.genre || words.other, station.language].filter(Boolean).join(' · ')}
+    <div className={now ? 'radio-row now' : 'radio-row'}>
+      <button
+        type="button"
+        className="radio-row-play"
+        aria-current={now ? 'true' : undefined}
+        onClick={() => (now && status !== 'paused' && status !== 'failed' ? stopRadio() : play(station))}
+      >
+        <span className="radio-row-art" style={{ '--hue': String(hueOf(station.name)) } as CSSProperties}>
+          {live ? <WavesGlyph /> : <span className="radio-row-initials">{initialsOf(station.name)}</span>}
         </span>
-      </span>
-      {live ? <span className="radio-row-live">{words.playingNow}</span> : null}
-      {now && status === 'paused' ? <span className="radio-row-live paused">{words.paused}</span> : null}
-    </button>
+        <span className="radio-row-text">
+          <span className="radio-row-name">{station.name}</span>
+          <span className="radio-row-meta">
+            {failed
+              ? words.unavailableTag
+              : [station.genre || words.other, station.language].filter(Boolean).join(' · ')}
+          </span>
+        </span>
+        {live ? <span className="radio-row-live">{words.playingNow}</span> : null}
+        {now && status === 'paused' ? <span className="radio-row-live paused">{words.paused}</span> : null}
+      </button>
+      <button
+        type="button"
+        className={favourite ? 'radio-row-star on' : 'radio-row-star'}
+        aria-pressed={favourite}
+        aria-label={favourite ? words.removeFavourite : words.addFavourite}
+        onClick={onFavourite}
+      >
+        <StarGlyph on={favourite} />
+      </button>
+    </div>
   )
 }
 
@@ -258,6 +314,23 @@ function metaOf(station: Station): string {
   return [station.genre, station.language, station.bitrate > 0 ? `${station.bitrate} kbps` : '']
     .filter(Boolean)
     .join(' · ')
+}
+
+/** A station's star: filled where it is one of the player's favourites. */
+function StarGlyph({ on }: { on: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="radio-glyph"
+      aria-hidden="true"
+      fill={on ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={on ? 1.4 : 1.9}
+      strokeLinejoin="round"
+    >
+      <path d="m12 3.6 2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.2 6-.8Z" />
+    </svg>
+  )
 }
 
 function PlayGlyph() {

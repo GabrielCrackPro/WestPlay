@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { genresOf, groupsOf, matchesOf, stationsOf, streamOf, titleUrlOf } from './stations'
+import { favouritesOf, genresOf, groupsOf, matchesOf, stationsOf, streamOf, titleUrlOf } from './stations'
 
 const told = [
   { name: 'Radio One', genre: 'Pop', language: 'English', bitrate: 128, url: 'https://radio.example/one' },
@@ -66,6 +66,20 @@ describe('a station’s stream', () => {
     // The host reads the station back from the door's path: its UTF-8 bytes, base64, url-safe and unpadded.
     const encoded = through.slice(`${door}/s/`.length)
     expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/one?s=1')
+  })
+})
+
+describe('the player’s favourites', () => {
+  const one = { name: 'One', genre: 'Pop', language: 'English', bitrate: 128, url: 'https://radio.example/one' }
+  const two = { name: 'Two', genre: 'Rock', language: '', bitrate: 0, url: 'https://radio.example/two' }
+
+  it('keep the order they were picked in, and the list’s newer name', () => {
+    const renamed = { ...one, name: 'One (new)' }
+    expect(favouritesOf([renamed, two], [two, one]).map((each) => each.name)).toEqual(['Two', 'One (new)'])
+  })
+
+  it('keep a station the game’s list no longer has: its stream still plays', () => {
+    expect(favouritesOf([two], [one, two]).map((each) => each.name)).toEqual(['One', 'Two'])
   })
 })
 

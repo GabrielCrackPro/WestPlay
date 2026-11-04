@@ -102,6 +102,15 @@ export function initialsOf(name: string): string {
 }
 
 /**
+ * The player's favourite stations, in the order they picked them, with the page's own copy of each: the game's
+ * list may have newer details for a station, or no longer hold it (a stream plays whether its line is in the
+ * list or not).
+ */
+export function favouritesOf(stations: readonly Station[], favourites: readonly Station[]): Station[] {
+  return favourites.map((each) => stations.find((station) => station.url === each.url) ?? each)
+}
+
+/**
  * The stations whose name has what the player typed, in the list's order: a search for a station among many, blind
  * to case and to accents (a station the game wrote with its own accents is found without them). Nothing typed is
  * every station.

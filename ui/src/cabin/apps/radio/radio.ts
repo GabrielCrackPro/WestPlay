@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { create } from 'zustand'
-import { postToHost } from '../../../shared/host'
+import { createJSONStorage, persist } from 'zustand/middleware'
+import { IS_DEMO, postToHost } from '../../../shared/host'
 import type { MediaSource } from '../../../shared/media'
 import type { MusicPlayer } from '../musicWithGame'
 import { type Station, stationsOf, streamOf, titleUrlOf } from './stations'
@@ -24,6 +25,29 @@ interface RadioState {
   /** This PC’s own door to the stations’ streams (`http://127.0.0.1:…`, the host’s `radio_proxy`); `null` when it
    * has none. */
   proxy: string | null
+  /** The station the set was last left on (`null`: none yet), kept between launches as a car radio keeps its
+   * tuning: it is what the face shows before anything plays. */
+  tuned: Station | null
+  /** The player’s favourite stations, in the order they picked them. */
+  favourites: Station[]
+  /** Picks a station as a favourite, or lets it go. */
+  toggleFavourite(station: Station): void
+}
+
+/** What the set keeps between launches: its tuning, its volume, and the player’s favourites. */
+type Remembered = Pick<RadioState, 'tuned' | 'volume' | 'favourites'>
+
+/**
+ * Saved data as the radio may use it: a station the page knows how to play (it is no longer in the game's list,
+ * or the file was edited), a volume in range, and each favourite once.
+ */
+function remembered(stored: unknown): Partial<Remembered> {
+  if (typeof stored !== 'object' || stored === null) return {}
+  const { tuned, volume, favourites } = stored as Record<string, unknown>
+  const kept: Partial<Remembered> = { tuned: stationsOf([tuned])[0] ?? null }
+  if (typeof volume === 'number' && Number.isFinite(volume)) kept.volume = clamped(volume)
+  if (Array.isArray(favourites)) kept.favourites = stationsOf(favourites)
+  return kept
 }
 
 /**
@@ -36,15 +60,41 @@ interface RadioState {
  * (`stations.ts`’s `streamOf`), which serves the stream to the page with the leave to hear it, so the speakers
  * can. Without a door, the station plays straight from its server: heard, but from the page, not the truck.
  */
-export const useRadio = create<RadioState>()(() => ({
-  stations: [],
-  station: null,
-  status: 'idle',
-  failed: null,
-  title: null,
-  volume: 0.8,
-  proxy: null,
-}))
+export const useRadio = create<RadioState>()(
+  persist(
+    (set) => ({
+      stations: [],
+      station: null,
+      status: 'idle',
+      failed: null,
+      title: null,
+      volume: 0.8,
+      proxy: null,
+      tuned: null,
+      favourites: [],
+      toggleFavourite: (station) =>
+        set((state) => ({
+          favourites: state.favourites.some((each) => each.url === station.url)
+            ? state.favourites.filter((each) => each.url !== station.url)
+            : [...state.favourites, station],
+        })),
+    }),
+    {
+      // A set's memory, kept on this PC as the cab's own choices are: the station it was left on, its volume, and
+      // the player's favourites.
+      name: IS_DEMO ? 'westplay.radio.demo' : 'westplay.radio',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state): Remembered => ({
+        tuned: state.tuned,
+        volume: state.volume,
+        favourites: state.favourites,
+      }),
+      // Saved data comes from an earlier WestPlay (or was edited): keep only what is valid.
+      merge: (stored, current) => ({ ...current, ...remembered(stored) }),
+    },
+  ),
+)
 
 /** The stations the host read, and its door to their streams, from its `radio` message. */
 export function receiveStations(told: { stations?: unknown; proxy?: unknown }): void {
@@ -137,7 +187,8 @@ export function radioForSpeakers(): HTMLAudioElement | null {
 export function play(station: Station): void {
   const player = audio()
   const { proxy } = useRadio.getState()
-  useRadio.setState({ station, status: 'loading', failed: null, title: null })
+  // The set remembers what it is tuned to: it comes back on it at the next launch (the face shows it, paused).
+  useRadio.setState({ station, status: 'loading', failed: null, title: null, tuned: station })
   followTitle(station)
   // The player’s own volume, whatever a fade left it at.
   player.volume = clamped(useRadio.getState().volume)
@@ -190,10 +241,15 @@ export function pauseHere(): void {
   if (element && !element.paused) element.pause()
 }
 
-/** Plays the station it was paused on, if there is one. */
+/**
+ * Plays the station it was paused on — or, before anything has played since the cab opened, the one the set was
+ * last left on — if there is one. Nothing while a station already plays.
+ */
 export function resumeHere(): void {
-  const { station, status } = useRadio.getState()
-  if (station && (status === 'paused' || status === 'failed')) play(station)
+  const { station, tuned, status } = useRadio.getState()
+  const chosen = station ?? tuned
+  if (!chosen || status === 'playing' || status === 'loading') return
+  play(chosen)
 }
 
 /**
@@ -203,6 +259,7 @@ export function resumeHere(): void {
 export function useRadioSource(): { source: MediaSource; artwork: null } | null {
   const station = useRadio((state) => state.station)
   const status = useRadio((state) => state.status)
+  const title = useRadio((state) => state.title)
   return useMemo(() => {
     if (!station) return null
     const plays = status === 'playing' || status === 'loading'
@@ -212,7 +269,8 @@ export function useRadioSource(): { source: MediaSource; artwork: null } | null 
         id: 'westplay-radio',
         service: 'radio',
         title: station.name,
-        artist: [station.genre, station.language].filter(Boolean).join(' · '),
+        // The song the station says it plays, where a track's artist would be; its genre and language until it says one.
+        artist: title ?? [station.genre, station.language].filter(Boolean).join(' · '),
         album: '',
         artwork: null,
         status: plays ? 'playing' : status === 'paused' ? 'paused' : 'stopped',
@@ -226,7 +284,7 @@ export function useRadioSource(): { source: MediaSource; artwork: null } | null 
         repeat: null,
       },
     }
-  }, [station, status])
+  }, [station, status, title])
 }
 
 /**
