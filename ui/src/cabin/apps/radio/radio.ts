@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { postToHost } from '../../../shared/host'
 import type { MediaSource } from '../../../shared/media'
 import type { MusicPlayer } from '../musicWithGame'
-import { type Station, stationsOf } from './stations'
+import { type Station, stationsOf, streamOf } from './stations'
 
 /** A station as the app plays it now: loading its stream, playing, paused (by the player, another player starting,
  * or the game), or not playing at all (its stream failed). */
@@ -19,6 +19,9 @@ interface RadioState {
   failed: string | null
   /** The player’s volume, 0 to 1. */
   volume: number
+  /** This PC’s own door to the stations’ streams (`http://127.0.0.1:…`, the host’s `radio_proxy`); `null` when it
+   * has none. */
+  proxy: string | null
 }
 
 /**
@@ -26,9 +29,10 @@ interface RadioState {
  * window) so the station plays on while the player is in Maps or Home, as a car radio does; the cab’s other
  * players see it as one of them (`radioPlayer`), so one of them plays at a time and the volume keybinds reach it.
  *
- * The element plays the page’s own way, never into the cab’s speakers’ audio graph (cab_sound.js): a station is a
- * stream on somebody else’s server, which the browser won’t let a graph of ours hear (a cross-origin element in a
- * Web Audio source plays silence).
+ * A station is a stream on somebody else’s server, which the cab’s page (https) may neither play (http ones) nor
+ * let its Web Audio graph hear (the truck’s speakers, cab_sound.js): it plays through this PC’s own door instead
+ * (`stations.ts`’s `streamOf`), which serves the stream to the page with the leave to hear it, so the speakers
+ * can. Without a door, the station plays straight from its server: heard, but from the page, not the truck.
  */
 export const useRadio = create<RadioState>()(() => ({
   stations: [],
@@ -36,11 +40,17 @@ export const useRadio = create<RadioState>()(() => ({
   status: 'idle',
   failed: null,
   volume: 0.8,
+  proxy: null,
 }))
 
-/** The stations the host read, from its `radio` message. */
-export function receiveStations(told: unknown): void {
-  useRadio.setState({ stations: stationsOf(told) })
+/** The stations the host read, and its door to their streams, from its `radio` message. */
+export function receiveStations(told: { stations?: unknown; proxy?: unknown }): void {
+  useRadio.setState({ stations: stationsOf(told.stations), proxy: doorOf(told.proxy) })
+}
+
+/** The door as the message gives it: this PC's own loopback, whatever else the message might hold. */
+function doorOf(told: unknown): string | null {
+  return typeof told === 'string' && /^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(told) ? told : null
 }
 
 /** The game’s list read again (the app opens, or the player presses Refresh): it may have new stations. */
@@ -82,17 +92,41 @@ function audio(): HTMLAudioElement {
   return made
 }
 
+/**
+ * The page's element, while it plays through this PC's door: the speakers' graph can hear that one (the stream is
+ * CORS-clean). A station played straight from its server is one the graph would play as silence, so it is none.
+ */
+export function radioForSpeakers(): HTMLAudioElement | null {
+  return useRadio.getState().proxy !== null ? element : null
+}
+
 /** Plays a station (from the start: a station is a live stream, there’s nothing to carry on from). */
 export function play(station: Station): void {
   const player = audio()
+  const { proxy } = useRadio.getState()
   useRadio.setState({ station, status: 'loading', failed: null })
   // The player’s own volume, whatever a fade left it at.
   player.volume = clamped(useRadio.getState().volume)
-  player.src = station.url
-  // Autoplay is allowed in the cab (webview.rs); a stream the page still refuses says so on the bar.
+  // Through the door the stream is the page's own to hear (CORS), so the truck's speakers can play it.
+  if (proxy) player.crossOrigin = 'anonymous'
+  else player.removeAttribute('crossorigin')
+  player.src = streamOf(station.url, proxy)
+  // Autoplay is allowed in the cab (webview.rs); a stream the page still refuses says so on the face.
   player.play().catch(() => {
     useRadio.setState({ status: 'failed', failed: station.url })
   })
+}
+
+/**
+ * Tunes to the station `step` on from the one playing, round from the ends (the Dashboard's buttons): the game's
+ * whole list, in its order.
+ */
+export function tune(step: number): void {
+  const { stations, station } = useRadio.getState()
+  if (stations.length === 0) return
+  const at = station ? stations.findIndex((each) => each.url === station.url) : -1
+  const from = at < 0 ? (step > 0 ? -1 : 0) : at
+  play(stations[(((from + step) % stations.length) + stations.length) % stations.length])
 }
 
 /** Stops the radio, forgetting the station. */
@@ -151,7 +185,8 @@ export function useRadioSource(): { source: MediaSource; artwork: null } | null 
         // A live stream: nothing to count through.
         positionAt: 0,
         durationMs: 0,
-        controls: { playPause: true, next: false, previous: false, shuffle: false, repeat: false },
+        // Its tuning steps through the game's stations, as the set's own presets do.
+        controls: { playPause: true, next: true, previous: true, shuffle: false, repeat: false },
         shuffle: null,
         repeat: null,
       },

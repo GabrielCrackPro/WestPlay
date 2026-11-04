@@ -112,10 +112,11 @@ pub fn game_stations() -> Vec<Station> {
     stations_file().and_then(|file| std::fs::read_to_string(file).ok()).map_or_else(Vec::new, |text| stations_in(&text))
 }
 
-/// `{"type":"radio","stations":[{"name":"…","genre":"…","language":"…","bitrate":128,"url":"…"},…]}`: the stations
-/// for the cab's Radio app.
-pub fn stations_message(stations: &[Station]) -> String {
-    serde_json::json!({ "type": "radio", "stations": stations }).to_string()
+/// `{"type":"radio","stations":[{"name":"…","genre":"…","language":"…","bitrate":128,"url":"…"},…],
+/// "proxy":"http://127.0.0.1:…"}`: the stations for the cab's Radio app, and this PC's door to their streams
+/// (`radio_proxy`, `null` when it has none).
+pub fn stations_message(stations: &[Station], proxy: Option<&str>) -> String {
+    serde_json::json!({ "type": "radio", "stations": stations, "proxy": proxy }).to_string()
 }
 
 #[cfg(test)]
@@ -214,11 +215,11 @@ stream_data: "http://radio.example/two"
 
     #[test]
     fn says_what_the_page_reads() {
-        assert_eq!(stations_message(&[]), r#"{"stations":[],"type":"radio"}"#);
-        let one = stations_message(&stations_in(LIST)[..1]);
+        assert_eq!(stations_message(&[], None), r#"{"proxy":null,"stations":[],"type":"radio"}"#);
+        let one = stations_message(&stations_in(LIST)[..1], Some("http://127.0.0.1:49512"));
         assert_eq!(
             one,
-            r#"{"stations":[{"bitrate":128,"genre":"Pop","language":"ESP","name":"Radio One","url":"https://radio.example/one"}],"type":"radio"}"#
+            r#"{"proxy":"http://127.0.0.1:49512","stations":[{"bitrate":128,"genre":"Pop","language":"ESP","name":"Radio One","url":"https://radio.example/one"}],"type":"radio"}"#
         );
     }
 }

@@ -57,6 +57,61 @@ export function stationsOf(told: unknown): Station[] {
 /** How many stations the app lists: a mod's list is not a place to freeze the screen. */
 const MAX_STATIONS = 1000
 
+/**
+ * A station's stream as the page plays it: through this PC's own door (`stations_message`'s `proxy`, the host's
+ * `radio_proxy`), which serves the station's bytes with the leave for the truck's speakers to hear them, or from
+ * the station's own server when this PC has no door.
+ */
+export function streamOf(url: string, proxy: string | null): string {
+  if (!proxy) return url
+  return `${proxy}/s/${base64url(url)}`
+}
+
+/** A station's url as the host's door reads it: its UTF-8 bytes, base64, in the url-safe alphabet and unpadded. */
+function base64url(text: string): string {
+  let binary = ''
+  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/** A station's own colour, as its preset is washed in it: its name, hashed to a hue. */
+export function hueOf(name: string): number {
+  let hue = 0
+  for (let index = 0; index < name.length; index++) hue = (hue * 31 + name.charCodeAt(index)) % 360
+  return hue
+}
+
+/** A station's first letters, on its preset: the first of its first two words. */
+export function initialsOf(name: string): string {
+  const words = name
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  const first = words[0]?.[0] ?? '?'
+  const second = words.length > 1 ? words[1][0] : ''
+  return (first + second).toLocaleUpperCase()
+}
+
+/**
+ * The stations whose name has what the player typed, in the list's order: a search for a station among many, blind
+ * to case and to accents (a station the game wrote with its own accents is found without them). Nothing typed is
+ * every station.
+ */
+export function matchesOf(stations: readonly Station[], query: string): Station[] {
+  const typed = folded(query)
+  if (!typed) return [...stations]
+  return stations.filter((station) => folded(station.name).includes(typed))
+}
+
+/** Text as a search compares it: lower case, and without the accents the game's list may write. */
+function folded(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLocaleLowerCase()
+}
+
 /** Every genre the stations have, in the order their first station brings it. */
 export function genresOf(stations: readonly Station[]): string[] {
   return [...new Set(stations.map(genreOf))]

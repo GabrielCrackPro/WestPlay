@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { genresOf, groupsOf, stationsOf } from './stations'
+import { genresOf, groupsOf, matchesOf, stationsOf, streamOf } from './stations'
 
 const told = [
   { name: 'Radio One', genre: 'Pop', language: 'English', bitrate: 128, url: 'https://radio.example/one' },
@@ -54,5 +54,38 @@ describe('the game’s stations', () => {
       ['Rock', 1],
       ['', 1],
     ])
+  })
+})
+
+describe('a station’s stream', () => {
+  it('goes through this PC’s door when there is one, its own server otherwise', () => {
+    expect(streamOf('https://radio.example/one', null)).toBe('https://radio.example/one')
+    const door = 'http://127.0.0.1:49512'
+    const through = streamOf('https://radio.example/one?s=1', door)
+    expect(through.startsWith(`${door}/s/`)).toBe(true)
+    // The host reads the station back from the door's path: its UTF-8 bytes, base64, url-safe and unpadded.
+    const encoded = through.slice(`${door}/s/`.length)
+    expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/one?s=1')
+  })
+})
+
+describe('searching the stations', () => {
+  const stations = stationsOf(told)
+
+  it('finds a station by its name, blind to case', () => {
+    expect(matchesOf(stations, 'radio').map((station) => station.name)).toEqual(['Radio One', 'Radio Two'])
+    expect(matchesOf(stations, ' RADIO TWO ').map((station) => station.name)).toEqual(['Radio Two'])
+    expect(matchesOf(stations, 'rock').map((station) => station.name)).toEqual(['Rock FM'])
+  })
+
+  it('takes the accents off the name and what was typed alike', () => {
+    const accented = stationsOf([{ name: 'FunX (Países Bajos)', genre: 'Afro', url: 'https://radio.example/fx' }])
+    expect(matchesOf(accented, 'paises')).toHaveLength(1)
+    expect(matchesOf(accented, 'PAÍSES')).toHaveLength(1)
+  })
+
+  it('is every station with nothing typed, and none that doesn’t match', () => {
+    expect(matchesOf(stations, '')).toHaveLength(4)
+    expect(matchesOf(stations, 'nothing like this')).toEqual([])
   })
 })

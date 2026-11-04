@@ -3,6 +3,7 @@ import { isInHost, postToHost } from '../shared/host'
 import { appleMusicPlayer, pauseAppleMusicWithGame } from './apps/music/pauseWithGame'
 import { keybinds } from './apps/keybinds'
 import { oneAtATime } from './apps/oneAtATime'
+import { installRadioCabSound } from './apps/radio/cabSound'
 import { pauseRadioWithGame } from './apps/radio/pauseWithGame'
 import { radioPlayer } from './apps/radio/radio'
 import { pauseSpotifyWithGame, spotifyPlayer } from './apps/spotify/pauseWithGame'
@@ -45,6 +46,8 @@ export function CabinApp() {
   useEffect(() => pauseRadioWithGame(), [])
   // One of them at a time: the newest to start plays on, the others pause (apps/oneAtATime.ts).
   useEffect(() => oneAtATime([youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer, radioPlayer]), [])
+  // The radio's sound through the truck's own speakers, as the players' music is (apps/radio/cabSound.ts).
+  useEffect(() => installRadioCabSound(), [])
   // The player's keybinds pressed in the game: the music's volume, or play/pause (apps/keybinds.ts).
   useEffect(() => followKeybinds(), [])
   // The clock where the truck is: its country's time zone, as the game's own clock (state/timeZone.ts).

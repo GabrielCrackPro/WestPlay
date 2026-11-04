@@ -24,6 +24,7 @@ mod play_log;
 mod player;
 mod pointer;
 mod radio;
+mod radio_proxy;
 pub mod route;
 mod route_change;
 pub mod settings;
@@ -250,6 +251,17 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let webview = OffscreenWebView::new(&stage, config.width, config.height, &config.data_dir.join("webview2"))?;
     stage.add(&webview, true)?;
     startup::mark("host: cabin browser (WebView2) ready");
+    // The cab page's own sound through the truck's speakers (the Radio app): the script the players' pages get,
+    // told the same speakers, head, tone and camera as they are.
+    webview.add_startup_script(include_str!("cab_sound.js"))?;
+    // The Radio app's way into the game's stations (radio_proxy.rs): a door of this PC's own, since the page is
+    // https and the stations are other people's servers — some on http alone — and a browser's graph plays silence
+    // for a stream it isn't allowed to hear.
+    let radio_proxy = radio_proxy::Stations::open();
+    let radio_proxy_base = radio_proxy.as_ref().map(|proxy| proxy.base().to_owned());
+    if radio_proxy.is_none() {
+        log!("the radio's stations have no door on this PC: the page plays them itself");
+    }
     match &config.content {
         Content::Url(url) => webview.navigate(url)?,
         Content::Html(html) => webview.navigate_to_string(html)?,
@@ -335,6 +347,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // The game's weather, kept to send again when the page reloads.
     let weather_watch = WeatherWatch::start(bridge.clone());
     let mut weather_message: Option<String> = None;
+    // The truck's speakers as last told to the cab page for its own sound (apps/radio: `cabSound`), sent again to
+    // a reloaded page.
+    let mut cab_sound_told: Option<String> = None;
     // Whether the game's window shows (as last told the page; sent again to a reloaded page).
     let mut game_shown = true;
     // Whether the game runs (its process, the plugin's pid), as last told the page. As it closes (or crashes)
@@ -786,7 +801,10 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         }
                     }
                     let _ = webview.post_json(&settings_message(&config.settings.get()));
-                    let _ = webview.post_json(&radio::stations_message(&radio::game_stations()));
+                    let stations = radio::stations_message(&radio::game_stations(), radio_proxy_base.as_deref());
+                    let _ = webview.post_json(&stations);
+                    // The speakers go again with the reloaded page, as they were last told.
+                    cab_sound_told = None;
                     if let Some(message) = &customize_message {
                         let _ = webview.post_json(message);
                     }
@@ -814,7 +832,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 Some(PageMessage::Spectrum { on }) => spectrum = on,
                 Some(PageMessage::CursorLight { light }) => cursor.set_light(light, Instant::now()),
                 Some(PageMessage::RadioStations) => {
-                    let _ = webview.post_json(&radio::stations_message(&radio::game_stations()));
+                    let stations = radio::stations_message(&radio::game_stations(), radio_proxy_base.as_deref());
+                    let _ = webview.post_json(&stations);
                 }
                 Some(PageMessage::Equalizer { equalizer: curve, custom }) => {
                     let sound = settings::SoundSettings { equalizer: curve.clamped(), custom };
@@ -1467,6 +1486,21 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             if let Some(player) = &spotify {
                 let _ = player.cab(truck_speakers, head, outside, distance, equalizer, spectrum);
+            }
+            // The cab page's own sound (the Radio app): the same speakers, head, tone and camera the players are
+            // told, for the sound its element makes (apps/radio/cabSound.ts).
+            let cab = serde_json::json!({
+                "type": "cabSound",
+                "speakers": truck_speakers,
+                "head": head,
+                "outside": outside,
+                "distance": distance,
+                "equalizer": equalizer,
+            })
+            .to_string();
+            if cab_sound_told.as_deref() != Some(cab.as_str()) {
+                cab_sound_told = Some(cab.clone());
+                let _ = webview.post_json(&cab);
             }
         }
 
