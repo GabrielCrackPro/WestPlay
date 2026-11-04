@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { formatGameTime, formatRealTime } from '../../../shared/format'
 import { type NoteRecord, useNotes } from '../../shell/notesShown'
+import { TrashGlyph } from '../../shell/TrashGlyph'
 import { type Language, useLanguage, useText } from '../../state/text'
 import './notificationsApp.css'
 
@@ -42,8 +43,8 @@ export function NotificationsApp() {
               <Count label={words.alerts} value={alerts} tone="alarm" />
               <Count label={words.warnings} value={warnings} tone="warn" />
               {history.length > 0 && (
-                <button type="button" className="notes-clear" onClick={clear}>
-                  {words.clear}
+                <button type="button" className="notes-clear" aria-label={words.clear} onClick={clear}>
+                  <TrashGlyph />
                 </button>
               )}
             </div>

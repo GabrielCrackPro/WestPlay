@@ -4,6 +4,7 @@ import { formatTripDistance, formatTripTime } from '../../shared/format'
 import type { PlannedRoute, RouteAction, RouteAnswer } from '../../shared/host'
 import { useKeyboard } from '../keyboard/store'
 import { usePlacePick } from './placePick'
+import { TrashGlyph } from '../shell/TrashGlyph'
 import { useLive } from '../state/store'
 import { type Strings, useText } from '../state/text'
 import { placesAhead } from './alongRoute'
@@ -240,8 +241,13 @@ function Home({
         <section>
           <div className="destinations-heading">
             <h3>{text.destinations.recents}</h3>
-            <button type="button" className="destinations-clear" onClick={clearRecents}>
-              {text.destinations.clearRecents}
+            <button
+              type="button"
+              className="destinations-clear"
+              aria-label={text.destinations.clearRecents}
+              onClick={clearRecents}
+            >
+              <TrashGlyph />
             </button>
           </div>
           <PlaceList places={recents} from={from} onChoose={onChoose} />

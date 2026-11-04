@@ -152,20 +152,25 @@
   gap: calc(12px * var(--text-scale, 1));
 }
 
+/* A bin in red, no word: the same button in every app that empties something (the recents here, searches
+   elsewhere), so clearing is always the one mark. */
 .destinations-clear {
-  padding: calc(6px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill);
-  color: var(--text-dim);
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 600;
-  transition:
-    background-color 160ms var(--motion-ease),
-    color 160ms var(--motion-ease);
+  display: grid;
+  place-items: center;
+  width: calc(44px * var(--text-scale, 1));
+  height: calc(44px * var(--text-scale, 1));
+  border-radius: 50%;
+  color: var(--apple-red);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.destinations-clear svg {
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
 }
 
 .destinations-clear:hover {
-  color: var(--text);
+  background: color-mix(in oklab, var(--apple-red) 16%, transparent);
 }
 
 /* The turn-by-turn banner on the Dashboard's map (MapView's tile is narrower than the Maps app's, and the widget

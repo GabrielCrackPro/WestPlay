@@ -97,19 +97,24 @@
   color: var(--apple-orange);
 }
 
-/* A capsule, filled as the native apps' secondary actions are. */
+/* The bin that empties the history: red, no word. */
 .notes-clear {
-  padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill);
-  font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 600;
-  color: var(--apple-label);
+  display: grid;
+  place-items: center;
+  width: calc(44px * var(--text-scale, 1));
+  height: calc(44px * var(--text-scale, 1));
+  border-radius: 50%;
+  color: var(--apple-red);
   transition: background-color 160ms var(--motion-ease);
 }
 
+.notes-clear svg {
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
+}
+
 .notes-clear:hover {
-  background: var(--apple-fill-secondary);
+  background: color-mix(in oklab, var(--apple-red) 16%, transparent);
 }
 
 /* The notes: one card, a row each, a hairline between (Settings' card of rows). */

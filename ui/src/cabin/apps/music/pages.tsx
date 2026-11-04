@@ -1,6 +1,7 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { TextField } from '../../keyboard/TextField'
+import { TrashGlyph } from '../../shell/TrashGlyph'
 import { useLanguage, useText } from '../../state/text'
 import {
   addToLibrary,
@@ -283,8 +284,8 @@ export function Search() {
         <section className="am-section">
           <div className="am-section-head">
             <h2>{text.appleMusic.recentlySearched}</h2>
-            <button type="button" className="am-link" onClick={clearRecent}>
-              {text.appleMusic.clear}
+            <button type="button" className="am-clear" aria-label={text.appleMusic.clear} onClick={clearRecent}>
+              <TrashGlyph />
             </button>
           </div>
           <div className="am-shelf">

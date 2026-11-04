@@ -904,16 +904,22 @@
 }
 
 .youtube-app .yt-clear {
-  height: 40px;
-  padding-inline: 16px;
-  border-radius: 20px;
-  font-size: calc(20px * var(--text-scale, 1));
-  font-weight: 500;
-  color: #3ea6ff;
+  display: grid;
+  place-items: center;
+  width: calc(44px * var(--text-scale, 1));
+  height: calc(44px * var(--text-scale, 1));
+  border-radius: 50%;
+  color: var(--apple-red);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.youtube-app .yt-clear svg {
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
 }
 
 .youtube-app .yt-clear:active {
-  background: rgb(62 166 255 / 0.15);
+  background: color-mix(in oklab, var(--apple-red) 16%, transparent);
 }
 
 /* The layer over the CarPlay area for what's drawn over the video where it shows through (VideoHole.tsx):

@@ -827,8 +827,25 @@
   height: 28px;
 }
 
+/* The bin that forgets the searches: red, no word. */
 .spotify-app .sp-clear-recent {
   align-self: center;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--apple-red);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.spotify-app .sp-clear-recent svg {
+  width: 23px;
+  height: 23px;
+}
+
+.spotify-app .sp-clear-recent:active {
+  background: color-mix(in oklab, var(--apple-red) 16%, transparent);
 }
 
 /* An explicit song's E. */
