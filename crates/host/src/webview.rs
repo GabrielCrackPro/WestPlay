@@ -656,7 +656,7 @@ impl Drop for OffscreenWebView {
 
 /// The page for [`OffscreenWebView::fit`]: `width` x `height` grown evenly until it fills `room` one way,
 /// and how much to shrink it by to be `width` x `height` again.
-fn fitted((room_width, room_height): (u32, u32), width: u32, height: u32) -> (u32, u32, f32) {
+pub(crate) fn fitted((room_width, room_height): (u32, u32), width: u32, height: u32) -> (u32, u32, f32) {
     let (width, height) = (width.max(1) as f32, height.max(1) as f32);
     let grow = (room_width as f32 / width).min(room_height as f32 / height).max(1.0);
     ((width * grow).round() as u32, (height * grow).round() as u32, 1.0 / grow)

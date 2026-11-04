@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { TextField } from '../../keyboard/TextField'
+import { useKeyboard } from '../../keyboard/store'
 import { useText } from '../../state/text'
 import {
   back,
@@ -12,27 +13,39 @@ import {
   reload,
   setAddress,
   toggleBookmark,
+  typeIntoPage,
   useBrowser,
 } from './browser'
 import { PageHole } from './PageHole'
 import './browser.css'
 
+/** The address field's id, and the field the page's own typing goes through. */
+const ADDRESS = 'browser-address'
+const PAGE = 'browser-page'
+
 /**
  * The Browser app: the web in the cabin, its toolbar laid out as CarPlay's browsers lay theirs — Back,
  * Forward, Reload, the address, and the page's bookmark — over the page or, with no page open, over the
  * start page's bookmarks. The page itself is the host's (crates/host browser_web.rs): this draws what goes
- * round it and says where.
+ * round it, says where, and passes the player's pointer and typing to it.
+ *
+ * A field of the page with its focus takes the title row's place: the cabin's keyboard types there, as it
+ * types into any of WestPlay's fields, and each change goes to the page's field as it was typed.
  */
 export function BrowserApp() {
   const text = useText()
   const page = useBrowser((store) => store.state)
   const address = useBrowser((store) => store.address)
   const refused = useBrowser((store) => store.refused)
+  const editable = useBrowser((store) => store.editable)
   const bookmarks = useBrowser((store) => store.bookmarks)
   const saved = page !== null && bookmarks.some((bookmark) => bookmark.url === page.url)
+  // The cabin's keyboard is up for the page's field: the page stays above it (the CarPlay area's mask would
+  // cut the keyboard out over the page's picture).
+  const keyboardUp = useKeyboard((state) => state.field?.id === PAGE)
 
   return (
-    <section className="app-panel browser-app" aria-label={text.apps.browser}>
+    <section className={`app-panel browser-app${keyboardUp ? ' keyboard-up' : ''}`} aria-label={text.apps.browser}>
       <div className="browser-bar">
         <button
           type="button"
@@ -53,7 +66,7 @@ export function BrowserApp() {
           <Forward />
         </button>
         <TextField
-          id="browser-address"
+          id={ADDRESS}
           value={address}
           onChange={setAddress}
           onSubmit={() => openAddress(address)}
@@ -91,7 +104,10 @@ export function BrowserApp() {
       </div>
 
       <div className="browser-now">
-        {page ? (
+        {editable ? (
+          // A new page starts its typing afresh (nothing typed stands from the one before).
+          <PageField key={page?.url ?? ''} hint={text.browser.pageHint} />
+        ) : page ? (
           <>
             <span className="browser-title">{page.title || hostOf(page.url)}</span>
             <span className="browser-url">{hostOf(page.url)}</span>
@@ -105,6 +121,31 @@ export function BrowserApp() {
       {page ? <PageHole /> : <StartPage bookmarks={bookmarks} />}
     </section>
   )
+}
+
+/**
+ * A field of the page's, while it has the focus: the cabin's keyboard is up on it, and each change goes to the
+ * page's own field as it was typed (what was added, or as many backspaces as it took away). It's only on
+ * screen while the page has the field, so its text is what's been typed since then.
+ */
+function PageField({ hint }: { hint: string }) {
+  const [typed, setTyped] = useState('')
+  const written = useRef('')
+  const type = (next: string) => {
+    const before = written.current
+    written.current = next
+    setTyped(next)
+    if (next.length > before.length && next.startsWith(before)) typeIntoPage({ text: next.slice(before.length) })
+    else if (next.length < before.length) {
+      for (let left = before.length; left > next.length; left--) typeIntoPage({ key: 'backspace' })
+    }
+  }
+  const submit = () => {
+    written.current = ''
+    setTyped('')
+    typeIntoPage({ key: 'enter' })
+  }
+  return <TextField id={PAGE} value={typed} onChange={type} onSubmit={submit} hint={hint} label={hint} selectOnShow />
 }
 
 /** Nothing open: the bookmarks, as big tiles (a new browser's would be empty). */

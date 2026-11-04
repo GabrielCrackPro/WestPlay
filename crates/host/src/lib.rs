@@ -421,6 +421,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // (sent again when the page reloads): its address and title.
     let mut browser_web: Option<browser_web::Browser> = None;
     let mut browser_message: Option<String> = None;
+    // Whether the Browser's page has a field to type into, as last told (the cabin's keyboard types there).
+    let mut browser_focus_message: Option<String> = None;
     // The settings generation last applied (`None`: apply them once at startup).
     let mut applied_settings = None;
     // Each keybind's presses the page was told of (`PluginBlock::keybind_presses`).
@@ -814,7 +816,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         let _ = webview.post_json(message);
                     }
                     let youtube = youtube_message.iter().chain(&youtube_account_message);
-                    let browser = browser_message.iter();
+                    let browser = browser_message.iter().chain(&browser_focus_message);
                     let all = player_messages.iter().chain(route).chain(&weather_message).chain(youtube).chain(browser);
                     for message in all {
                         let _ = webview.post_json(message);
@@ -922,9 +924,19 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                             closing.close(&stage);
                         }
                         browser_message = None;
+                        browser_focus_message = None;
                         let _ = webview.post_json(&browser_web::state_message(None));
-                    } else if browser_web.is_none() && matches!(command, browser_web::Command::Hide) {
-                        // Nothing to hide: the Browser isn't running (a page reloading says it anyway).
+                        let _ = webview.post_json(&browser_web::focus_message(false));
+                    } else if browser_web.is_none()
+                        && matches!(
+                            command,
+                            browser_web::Command::Hide
+                                | browser_web::Command::Pointer { .. }
+                                | browser_web::Command::Type { .. }
+                        )
+                    {
+                        // Nothing to hide or point at or type into: the Browser isn't running (a page reloading
+                        // says it anyway).
                     } else if let Some(page) = start_browser(&mut browser_web, &stage, &config) {
                         page.command(&command);
                     }
@@ -1452,11 +1464,23 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     failed.close(&stage);
                 }
                 browser_message = None;
+                browser_focus_message = None;
                 let _ = webview.post_json(&browser_web::state_message(None));
-            } else if let Some(state) = page.take_state() {
-                let message = browser_web::state_message(Some(&state));
-                let _ = webview.post_json(&message);
-                browser_message = Some(message);
+            } else {
+                for report in page.take_reports() {
+                    match report {
+                        browser_web::Report::State(state) => {
+                            let message = browser_web::state_message(Some(&state));
+                            let _ = webview.post_json(&message);
+                            browser_message = Some(message);
+                        }
+                        browser_web::Report::Focus(editable) => {
+                            let message = browser_web::focus_message(editable);
+                            let _ = webview.post_json(&message);
+                            browser_focus_message = Some(message);
+                        }
+                    }
+                }
             }
         }
 

@@ -718,6 +718,8 @@ export interface Strings {
     startHint: string
     noBookmarks: string
     cannotOpen: string
+    /** The field of the page's, while it has the focus (the cabin's keyboard types there). */
+    pageHint: string
     close: string
   }
   apps: Record<AppId, string>
@@ -1415,6 +1417,7 @@ const ENGLISH_STRINGS: Strings = {
     startHint: 'Type an address above, then add it as a bookmark to open it again from here.',
     noBookmarks: 'No Bookmarks',
     cannotOpen: 'That isn’t a web address.',
+    pageHint: 'Type into the page',
     close: 'Close Page',
   },
   apps: {
@@ -2131,6 +2134,7 @@ const TURKISH_STRINGS: Strings = {
     startHint: 'Yukarıya bir adres yaz, sonra buradan yeniden açmak için yer imlerine ekle.',
     noBookmarks: 'Yer İmi Yok',
     cannotOpen: 'Bu bir web adresi değil.',
+    pageHint: 'Sayfaya yaz',
     close: 'Sayfayı Kapat',
   },
   apps: {
@@ -2859,6 +2863,7 @@ const SPANISH_STRINGS: Strings = {
     startHint: 'Escribe una dirección arriba y añádela a marcadores para volver a abrirla desde aquí.',
     noBookmarks: 'Sin marcadores',
     cannotOpen: 'Eso no es una dirección web.',
+    pageHint: 'Escribe en la página',
     close: 'Cerrar página',
   },
   apps: {

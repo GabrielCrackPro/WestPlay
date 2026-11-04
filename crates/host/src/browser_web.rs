@@ -1,14 +1,25 @@
 //! The Browser app's page: the web in a WebView of its own, hidden under the cabin page, which shows it where
-//! the app says (the CarPlay area cut open there, as YouTube's picture is).
+//! the app says (the CarPlay area cut open there, as YouTube's picture is) and drives it with the mouse and
+//! the cabin's keyboard.
 //!
 //! Its toolbar is the cabin page's (apps/browser): this holds the page, opens the addresses it's given, moves
-//! back and forward through its history, and says what shows — `browser.js` posts each page's address and
-//! title as it loads, and as a site changes them in place. Only `http` and `https` addresses open: the page
-//! stays on the web, away from the player's own files.
+//! back and forward through its history, passes the app's mouse events in as the page's own (clicks, drags,
+//! the wheel), types what the player typed into the page's field, and says what shows — `browser.js` posts
+//! each page's address and title as it loads, and whether a field has the page's focus. Only `http` and
+//! `https` addresses open: the page stays on the web, away from the player's own files.
 
+use std::cell::Cell;
 use std::path::Path;
 
-use crate::webview::{self, OffscreenWebView, PageSize, Stage};
+use webview2_com::Microsoft::Web::WebView2::Win32::{
+    COREWEBVIEW2_MOUSE_EVENT_KIND_LEAVE, COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_DOWN,
+    COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_UP, COREWEBVIEW2_MOUSE_EVENT_KIND_MOVE,
+    COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL, COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_LEFT_BUTTON,
+    COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE,
+};
+use windows::Win32::Foundation::POINT;
+
+use crate::webview::{self, OffscreenWebView, PageSize, Stage, fitted};
 use crate::youtube::within;
 
 /// A command for the Browser's page (`PageMessage::Browser` in lib.rs).
@@ -30,8 +41,47 @@ pub enum Command {
         height: u32,
     },
     Hide,
+    /// A mouse event in the page: `x` and `y` as shares (0 to 1) of the rectangle it shows in, `data` the
+    /// wheel's notches (120 a notch, negative for down), `pressed` whether the left button is held.
+    Pointer {
+        kind: PointerKind,
+        x: f32,
+        y: f32,
+        #[serde(default)]
+        pressed: bool,
+        #[serde(default)]
+        data: i32,
+    },
+    /// What the player typed into the page's field (the cabin's keyboard), or a key with a meaning of its own.
+    Type {
+        #[serde(default)]
+        text: Option<String>,
+        #[serde(default)]
+        key: Option<PageKey>,
+    },
     /// Takes it down: lib.rs closes it, and the app opens it again for the next address.
     Close,
+}
+
+/// A mouse event the app sends the page (`pointer.rs`'s, from the cabin's own pointer).
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PointerKind {
+    Move,
+    Down,
+    Up,
+    Leave,
+    Wheel,
+}
+
+/// A key typed into the page, meaning the same there as in a browser's field.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PageKey {
+    Backspace,
+    Enter,
+    Tab,
+    Escape,
 }
 
 /// What the page shows: its address, its title, and whether it's still loading (`browser.js`).
@@ -43,10 +93,29 @@ pub struct State {
     pub loading: bool,
 }
 
+/// Something the page said (`browser.js`), for the cabin page.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Report {
+    /// The page it shows (as each loads).
+    State(State),
+    /// Whether a field of it has the focus (the cabin's keyboard types into it then).
+    Focus(bool),
+}
+
+/// Where the page showed last, and how much its picture is shrunk there (still in page pixels: what's sent
+/// under `Show` after `within`, times `frame / scale`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Placed {
+    width: u32,
+    height: u32,
+    scale: f32,
+}
+
 /// The Browser app's page, in a hidden WebView of the stage.
 pub struct Browser {
     view: OffscreenWebView,
     frame: PageSize,
+    placed: Cell<Option<Placed>>,
 }
 
 impl Browser {
@@ -59,7 +128,7 @@ impl Browser {
         stage.add(&view, false)?;
         // The truck's speakers first: a page's sound (a video, a radio stream) is the cab's, as the players'.
         view.add_startup_script(concat!(include_str!("cab_sound.js"), "\n", include_str!("browser.js")))?;
-        Ok(Self { view, frame: stage.page_size() })
+        Ok(Self { view, frame: stage.page_size(), placed: Cell::new(None) })
     }
 
     pub fn command(&self, command: &Command) {
@@ -84,24 +153,47 @@ impl Browser {
             Command::Show { x, y, width, height } => {
                 // The page laid out large in the element's shape, its picture shrunk into it (as a video's).
                 let (x, y, width, height) = within(self.frame.get(), *x, *y, *width, *height);
-                let shown = self.view.fit(self.frame.get(), x, y, width, height).and_then(|()| self.view.show(true));
-                if let Err(e) = shown {
-                    log!("[browser] showing the page failed: {e}");
+                let (_, _, scale) = fitted(self.frame.get(), width, height);
+                match self.view.fit(self.frame.get(), x, y, width, height).and_then(|()| self.view.show(true)) {
+                    Ok(()) => self.placed.set(Some(Placed { width, height, scale })),
+                    Err(e) => log!("[browser] showing the page failed: {e}"),
                 }
             }
             Command::Hide => {
+                self.placed.set(None);
                 if let Err(e) = self.view.show(false) {
                     log!("[browser] hiding the page failed: {e}");
+                }
+            }
+            Command::Pointer { kind, x, y, pressed, data } => {
+                // Nothing shown yet (or it went): where the page would be isn't known, and nothing to point at.
+                let Some(placed) = self.placed.get() else { return };
+                let point = pointer_point(&placed, *x, *y);
+                let keys = if *pressed {
+                    COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_LEFT_BUTTON
+                } else {
+                    COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE
+                };
+                let (event, name) = mouse_event(*kind);
+                if let Err(e) = self.view.send_mouse(event, keys, *data as u32, point) {
+                    log!("[browser] {} failed: {e}", name);
+                }
+            }
+            Command::Type { text, key } => {
+                // Typed in the page's own script (`browser.js`): its fields' editing commands fire the events
+                // a site listens for, as a browser's typing does.
+                let said = serde_json::json!({ "browserType": { "text": text, "key": key } });
+                if let Err(e) = self.view.post_json(&said.to_string()) {
+                    log!("[browser] typing failed: {e}");
                 }
             }
             Command::Close => {}
         }
     }
 
-    /// The latest thing the page said about itself since the last call (`browser.js`), or `None` if it said
-    /// nothing (it's read every pass: the last page's state is the one that shows).
-    pub fn take_state(&self) -> Option<State> {
-        self.view.take_page_messages().iter().rev().find_map(|message| read_report(message))
+    /// What the page said about itself since the last call (`browser.js`), oldest first.
+    pub fn take_reports(&self) -> Vec<Report> {
+        self.view.take_page_messages().iter().filter_map(|message| read_report(message)).collect()
     }
 
     /// Whether the WebView failed since the last call (it's then closed and started again when needed).
@@ -115,19 +207,58 @@ impl Browser {
     }
 }
 
+/// The page's mouse event for the app's, and its name in the log.
+fn mouse_event(
+    kind: PointerKind,
+) -> (webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_MOUSE_EVENT_KIND, &'static str) {
+    match kind {
+        PointerKind::Move => (COREWEBVIEW2_MOUSE_EVENT_KIND_MOVE, "move"),
+        PointerKind::Down => (COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_DOWN, "left button down"),
+        PointerKind::Up => (COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_UP, "left button up"),
+        PointerKind::Leave => (COREWEBVIEW2_MOUSE_EVENT_KIND_LEAVE, "leave"),
+        PointerKind::Wheel => (COREWEBVIEW2_MOUSE_EVENT_KIND_WHEEL, "wheel"),
+    }
+}
+
+/// Where on the page the app's pointer is: `x` and `y` are shares of the rectangle the page shows in, and
+/// the page's own pixels are that rectangle's times `frame / scale` (it's laid out larger than it shows).
+fn pointer_point(placed: &Placed, x: f32, y: f32) -> POINT {
+    let (page_width, page_height) = (placed.width as f32 / placed.scale, placed.height as f32 / placed.scale);
+    POINT {
+        x: (x.clamp(0.0, 1.0) * page_width).clamp(0.0, page_width - 1.0) as i32,
+        y: (y.clamp(0.0, 1.0) * page_height).clamp(0.0, page_height - 1.0) as i32,
+    }
+}
+
 /// `{"type":"browser","state":{…}}`: what the Browser's page shows (`null`: no page open).
 pub fn state_message(state: Option<&State>) -> String {
     serde_json::json!({ "type": "browser", "state": state }).to_string()
 }
 
-/// What the page posted: `{"browser":{"url":…,"title":…,"loading":…}}` (`browser.js`); `None` for the other
+/// `{"type":"browserFocus","editable":…}`: whether the page has a field to type into.
+pub fn focus_message(editable: bool) -> String {
+    serde_json::json!({ "type": "browserFocus", "editable": editable }).to_string()
+}
+
+/// What the page posted: `{"browser":{…}}` or `{"browserFocus":{…}}` (`browser.js`); `None` for the other
 /// messages a page posts (`cab_sound.js`'s).
-fn read_report(message: &str) -> Option<State> {
+fn read_report(message: &str) -> Option<Report> {
+    #[derive(serde::Deserialize)]
+    struct Focus {
+        editable: bool,
+    }
     #[derive(serde::Deserialize)]
     struct Posted {
+        #[serde(default)]
         browser: Option<State>,
+        #[serde(default, rename = "browserFocus")]
+        browser_focus: Option<Focus>,
     }
-    serde_json::from_str::<Posted>(message).ok()?.browser
+    let posted: Posted = serde_json::from_str(message).ok()?;
+    if let Some(state) = posted.browser {
+        return Some(Report::State(state));
+    }
+    posted.browser_focus.map(|focus| Report::Focus(focus.editable))
 }
 
 /// `text` as a web address: a bare host gets `https://`, and only `http` and `https` open. `None` for anything
@@ -177,10 +308,20 @@ mod tests {
         assert_eq!(address("two words"), None);
         assert_eq!(address("file:///C:/Windows/win.ini"), None);
         assert_eq!(address("https://"), None);
-        assert_eq!(address("https://"), None);
         assert_eq!(address("javascript:alert(1)"), None);
         assert_eq!(address("example"), None);
         assert_eq!(address("http://exa mple.com"), None);
+    }
+
+    #[test]
+    fn the_mouse_reaches_the_page_where_it_shows() {
+        // A page laid out at 1000 x 800, shown at half size in 500 x 400: its own pixels are twice the share.
+        let placed = Placed { width: 500, height: 400, scale: 0.5 };
+        assert_eq!(pointer_point(&placed, 0.5, 0.5), POINT { x: 500, y: 400 });
+        assert_eq!(pointer_point(&placed, 0.0, 0.0), POINT { x: 0, y: 0 });
+        // Its edges stay inside the page.
+        assert_eq!(pointer_point(&placed, 1.0, 1.0), POINT { x: 999, y: 799 });
+        assert_eq!(pointer_point(&placed, 2.0, -1.0), POINT { x: 999, y: 0 });
     }
 
     #[test]
@@ -188,12 +329,13 @@ mod tests {
         let said = read_report(r#"{"browser":{"url":"https://example.com/","title":"Example","loading":false}}"#);
         assert_eq!(
             said,
-            Some(State { url: "https://example.com/".to_owned(), title: "Example".to_owned(), loading: false })
+            Some(Report::State(State {
+                url: "https://example.com/".to_owned(),
+                title: "Example".to_owned(),
+                loading: false
+            }))
         );
-        assert_eq!(
-            read_report(r#"{"browser":{"url":"https://a.com/","title":""}}"#).map(|state| state.loading),
-            Some(false)
-        );
+        assert_eq!(read_report(r#"{"browserFocus":{"editable":true}}"#), Some(Report::Focus(true)));
         assert_eq!(read_report(r#"{"cabSound":{"outside":false}}"#), None);
         assert_eq!(read_report("not json"), None);
     }

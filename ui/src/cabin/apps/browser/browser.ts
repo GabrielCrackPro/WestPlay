@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { type BrowserCommand, type BrowserState, postToHost } from '../../../shared/host'
+import {
+  type BrowserCommand,
+  type BrowserKey,
+  type BrowserPointer,
+  type BrowserState,
+  postToHost,
+} from '../../../shared/host'
 
 /**
  * The Browser app: a web page in the cabin, shown by the host under the CarPlay area (westplay_host::
@@ -16,6 +22,8 @@ interface BrowserStore {
   address: string
   /** The address typed isn't one the web can open (the toolbar says so). */
   refused: boolean
+  /** Whether a field of the page has its focus: the cabin's keyboard types into it then. */
+  editable: boolean
   /** The start page's tiles, newest first. */
   bookmarks: Bookmark[]
   /** Where the page shows through the CarPlay area, in its CSS pixels (Shell.tsx cuts it open there). */
@@ -40,17 +48,20 @@ export interface Bookmark {
 const BOOKMARKS_KEPT = 24
 
 export const useBrowser = create<BrowserStore>()(
-  persist((): BrowserStore => ({ state: null, address: '', refused: false, bookmarks: [], hole: null }), {
-    name: 'westplay.browser',
-    version: 1,
-    storage: createJSONStorage(() => localStorage),
-    partialize: (store) => ({ bookmarks: store.bookmarks }),
-    // Kept by an earlier WestPlay (or edited): only web addresses, each once.
-    merge: (stored, current) => ({
-      ...current,
-      bookmarks: keptBookmarks((stored as Partial<BrowserStore> | undefined)?.bookmarks),
-    }),
-  }),
+  persist(
+    (): BrowserStore => ({ state: null, address: '', refused: false, editable: false, bookmarks: [], hole: null }),
+    {
+      name: 'westplay.browser',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (store) => ({ bookmarks: store.bookmarks }),
+      // Kept by an earlier WestPlay (or edited): only web addresses, each once.
+      merge: (stored, current) => ({
+        ...current,
+        bookmarks: keptBookmarks((stored as Partial<BrowserStore> | undefined)?.bookmarks),
+      }),
+    },
+  ),
 )
 
 /** The bookmarks kept of `saved`: web addresses only, each once, the newest first. */
@@ -95,6 +106,16 @@ export function openAddress(text: string): void {
   command({ action: 'open', url })
 }
 
+/** A mouse event for the page, as it happens (the page's own chrome: clicks, drags, the wheel). */
+export function pointer(event: { kind: BrowserPointer; x: number; y: number; pressed: boolean; data?: number }): void {
+  command({ action: 'pointer', ...event })
+}
+
+/** Text the player typed, or a key with its own meaning, into the field the page has focused. */
+export function typeIntoPage(event: { text?: string; key?: BrowserKey }): void {
+  command({ action: 'type', ...event })
+}
+
 /** Opens one of the start page's bookmarks. */
 export function openBookmark(bookmark: Bookmark): void {
   openAddress(bookmark.url)
@@ -121,7 +142,7 @@ export function reload(): void {
 /** Leaves the page for the start page: its WebView closes, and the app opens it again for the next address. */
 export function closePage(): void {
   command({ action: 'close' })
-  useBrowser.setState({ state: null, address: '', refused: false })
+  useBrowser.setState({ state: null, address: '', refused: false, editable: false })
 }
 
 /** Keeps the page as a bookmark, or forgets it. */
@@ -140,7 +161,16 @@ export function toggleBookmark(url: string, title: string): void {
 
 /** What the Browser's page says shows (its address and title), as each page loads. */
 export function receiveBrowserState(state: BrowserState | null): void {
-  useBrowser.setState((store) => ({ state, address: state?.url ?? store.address }))
+  useBrowser.setState((store) => ({
+    state,
+    address: state?.url ?? store.address,
+    editable: state ? store.editable : false,
+  }))
+}
+
+/** Whether the page has a field to type into, as it says as its focus moves. */
+export function receiveBrowserFocus(editable: boolean): void {
+  useBrowser.setState({ editable })
 }
 
 /** The host's name for an address, as a bookmark tile shows it ("example.com"). */

@@ -53,15 +53,22 @@
   min-width: 0;
 }
 
+/* The title strip, and a field of the page's taking its place while it has the focus: one height, so the page
+   doesn't move when the keyboard comes up. */
 .browser-now {
   display: flex;
   flex: 0 0 auto;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-  min-height: 18px;
+  height: 44px;
   padding: 0 6px;
   font-size: 13px;
   line-height: 18px;
+}
+
+.browser-now .text-field {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .browser-title {
@@ -100,12 +107,22 @@
   }
 }
 
-/* Where the page shows: its picture is the host's, cut out of the CarPlay area here. */
+/* Where the page shows: its picture is the host's, cut out of the CarPlay area here, and the pointer over it
+   is the page's own. */
 .browser-page {
   flex: 1 1 auto;
   min-height: 0;
   border-radius: 18px;
   background: #0b0b0e;
+  touch-action: none;
+  user-select: none;
+}
+
+/* The cabin's keyboard is up for the page's field: the page stops above it (the mask that cuts the page's
+   picture out of the CarPlay area would cut the keyboard out too). The keyboard is 40px from the bottom of
+   the screen and 336px tall (keyboard.css), with a little air over it. */
+.browser-app.keyboard-up .browser-page {
+  margin-bottom: 404px;
 }
 
 .browser-start {
