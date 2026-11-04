@@ -166,13 +166,35 @@
 }
 
 .notes-item {
+  min-width: 0;
+}
+
+/* A note's row: the clock, what it says, and how serious it was. A note that can open an app (a fuel or rest
+   stop, a fault's readings) is a button: the row is pressed and the app comes. */
+.notes-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: calc(14px * var(--text-scale, 1));
+  width: 100%;
   min-height: calc(82px * var(--text-scale, 1));
   padding: calc(12px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
-  min-width: 0;
+  text-align: left;
+}
+
+.notes-row.link {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.notes-row.link:hover {
+  background: color-mix(in oklab, var(--apple-label) 6%, transparent);
+}
+
+.notes-chevron {
+  width: calc(22px * var(--text-scale, 1));
+  height: calc(22px * var(--text-scale, 1));
+  color: var(--apple-label-tertiary);
 }
 
 /* A hairline between notes, starting where their text does and running to the card's edge, which is how a

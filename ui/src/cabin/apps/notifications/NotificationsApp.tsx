@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { formatGameTime, formatRealTime } from '../../../shared/format'
 import { type NoteRecord, useNotes } from '../../shell/notesShown'
+import { go } from '../../state/store'
 import { TrashGlyph } from '../../shell/TrashGlyph'
 import { type Language, useLanguage, useText } from '../../state/text'
 import './notificationsApp.css'
@@ -91,6 +92,8 @@ export function NotificationsApp() {
                   day={dayOf(note.at, language)}
                   alert={words.alert}
                   warning={words.warning}
+                  openMaps={words.openMaps}
+                  openDiagnostics={words.openDiagnostics}
                 />
               ))}
             </ol>
@@ -111,21 +114,30 @@ function Count({ label, value, tone }: { label: string; value: number; tone: 'al
   )
 }
 
-/** One note: when it came, its reading and what that reading says, and how serious it was. */
+/**
+ * One note: when it came, its reading and what that reading says, and how serious it was. A note that can open an
+ * app (a fuel or rest stop, a fault's readings) is a row to press: pressed, the app that's about it comes.
+ */
 function NoteRow({
   note,
   day,
   alert,
   warning,
+  openMaps,
+  openDiagnostics,
 }: {
   note: NoteRecord
   /** The day it came, for a note from before today (the list outlives a restart); null for today's. */
   day: string | null
   alert: string
   warning: string
+  openMaps: string
+  openDiagnostics: string
 }) {
-  return (
-    <li className={`notes-item ${note.tone}`}>
+  const action = note.action ?? null
+  const actionLabel = action === 'maps' ? openMaps : action === 'diagnostics' ? openDiagnostics : null
+  const content = (
+    <>
       {/* The game's clock, which the rest clocks are counted in; the player's own when the game sent none. */}
       <span className="notes-clock">
         <span className="notes-time">{formatGameTime(note.clock ?? realMinutes(note.at))}</span>
@@ -140,7 +152,40 @@ function NoteRow({
       <span className="notes-tone" role="img" aria-label={note.tone === 'alarm' ? alert : warning}>
         <ToneGlyph tone={note.tone} />
       </span>
+    </>
+  )
+  return (
+    <li className={`notes-item ${note.tone}`}>
+      {action && actionLabel ? (
+        <button
+          type="button"
+          className="notes-row link"
+          aria-label={`${note.title}. ${actionLabel}`}
+          onClick={() => go({ type: 'openApp', app: action })}
+        >
+          {content}
+          <ChevronGlyph />
+        </button>
+      ) : (
+        <div className="notes-row">{content}</div>
+      )}
     </li>
+  )
+}
+
+/** A row with somewhere to go: the chevron a list row has at its end in Settings. */
+function ChevronGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="notes-chevron" aria-hidden="true">
+      <path
+        d="m9.5 5 7 7-7 7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
