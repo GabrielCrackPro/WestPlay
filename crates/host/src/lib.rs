@@ -7,6 +7,7 @@
 pub mod log;
 mod apple_music;
 pub mod browser;
+mod browser_web;
 mod camera;
 mod capture;
 mod cursor;
@@ -416,6 +417,10 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut youtube_music_state: Option<youtube_music::State> = None;
     let (mut youtube_music_window_open, mut youtube_music_confirming) = (false, false);
     let mut youtube_music_playback: Option<String> = None;
+    // The Browser app's page, while the app uses it (on a WebView2 profile of its own), and what it last said
+    // (sent again when the page reloads): its address and title.
+    let mut browser_web: Option<browser_web::Browser> = None;
+    let mut browser_message: Option<String> = None;
     // The settings generation last applied (`None`: apply them once at startup).
     let mut applied_settings = None;
     // Each keybind's presses the page was told of (`PluginBlock::keybind_presses`).
@@ -809,7 +814,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         let _ = webview.post_json(message);
                     }
                     let youtube = youtube_message.iter().chain(&youtube_account_message);
-                    let all = player_messages.iter().chain(route).chain(&weather_message).chain(youtube);
+                    let browser = browser_message.iter();
+                    let all = player_messages.iter().chain(route).chain(&weather_message).chain(youtube).chain(browser);
                     for message in all {
                         let _ = webview.post_json(message);
                     }
@@ -908,6 +914,19 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         {
                             let _ = youtube.reload();
                         }
+                    }
+                }
+                Some(PageMessage::Browser { command }) => {
+                    if command == browser_web::Command::Close {
+                        if let Some(closing) = browser_web.take() {
+                            closing.close(&stage);
+                        }
+                        browser_message = None;
+                        let _ = webview.post_json(&browser_web::state_message(None));
+                    } else if browser_web.is_none() && matches!(command, browser_web::Command::Hide) {
+                        // Nothing to hide: the Browser isn't running (a page reloading says it anyway).
+                    } else if let Some(page) = start_browser(&mut browser_web, &stage, &config) {
+                        page.command(&command);
                     }
                 }
                 Some(PageMessage::Typing { selection }) => {
@@ -1417,6 +1436,27 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     let message = youtube_music::state_message(youtube_music_state.as_ref(), signing_in);
                     let _ = webview.post_json(&message);
                 }
+            }
+        }
+
+        // What the Browser app's page shows (its address and title), for its toolbar; its WebView failing closes
+        // it (the app opens it again for the next address).
+        if let Some(page) = &browser_web {
+            if page.failed() || players_closing {
+                if players_closing {
+                    log!("[browser] closed with the game");
+                } else {
+                    log!("[browser] its browser failed: closed, the app opens it again");
+                }
+                if let Some(failed) = browser_web.take() {
+                    failed.close(&stage);
+                }
+                browser_message = None;
+                let _ = webview.post_json(&browser_web::state_message(None));
+            } else if let Some(state) = page.take_state() {
+                let message = browser_web::state_message(Some(&state));
+                let _ = webview.post_json(&message);
+                browser_message = Some(message);
             }
         }
 
@@ -1990,6 +2030,26 @@ fn start_spotify<'a>(
     spotify.as_ref()
 }
 
+/// The Browser app's page, started as the app first opens an address (on a WebView2 profile of its own: what it
+/// signs in to, or keeps, belongs to no other page), or `None` if it couldn't start.
+fn start_browser<'a>(
+    browser_web: &'a mut Option<browser_web::Browser>,
+    stage: &Stage,
+    config: &Config,
+) -> Option<&'a browser_web::Browser> {
+    if browser_web.is_none() {
+        let user_data = config.data_dir.join("webview2-browser");
+        match browser_web::Browser::start(stage, config.width, config.height, &user_data) {
+            Ok(started) => {
+                log!("[browser] opened");
+                *browser_web = Some(started)
+            }
+            Err(e) => startup::mark(&format!("host: the Browser couldn't start: {e}")),
+        }
+    }
+    browser_web.as_ref()
+}
+
 fn build_pipeline(
     config: &Config,
     stage: &Stage,
@@ -2092,6 +2152,8 @@ enum PageMessage {
     AppleMusic { command: apple_music::Command },
     /// A command for YouTube Music's web player (`youtubeMusic`): its sign-in, a question, its controls.
     YoutubeMusic { command: youtube_music::Command },
+    /// A command for the Browser app's page (`browser`): the address to open, how it moves, where it shows.
+    Browser { command: browser_web::Command },
     /// The text field selected on the page, a number that changes with every selection (0: none), for the
     /// player's own keyboard to type into (`typing`).
     Typing { selection: u32 },

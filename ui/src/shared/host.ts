@@ -335,6 +335,8 @@ export type HostMessage =
   | ({ type: 'spotifyAnswer'; id: number; failed?: boolean } & Partial<SpotifyAnswers>)
   /** What Spotify plays (on WestPlay, or elsewhere on the account through Spotify Connect); `null`: nothing. */
   | { type: 'spotifyPlayback'; playback: SpotifyPlayback | null }
+  /** What the Browser app's page shows: its address and title (`null`: no page open, or its WebView closed). */
+  | { type: 'browser'; state: BrowserState | null }
   /** Apple Music's web player: whether it's signed in and playing (`null`: not running), and whether its
    * sign-in window is open on the PC. */
   | {
@@ -447,6 +449,8 @@ export type PageMessage =
   | { type: 'appleMusic'; command: AppleMusicCommand }
   /** A command for YouTube Music's web player (`westplay_host::youtube_music::Command`). */
   | { type: 'youtubeMusic'; command: YouTubeMusicCommand }
+  /** A command for the Browser app's page (`westplay_host::browser_web::Command`). */
+  | { type: 'browser'; command: BrowserCommand }
 
 /** What the Spotify app asks of Spotify's web player (`westplay_host::spotify::Command`), run hidden by the
  * host: its sign-in, a question (answered with `spotifyAnswer` and the same `id`), and the player's controls
@@ -1094,6 +1098,24 @@ export interface YouTubeAnswer {
   playlist?: YouTubePlaylist | null
   failed?: boolean
 }
+
+/** What the Browser app's page shows (`westplay_host::browser_web::State`). */
+export interface BrowserState {
+  url: string
+  title: string
+  loading: boolean
+}
+
+/** What the Browser app asks of its page (`westplay_host::browser_web::Command`): `show` places it where the
+ * app cuts the CarPlay area open, in the frame's pixels. */
+export type BrowserCommand =
+  | { action: 'open'; url: string }
+  | { action: 'back' }
+  | { action: 'forward' }
+  | { action: 'reload' }
+  | { action: 'show'; x: number; y: number; width: number; height: number }
+  | { action: 'hide' }
+  | { action: 'close' }
 
 /** Text typed, or a key with a meaning of its own. */
 export type TypedEvent = { text: string } | { key: 'backspace' | 'wordBackspace' | 'enter' | 'escape' }

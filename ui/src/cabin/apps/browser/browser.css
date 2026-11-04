@@ -1,0 +1,214 @@
+/* The Browser app: CarPlay's browsers' chrome — round buttons and a pill address field over the page — in
+   the cabin's own look (the page's picture is the host's own, cut out under `.browser-page`, Shell.tsx). */
+.browser-app {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 18px 18px;
+  color: #f2f2f7;
+}
+
+.browser-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.browser-button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transition:
+    background 120ms ease,
+    transform 120ms ease,
+    opacity 120ms ease;
+}
+
+.browser-button:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+  transform: scale(0.94);
+}
+
+.browser-button:disabled {
+  opacity: 0.34;
+}
+
+.browser-button.saved {
+  background: rgba(255, 214, 10, 0.22);
+  color: #ffd60a;
+}
+
+.browser-bar .text-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.browser-now {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 18px;
+  padding: 0 6px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.browser-title {
+  overflow: hidden;
+  flex: 0 1 auto;
+  color: #f2f2f7;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-url {
+  overflow: hidden;
+  flex: 0 0 auto;
+  max-width: 40%;
+  color: rgba(235, 235, 245, 0.6);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-refused {
+  color: #ff9f0a;
+}
+
+.browser-loading {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0a84ff;
+  animation: browser-loading 900ms ease-in-out infinite;
+}
+
+@keyframes browser-loading {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Where the page shows: its picture is the host's, cut out of the CarPlay area here. */
+.browser-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 18px;
+  background: #0b0b0e;
+}
+
+.browser-start {
+  display: flex;
+  overflow: hidden;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 4px 6px 0;
+}
+
+.browser-start.empty {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(235, 235, 245, 0.6);
+  text-align: center;
+}
+
+.browser-empty-title {
+  margin: 6px 0 0;
+  color: #f2f2f7;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.browser-empty-text,
+.browser-hint {
+  max-width: 420px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.browser-start-title {
+  margin: 0;
+  color: rgba(235, 235, 245, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.browser-tiles {
+  display: grid;
+  overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 6px;
+  list-style: none;
+}
+
+.browser-tile {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  text-align: left;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.browser-tile:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.97);
+}
+
+.browser-tile-letter {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #0a84ff;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.browser-tile-title,
+.browser-tile-host {
+  overflow: hidden;
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-tile-title {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.browser-tile-host {
+  color: rgba(235, 235, 245, 0.6);
+  font-size: 12px;
+}

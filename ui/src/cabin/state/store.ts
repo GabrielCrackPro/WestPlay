@@ -18,6 +18,7 @@ import {
   type TrailerInfo,
   type TruckInfo,
 } from '../../shared/host'
+import { receiveBrowserState } from '../apps/browser/browser'
 import type { Maneuver, TurnKind } from '../maps/guidance'
 import {
   receiveAnswer as receiveAppleMusicAnswer,
@@ -937,6 +938,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'youtube':
         receiveState(message.state)
+        break
+      case 'browser':
+        receiveBrowserState(message.state)
         break
       case 'gameShown':
         useLive.setState({ gameShown: message.shown })

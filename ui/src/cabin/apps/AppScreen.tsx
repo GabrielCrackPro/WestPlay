@@ -5,6 +5,7 @@ import { type AppId, APPS } from '../state/apps'
 import { useLaunchStyle, whenTransitionEnds } from '../state/launch'
 import { useLanguage, useText } from '../state/text'
 import { isCopied, noteOpened, openedBefore, saveCopy, savedCopy } from './launchCopies'
+import { BrowserApp } from './browser/BrowserApp'
 import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
 import { DriverApp } from './driver/DriverApp'
 import { MusicApp } from './music/MusicApp'
@@ -89,6 +90,8 @@ function AppContent({ app }: { app: AppId }) {
       return <SpotifyApp />
     case 'youtubeMusic':
       return <YouTubeMusicApp />
+    case 'browser':
+      return <BrowserApp />
     case 'settings':
       return <SettingsApp />
     case 'weather':
