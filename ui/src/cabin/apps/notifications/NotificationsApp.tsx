@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { formatGameTime, formatRealTime } from '../../../shared/format'
 import { type NoteRecord, useNotes } from '../../shell/notesShown'
 import { TrashGlyph } from '../../shell/TrashGlyph'
@@ -22,6 +22,9 @@ export function NotificationsApp() {
   const clear = useNotes((state) => state.clearHistory)
   const markSeen = useNotes((state) => state.markSeen)
   const words = text.notificationsApp
+  // The list as shown: the whole history, or only the notes of one tone.
+  const [filter, setFilter] = useState<'all' | 'alarm' | 'warn'>('all')
+  const shown = history.filter((note) => filter === 'all' || note.tone === filter)
   // Opened (and while it's open): what's on this list has been read, so Home's badge clears. A note that comes
   // in now is read as it lands here.
   useEffect(() => {
@@ -49,15 +52,39 @@ export function NotificationsApp() {
               )}
             </div>
           </header>
+          {history.length > 0 && (
+            <div className="notes-filters" role="tablist" aria-label={text.apps.notifications}>
+              {(
+                [
+                  ['all', words.all],
+                  ['alarm', words.alerts],
+                  ['warn', words.warnings],
+                ] as const
+              ).map(([id, name]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={filter === id}
+                  className={filter === id ? 'notes-filter on' : 'notes-filter'}
+                  onClick={() => setFilter(id)}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
           {history.length === 0 ? (
             <div className="notes-empty">
               <Bell />
               <p className="notes-empty-title">{words.empty}</p>
               <p className="notes-empty-hint">{words.hint}</p>
             </div>
+          ) : shown.length === 0 ? (
+            <p className="notes-none">{words.none}</p>
           ) : (
             <ol className="notes-list">
-              {history.map((note) => (
+              {shown.map((note) => (
                 <NoteRow
                   key={note.id}
                   note={note}

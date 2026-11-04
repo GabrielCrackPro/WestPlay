@@ -21,6 +21,8 @@ export function DriverApp() {
   const realTime =
     career?.realTimeSeconds == null ? '—' : `${number(career.realTimeSeconds / 3600, 1)} ${text.diagnostics.hours}`
   const fuel = career?.totalFuelLitres == null ? '—' : `${number(career.totalFuelLitres)} ${text.diagnostics.litres}`
+  const cities = number(career?.visitedCities)
+  const cancelled = number(career?.cancelledJobs)
 
   return (
     <section className="app-panel driver-app" aria-label={text.apps.driver}>
@@ -49,12 +51,9 @@ export function DriverApp() {
               <Row label={words.gameTime} value={gameTime} />
               <Row label={words.realTime} value={realTime} />
               <Row label={words.fuelUsed} value={fuel} />
+              <Row label={words.citiesVisited} value={cities} />
+              <Row label={words.cancelledJobs} value={cancelled} />
             </div>
-          </section>
-
-          <section className="driver-group" aria-label={words.history}>
-            <h2 className="driver-group-header">{words.history}</h2>
-            <p className="driver-group-footer">{career ? words.historyUnavailable : words.saveUnavailable}</p>
           </section>
         </div>
       </div>

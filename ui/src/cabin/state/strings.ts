@@ -645,8 +645,7 @@ export interface Strings {
     realTime: string
     fuelUsed: string
     citiesVisited: string
-    history: string
-    historyUnavailable: string
+    cancelledJobs: string
     saveUnavailable: string
   }
   /** The Notifications app: the notes the cab has shown, and what they read. */
@@ -658,7 +657,11 @@ export interface Strings {
     warnings: string
     alert: string
     warning: string
+    /** The filters above the list: all of it, only the alerts, or only the warnings. */
+    all: string
     clear: string
+    /** A filter with none of its tone in the list. */
+    none: string
     /** Above the list: how many the list holds (it's kept on this PC, so past drives are in it too). */
     summary: (count: number) => string
     /** A note's action: open Maps (a fuel or rest stop) or Diagnostics. */
@@ -1307,9 +1310,7 @@ const ENGLISH_STRINGS: Strings = {
     realTime: 'Real time',
     fuelUsed: 'Fuel consumed',
     citiesVisited: 'Cities discovered',
-    history: 'Driver history',
-    historyUnavailable:
-      'This save provides lifetime totals, but not a delivery-by-delivery history. The statistics above come directly from the game.',
+    cancelledJobs: 'Jobs cancelled',
     saveUnavailable: 'Load a game profile to see driver statistics.',
   },
   notificationsApp: {
@@ -1319,7 +1320,9 @@ const ENGLISH_STRINGS: Strings = {
     warnings: 'Warnings',
     alert: 'Alert',
     warning: 'Warning',
+    all: 'All',
     clear: 'Clear',
+    none: 'Nothing here.',
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
     openMaps: 'Open Maps',
     openDiagnostics: 'Open Diagnostics',
@@ -1983,9 +1986,7 @@ const TURKISH_STRINGS: Strings = {
     realTime: 'Gerçek süre',
     fuelUsed: 'Harcanan yakıt',
     citiesVisited: 'Keşfedilen şehirler',
-    history: 'Sürücü geçmişi',
-    historyUnavailable:
-      'Bu kayıt toplam istatistikleri içeriyor, ancak teslimat geçmişini içermiyor. Yukarıdaki istatistikler doğrudan oyundan alınır.',
+    cancelledJobs: 'İptal edilen işler',
     saveUnavailable: 'Sürücü istatistiklerini görmek için bir oyun profili yükleyin.',
   },
   notificationsApp: {
@@ -1995,7 +1996,9 @@ const TURKISH_STRINGS: Strings = {
     warnings: 'Uyarılar',
     alert: 'Alarm',
     warning: 'Uyarı',
+    all: 'Tümü',
     clear: 'Temizle',
+    none: 'Burada bir şey yok.',
     summary: (count) => `${count} bildirim`,
     openMaps: 'Haritalar’ı Aç',
     openDiagnostics: 'Tanılamayı Aç',
@@ -2671,9 +2674,7 @@ const SPANISH_STRINGS: Strings = {
     realTime: 'Tiempo real',
     fuelUsed: 'Combustible consumido',
     citiesVisited: 'Ciudades descubiertas',
-    history: 'Historial del conductor',
-    historyUnavailable:
-      'Este guardado contiene totales, pero no un historial de entregas. Las estadísticas anteriores provienen directamente del juego.',
+    cancelledJobs: 'Encargos cancelados',
     saveUnavailable: 'Carga un perfil del juego para ver las estadísticas del conductor.',
   },
   notificationsApp: {
@@ -2683,7 +2684,9 @@ const SPANISH_STRINGS: Strings = {
     warnings: 'Avisos',
     alert: 'Alerta',
     warning: 'Aviso',
+    all: 'Todo',
     clear: 'Borrar',
+    none: 'Aquí no hay nada.',
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
     openMaps: 'Abrir Mapas',
     openDiagnostics: 'Abrir Diagnóstico',

@@ -71,6 +71,41 @@
   gap: calc(18px * var(--text-scale, 1));
 }
 
+/* The filters above the list: all of it, only the alerts, or only the warnings — capsules at the page's
+   scale, the one chosen filled. */
+.notes-filters {
+  display: flex;
+  gap: calc(10px * var(--text-scale, 1));
+}
+
+.notes-filter {
+  padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill);
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.notes-filter.on {
+  background: var(--apple-fill-secondary);
+  color: var(--apple-label);
+}
+
+/* A filter with none of its tone in the list. */
+.notes-none {
+  margin: 0;
+  padding: calc(30px * var(--text-scale, 1));
+  border-radius: 34px;
+  background: var(--apple-card);
+  color: var(--apple-label-secondary);
+  font-size: calc(21px * var(--text-scale, 1));
+  text-align: center;
+}
+
 /* A count as a header figure: its name in the secondary label, its number in its tone. */
 .notes-count {
   display: flex;

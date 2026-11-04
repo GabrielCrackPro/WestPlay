@@ -165,30 +165,6 @@
   white-space: nowrap;
 }
 
-/* A group under the card: its header, and the note that follows it (Settings' group footer). */
-.driver-group {
-  display: flex;
-  flex-direction: column;
-  gap: calc(8px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.driver-group-header {
-  margin: 0 calc(22px * var(--text-scale, 1));
-  color: var(--apple-label-secondary);
-  /* A group header's 15 pt. */
-  font-size: calc(21px * var(--text-scale, 1));
-  font-weight: 600;
-}
-
-.driver-group-footer {
-  margin: 0 calc(22px * var(--text-scale, 1));
-  color: var(--apple-label-secondary);
-  /* A group footer's 13 pt. */
-  font-size: calc(19px * var(--text-scale, 1));
-  line-height: 1.4;
-}
-
 @media (max-width: 760px) {
   .driver-page {
     gap: calc(22px * var(--text-scale, 1));
