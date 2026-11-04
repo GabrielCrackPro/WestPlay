@@ -705,35 +705,6 @@ export interface Strings {
     addFavourite: string
     removeFavourite: string
   }
-  /** The Browser app: the web in the cabin, its toolbar the app's own (apps/browser). */
-  browser: {
-    address: string
-    addressHint: string
-    back: string
-    forward: string
-    reload: string
-    bookmark: string
-    removeBookmark: string
-    bookmarks: string
-    startHint: string
-    noBookmarks: string
-    cannotOpen: string
-    /** The field of the page's, while it has the focus (the cabin's keyboard types there). */
-    pageHint: string
-    /** The settings (apps/browser/BrowserSettings.tsx). */
-    settings: string
-    done: string
-    zoom: string
-    siteVersion: string
-    siteVersionHint: string
-    desktop: string
-    mobile: string
-    clearData: string
-    clearDataHint: string
-    clearBookmarks: string
-    clearBookmarksHint: string
-    close: string
-  }
   apps: Record<AppId, string>
   notBuiltYet: string
 }
@@ -1416,36 +1387,8 @@ const ENGLISH_STRINGS: Strings = {
     addFavourite: 'Add to favourites',
     removeFavourite: 'Remove from favourites',
   },
-  /** The Browser app: the web in the cabin, its toolbar the app's own (apps/browser). */
-  browser: {
-    address: 'Address',
-    addressHint: 'Search or enter website name',
-    back: 'Back',
-    forward: 'Forward',
-    reload: 'Reload',
-    bookmark: 'Add Bookmark',
-    removeBookmark: 'Remove Bookmark',
-    bookmarks: 'Bookmarks',
-    startHint: 'Type an address above, then add it as a bookmark to open it again from here.',
-    noBookmarks: 'No Bookmarks',
-    cannotOpen: 'That isn’t a web address.',
-    pageHint: 'Type into the page',
-    settings: 'Browser Settings',
-    done: 'Done',
-    zoom: 'Zoom',
-    siteVersion: 'Site Version',
-    siteVersionHint: 'Sites that have a simpler version for phones send it.',
-    desktop: 'Desktop',
-    mobile: 'Mobile',
-    clearData: 'Clear Cookies',
-    clearDataHint: 'Signs out of the sites you opened here, and forgets this browser’s own data.',
-    clearBookmarks: 'Forget Bookmarks',
-    clearBookmarksHint: 'The start page goes back to empty.',
-    close: 'Close Page',
-  },
   apps: {
     maps: 'Maps',
-    browser: 'Browser',
     music: 'Music',
     radio: 'Radio',
     spotify: 'Spotify',
@@ -2144,36 +2087,8 @@ const TURKISH_STRINGS: Strings = {
     addFavourite: 'Favorilere ekle',
     removeFavourite: 'Favorilerden çıkar',
   },
-  /** Tarayıcı: kabinde web, araç çubuğu uygulamanın kendi (apps/browser). */
-  browser: {
-    address: 'Adres',
-    addressHint: 'Ara veya web sitesi adresi yaz',
-    back: 'Geri',
-    forward: 'İleri',
-    reload: 'Yenile',
-    bookmark: 'Yer İmi Ekle',
-    removeBookmark: 'Yer İmini Kaldır',
-    bookmarks: 'Yer İmleri',
-    startHint: 'Yukarıya bir adres yaz, sonra buradan yeniden açmak için yer imlerine ekle.',
-    noBookmarks: 'Yer İmi Yok',
-    cannotOpen: 'Bu bir web adresi değil.',
-    pageHint: 'Sayfaya yaz',
-    settings: 'Tarayıcı Ayarları',
-    done: 'Bitti',
-    zoom: 'Yakınlaştırma',
-    siteVersion: 'Site Sürümü',
-    siteVersionHint: 'Telefonlar için daha sade bir sürümü olan siteler onu gönderir.',
-    desktop: 'Masaüstü',
-    mobile: 'Mobil',
-    clearData: 'Çerezleri Sil',
-    clearDataHint: 'Burada açtığın sitelerden çıkış yapar ve bu tarayıcının kendi verilerini unutur.',
-    clearBookmarks: 'Yer İmlerini Unut',
-    clearBookmarksHint: 'Başlangıç sayfası yine boşalır.',
-    close: 'Sayfayı Kapat',
-  },
   apps: {
     maps: 'Haritalar',
-    browser: 'Tarayıcı',
     music: 'Müzik',
     radio: 'Radyo',
     spotify: 'Spotify',
@@ -2884,36 +2799,8 @@ const SPANISH_STRINGS: Strings = {
     addFavourite: 'Añadir a favoritas',
     removeFavourite: 'Quitar de favoritas',
   },
-  /** El navegador: la web en la cabina, su barra la de la propia app (apps/browser). */
-  browser: {
-    address: 'Dirección',
-    addressHint: 'Busca o escribe un sitio web',
-    back: 'Atrás',
-    forward: 'Adelante',
-    reload: 'Recargar',
-    bookmark: 'Añadir marcador',
-    removeBookmark: 'Quitar marcador',
-    bookmarks: 'Marcadores',
-    startHint: 'Escribe una dirección arriba y añádela a marcadores para volver a abrirla desde aquí.',
-    noBookmarks: 'Sin marcadores',
-    cannotOpen: 'Eso no es una dirección web.',
-    pageHint: 'Escribe en la página',
-    settings: 'Ajustes del navegador',
-    done: 'Listo',
-    zoom: 'Zoom',
-    siteVersion: 'Versión del sitio',
-    siteVersionHint: 'Los sitios con una versión más simple para móviles envían esa.',
-    desktop: 'Escritorio',
-    mobile: 'Móvil',
-    clearData: 'Borrar cookies',
-    clearDataHint: 'Cierra la sesión de los sitios que abriste aquí y olvida los datos de este navegador.',
-    clearBookmarks: 'Olvidar marcadores',
-    clearBookmarksHint: 'La página de inicio vuelve a quedar vacía.',
-    close: 'Cerrar página',
-  },
   apps: {
     maps: 'Mapas',
-    browser: 'Navegador',
     music: 'Música',
     radio: 'Radio',
     spotify: 'Spotify',

@@ -335,10 +335,6 @@ export type HostMessage =
   | ({ type: 'spotifyAnswer'; id: number; failed?: boolean } & Partial<SpotifyAnswers>)
   /** What Spotify plays (on WestPlay, or elsewhere on the account through Spotify Connect); `null`: nothing. */
   | { type: 'spotifyPlayback'; playback: SpotifyPlayback | null }
-  /** What the Browser app's page shows: its address and title (`null`: no page open, or its WebView closed). */
-  | { type: 'browser'; state: BrowserState | null }
-  /** Whether the Browser's page has a field to type into (the cabin's keyboard types there). */
-  | { type: 'browserFocus'; editable: boolean }
   /** Apple Music's web player: whether it's signed in and playing (`null`: not running), and whether its
    * sign-in window is open on the PC. */
   | {
@@ -451,8 +447,6 @@ export type PageMessage =
   | { type: 'appleMusic'; command: AppleMusicCommand }
   /** A command for YouTube Music's web player (`westplay_host::youtube_music::Command`). */
   | { type: 'youtubeMusic'; command: YouTubeMusicCommand }
-  /** A command for the Browser app's page (`westplay_host::browser_web::Command`). */
-  | { type: 'browser'; command: BrowserCommand }
 
 /** What the Spotify app asks of Spotify's web player (`westplay_host::spotify::Command`), run hidden by the
  * host: its sign-in, a question (answered with `spotifyAnswer` and the same `id`), and the player's controls
@@ -1100,37 +1094,6 @@ export interface YouTubeAnswer {
   playlist?: YouTubePlaylist | null
   failed?: boolean
 }
-
-/** What the Browser app's page shows (`westplay_host::browser_web::State`). */
-export interface BrowserState {
-  url: string
-  title: string
-  loading: boolean
-}
-
-/** A mouse event the Browser app sends its page: where it is as shares (0 to 1) of the rectangle the page
- * shows in, and the wheel's notches (120 a notch, negative down). */
-export type BrowserPointer = 'move' | 'down' | 'up' | 'leave' | 'wheel'
-
-/** A key typed into the page, meaning the same there as in a browser's field. */
-export type BrowserKey = 'backspace' | 'enter' | 'tab' | 'escape'
-
-/** What the Browser app asks of its page (`westplay_host::browser_web::Command`): `show` places it where the
- * app cuts the CarPlay area open, in the frame's pixels; `pointer` and `type` are the player's own input. */
-export type BrowserCommand =
-  | { action: 'open'; url: string }
-  | { action: 'back' }
-  | { action: 'forward' }
-  | { action: 'reload' }
-  | { action: 'show'; x: number; y: number; width: number; height: number }
-  | { action: 'hide' }
-  | { action: 'pointer'; kind: BrowserPointer; x: number; y: number; pressed: boolean; data?: number }
-  | { action: 'type'; text?: string; key?: BrowserKey }
-  /** The app's settings for its page: its zoom (1: as laid out) and whether it says it's a phone. */
-  | { action: 'configure'; zoom: number; mobile: boolean }
-  /** Forgets the page's cookies (signing out of the sites opened here) and loads it again. */
-  | { action: 'clear' }
-  | { action: 'close' }
 
 /** Text typed, or a key with a meaning of its own. */
 export type TypedEvent = { text: string } | { key: 'backspace' | 'wordBackspace' | 'enter' | 'escape' }
