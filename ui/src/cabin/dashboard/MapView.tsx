@@ -6,6 +6,7 @@ import { GuidanceCard } from '../maps/GuidanceCard'
 import { DashboardMapControls, MapControls } from '../maps/MapControls'
 import { MapSearch } from '../maps/MapSearch'
 import { nextStop } from '../maps/nextStop'
+import { StopsPage } from '../maps/StopsPage'
 import { StopsStrip } from '../maps/StopsStrip'
 import { useMapData } from '../maps/mapData'
 import { RoadMap } from '../maps/RoadMap'
@@ -103,6 +104,7 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
       {data && interactive && <MapControls />}
       {data && !interactive && <DashboardMapControls />}
       {data && interactive && <MapSearch />}
+      {data && interactive && <StopsPage />}
       <TripSummary />
     </div>
   )

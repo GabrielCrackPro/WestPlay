@@ -37,15 +37,15 @@ const MAP_SCALE = 19
 /** How far the truck may move before the lists' distances are worked out again, metres. */
 const WHERE_STEP = 250
 
-/** Where the truck is (lng, lat), to the nearest `WHERE_STEP` (the lists don't redraw with every metre). */
+/**
+ * Where the truck is (lng, lat), to the nearest `WHERE_STEP` (the lists don't redraw with every metre). The two
+ * readings are kept apart as numbers: an array from a store read compares unequal every time, re-rendering for ever
+ * (the cab's crash, 2026-11-04).
+ */
 function useTruckAt(): [number, number] | null {
-  const at = useLive(
-    useShallow((state) => {
-      const t = state.telemetry
-      return t ? [Math.round(t.x / WHERE_STEP) * WHERE_STEP, Math.round(t.z / WHERE_STEP) * WHERE_STEP] : null
-    }),
-  )
-  return at ? toLngLat(at[0], at[1]) : null
+  const x = useLive((state) => (state.telemetry ? Math.round(state.telemetry.x / WHERE_STEP) * WHERE_STEP : null))
+  const z = useLive((state) => (state.telemetry ? Math.round(state.telemetry.z / WHERE_STEP) * WHERE_STEP : null))
+  return x !== null && z !== null ? toLngLat(x, z) : null
 }
 
 /** What the game's route allows: on a job, only stops (the destination is the job's). */
@@ -317,7 +317,8 @@ function PlaceList({
   )
 }
 
-function PlaceRow({
+/** A place in a list (its card's rows, the Stops page's): its badge, its name, and how far away it is. */
+export function PlaceRow({
   place,
   title,
   from,

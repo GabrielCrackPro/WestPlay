@@ -92,6 +92,15 @@ export interface Strings {
     stopNumber: (number: number) => string
     /** Destinations' button that empties the recents. */
     clearRecents: string
+    /** The Stops page: its name and list, and the tank against the route left. */
+    stops: string
+    stopsAhead: string
+    toGo: string
+    rangeSpare: (distance: string) => string
+    rangeTight: (distance: string) => string
+    rangeShort: (distance: string) => string
+    stopsNoRoute: string
+    noStops: string
     /** The cab's note when the game's route changes under the truck. */
     routeChanged: string
     /** The card at the end of a drive. */
@@ -740,6 +749,14 @@ const ENGLISH_STRINGS: Strings = {
     pinsService: 'Service & Repairs',
     stopNumber: (number) => `Stop ${number}`,
     clearRecents: 'Clear',
+    stops: 'Stops',
+    stopsAhead: 'Stops ahead',
+    toGo: 'To go',
+    rangeSpare: (distance) => `${distance} to spare`,
+    rangeTight: (distance) => `Only ${distance} to spare`,
+    rangeShort: (distance) => `Short by ${distance}`,
+    stopsNoRoute: 'Plan a route and the stops beside it show here.',
+    noStops: 'No fuel or rest stops beside the route ahead.',
     routeChanged: 'Route changed',
     arrived: 'You have arrived',
     kinds: {
@@ -1403,6 +1420,14 @@ const TURKISH_STRINGS: Strings = {
     pinsService: 'Servis ve Onarım',
     stopNumber: (number) => `${number}. durak`,
     clearRecents: 'Temizle',
+    stops: 'Molalar',
+    stopsAhead: 'Yol üstündeki molalar',
+    toGo: 'Kalan yol',
+    rangeSpare: (distance) => `${distance} yedek`,
+    rangeTight: (distance) => `Sadece ${distance} yedek`,
+    rangeShort: (distance) => `${distance} eksik`,
+    stopsNoRoute: 'Bir rota planla, çevresindeki molalar burada görünsün.',
+    noStops: 'Rota üzerinde yakında yakıt ya da mola yeri yok.',
     routeChanged: 'Rota değişti',
     arrived: 'Vardınız',
     kinds: {
@@ -2075,6 +2100,14 @@ const SPANISH_STRINGS: Strings = {
     pinsService: 'Talleres',
     stopNumber: (number) => `Parada ${number}`,
     clearRecents: 'Borrar',
+    stops: 'Paradas',
+    stopsAhead: 'Paradas en la ruta',
+    toGo: 'Por recorrer',
+    rangeSpare: (distance) => `${distance} de margen`,
+    rangeTight: (distance) => `Solo ${distance} de margen`,
+    rangeShort: (distance) => `Faltan ${distance}`,
+    stopsNoRoute: 'Planifica una ruta y aquí verás las paradas de al lado.',
+    noStops: 'No hay gasolineras ni descansos junto a la ruta.',
     routeChanged: 'Ruta cambiada',
     arrived: 'Has llegado',
     kinds: {

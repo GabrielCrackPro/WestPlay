@@ -409,6 +409,7 @@
 /* Search (MapSearch.tsx): a round button over the map's top left, opening the search panel there. Dark glass
    over the map like the map's other buttons. */
 .map-tile .map-search-button,
+.map-tile .map-stops-button,
 .map-tile .map-search {
   position: absolute;
   z-index: 3;
@@ -417,6 +418,7 @@
 }
 
 .appearance-light .map-tile .map-search-button,
+.appearance-light .map-tile .map-stops-button,
 .appearance-light .map-tile .map-search {
   color: #14161a;
   background: rgb(255 255 255 / 0.78);
@@ -444,6 +446,145 @@
 
 .map-tile .map-search-button:active svg {
   scale: 0.88;
+}
+
+/* The Stops page's button (StopsPage.tsx): beside the search button, in the same round glass. */
+.map-tile .map-stops-button {
+  left: 100px;
+  top: 22px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.map-tile .map-stops-button svg {
+  width: 30px;
+  height: 30px;
+}
+
+.map-tile .map-stops-button.on svg {
+  color: #0a84ff;
+}
+
+.map-tile .map-stops-button:active svg {
+  scale: 0.88;
+}
+
+/* The page itself: the search panel's own glass, under the buttons so they stay at hand. */
+.map-tile .map-stops-page {
+  top: 96px;
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100% - 112px);
+}
+
+.map-stops-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 8px;
+  overflow: hidden;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The page's cards: the range against the route, then the two rest clocks. */
+.stops-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: calc(16px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+  background: var(--field);
+}
+
+.stops-figures {
+  display: flex;
+  gap: calc(28px * var(--text-scale, 1));
+}
+
+.stops-figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stops-figure-label {
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.stops-figure-value {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stops-say {
+  margin: 0;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+/* The margin by the driver's reading of it: short of it, barely enough, or room to spare. */
+.stops-card.short .stops-say {
+  color: #ff6b5e;
+}
+
+.stops-card.tight .stops-say {
+  color: #ffb340;
+}
+
+.appearance-light .stops-card.short .stops-say {
+  color: #d1342a;
+}
+
+.appearance-light .stops-card.tight .stops-say {
+  color: #b26a00;
+}
+
+.stops-rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--text-scale, 1));
+}
+
+.stops-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(14px * var(--text-scale, 1));
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+.stops-row-label {
+  color: var(--text-dim);
+}
+
+.stops-row-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stops-row-value.warn {
+  color: #ffb340;
+}
+
+.stops-row-value.alarm {
+  color: #ff6b5e;
+}
+
+.appearance-light .stops-row-value.warn {
+  color: #b26a00;
+}
+
+.appearance-light .stops-row-value.alarm {
+  color: #d1342a;
 }
 
 .map-tile .map-search {
