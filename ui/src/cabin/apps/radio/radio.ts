@@ -25,6 +25,10 @@ interface RadioState {
  * The Radio app’s own state. Its sound is one element of the page, kept out of React (and out of the app’s
  * window) so the station plays on while the player is in Maps or Home, as a car radio does; the cab’s other
  * players see it as one of them (`radioPlayer`), so one of them plays at a time and the volume keybinds reach it.
+ *
+ * The element plays the page’s own way, never into the cab’s speakers’ audio graph (cab_sound.js): a station is a
+ * stream on somebody else’s server, which the browser won’t let a graph of ours hear (a cross-origin element in a
+ * Web Audio source plays silence).
  */
 export const useRadio = create<RadioState>()(() => ({
   stations: [],
@@ -48,11 +52,6 @@ export function requestStations(): void {
 const started = new Set<(started: boolean) => void>()
 
 let element: HTMLAudioElement | null = null
-
-/** The page’s element the radio plays from (the truck’s speakers take it: cabSound.ts). */
-export function radioElement(): HTMLAudioElement | null {
-  return element
-}
 
 const clamped = (share: number) => Math.max(0, Math.min(1, share))
 

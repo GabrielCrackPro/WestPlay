@@ -229,17 +229,6 @@ export type HostMessage =
   /** The stations of the game's own radio list (`live_streams.sii`, its Documents folder), as the host read them:
    * sent as the page loads, and whenever the app asks again (`radioStations`). None when there's no list. */
   | { type: 'radio'; stations: RadioStation[] }
-  /** The truck's speakers and the driver's head, for the cab page's own sound (the Radio app): what the players'
-   * pages get, so a station is heard from the cab's speakers as their music is, and silent outside it. */
-  | {
-      type: 'cabSound'
-      speakers: Speaker[] | null
-      head: { x: number; y: number; z: number; heading: number; pitch: number } | null
-      outside: boolean
-      /** How far the camera is outside the cab, metres. */
-      distance: number
-      equalizer: Equalizer
-    }
   /** The music's spectrum as it plays, while the page asks for it (`spectrum`): bars from the lows to the
    * highs, spaced by octaves, each 0 (silent) to 255; all 0 when it stops. */
   | { type: 'spectrum'; bars: number[] }
