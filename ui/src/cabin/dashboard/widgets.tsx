@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { type Backdrop, type Look, useWordsOver, wordsClass } from '../apps/music/contrast'
 import { Crossfade } from '../apps/music/Crossfade'
 import { VideoWidget } from '../apps/youtube/VideoWidget'
@@ -17,7 +18,15 @@ import {
   useYouTubeMusic,
   useYouTubeMusicSource,
 } from '../apps/youtubeMusic/youtubeMusic'
-import { pauseHere as pauseRadio, resumeHere as resumeRadio, useRadioSource } from '../apps/radio/radio'
+import {
+  pauseHere as pauseRadio,
+  resumeHere as resumeRadio,
+  tune as tuneRadio,
+  useRadio,
+  useRadioSource,
+} from '../apps/radio/radio'
+import { hueOf, initialsOf } from '../apps/radio/stations'
+import './radioCard.css'
 import type { MediaAction, MusicService, MediaSource } from '../../shared/media'
 import type { AppId } from '../state/apps'
 import { useLook } from '../state/hooks'
@@ -117,18 +126,28 @@ function SpotifyWidget({ spotify }: { spotify: NonNullable<ReturnType<typeof use
   )
 }
 
-/** The Radio app's station: what plays, play/pause, opening Radio on Now Playing. A live stream has no length,
- * so the card has no progress bar, and no next or previous. */
+/**
+ * The Radio app's station: drawn as the app's set is — the station's initials on its own colour where a song shows
+ * its cover, and the tuning dial under its name, lit on the station among the game's list. A live stream has no
+ * length, so the card has no progress bar; its next and previous tune the set on through the stations.
+ */
 function RadioWidget({ radio }: { radio: NonNullable<ReturnType<typeof useRadioSource>> }) {
+  const stations = useRadio((state) => state.stations)
+  const station = useRadio((state) => state.station)
+  const at = station ? stations.findIndex((each) => each.url === station.url) : -1
   return (
     <MusicWidget
       source={radio.source}
       artwork={null}
+      tile={{ hue: hueOf(radio.source.title), initials: initialsOf(radio.source.title) }}
+      dial={{ at, of: stations.length }}
       onOpen={() => go({ type: 'openApp', app: 'radio' })}
       onControl={(action) => {
-        if (action !== 'playPause') return
-        if (radio.source.status === 'playing') pauseRadio()
-        else resumeRadio()
+        if (action === 'playPause') {
+          if (radio.source.status === 'playing') pauseRadio()
+          else resumeRadio()
+        } else if (action === 'next') tuneRadio(1)
+        else if (action === 'previous') tuneRadio(-1)
       }}
     />
   )
@@ -158,11 +177,17 @@ const WIDGET_BACKDROPS: Record<Look, Backdrop> = {
 function MusicWidget({
   source,
   artwork,
+  tile,
+  dial,
   onOpen,
   onControl,
 }: {
   source: MediaSource | null
   artwork: string | null
+  /** Instead of a cover: the player's own mark (the radio's station, on its own colour). */
+  tile?: { hue: number; initials: string }
+  /** Instead of a progress bar: where what plays sits among its player's own, the needle on `at`. */
+  dial?: { at: number; of: number }
   onOpen?(): void
   onControl(action: MediaAction): void
 }) {
@@ -187,8 +212,12 @@ function MusicWidget({
             url ? (
               <img src={url} alt="" />
             ) : (
-              <span className="art-placeholder" aria-hidden>
-                <NoteGlyph size={36} />
+              <span
+                className={tile ? 'art-placeholder radio-art' : 'art-placeholder'}
+                style={tile ? ({ '--hue': String(tile.hue) } as CSSProperties) : undefined}
+                aria-hidden
+              >
+                {tile ? <span className="radio-art-initials">{tile.initials}</span> : <NoteGlyph size={36} />}
               </span>
             )
           }
@@ -207,6 +236,18 @@ function MusicWidget({
           )}
         />
       </button>
+      {/* How far among what its player plays: the radio's dial, the needle on its station. */}
+      {dial && dial.of > 0 && (
+        <div className="np-dial" aria-hidden="true">
+          {Array.from({ length: dial.of }, (_, index) => (
+            <span key={index} className={index === dial.at ? 'on' : ''} />
+          ))}
+          <span
+            className="np-dial-needle"
+            style={{ left: dial.at < 0 || dial.of < 2 ? '50%' : `${(dial.at / (dial.of - 1)) * 100}%` }}
+          />
+        </div>
+      )}
       {/* How far in, and how long: the bar moves while it plays, the times either side of it. */}
       {progress && (
         <div className="np-progress">
