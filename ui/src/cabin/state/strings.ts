@@ -694,6 +694,10 @@ export interface Strings {
     unavailable: string
     /** What the preset of a station that didn't play says. */
     unavailableTag: string
+    /** The search field: a station by its name, among many. */
+    search: string
+    /** Nothing in the list has the name typed. */
+    noMatches: string
     volume: string
   }
   apps: Record<AppId, string>
@@ -1371,6 +1375,8 @@ const ENGLISH_STRINGS: Strings = {
     paused: 'Paused',
     unavailable: 'This station didn’t play: it may be off the air, or its server may refuse the cab.',
     unavailableTag: 'No sound',
+    search: 'Search stations',
+    noMatches: 'No station with that name.',
     volume: 'Volume',
   },
   apps: {
@@ -2066,6 +2072,8 @@ const TURKISH_STRINGS: Strings = {
     paused: 'Duraklatıldı',
     unavailable: 'Bu istasyon çalmadı: yayında olmayabilir ya da sunucusu kabini reddediyor olabilir.',
     unavailableTag: 'Ses yok',
+    search: 'İstasyon ara',
+    noMatches: 'Bu adda bir istasyon yok.',
     volume: 'Ses',
   },
   apps: {
@@ -2773,6 +2781,8 @@ const SPANISH_STRINGS: Strings = {
     paused: 'En pausa',
     unavailable: 'Esta emisora no ha sonado: puede que esté fuera del aire o que su servidor rechace la cabina.',
     unavailableTag: 'Sin sonido',
+    search: 'Buscar emisoras',
+    noMatches: 'No hay ninguna emisora con ese nombre.',
     volume: 'Volumen',
   },
   apps: {

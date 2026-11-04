@@ -1,16 +1,22 @@
 import { type CSSProperties, useEffect, useState } from 'react'
+import { SearchGlyph } from '../../keyboard/glyphs'
+import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
 import { pauseHere, play, requestStations, resumeHere, setVolume, stopRadio, useRadio, type RadioStatus } from './radio'
-import { genresOf, groupsOf, type Station } from './stations'
+import { genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
 import './radioApp.css'
+
+/** The search field's id (one on screen: the keyboard types into it). */
+const FIELD = 'radio-search'
 
 /**
  * The Radio app: the stations of the game’s own radio list (`live_streams.sii`, read by the host), drawn as the
  * set in the dashboard is — a tuning dial that lights the station playing, its name across the face, the button
  * that plays it and stops it, the buttons either side of it to tune on, and its volume — and under it the
- * stations as the set’s presets, by genre as the game’s radio menu sorts them. A station plays on while the
- * player is elsewhere in the cab (its sound isn’t the app’s window’s, radio.ts), as a car radio does. Pressing
- * Refresh reads the game’s list again, for stations added in the game since WestPlay started.
+ * stations as the set’s presets, by genre as the game’s radio menu sorts them, and a search for a station by
+ * name among many. A station plays on while the player is elsewhere in the cab (its sound isn’t the app’s
+ * window’s, radio.ts), as a car radio does. Pressing Refresh reads the game’s list again, for stations added in
+ * the game since WestPlay started.
  */
 export function RadioApp() {
   const text = useText()
@@ -20,13 +26,15 @@ export function RadioApp() {
   const status = useRadio((state) => state.status)
   const failed = useRadio((state) => state.failed)
   const volume = useRadio((state) => state.volume)
-  // The genre shown: all of them, or one (a new list keeps a genre it still has).
+  // The genre shown: all of them, or one (a new list keeps a genre it still has); and the name searched for.
   const [genre, setGenre] = useState('all')
+  const [query, setQuery] = useState('')
   useEffect(() => {
     requestStations()
   }, [])
-  const genres = genresOf(stations)
-  const groups = groupsOf(stations).filter((group) => genre === 'all' || group.genre === genre)
+  const matching = matchesOf(stations, query)
+  const genres = genresOf(matching)
+  const groups = groupsOf(matching).filter((group) => genre === 'all' || group.genre === genre)
   // What the dial tunes across: the stations the presets show, in their order.
   const shown = groups.flatMap((group) => group.stations)
   const live = status === 'playing' || status === 'loading'
@@ -138,6 +146,16 @@ export function RadioApp() {
                   </label>
                 </div>
               </div>
+              <div className="radio-search">
+                <TextField
+                  id={FIELD}
+                  value={query}
+                  onChange={setQuery}
+                  hint={words.search}
+                  label={words.search}
+                  icon={<SearchGlyph />}
+                />
+              </div>
               <div className="radio-chips" role="tablist" aria-label={text.apps.radio}>
                 {chips.map(([id, name]) => (
                   <button
@@ -152,24 +170,28 @@ export function RadioApp() {
                   </button>
                 ))}
               </div>
-              <div className="radio-groups">
-                {groups.map((group) => (
-                  <section key={group.genre || 'other'} className="radio-group">
-                    <h2>{group.genre || words.other}</h2>
-                    <div className="radio-grid">
-                      {group.stations.map((each) => (
-                        <StationTile
-                          key={each.url}
-                          station={each}
-                          now={station?.url === each.url}
-                          status={status}
-                          failed={failed === each.url}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
+              {groups.length === 0 ? (
+                <p className="radio-no-match">{words.noMatches}</p>
+              ) : (
+                <div className="radio-groups">
+                  {groups.map((group) => (
+                    <section key={group.genre || 'other'} className="radio-group">
+                      <h2>{group.genre || words.other}</h2>
+                      <div className="radio-grid">
+                        {group.stations.map((each) => (
+                          <StationTile
+                            key={each.url}
+                            station={each}
+                            now={station?.url === each.url}
+                            status={status}
+                            failed={failed === each.url}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -215,24 +237,6 @@ function metaOf(station: Station): string {
   return [station.genre, station.language, station.bitrate > 0 ? `${station.bitrate} kbps` : '']
     .filter(Boolean)
     .join(' · ')
-}
-
-/** A station’s own colour, as its preset is washed in it: its name, hashed to a hue. */
-function hueOf(name: string): number {
-  let hue = 0
-  for (let index = 0; index < name.length; index++) hue = (hue * 31 + name.charCodeAt(index)) % 360
-  return hue
-}
-
-/** A station’s first letters, on its preset: the first of its first two words. */
-function initialsOf(name: string): string {
-  const words = name
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-  const first = words[0]?.[0] ?? '?'
-  const second = words.length > 1 ? words[1][0] : ''
-  return (first + second).toLocaleUpperCase()
 }
 
 function PlayGlyph() {

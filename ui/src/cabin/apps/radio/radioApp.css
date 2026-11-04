@@ -54,6 +54,24 @@
   font-size: calc(21px * var(--text-scale, 1));
 }
 
+/* The search for a station by name, above the presets: the cabin's own field, the keyboard typing into it. */
+.radio-search {
+  display: flex;
+  flex: none;
+  max-width: calc(560px * var(--text-scale, 1));
+}
+
+.radio-search > .text-field {
+  flex: 1;
+}
+
+/* Nothing in the list has what was typed. */
+.radio-no-match {
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(19px * var(--text-scale, 1));
+}
+
 /* Refresh: a capsule with its turning arrow. */
 .radio-refresh {
   display: flex;
