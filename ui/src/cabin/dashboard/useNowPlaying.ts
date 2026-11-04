@@ -4,6 +4,7 @@ import { command, useYouTube } from '../apps/youtube/youtube'
 import { playOrPause, useSpotifySource } from '../apps/spotify/spotify'
 import { playOrPause as playOrPauseAppleMusic, useAppleMusicSource } from '../apps/music/appleMusic'
 import { playOrPause as playOrPauseYouTubeMusic, useYouTubeMusicSource } from '../apps/youtubeMusic/youtubeMusic'
+import { pauseHere as pauseRadio, resumeHere as resumeRadio, useRadioSource } from '../apps/radio/radio'
 import { type NowPlayingSource, shownSource } from './nowPlaying'
 
 /** What Now Playing last showed playing, kept while the screens showing it come and go (nowPlaying.ts). */
@@ -15,6 +16,7 @@ export function useNowPlaying() {
   const spotify = useSpotifySource()
   const appleMusic = useAppleMusicSource()
   const youtubeMusic = useYouTubeMusicSource()
+  const radio = useRadioSource()
   const video = useYouTube((store) => store.current)
   const videoPlaying = useYouTube((store) => store.state?.state === 1 && store.state.video === store.current?.video)
   const playing = {
@@ -22,19 +24,21 @@ export function useNowPlaying() {
     spotify: spotify?.source.status === 'playing',
     appleMusic: appleMusic?.source.status === 'playing',
     youtubeMusic: youtubeMusic?.source.status === 'playing',
+    radio: radio?.source.status === 'playing',
   }
   const has = {
     video: video !== null,
     spotify: Boolean(spotify),
     appleMusic: Boolean(appleMusic),
     youtubeMusic: Boolean(youtubeMusic),
+    radio: Boolean(radio),
   }
   const showing = shownSource(playing, has, lastPlayed)
   const showingPlays = showing !== null && playing[showing]
   useEffect(() => {
     if (showing !== null && showingPlays) lastPlayed = showing
   }, [showing, showingPlays])
-  return { showing, playing, spotify, appleMusic, youtubeMusic, video }
+  return { showing, playing, spotify, appleMusic, youtubeMusic, radio, video }
 }
 
 /** Whether any player has something to play, playing or paused: the Dashboard's Now Playing card is there only
@@ -83,7 +87,7 @@ export function useNowPlayingTrack(): {
   playing: boolean
   playPause: (() => void) | null
 } | null {
-  const { showing, playing, spotify, appleMusic, youtubeMusic, video } = useNowPlaying()
+  const { showing, playing, spotify, appleMusic, youtubeMusic, radio, video } = useNowPlaying()
   const music = (
     player: { source: { title: string; artist: string; controls: { playPause: boolean } }; artwork: string | null },
     playPause: () => void,
@@ -112,6 +116,16 @@ export function useNowPlayingTrack(): {
       return appleMusic ? music(appleMusic, playOrPauseAppleMusic, playing.appleMusic) : null
     case 'youtubeMusic':
       return youtubeMusic ? music(youtubeMusic, playOrPauseYouTubeMusic, playing.youtubeMusic) : null
+    case 'radio':
+      return radio
+        ? {
+            title: radio.source.title,
+            by: radio.source.artist,
+            artwork: null,
+            playing: playing.radio,
+            playPause: playing.radio ? pauseRadio : resumeRadio,
+          }
+        : null
     default:
       return null
   }

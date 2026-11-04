@@ -1,9 +1,9 @@
 /**
- * What one of WestPlay's music players is playing (Apple Music, Spotify, YouTube Music), as Now Playing on the
- * Dashboard shows it, and its controls.
+ * What one of WestPlay's players is playing (Apple Music, Spotify, YouTube Music, the Radio app), as Now Playing
+ * on the Dashboard shows it, and its controls.
  */
 
-export type MusicService = 'appleMusic' | 'spotify' | 'youTubeMusic'
+export type MusicService = 'appleMusic' | 'spotify' | 'youTubeMusic' | 'radio'
 
 export interface MediaSource {
   /** Which player it is (`westplay-apple-music`). */

@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { postToHost } from '../../../shared/host'
+import type { MediaSource } from '../../../shared/media'
 import type { MusicPlayer } from '../musicWithGame'
 import { type Station, stationsOf } from './stations'
 
@@ -124,6 +126,38 @@ export function pauseHere(): void {
 export function resumeHere(): void {
   const { station, status } = useRadio.getState()
   if (station && (status === 'paused' || status === 'failed')) play(station)
+}
+
+/**
+ * The station playing (or paused), as Now Playing on the Dashboard shows it: a live stream has no length, so
+ * there’s no progress bar, and its one control is play/pause. Nothing once the radio is stopped.
+ */
+export function useRadioSource(): { source: MediaSource; artwork: null } | null {
+  const station = useRadio((state) => state.station)
+  const status = useRadio((state) => state.status)
+  return useMemo(() => {
+    if (!station) return null
+    const plays = status === 'playing' || status === 'loading'
+    return {
+      artwork: null,
+      source: {
+        id: 'westplay-radio',
+        service: 'radio',
+        title: station.name,
+        artist: [station.genre, station.language].filter(Boolean).join(' · '),
+        album: '',
+        artwork: null,
+        status: plays ? 'playing' : status === 'paused' ? 'paused' : 'stopped',
+        positionMs: 0,
+        // A live stream: nothing to count through.
+        positionAt: 0,
+        durationMs: 0,
+        controls: { playPause: true, next: false, previous: false, shuffle: false, repeat: false },
+        shuffle: null,
+        repeat: null,
+      },
+    }
+  }, [station, status])
 }
 
 /**

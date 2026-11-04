@@ -17,6 +17,7 @@ import {
   useYouTubeMusic,
   useYouTubeMusicSource,
 } from '../apps/youtubeMusic/youtubeMusic'
+import { pauseHere as pauseRadio, resumeHere as resumeRadio, useRadioSource } from '../apps/radio/radio'
 import type { MediaAction, MusicService, MediaSource } from '../../shared/media'
 import type { AppId } from '../state/apps'
 import { useLook } from '../state/hooks'
@@ -38,14 +39,15 @@ import { DriverPortrait } from '../apps/driver/DriverPortrait'
 
 /**
  * Now Playing: what plays, the video YouTube plays first (VideoWidget), then the Spotify app's music, then
- * Apple Music's (the Music app), then YouTube Music's. Only while a player has something — playing or paused:
+ * Apple Music's (the Music app), then YouTube Music's, then the Radio app's station. Only while a player has
+ * something — playing or paused:
  * a paused song keeps its card, and its controls bring it back — so nothing loaded at all leaves the card away,
  * the column's room going to the drive's own cards and the map. Turned off in Settings, its room goes to the
  * others too.
  */
 export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
-  const { showing, spotify, appleMusic, youtubeMusic } = useNowPlaying()
+  const { showing, spotify, appleMusic, youtubeMusic, radio } = useNowPlaying()
   const open = shown && showing !== null
   return (
     <div className={`widget-slot${open ? ' open' : ''}`} style={{ viewTransitionName: 'widget-nowPlaying' }}>
@@ -53,6 +55,7 @@ export function NowPlayingWidget() {
       {open && showing === 'spotify' && spotify && <SpotifyWidget spotify={spotify} />}
       {open && showing === 'appleMusic' && appleMusic && <AppleMusicWidget appleMusic={appleMusic} />}
       {open && showing === 'youtubeMusic' && youtubeMusic && <YouTubeMusicWidget youtubeMusic={youtubeMusic} />}
+      {open && showing === 'radio' && radio && <RadioWidget radio={radio} />}
     </div>
   )
 }
@@ -114,11 +117,29 @@ function SpotifyWidget({ spotify }: { spotify: NonNullable<ReturnType<typeof use
   )
 }
 
+/** The Radio app's station: what plays, play/pause, opening Radio on Now Playing. A live stream has no length,
+ * so the card has no progress bar, and no next or previous. */
+function RadioWidget({ radio }: { radio: NonNullable<ReturnType<typeof useRadioSource>> }) {
+  return (
+    <MusicWidget
+      source={radio.source}
+      artwork={null}
+      onOpen={() => go({ type: 'openApp', app: 'radio' })}
+      onControl={(action) => {
+        if (action !== 'playPause') return
+        if (radio.source.status === 'playing') pauseRadio()
+        else resumeRadio()
+      }}
+    />
+  )
+}
+
 /** A player's app, whose own name the card shows above the track: Apple Music is the Music app's. */
 const SERVICE_APPS: Record<MusicService, AppId> = {
   appleMusic: 'music',
   spotify: 'spotify',
   youTubeMusic: 'youtubeMusic',
+  radio: 'radio',
 }
 
 /** Behind Now Playing's words, in each look: the blurred cover at its opacity (dashboard.css) over the look's
