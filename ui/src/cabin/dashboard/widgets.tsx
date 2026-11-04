@@ -2,19 +2,39 @@ import type { CSSProperties } from 'react'
 import { type Backdrop, type Look, useWordsOver, wordsClass } from '../apps/music/contrast'
 import { Crossfade } from '../apps/music/Crossfade'
 import { VideoWidget } from '../apps/youtube/VideoWidget'
-import { NextGlyph, NoteGlyph, PauseGlyph, PlayGlyph, PreviousGlyph } from '../apps/music/glyphs'
+import {
+  NextGlyph,
+  NoteGlyph,
+  PauseGlyph,
+  PlayGlyph,
+  PreviousGlyph,
+  RepeatGlyph,
+  RepeatOneGlyph,
+  ShuffleGlyph,
+} from '../apps/music/glyphs'
 import { TrackSlide } from '../apps/music/TrackSlide'
 import { useTrackTransition } from '../apps/music/useTrackTransition'
-import { playOrPause, skip, useSpotify, useSpotifySource } from '../apps/spotify/spotify'
 import {
+  cycleRepeat as cycleRepeatSpotify,
+  playOrPause,
+  skip,
+  toggleShuffle as toggleShuffleSpotify,
+  useSpotify,
+  useSpotifySource,
+} from '../apps/spotify/spotify'
+import {
+  cycleRepeat as cycleRepeatAppleMusic,
   playOrPause as playOrPauseAppleMusic,
   skip as skipAppleMusic,
+  toggleShuffle as toggleShuffleAppleMusic,
   useAppleMusic,
   useAppleMusicSource,
 } from '../apps/music/appleMusic'
 import {
+  cycleRepeat as cycleRepeatYouTubeMusic,
   playOrPause as playOrPauseYouTubeMusic,
   skip as skipYouTubeMusic,
+  toggleShuffle as toggleShuffleYouTubeMusic,
   useYouTubeMusic,
   useYouTubeMusicSource,
 } from '../apps/youtubeMusic/youtubeMusic'
@@ -83,6 +103,8 @@ function AppleMusicWidget({ appleMusic }: { appleMusic: NonNullable<ReturnType<t
         if (action === 'playPause') playOrPauseAppleMusic()
         else if (action === 'next') skipAppleMusic(1)
         else if (action === 'previous') skipAppleMusic(-1)
+        else if (action === 'toggleShuffle') toggleShuffleAppleMusic()
+        else if (action === 'cycleRepeat') cycleRepeatAppleMusic()
       }}
     />
   )
@@ -102,6 +124,8 @@ function YouTubeMusicWidget({ youtubeMusic }: { youtubeMusic: NonNullable<Return
         if (action === 'playPause') playOrPauseYouTubeMusic()
         else if (action === 'next') skipYouTubeMusic(1)
         else if (action === 'previous') skipYouTubeMusic(-1)
+        else if (action === 'toggleShuffle') toggleShuffleYouTubeMusic()
+        else if (action === 'cycleRepeat') cycleRepeatYouTubeMusic()
       }}
     />
   )
@@ -121,6 +145,8 @@ function SpotifyWidget({ spotify }: { spotify: NonNullable<ReturnType<typeof use
         if (action === 'playPause') playOrPause()
         else if (action === 'next') skip(1)
         else if (action === 'previous') skip(-1)
+        else if (action === 'toggleShuffle') toggleShuffleSpotify()
+        else if (action === 'cycleRepeat') cycleRepeatSpotify()
       }}
     />
   )
@@ -258,7 +284,20 @@ function MusicWidget({
           <span className="np-time">{clock(progress.duration)}</span>
         </div>
       )}
-      <div className="controls">
+      {/* The transport, as CarPlay's: the song's moves, then — for a player that has them — shuffle and repeat,
+          whose own state the card shows (a station has neither, and its card keeps the three). */}
+      <div className={controls?.shuffle || controls?.repeat ? 'controls with-extras' : 'controls'}>
+        {controls?.shuffle && (
+          <button
+            type="button"
+            className={source?.shuffle ? 'side on' : 'side'}
+            aria-label={text.shuffle}
+            aria-pressed={source?.shuffle === true}
+            onClick={() => onControl('toggleShuffle')}
+          >
+            <ShuffleGlyph size={30} />
+          </button>
+        )}
         <button
           type="button"
           aria-label={text.previous}
@@ -278,6 +317,17 @@ function MusicWidget({
         <button type="button" aria-label={text.next} disabled={!controls?.next} onClick={() => onControl('next')}>
           <NextGlyph size={34} />
         </button>
+        {controls?.repeat && (
+          <button
+            type="button"
+            className={source && source.repeat !== 'off' ? 'side on' : 'side'}
+            aria-label={text.repeat}
+            aria-pressed={source ? source.repeat !== 'off' : false}
+            onClick={() => onControl('cycleRepeat')}
+          >
+            {source?.repeat === 'track' ? <RepeatOneGlyph size={30} /> : <RepeatGlyph size={30} />}
+          </button>
+        )}
       </div>
     </article>
   )

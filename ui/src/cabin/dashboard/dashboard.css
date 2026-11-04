@@ -488,6 +488,22 @@ button.widget:active {
   opacity: 0.32;
 }
 
+/* A player that has shuffle and repeat (the streaming apps; a station has neither): CarPlay's five controls,
+   the two beside the transport smaller and quieter, lit in blue while on. */
+.now-playing .controls.with-extras {
+  padding: 0 10px;
+}
+
+.now-playing .controls button.side {
+  width: 52px;
+  height: 52px;
+  color: var(--text-dim);
+}
+
+.now-playing .controls button.side.on {
+  color: var(--apple-blue);
+}
+
 .job {
   flex-direction: column;
   align-items: flex-start;
