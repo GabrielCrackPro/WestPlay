@@ -1,7 +1,7 @@
-/* The Radio app (RadioApp.tsx): the set at the top of the page — a tuning dial, the station’s name across its
-   face, the play button and the tuning beside it — and under it the game’s stations as the set’s presets, by
-   genre. Drawn as the native apps draw a page (cab scale: 1.35 px per iPhone point, 34 pt large titles at 46 px),
-   on Apple’s colours. */
+/* The Radio app (RadioApp.tsx), in CarPlay’s shape: the station playing across the top as CarPlay draws a track
+   — a square of its own colour, its name and the song it plays, the transport under them — and under it the
+   game’s stations as CarPlay lists them: one tall row each, hit easily while driving, by genre. Drawn on Apple’s
+   colours (shell/apple.css) in the cab’s appearance, at the cab’s text size. */
 
 .radio-app {
   border-radius: var(--panel-radius);
@@ -25,12 +25,14 @@
 .radio-page {
   display: flex;
   flex-direction: column;
-  gap: calc(20px * var(--text-scale, 1));
-  width: min(100%, 1180px);
+  gap: calc(22px * var(--text-scale, 1));
+  width: min(100%, 1200px);
   min-height: 100%;
   margin: 0 auto;
   padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(34px * var(--text-scale, 1));
 }
+
+/* --- The head: the title, and Refresh --------------------------------------------------------------- */
 
 .radio-head {
   display: flex;
@@ -54,184 +56,185 @@
   font-size: calc(21px * var(--text-scale, 1));
 }
 
-/* The search for a station by name, above the presets: the cabin's own field, the keyboard typing into it. */
-.radio-search {
-  display: flex;
-  flex: none;
-  max-width: calc(560px * var(--text-scale, 1));
-}
-
-.radio-search > .text-field {
-  flex: 1;
-}
-
-/* Nothing in the list has what was typed. */
-.radio-no-match {
-  margin: calc(4px * var(--text-scale, 1)) 0 0;
-  color: var(--apple-label-secondary);
-  font-size: calc(19px * var(--text-scale, 1));
-}
-
-/* Refresh: a capsule with its turning arrow. */
+/* Refresh: a capsule with its turning arrow, tall enough to hit at a glance. */
 .radio-refresh {
   display: flex;
   flex: none;
   align-items: center;
-  gap: calc(7px * var(--text-scale, 1));
-  padding: calc(9px * var(--text-scale, 1)) calc(17px * var(--text-scale, 1));
+  gap: calc(8px * var(--text-scale, 1));
+  min-height: calc(52px * var(--text-scale, 1));
+  padding: 0 calc(20px * var(--text-scale, 1));
   border: 0;
   border-radius: 999px;
-  background: var(--apple-fill);
+  background: var(--apple-fill-secondary);
   color: var(--apple-label);
   font: inherit;
-  font-size: calc(19px * var(--text-scale, 1));
-  font-weight: 600;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 650;
   cursor: pointer;
 }
 
-.radio-refresh .radio-glyph {
-  width: calc(22px * var(--text-scale, 1));
-  height: calc(22px * var(--text-scale, 1));
+.radio-refresh:hover {
+  background: var(--apple-fill);
 }
 
-/* The set: the face with its dial on the left, the button and the tuning on the right. */
-.radio-set {
-  display: flex;
+.radio-refresh .radio-glyph {
+  width: calc(24px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
+}
+
+/* --- Now Playing: CarPlay’s, the station where a track is -------------------------------------------- */
+
+.radio-now {
+  display: grid;
   flex: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'text art'
+    'controls controls';
   align-items: center;
-  gap: calc(26px * var(--text-scale, 1));
-  padding: calc(20px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
-  border-radius: calc(26px * var(--text-scale, 1));
+  column-gap: calc(30px * var(--text-scale, 1));
+  row-gap: calc(20px * var(--text-scale, 1));
+  padding: calc(26px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1));
+  border-radius: calc(28px * var(--text-scale, 1));
   background:
-    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--apple-blue) 16%, transparent), transparent 58%),
-    var(--apple-card);
+    radial-gradient(130% 150% at 100% 0%, hsl(var(--hue, 218) 74% 54% / 0.34), transparent 62%), var(--apple-card);
   box-shadow: inset 0 0 0 1px var(--apple-separator);
 }
 
-.radio-face {
+.radio-now-text {
+  grid-area: text;
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: calc(3px * var(--text-scale, 1));
+  gap: calc(5px * var(--text-scale, 1));
   min-width: 0;
 }
 
-/* The dial: a tick for every station on the page, the one playing lit, and the needle over it. */
-.radio-dial {
-  position: relative;
-  margin-bottom: calc(12px * var(--text-scale, 1));
-  padding-top: calc(18px * var(--text-scale, 1));
-}
-
-.radio-ticks {
-  display: flex;
-  align-items: flex-end;
-  gap: calc(3px * var(--text-scale, 1));
-  height: calc(26px * var(--text-scale, 1));
-}
-
-.radio-tick {
-  flex: 1;
-  min-width: calc(2px * var(--text-scale, 1));
-  height: 42%;
-  border-radius: calc(2px * var(--text-scale, 1));
-  background: color-mix(in srgb, var(--apple-label) 26%, transparent);
-}
-
-.radio-tick.on {
-  height: 100%;
-  background: var(--apple-blue);
-  box-shadow: 0 0 0 calc(1px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-blue) 40%, transparent);
-}
-
-.radio-needle {
-  position: absolute;
-  top: 0;
-  width: calc(3px * var(--text-scale, 1));
-  height: calc(52px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-blue);
-  box-shadow: 0 0 calc(10px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-blue) 65%, transparent);
-  transform: translateX(-50%);
-  transition: left 220ms cubic-bezier(0.22, 0.9, 0.24, 1);
-}
-
-.radio-needle.rest {
-  background: color-mix(in srgb, var(--apple-label) 26%, transparent);
-  box-shadow: none;
-}
-
-.radio-face-name {
+.radio-now-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   margin: 0;
-  font-size: calc(40px * var(--text-scale, 1));
+  font-size: calc(42px * var(--text-scale, 1));
   font-weight: 750;
   letter-spacing: -0.015em;
   line-height: 1.12;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.radio-face-name.idle {
+.radio-now-name.idle {
   color: var(--apple-label-secondary);
   font-weight: 650;
 }
 
-/* The song the station says it plays, under its name, while it says one. */
-.radio-face-title {
+/* The song the station says it plays, where a track’s artist is. */
+.radio-now-title {
   margin: calc(2px * var(--text-scale, 1)) 0 0;
-  font-size: calc(23px * var(--text-scale, 1));
+  overflow: hidden;
+  color: color-mix(in srgb, var(--apple-label) 86%, transparent);
+  font-size: calc(27px * var(--text-scale, 1));
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.radio-face-meta {
+.radio-now-meta {
   margin: 0;
-  color: var(--apple-label-secondary);
-  font-size: calc(20px * var(--text-scale, 1));
   overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(21px * var(--text-scale, 1));
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* What it’s doing: Now playing, paused, or why it didn’t play (one line, in the room it has). */
-.radio-face-state {
-  min-height: calc(22px * var(--text-scale, 1));
-  margin: calc(4px * var(--text-scale, 1)) 0 0;
+/* What it’s doing: Now playing as CarPlay’s badge, paused, or why it didn’t play. */
+.radio-now-state {
+  min-height: calc(28px * var(--text-scale, 1));
+  margin: calc(6px * var(--text-scale, 1)) 0 0;
   color: var(--apple-label-secondary);
-  font-size: calc(16px * var(--text-scale, 1));
-  line-height: 1.35;
+  font-size: calc(18px * var(--text-scale, 1));
+  line-height: 1.3;
 }
 
-/* The set’s controls: the tuning, then the volume under it. */
-.radio-controls {
+.radio-now-badge {
+  display: inline-block;
+  padding: calc(4px * var(--text-scale, 1)) calc(11px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-blue);
+  color: #fff;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The square of its own colour, where CarPlay shows the cover. */
+.radio-now-art {
+  display: grid;
+  grid-area: art;
+  place-items: center;
+  width: calc(152px * var(--text-scale, 1));
+  height: calc(152px * var(--text-scale, 1));
+  border-radius: calc(24px * var(--text-scale, 1));
+  background: linear-gradient(155deg, hsl(var(--hue) 72% 62%), hsl(calc(var(--hue) + 26) 68% 42%));
+  box-shadow:
+    inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%),
+    0 calc(10px * var(--text-scale, 1)) calc(26px * var(--text-scale, 1)) rgb(0 0 0 / 22%);
+  color: #fff;
+}
+
+.radio-now-art .radio-glyph {
+  width: calc(58px * var(--text-scale, 1));
+  height: calc(58px * var(--text-scale, 1));
+}
+
+.radio-now-initials {
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* The transport under them, a row across the card: the tuning, then the volume (as CarPlay’s extras). */
+.radio-now-controls {
   display: flex;
-  flex: none;
-  flex-direction: column;
+  grid-area: controls;
+  flex-wrap: wrap;
   align-items: center;
-  gap: calc(14px * var(--text-scale, 1));
+  justify-content: center;
+  gap: calc(20px * var(--text-scale, 1)) calc(44px * var(--text-scale, 1));
+  min-width: 0;
 }
 
 .radio-tunes {
   display: flex;
   align-items: center;
-  gap: calc(12px * var(--text-scale, 1));
+  gap: calc(22px * var(--text-scale, 1));
 }
 
 .radio-tune {
   display: grid;
   place-items: center;
-  width: calc(54px * var(--text-scale, 1));
-  height: calc(54px * var(--text-scale, 1));
+  width: calc(68px * var(--text-scale, 1));
+  height: calc(68px * var(--text-scale, 1));
   border: 0;
   border-radius: 50%;
-  background: var(--apple-fill);
+  background: var(--apple-fill-secondary);
   color: var(--apple-label);
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    scale 140ms ease;
+}
+
+.radio-tune:hover {
+  background: var(--apple-fill);
+}
+
+.radio-tune:active {
+  scale: 0.95;
 }
 
 .radio-tune:disabled {
@@ -240,16 +243,16 @@
 }
 
 .radio-tune .radio-glyph {
-  width: calc(24px * var(--text-scale, 1));
-  height: calc(24px * var(--text-scale, 1));
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
 }
 
 /* The face’s one button: it plays the station, and pauses it. */
 .radio-power {
   display: grid;
   place-items: center;
-  width: calc(84px * var(--text-scale, 1));
-  height: calc(84px * var(--text-scale, 1));
+  width: calc(96px * var(--text-scale, 1));
+  height: calc(96px * var(--text-scale, 1));
   border: 0;
   border-radius: 50%;
   background: var(--apple-blue);
@@ -257,163 +260,245 @@
   box-shadow: 0 calc(8px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1))
     color-mix(in srgb, var(--apple-blue) 40%, transparent);
   cursor: pointer;
-  transition: transform 140ms ease;
+  transition:
+    transform 140ms ease,
+    scale 140ms ease;
 }
 
 .radio-power:active {
-  transform: scale(0.96);
+  scale: 0.96;
 }
 
 .radio-power:disabled {
-  background: var(--apple-fill);
+  background: var(--apple-fill-secondary);
   color: var(--apple-label-secondary);
   box-shadow: none;
   cursor: default;
 }
 
 .radio-power .radio-glyph {
-  width: calc(34px * var(--text-scale, 1));
-  height: calc(34px * var(--text-scale, 1));
+  width: calc(38px * var(--text-scale, 1));
+  height: calc(38px * var(--text-scale, 1));
 }
 
 .radio-volume {
   display: flex;
   align-items: center;
-  gap: calc(9px * var(--text-scale, 1));
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
   color: var(--apple-label-secondary);
 }
 
 .radio-volume .radio-glyph {
-  width: calc(22px * var(--text-scale, 1));
-  height: calc(22px * var(--text-scale, 1));
+  width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
 }
 
 .radio-volume input[type='range'] {
-  width: calc(148px * var(--text-scale, 1));
+  width: calc(190px * var(--text-scale, 1));
+  height: calc(28px * var(--text-scale, 1));
   accent-color: var(--apple-blue);
   cursor: pointer;
 }
 
-/* The genres above the presets: capsules, the one chosen filled, as Notifications’ filters. */
+/* --- The filters: the search, then the genres -------------------------------------------------------- */
+
+.radio-filters {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+/* The search for a station by name: the cabin’s own field, drawn on a card and tall enough to read easily. */
+.radio-search {
+  display: flex;
+  flex: none;
+  max-width: calc(620px * var(--text-scale, 1));
+}
+
+.radio-search > .text-field {
+  flex: 1;
+  height: calc(58px * var(--text-scale, 1));
+  padding-inline: calc(18px * var(--text-scale, 1));
+  border-radius: calc(16px * var(--text-scale, 1));
+  background: var(--apple-card-raised);
+  box-shadow: inset 0 0 0 1px var(--apple-separator);
+  font-size: calc(24px * var(--text-scale, 1));
+}
+
+.radio-search > .text-field > svg {
+  width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+}
+
+/* The genres: CarPlay’s tabs, one line the player scrolls, the one shown filled. */
 .radio-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: calc(10px * var(--text-scale, 1));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: calc(2px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1)) calc(4px * var(--text-scale, 1));
+  scrollbar-width: none;
+}
+
+.radio-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .radio-chip {
-  padding: calc(8px * var(--text-scale, 1)) calc(17px * var(--text-scale, 1));
+  flex: none;
+  min-height: calc(52px * var(--text-scale, 1));
+  padding: 0 calc(22px * var(--text-scale, 1));
   border: 0;
   border-radius: 999px;
-  background: var(--apple-fill);
+  background: var(--apple-fill-secondary);
+  box-shadow: inset 0 0 0 1px var(--apple-separator);
   color: var(--apple-label);
   font: inherit;
-  font-size: calc(19px * var(--text-scale, 1));
-  font-weight: 600;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 650;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color 140ms ease;
 }
 
-.radio-chip.on {
-  background: var(--apple-blue);
-  color: #fff;
+.radio-chip:hover {
+  background: var(--apple-fill);
 }
+
+/* The one shown: the label’s own colour on the background’s, so it reads at a glance in either appearance. */
+.radio-chip.on {
+  background: var(--apple-label);
+  box-shadow: none;
+  color: var(--apple-background);
+}
+
+/* Nothing in the list has what was typed. */
+.radio-no-match {
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+/* --- The stations: CarPlay’s list, one row each, by genre --------------------------------------------- */
 
 .radio-groups {
   display: flex;
   flex-direction: column;
-  gap: calc(24px * var(--text-scale, 1));
+  gap: calc(26px * var(--text-scale, 1));
 }
 
-/* A genre: its caption over the row of presets. */
+/* A genre: its caption over the rows. */
 .radio-group h2 {
-  margin: 0 0 calc(10px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1));
-  color: var(--apple-label-secondary);
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  margin: 0 0 calc(10px * var(--text-scale, 1)) calc(4px * var(--text-scale, 1));
+  color: color-mix(in srgb, var(--apple-label) 74%, transparent);
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-/* The presets: a square each, washed in the station’s own colour, its name under it. */
-.radio-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(126px * var(--text-scale, 1)), 1fr));
-  gap: calc(18px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
-}
-
-.radio-tile {
+.radio-list {
   display: flex;
   flex-direction: column;
-  gap: calc(7px * var(--text-scale, 1));
-  padding: 0;
+  gap: calc(10px * var(--text-scale, 1));
+}
+
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  min-height: calc(84px * var(--text-scale, 1));
+  padding: calc(12px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
   border: 0;
-  background: none;
+  border-radius: calc(18px * var(--text-scale, 1));
+  background: var(--apple-card);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background-color 140ms ease;
 }
 
-.radio-tile-face {
+.radio-row:hover {
+  background: var(--apple-card-raised);
+}
+
+.radio-row.now {
+  box-shadow: inset 0 0 0 calc(2px * var(--text-scale, 1)) var(--apple-blue);
+}
+
+.radio-row-art {
   display: grid;
+  flex: none;
   place-items: center;
-  aspect-ratio: 1;
-  border-radius: calc(22px * var(--text-scale, 1));
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(60px * var(--text-scale, 1));
+  border-radius: calc(15px * var(--text-scale, 1));
   background: linear-gradient(155deg, hsl(var(--hue) 72% 62%), hsl(calc(var(--hue) + 26) 68% 42%));
-  box-shadow:
-    inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%),
-    0 calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) rgb(0 0 0 / 18%);
+  box-shadow: inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%);
   color: #fff;
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease;
 }
 
-.radio-tile:active .radio-tile-face {
-  transform: scale(0.97);
+.radio-row-art .radio-glyph {
+  width: calc(28px * var(--text-scale, 1));
+  height: calc(28px * var(--text-scale, 1));
 }
 
-.radio-tile.now .radio-tile-face {
-  box-shadow:
-    inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%),
-    0 0 0 calc(3px * var(--text-scale, 1)) var(--apple-blue),
-    0 calc(10px * var(--text-scale, 1)) calc(26px * var(--text-scale, 1)) rgb(0 0 0 / 24%);
-}
-
-.radio-tile-initials {
-  font-size: calc(30px * var(--text-scale, 1));
+.radio-row-initials {
+  font-size: calc(24px * var(--text-scale, 1));
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
-.radio-tile-face .radio-glyph {
-  width: calc(34px * var(--text-scale, 1));
-  height: calc(34px * var(--text-scale, 1));
+.radio-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
 }
 
-.radio-tile-name {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 600;
-  line-height: 1.25;
+.radio-row-name {
   overflow: hidden;
+  font-size: calc(23px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.radio-tile.now .radio-tile-name {
+.radio-row.now .radio-row-name {
   color: var(--apple-blue);
 }
 
-.radio-tile-meta {
-  margin-top: calc(-3px * var(--text-scale, 1));
-  color: var(--apple-label-secondary);
-  font-size: calc(15px * var(--text-scale, 1));
+.radio-row-meta {
   overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Nothing read yet, or no list to read: the mark, then what to do about it. */
+/* What the row playing says of itself, at the row’s right, where CarPlay puts a track’s state. */
+.radio-row-live {
+  flex: none;
+  color: var(--apple-blue);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.radio-row-live.paused {
+  color: var(--apple-label-secondary);
+}
+
+/* --- Nothing read yet, or no list to read: the mark, then what to do about it ------------------------- */
+
 .radio-empty {
   display: flex;
   flex: 1;

@@ -10,14 +10,12 @@ import './radioApp.css'
 const FIELD = 'radio-search'
 
 /**
- * The Radio app: the stations of the game’s own radio list (`live_streams.sii`, read by the host), drawn as the
- * set in the dashboard is — a tuning dial that lights the station playing, its name across the face with the song
- * it plays under it, the button that plays it and stops it, the buttons either side of it to tune on, and its
- * volume — and under it the
- * stations as the set’s presets, by genre as the game’s radio menu sorts them, and a search for a station by
- * name among many. A station plays on while the player is elsewhere in the cab (its sound isn’t the app’s
- * window’s, radio.ts), as a car radio does. Pressing Refresh reads the game’s list again, for stations added in
- * the game since WestPlay started.
+ * The Radio app, in CarPlay's shape (as Music's Now Playing is): the station playing across the top as CarPlay
+ * draws a track — a square of the station's own colour, its name, the song it plays, and the transport under
+ * them — and under it the game’s stations as CarPlay lists them, a tall row each (hit easily while driving),
+ * by genre as the game’s radio menu sorts them, with a search by name among many. A station plays on while the
+ * player is elsewhere in the cab (its sound isn’t the app’s window’s, radio.ts), as a car radio does. Pressing
+ * Refresh reads the game’s list again, for stations added in the game since WestPlay started.
  */
 export function RadioApp() {
   const text = useText()
@@ -37,18 +35,17 @@ export function RadioApp() {
   const matching = matchesOf(stations, query)
   const genres = genresOf(matching)
   const groups = groupsOf(matching).filter((group) => genre === 'all' || group.genre === genre)
-  // What the dial tunes across: the stations the presets show, in their order.
+  // What the tuning steps across: the stations the list shows, in their order.
   const shown = groups.flatMap((group) => group.stations)
   const live = status === 'playing' || status === 'loading'
   const paused = station !== null && status === 'paused'
-  // The dial’s needle, on the station playing (in the middle when it isn’t one of these, as a set with no station).
   const at = station ? shown.findIndex((each) => each.url === station.url) : -1
   const chips: [string, string][] = [
     ['all', words.all],
     ...genres.map((each): [string, string] => [each, each || words.other]),
   ]
 
-  /** Tunes to the station `step` on in the presets shown, round from the ends. */
+  /** Tunes to the station `step` on in the list shown, round from the ends. */
   const tune = (step: number) => {
     if (shown.length === 0) return
     const from = at < 0 ? (step > 0 ? -1 : 0) : at
@@ -84,33 +81,43 @@ export function RadioApp() {
             </div>
           ) : (
             <>
-              <div className="radio-set">
-                <div className="radio-face">
-                  <div className="radio-dial" aria-hidden="true">
-                    <div className="radio-ticks">
-                      {shown.map((each) => (
-                        <span key={each.url} className={each.url === station?.url ? 'radio-tick on' : 'radio-tick'} />
-                      ))}
-                    </div>
-                    <span
-                      className={at < 0 ? 'radio-needle rest' : 'radio-needle'}
-                      style={{ left: at < 0 || shown.length < 2 ? '50%' : `${(at / (shown.length - 1)) * 100}%` }}
-                    />
-                  </div>
-                  <p className={station ? 'radio-face-name' : 'radio-face-name idle'}>
+              <section
+                className="radio-now"
+                style={{ '--hue': String(station ? hueOf(station.name) : 210) } as CSSProperties}
+                aria-label={station ? station.name : undefined}
+              >
+                <div className="radio-now-text">
+                  <p className={station ? 'radio-now-name' : 'radio-now-name idle'}>
                     {station ? station.name : words.idle}
                   </p>
                   {station && title ? (
-                    <p className="radio-face-title" aria-live="polite">
+                    <p className="radio-now-title" aria-live="polite">
                       {title}
                     </p>
                   ) : null}
-                  <p className="radio-face-meta">{station ? metaOf(station) : words.summary(stations.length)}</p>
-                  <p className="radio-face-state" aria-live="polite">
-                    {failed === station?.url ? words.unavailable : live ? words.playingNow : paused ? words.paused : ''}
+                  <p className="radio-now-meta">{station ? metaOf(station) : words.summary(stations.length)}</p>
+                  <p className="radio-now-state" aria-live="polite">
+                    {failed === station?.url ? (
+                      words.unavailable
+                    ) : live ? (
+                      <span className="radio-now-badge">{words.playingNow}</span>
+                    ) : paused ? (
+                      words.paused
+                    ) : (
+                      ''
+                    )}
                   </p>
                 </div>
-                <div className="radio-controls">
+                <div className="radio-now-art" aria-hidden="true">
+                  {!station ? (
+                    <RadioGlyph />
+                  ) : live ? (
+                    <WavesGlyph />
+                  ) : (
+                    <span className="radio-now-initials">{initialsOf(station.name)}</span>
+                  )}
+                </div>
+                <div className="radio-now-controls">
                   <div className="radio-tunes">
                     <button
                       type="button"
@@ -152,30 +159,32 @@ export function RadioApp() {
                     />
                   </label>
                 </div>
-              </div>
-              <div className="radio-search">
-                <TextField
-                  id={FIELD}
-                  value={query}
-                  onChange={setQuery}
-                  hint={words.search}
-                  label={words.search}
-                  icon={<SearchGlyph />}
-                />
-              </div>
-              <div className="radio-chips" role="tablist" aria-label={text.apps.radio}>
-                {chips.map(([id, name]) => (
-                  <button
-                    key={id || 'other'}
-                    type="button"
-                    role="tab"
-                    aria-selected={genre === id}
-                    className={genre === id ? 'radio-chip on' : 'radio-chip'}
-                    onClick={() => setGenre(id)}
-                  >
-                    {name}
-                  </button>
-                ))}
+              </section>
+              <div className="radio-filters">
+                <div className="radio-search">
+                  <TextField
+                    id={FIELD}
+                    value={query}
+                    onChange={setQuery}
+                    hint={words.search}
+                    label={words.search}
+                    icon={<SearchGlyph />}
+                  />
+                </div>
+                <div className="radio-chips" role="tablist" aria-label={text.apps.radio}>
+                  {chips.map(([id, name]) => (
+                    <button
+                      key={id || 'other'}
+                      type="button"
+                      role="tab"
+                      aria-selected={genre === id}
+                      className={genre === id ? 'radio-chip on' : 'radio-chip'}
+                      onClick={() => setGenre(id)}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
               </div>
               {groups.length === 0 ? (
                 <p className="radio-no-match">{words.noMatches}</p>
@@ -184,9 +193,9 @@ export function RadioApp() {
                   {groups.map((group) => (
                     <section key={group.genre || 'other'} className="radio-group">
                       <h2>{group.genre || words.other}</h2>
-                      <div className="radio-grid">
+                      <div className="radio-list">
                         {group.stations.map((each) => (
-                          <StationTile
+                          <StationRow
                             key={each.url}
                             station={each}
                             now={station?.url === each.url}
@@ -207,8 +216,9 @@ export function RadioApp() {
   )
 }
 
-/** A station’s tuning dial, pressed like a preset: it plays it (or stops it, the one playing). */
-function StationTile({
+/** A station as CarPlay lists one: its own colour at the left, its name, what it is; pressed, it plays (or the one
+ * playing stops). */
+function StationRow({
   station,
   now,
   status,
@@ -224,17 +234,21 @@ function StationTile({
   return (
     <button
       type="button"
-      className={now ? 'radio-tile now' : 'radio-tile'}
+      className={now ? 'radio-row now' : 'radio-row'}
       aria-current={now ? 'true' : undefined}
       onClick={() => (now && status !== 'paused' && status !== 'failed' ? stopRadio() : play(station))}
     >
-      <span className="radio-tile-face" style={{ '--hue': String(hueOf(station.name)) } as CSSProperties}>
-        {live ? <WavesGlyph /> : <span className="radio-tile-initials">{initialsOf(station.name)}</span>}
+      <span className="radio-row-art" style={{ '--hue': String(hueOf(station.name)) } as CSSProperties}>
+        {live ? <WavesGlyph /> : <span className="radio-row-initials">{initialsOf(station.name)}</span>}
       </span>
-      <span className="radio-tile-name">{station.name}</span>
-      <span className="radio-tile-meta">
-        {failed ? words.unavailableTag : [station.genre || words.other, station.language].filter(Boolean).join(' · ')}
+      <span className="radio-row-text">
+        <span className="radio-row-name">{station.name}</span>
+        <span className="radio-row-meta">
+          {failed ? words.unavailableTag : [station.genre || words.other, station.language].filter(Boolean).join(' · ')}
+        </span>
       </span>
+      {live ? <span className="radio-row-live">{words.playingNow}</span> : null}
+      {now && status === 'paused' ? <span className="radio-row-live paused">{words.paused}</span> : null}
     </button>
   )
 }
