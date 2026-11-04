@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Показване на Cabin Play',
     showDetail: 'Изключете, за да видите собствения екран на камиона.',
+    resume: 'Продължи оттам, където спря',
+    resumeDetail: 'Изкл.: Cabin Play се отваря на таблото.',
     connection: 'Връзка',
     engine: 'Ядро на Cabin Play',
     engineRunning: 'Работи',

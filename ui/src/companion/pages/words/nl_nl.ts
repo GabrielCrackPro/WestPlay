@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play tonen',
     showDetail: 'Zet uit om het eigen scherm van de truck te zien.',
+    resume: 'Verdergaan waar je gebleven was',
+    resumeDetail: 'Uit: Cabin Play opent op het dashboard.',
     connection: 'Verbinding',
     engine: 'Cabin Play-engine',
     engineRunning: 'Actief',

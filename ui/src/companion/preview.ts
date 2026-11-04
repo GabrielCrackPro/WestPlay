@@ -49,6 +49,7 @@ let settings: Settings = {
     volumeUp: { key: 0x33, withInteractionKey: true },
   },
   screen: { truckStrip: 'auto' },
+  cabin: { resume: false },
   look: { wallpaper: null, iconSet: null, iconStyle: 'auto' },
   graphics: { gpu: null },
 }

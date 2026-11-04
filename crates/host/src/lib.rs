@@ -1985,7 +1985,7 @@ fn screen_message(layout: u32) -> String {
 }
 
 /// `{"type":"settings","truckStrip":"auto","wallpaper":"plain","iconSet":null,"iconStyle":"auto","equalizer":…}`: the
-/// settings the cabin page applies itself.
+/// settings the cabin page applies itself, `resume` saying whether the cab comes back where the last launch left it.
 fn settings_message(settings: &settings::Settings) -> String {
     serde_json::json!({
         "type": "settings",
@@ -1995,6 +1995,7 @@ fn settings_message(settings: &settings::Settings) -> String {
         "iconStyle": settings.look.icon_style,
         "equalizer": settings.sound.equalizer.clamped(),
         "equalizerCustom": settings.sound.custom,
+        "resume": settings.cabin.resume,
     })
     .to_string()
 }
@@ -2467,9 +2468,11 @@ mod tests {
                 "iconStyle": "auto",
                 "equalizer": { "bass": 0, "mid": 0, "treble": 0 },
                 "equalizerCustom": false,
+                "resume": false,
             })
         );
         settings.screen.truck_strip = crate::settings::TruckStrip::Off;
+        settings.cabin.resume = true;
         settings.sound.equalizer = crate::speakers::Equalizer { bass: -9, mid: 2, treble: 6 };
         settings.look.wallpaper = Some("custom:Dusk".into());
         settings.look.icon_set = Some("Retro".into());
@@ -2477,6 +2480,7 @@ mod tests {
         assert_eq!(message["truckStrip"], "off");
         assert_eq!(message["wallpaper"], "custom:Dusk");
         assert_eq!(message["iconSet"], "Retro");
+        assert_eq!(message["resume"], true);
         // Within the range, whatever the file says.
         assert_eq!(message["equalizer"], serde_json::json!({ "bass": -6, "mid": 2, "treble": 6 }));
         // The curve is kept whichever is chosen; what plays is it, with Custom only.

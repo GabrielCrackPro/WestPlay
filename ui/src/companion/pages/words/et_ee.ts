@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Näita Cabin Playd',
     showDetail: 'Lülita välja, et näha veoki enda ekraani.',
+    resume: 'Jätka sealt, kus pooleli jäi',
+    resumeDetail: 'Väljas: Cabin Play avaneb armatuurlaual.',
     connection: 'Ühendus',
     engine: 'Cabin Play mootor',
     engineRunning: 'Töötab',

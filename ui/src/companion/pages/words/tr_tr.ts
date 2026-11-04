@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play’i göster',
     showDetail: 'Kamyonun kendi ekranını görmek için kapat.',
+    resume: 'Kaldığın yerden devam et',
+    resumeDetail: 'Kapalı: Cabin Play her açılışta Panoda açılır.',
     connection: 'Bağlantı',
     engine: 'Cabin Play motoru',
     engineRunning: 'Çalışıyor',

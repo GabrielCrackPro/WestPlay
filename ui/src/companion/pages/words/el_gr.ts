@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Εμφάνιση Cabin Play',
     showDetail: 'Απενεργοποίησέ το για να δεις την οθόνη του ίδιου του φορτηγού.',
+    resume: 'Συνέχισε από εκεί που έμεινες',
+    resumeDetail: 'Ανενεργό: Το Cabin Play ανοίγει στον πίνακα.',
     connection: 'Σύνδεση',
     engine: 'Πυρήνας Cabin Play',
     engineRunning: 'Σε λειτουργία',

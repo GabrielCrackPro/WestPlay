@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Prikaži Cabin Play',
     showDetail: 'Izklopi, da vidiš lastni zaslon tovornjaka.',
+    resume: 'Nadaljuj, kjer si končal',
+    resumeDetail: 'Izklop.: Cabin Play se odpre na armaturi.',
     connection: 'Povezava',
     engine: 'Jedro Cabin Playa',
     engineRunning: 'Deluje',

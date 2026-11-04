@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Show Cabin Play',
     showDetail: 'Turn off to see the truck’s own screen.',
+    resume: 'Resume where you left off',
+    resumeDetail: 'Off: Cabin Play opens on the Dashboard.',
     connection: 'Connection',
     engine: 'Cabin Play engine',
     engineRunning: 'Running',

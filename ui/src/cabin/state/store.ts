@@ -190,6 +190,10 @@ interface CabinState {
    * stays false and the shell's hand-over pieces never show. Not kept: it comes back with every power-up.
    */
   truckScreen: boolean
+  /** Whether the cab comes back where the last launch left it (its screen and app): the companion's switch, sent by
+   * the host. Off, it opens on the Dashboard and nothing of the last session is kept. Not kept itself: the host
+   * holds it with the other settings. */
+  resumeCabin: boolean
   navigate(action: NavigationAction): void
   setAppearanceMode(mode: AppearanceMode): void
   setWallpaper(id: string): void
@@ -475,6 +479,7 @@ export const useCabin = create<CabinState>()(
           const next = power(state.power, event)
           return { power: next, truckScreen: next.phase === 'off' ? false : state.truckScreen }
         }),
+      resumeCabin: false,
       truckScreen: false,
       // Cabin Play is never handed back to the truck's own screen (owner 2026-11-04): once it's up it stays on the
       // screen until the electrics go off. Whatever asks it closed — the companion's switch, the game — is refused
@@ -488,8 +493,9 @@ export const useCabin = create<CabinState>()(
       // 2: Text Size's steps moved larger (2026-10-24): a step kept from before means another size now, so each
       // player starts on the new default. 3: two smaller steps added below them (the same day): a step kept is the
       // same size two steps further on. 4: the Dashboard opened with six cards, too many to read on the move, so its
-      // default column is four now (the players who never chose their own get it).
-      version: 4,
+      // default column is four now (the players who never chose their own get it). 5: the cab keeps the screen and app
+      // it was in only when the companion's switch says to (2026-11-04).
+      version: 5,
       migrate: (stored, version) => {
         const kept = (stored ?? {}) as Partial<Persisted>
         let next = kept
@@ -500,11 +506,15 @@ export const useCabin = create<CabinState>()(
         if (version < 4 && wasEveryWidgetOn(next.dashboardWidgets)) {
           next = { ...next, dashboardWidgets: { ...STARTER_WIDGETS } }
         }
+        // A session saved before the switch existed is let go of: every cab opens on the Dashboard.
+        if (version < 5) next = { ...next, navigation: INITIAL_NAVIGATION }
         return next
       },
       storage: createJSONStorage(() => localStorage),
       partialize: (state): Persisted => ({
-        navigation: state.navigation,
+        // The screen and app the player was in, only when the companion's switch says the cab resumes: otherwise a
+        // fresh session is kept, so every launch opens on the Dashboard.
+        navigation: state.resumeCabin ? state.navigation : INITIAL_NAVIGATION,
         appearanceMode: state.appearanceMode,
         wallpaperId: state.wallpaperId,
         dashboardWidgets: state.dashboardWidgets,
@@ -747,6 +757,10 @@ function previewLayout(): ScreenLayoutId | null {
   return isScreenLayoutId(layout) ? layout : null
 }
 
+/** Whether the companion's resume switch was heard this launch (`null`: not yet). The session kept from the last
+ * launch is used only if the switch says so, and dropped the first time it's heard off. */
+let resumeHeard: boolean | null = null
+
 /**
  * Feeds host messages into the stores, and tells the host whether WestPlay is open on the truck's screen
  * (as the page connects, and whenever it opens or closes). Returns the unsubscribe function; call once at
@@ -878,6 +892,14 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
       case 'settings': {
         const cabin = useCabin.getState()
         cabin.setOemMode(message.truckStrip === 'off' ? 'off' : 'auto')
+        // The cabin's own session between launches: the screen and app kept from the last one are used only if the
+        // companion's switch says to resume. Heard off, that session is let go of, once.
+        const resume = message.resume === true
+        if (resumeHeard === null) {
+          resumeHeard = resume
+          if (!resume) useCabin.setState({ navigation: INITIAL_NAVIGATION })
+        }
+        useCabin.setState({ resumeCabin: resume })
         if (message.wallpaper) useCabin.setState({ wallpaperId: message.wallpaper })
         // Chosen here before WestPlay kept it with its settings: kept now.
         else if (cabin.wallpaperId !== DEFAULT_WALLPAPER_ID) postToHost({ type: 'wallpaper', id: cabin.wallpaperId })

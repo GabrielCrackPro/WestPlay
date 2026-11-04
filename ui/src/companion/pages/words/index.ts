@@ -54,6 +54,9 @@ export interface CompanionWords {
     }
     show: string
     showDetail: string
+    /** The companion's switch: the cab comes back where the last launch left it (its screen and app). */
+    resume: string
+    resumeDetail: string
     connection: string
     engine: string
     engineRunning: string

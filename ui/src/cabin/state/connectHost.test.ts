@@ -3,8 +3,8 @@ import type { HostMessage, PageMessage, Telemetry } from '../../shared/host'
 
 /** A stand-in for the page's storage: this suite runs in Node, where `localStorage` isn't there, and the cabin's
  * settings are saved through it (store.ts's persist). */
-function stubbedStorage() {
-  const kept = new Map<string, string>()
+function stubbedStorage(saved: Record<string, string> = {}) {
+  const kept = new Map(Object.entries(saved))
   return {
     getItem: (key: string) => kept.get(key) ?? null,
     setItem: (key: string, value: string) => void kept.set(key, value),
@@ -183,6 +183,42 @@ describe('connectHost', () => {
 
     webview.send({ type: 'career', data: career })
     expect(useLive.getState().career).toEqual(career)
+    disconnect()
+  })
+
+  it('drops the screen kept from the last launch unless the companion’s switch says to resume it', async () => {
+    const kept = JSON.stringify({
+      state: { navigation: { route: { kind: 'app', app: 'maps' }, recents: ['maps', 'music'], base: 'dashboard' } },
+      version: 5,
+    })
+    vi.stubGlobal('localStorage', stubbedStorage({ 'westplay.cabin': kept }))
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useCabin } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    // Off (the default): the cab opens on the Dashboard, whatever the last launch left it on.
+    webview.send({ type: 'settings', truckStrip: 'auto' })
+    expect(useCabin.getState().navigation).toEqual({
+      route: { kind: 'dashboard' },
+      recents: ['maps', 'music', 'youtube', 'spotify', 'youtubeMusic'],
+      base: 'dashboard',
+    })
+    disconnect()
+  })
+
+  it('comes back where the last launch left it when the companion’s switch is on', async () => {
+    const kept = JSON.stringify({
+      state: { navigation: { route: { kind: 'app', app: 'maps' }, recents: ['maps', 'music'], base: 'dashboard' } },
+      version: 5,
+    })
+    vi.stubGlobal('localStorage', stubbedStorage({ 'westplay.cabin': kept }))
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useCabin } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    webview.send({ type: 'settings', truckStrip: 'auto', resume: true })
+    expect(useCabin.getState().navigation.route).toEqual({ kind: 'app', app: 'maps' })
+    expect(useCabin.getState().navigation.recents).toEqual(['maps', 'music'])
     disconnect()
   })
 

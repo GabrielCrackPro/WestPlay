@@ -33,6 +33,18 @@ pub struct Settings {
     pub graphics: GraphicsSettings,
     #[serde(deserialize_with = "lenient")]
     pub sound: SoundSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub cabin: CabinSettings,
+}
+
+/// The cabin's own session between launches: whether it opens where the last game left it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CabinSettings {
+    /// Whether the screen and app the player was in come back at the next launch (the cab page keeps them). Off:
+    /// Cabin Play opens on the Dashboard every time.
+    #[serde(deserialize_with = "lenient")]
+    pub resume: bool,
 }
 
 /// The sound the players play: its tone (the cab's Settings › Equalizer), the same in every truck. As iOS's
@@ -453,12 +465,14 @@ mod tests {
                 equalizer: crate::speakers::Equalizer { bass: -3, mid: 1, treble: 2 },
                 custom: true,
             },
+            cabin: CabinSettings { resume: true },
         };
         let json = to_json(&settings);
         assert!(json.contains("\"version\": 2"), "{json}");
         assert!(json.contains("\"key\": 5"), "{json}");
         assert!(json.contains("\"mode\": \"toggle\""), "{json}");
         assert!(json.contains("\"truckStrip\": \"off\""), "{json}");
+        assert!(json.contains("\"resume\": true"), "{json}");
         assert_eq!(parse(&json).unwrap(), settings);
     }
 
@@ -480,6 +494,8 @@ mod tests {
         assert_eq!(partial.screen.truck_strip, TruckStrip::Auto);
         // And from before the GPU was: WestPlay picks it.
         assert_eq!(partial.graphics.gpu, None);
+        // And from before the cabin's own session was a setting: the Dashboard, every launch.
+        assert!(!partial.cabin.resume);
     }
 
     #[test]

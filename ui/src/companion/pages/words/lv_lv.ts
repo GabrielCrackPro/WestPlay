@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Rādīt Cabin Play',
     showDetail: 'Izslēdz, lai redzētu kravas auto paša ekrānu.',
+    resume: 'Turpināt no vietas',
+    resumeDetail: 'Izslēgts: Cabin Play atveras panelī.',
     connection: 'Savienojums',
     engine: 'Cabin Play dzinējs',
     engineRunning: 'Darbojas',

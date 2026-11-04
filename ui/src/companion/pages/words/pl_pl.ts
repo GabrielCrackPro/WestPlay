@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Pokazuj Cabin Play',
     showDetail: 'Wyłącz, aby zobaczyć własny ekran ciężarówki.',
+    resume: 'Kontynuuj od miejsca, w którym skończyłeś',
+    resumeDetail: 'Wył.: Cabin Play otwiera się na pulpicie.',
     connection: 'Połączenie',
     engine: 'Silnik Cabin Play',
     engineRunning: 'Działa',

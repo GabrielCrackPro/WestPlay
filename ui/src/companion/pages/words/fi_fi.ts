@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Näytä Cabin Play',
     showDetail: 'Kytke pois nähdäksesi rekan oman näytön.',
+    resume: 'Jatka siitä, mihin jäit',
+    resumeDetail: 'Pois: Cabin Play avautuu kojelautaan.',
     connection: 'Yhteys',
     engine: 'Cabin Playn ydin',
     engineRunning: 'Käynnissä',

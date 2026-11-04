@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play-ის ჩვენება',
     showDetail: 'გამორთეთ, რომ სატვირთოს საკუთარი ეკრანი ნახოთ.',
+    resume: 'გააგრძელე იქიდან, სადაც შეჩერდი',
+    resumeDetail: 'გამორთ.: Cabin Play იხსნება პანელზე.',
     connection: 'კავშირი',
     engine: 'Cabin Play-ის ბირთვი',
     engineRunning: 'მუშაობს',

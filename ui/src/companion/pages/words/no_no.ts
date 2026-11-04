@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Vis Cabin Play',
     showDetail: 'Slå av for å se lastebilens egen skjerm.',
+    resume: 'Fortsett der du slapp',
+    resumeDetail: 'Av: Cabin Play åpnes på dashbordet.',
     connection: 'Tilkobling',
     engine: 'Cabin Plays motor',
     engineRunning: 'Kjører',

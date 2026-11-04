@@ -1,4 +1,4 @@
-import { Group, Note, Panel, Row, Tick } from '../room/parts'
+import { Group, Note, Panel, Row, Switch, Tick } from '../room/parts'
 import { banner, n } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
 import { SectionGlyph } from './glyphs'
@@ -13,6 +13,7 @@ import type { CompanionWords } from './words'
 export function ScreenPage({ status, settings, cw }: PageProps) {
   const w = cw.screen
   const state = screenState(status)
+  const saved = settings.settings
   useScreenAt(
     state === 'original' ? 'dashboard' : 'home',
     GLOW.home,
@@ -34,6 +35,21 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
       <ConnectionPath status={status} state={state} w={w} cw={cw} fps={fps} place={4} />
       {/* No switch to turn Cabin Play off (owner 2026-11-04): once it's on the truck's screen it stays there for as
           long as the game runs, so the only thing to show about it is how the connection is doing, above. */}
+      {saved && (
+        <Group place={5}>
+          <Row
+            title={w.resume}
+            detail={w.resumeDetail}
+            accessory={
+              <Switch
+                on={saved.cabin.resume}
+                label={w.resume}
+                change={(resume) => void settings.update({ ...saved, cabin: { resume } })}
+              />
+            }
+          />
+        </Group>
+      )}
       {status?.gameElevated && (
         <Note tone="bad">
           <b>{w.elevated.title}</b> {w.elevated.text}

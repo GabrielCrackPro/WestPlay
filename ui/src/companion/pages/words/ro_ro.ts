@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Afișează Cabin Play',
     showDetail: 'Dezactivează ca să vezi ecranul propriu al camionului.',
+    resume: 'Continuă de unde ai rămas',
+    resumeDetail: 'Oprit: Cabin Play se deschide pe bord.',
     connection: 'Conexiune',
     engine: 'Motorul Cabin Play',
     engineRunning: 'Rulează',

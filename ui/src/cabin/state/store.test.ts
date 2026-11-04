@@ -146,3 +146,14 @@ describe('the saved Text Size', () => {
     expect(useCabin.getState().textSize).toBe(DEFAULT_TEXT_SIZE)
   })
 })
+
+describe('the cab kept from the last launch', () => {
+  it('is let go of when it was saved before the resume switch existed', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({ navigation: { route: { kind: 'app', app: 'maps' }, recents: ['maps'], base: 'dashboard' } }, 4),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().navigation.route).toEqual({ kind: 'dashboard' })
+  })
+})

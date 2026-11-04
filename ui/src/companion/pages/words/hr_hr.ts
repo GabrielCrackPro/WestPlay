@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Prikaži Cabin Play',
     showDetail: 'Isključite da biste vidjeli vlastiti zaslon kamiona.',
+    resume: 'Nastavi gdje si stao',
+    resumeDetail: 'Isključeno: Cabin Play otvara se na ploči.',
     connection: 'Veza',
     engine: 'Jezgra Cabin Playa',
     engineRunning: 'Radi',

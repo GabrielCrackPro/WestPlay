@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Показывать Cabin Play',
     showDetail: 'Выключите, чтобы увидеть собственный экран грузовика.',
+    resume: 'Продолжить с того же места',
+    resumeDetail: 'Выкл.: Cabin Play открывается на панели.',
     connection: 'Подключение',
     engine: 'Движок Cabin Play',
     engineRunning: 'Работает',

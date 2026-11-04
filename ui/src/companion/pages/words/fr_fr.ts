@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Afficher Cabin Play',
     showDetail: 'Désactivez pour voir l’écran d’origine du camion.',
+    resume: 'Reprendre où vous en étiez',
+    resumeDetail: 'Désactivé : Cabin Play s’ouvre sur le tableau de bord.',
     connection: 'Connexion',
     engine: 'Moteur Cabin Play',
     engineRunning: 'En marche',

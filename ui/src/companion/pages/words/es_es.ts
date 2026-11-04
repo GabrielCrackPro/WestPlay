@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Mostrar Cabin Play',
     showDetail: 'Desactívalo para ver la pantalla propia del camión.',
+    resume: 'Continuar donde lo dejaste',
+    resumeDetail: 'Desactivado: Cabin Play se abre en el panel.',
     connection: 'Conexión',
     engine: 'Motor de Cabin Play',
     engineRunning: 'En marcha',

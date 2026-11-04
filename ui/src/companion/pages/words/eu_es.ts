@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Erakutsi Cabin Play',
     showDetail: 'Desaktibatu kamioiaren pantaila propioa ikusteko.',
+    resume: 'Jarraitu utzi zenuen tokian',
+    resumeDetail: 'Desaktibatuta: Cabin Play panelean irekitzen da.',
     connection: 'Konexioa',
     engine: 'Cabin Play-ren motorra',
     engineRunning: 'Martxan',

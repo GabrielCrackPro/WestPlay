@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play anzeigen',
     showDetail: 'Schalte es aus, um den eigenen Bildschirm des Lkw zu sehen.',
+    resume: 'Weitermachen, wo du aufgehört hast',
+    resumeDetail: 'Aus: Cabin Play öffnet auf dem Dashboard.',
     connection: 'Verbindung',
     engine: 'Cabin Play-Engine',
     engineRunning: 'Läuft',

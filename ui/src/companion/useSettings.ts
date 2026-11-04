@@ -17,6 +17,11 @@ export interface Settings {
   screen: {
     truckStrip: TruckStrip
   }
+  /** The cabin's own session between launches (the Screen page's switch). */
+  cabin: {
+    /** Whether the screen and app the player was in come back at the next launch; off, the Dashboard every time. */
+    resume: boolean
+  }
   /** How the screen looks (Customize): a wallpaper's id and one of the player's icon sets, by name; `null`:
    * none chosen (the cab's default wallpaper, Cabin Play's own icons). */
   look: {

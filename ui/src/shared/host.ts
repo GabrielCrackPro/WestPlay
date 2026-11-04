@@ -196,6 +196,9 @@ export type HostMessage =
       /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or not (Recommended). */
       equalizer?: Equalizer
       equalizerCustom?: boolean
+      /** Whether the cab comes back where the last launch left it (the screen and app it was in), the companion's
+       * switch. Off, Cabin Play opens on the Dashboard. */
+      resume?: boolean
     }
   /** The player's own wallpapers and icon sets (shared/customize.ts), their files at `CABIN_FILES`. */
   | { type: 'customize'; wallpapers: CustomWallpaper[]; iconSets: IconSet[] }

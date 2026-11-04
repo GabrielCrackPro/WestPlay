@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Zobrazovať Cabin Play',
     showDetail: 'Vypnite, ak chcete vidieť vlastnú obrazovku kamióna.',
+    resume: 'Pokračovať, kde si skončil',
+    resumeDetail: 'Vypnuté: Cabin Play sa otvorí na palubnej doske.',
     connection: 'Pripojenie',
     engine: 'Jadro Cabin Play',
     engineRunning: 'Beží',

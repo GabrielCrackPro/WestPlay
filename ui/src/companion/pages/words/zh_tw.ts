@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: '顯示 Cabin Play',
     showDetail: '關閉後可看到卡車本身的螢幕。',
+    resume: '從上次的畫面繼續',
+    resumeDetail: '關閉：Cabin Play 每次都開啟儀表板。',
     connection: '連線',
     engine: 'Cabin Play 引擎',
     engineRunning: '執行中',

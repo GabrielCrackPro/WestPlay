@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play を表示',
     showDetail: 'オフにすると、トラック本来の画面が表示されます。',
+    resume: '前回の続きから',
+    resumeDetail: 'オフ: Cabin Play はダッシュボードで開きます。',
     connection: '接続',
     engine: 'Cabin Play エンジン',
     engineRunning: '実行中',

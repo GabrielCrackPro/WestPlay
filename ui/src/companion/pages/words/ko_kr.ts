@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play 표시',
     showDetail: '끄면 트럭 자체 화면이 보여요.',
+    resume: '이전 화면에서 계속',
+    resumeDetail: '끔: Cabin Play가 대시보드에서 열립니다.',
     connection: '연결',
     engine: 'Cabin Play 엔진',
     engineRunning: '실행 중',

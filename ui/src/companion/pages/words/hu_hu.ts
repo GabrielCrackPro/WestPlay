@@ -53,6 +53,8 @@ export const words: CompanionWords = {
     },
     show: 'Cabin Play megjelenítése',
     showDetail: 'Kapcsold ki, hogy a kamion saját képernyőjét lásd.',
+    resume: 'Folytatás ott, ahol abbahagytad',
+    resumeDetail: 'Ki: a Cabin Play a műszerfalon nyílik meg.',
     connection: 'Kapcsolat',
     engine: 'Cabin Play-motor',
     engineRunning: 'Fut',

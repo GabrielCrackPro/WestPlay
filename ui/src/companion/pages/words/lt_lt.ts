@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Rodyti Cabin Play',
     showDetail: 'Išjunk, kad matytum paties sunkvežimio ekraną.',
+    resume: 'Tęsti nuo tos vietos',
+    resumeDetail: 'Išjungta: „Cabin Play“ atsidaro prietaisų skydelyje.',
     connection: 'Ryšys',
     engine: 'Cabin Play variklis',
     engineRunning: 'Veikia',

@@ -52,6 +52,8 @@ export const words: CompanionWords = {
     },
     show: 'Hiện Cabin Play',
     showDetail: 'Tắt đi để xem màn hình gốc của xe tải.',
+    resume: 'Tiếp tục từ chỗ đã dừng',
+    resumeDetail: 'Tắt: Cabin Play mở ở bảng điều khiển.',
     connection: 'Kết nối',
     engine: 'Lõi Cabin Play',
     engineRunning: 'Đang chạy',
