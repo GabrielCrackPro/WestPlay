@@ -1,6 +1,7 @@
-/* The Radio app (RadioApp.tsx): the game’s own stations, by genre, and the bar of what plays. Drawn as the native
-   apps draw a page (Settings’ cab scale: 1.35 px per iPhone point, 34 pt large titles at 46 px), on Apple’s
-   colours, with the playing station’s bar floating over the list’s foot. */
+/* The Radio app (RadioApp.tsx): the set at the top of the page — a tuning dial, the station’s name across its
+   face, the play button and the tuning beside it — and under it the game’s stations as the set’s presets, by
+   genre. Drawn as the native apps draw a page (cab scale: 1.35 px per iPhone point, 34 pt large titles at 46 px),
+   on Apple’s colours. */
 
 .radio-app {
   border-radius: var(--panel-radius);
@@ -24,12 +25,11 @@
 .radio-page {
   display: flex;
   flex-direction: column;
-  gap: calc(18px * var(--text-scale, 1));
-  width: min(100%, 1120px);
+  gap: calc(20px * var(--text-scale, 1));
+  width: min(100%, 1180px);
   min-height: 100%;
   margin: 0 auto;
-  /* Room under the list for the playing station’s bar. */
-  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(150px * var(--text-scale, 1));
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(34px * var(--text-scale, 1));
 }
 
 .radio-head {
@@ -76,7 +76,195 @@
   height: calc(22px * var(--text-scale, 1));
 }
 
-/* The genres above the list: capsules, the one chosen filled, as Notifications’ filters. */
+/* The set: the face with its dial on the left, the button and the tuning on the right. */
+.radio-set {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(26px * var(--text-scale, 1));
+  padding: calc(20px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
+  border-radius: calc(26px * var(--text-scale, 1));
+  background:
+    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--apple-blue) 16%, transparent), transparent 58%),
+    var(--apple-card);
+  box-shadow: inset 0 0 0 1px var(--apple-separator);
+}
+
+.radio-face {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(3px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+/* The dial: a tick for every station on the page, the one playing lit, and the needle over it. */
+.radio-dial {
+  position: relative;
+  margin-bottom: calc(12px * var(--text-scale, 1));
+  padding-top: calc(18px * var(--text-scale, 1));
+}
+
+.radio-ticks {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(3px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+}
+
+.radio-tick {
+  flex: 1;
+  min-width: calc(2px * var(--text-scale, 1));
+  height: 42%;
+  border-radius: calc(2px * var(--text-scale, 1));
+  background: color-mix(in srgb, var(--apple-label) 26%, transparent);
+}
+
+.radio-tick.on {
+  height: 100%;
+  background: var(--apple-blue);
+  box-shadow: 0 0 0 calc(1px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-blue) 40%, transparent);
+}
+
+.radio-needle {
+  position: absolute;
+  top: 0;
+  width: calc(3px * var(--text-scale, 1));
+  height: calc(52px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-blue);
+  box-shadow: 0 0 calc(10px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-blue) 65%, transparent);
+  transform: translateX(-50%);
+  transition: left 220ms cubic-bezier(0.22, 0.9, 0.24, 1);
+}
+
+.radio-needle.rest {
+  background: color-mix(in srgb, var(--apple-label) 26%, transparent);
+  box-shadow: none;
+}
+
+.radio-face-name {
+  margin: 0;
+  font-size: calc(40px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.12;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radio-face-name.idle {
+  color: var(--apple-label-secondary);
+  font-weight: 650;
+}
+
+.radio-face-meta {
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(20px * var(--text-scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What it’s doing: Now playing, paused, or why it didn’t play (one line, in the room it has). */
+.radio-face-state {
+  min-height: calc(22px * var(--text-scale, 1));
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+  line-height: 1.35;
+}
+
+/* The set’s controls: the tuning, then the volume under it. */
+.radio-controls {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(14px * var(--text-scale, 1));
+}
+
+.radio-tunes {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.radio-tune {
+  display: grid;
+  place-items: center;
+  width: calc(54px * var(--text-scale, 1));
+  height: calc(54px * var(--text-scale, 1));
+  border: 0;
+  border-radius: 50%;
+  background: var(--apple-fill);
+  color: var(--apple-label);
+  cursor: pointer;
+}
+
+.radio-tune:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.radio-tune .radio-glyph {
+  width: calc(24px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
+}
+
+/* The face’s one button: it plays the station, and pauses it. */
+.radio-power {
+  display: grid;
+  place-items: center;
+  width: calc(84px * var(--text-scale, 1));
+  height: calc(84px * var(--text-scale, 1));
+  border: 0;
+  border-radius: 50%;
+  background: var(--apple-blue);
+  color: #fff;
+  box-shadow: 0 calc(8px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1))
+    color-mix(in srgb, var(--apple-blue) 40%, transparent);
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+
+.radio-power:active {
+  transform: scale(0.96);
+}
+
+.radio-power:disabled {
+  background: var(--apple-fill);
+  color: var(--apple-label-secondary);
+  box-shadow: none;
+  cursor: default;
+}
+
+.radio-power .radio-glyph {
+  width: calc(34px * var(--text-scale, 1));
+  height: calc(34px * var(--text-scale, 1));
+}
+
+.radio-volume {
+  display: flex;
+  align-items: center;
+  gap: calc(9px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+}
+
+.radio-volume .radio-glyph {
+  width: calc(22px * var(--text-scale, 1));
+  height: calc(22px * var(--text-scale, 1));
+}
+
+.radio-volume input[type='range'] {
+  width: calc(148px * var(--text-scale, 1));
+  accent-color: var(--apple-blue);
+  cursor: pointer;
+}
+
+/* The genres above the presets: capsules, the one chosen filled, as Notifications’ filters. */
 .radio-chips {
   display: flex;
   flex-wrap: wrap;
@@ -103,12 +291,12 @@
 .radio-groups {
   display: flex;
   flex-direction: column;
-  gap: calc(22px * var(--text-scale, 1));
+  gap: calc(24px * var(--text-scale, 1));
 }
 
-/* A genre: its caption over one card of stations, as a grouped list. */
+/* A genre: its caption over the row of presets. */
 .radio-group h2 {
-  margin: 0 0 calc(8px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  margin: 0 0 calc(10px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1));
   color: var(--apple-label-secondary);
   font-size: calc(17px * var(--text-scale, 1));
   font-weight: 600;
@@ -116,25 +304,18 @@
   text-transform: uppercase;
 }
 
-.radio-list {
-  margin: 0;
-  padding: 0;
-  border-radius: calc(20px * var(--text-scale, 1));
-  background: var(--apple-card);
-  list-style: none;
-  overflow: hidden;
+/* The presets: a square each, washed in the station’s own colour, its name under it. */
+.radio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(126px * var(--text-scale, 1)), 1fr));
+  gap: calc(18px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
 }
 
-.radio-item + .radio-item .radio-row {
-  border-top: 1px solid var(--apple-separator);
-}
-
-.radio-row {
+.radio-tile {
   display: flex;
-  align-items: center;
-  gap: calc(14px * var(--text-scale, 1));
-  width: 100%;
-  padding: calc(13px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  flex-direction: column;
+  gap: calc(7px * var(--text-scale, 1));
+  padding: 0;
   border: 0;
   background: none;
   color: inherit;
@@ -143,61 +324,63 @@
   cursor: pointer;
 }
 
-.radio-row.now {
-  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+.radio-tile-face {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: calc(22px * var(--text-scale, 1));
+  background: linear-gradient(155deg, hsl(var(--hue) 72% 62%), hsl(calc(var(--hue) + 26) 68% 42%));
+  box-shadow:
+    inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%),
+    0 calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) rgb(0 0 0 / 18%);
+  color: #fff;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
 }
 
-.radio-row-mark {
-  display: grid;
-  flex: none;
-  place-items: center;
+.radio-tile:active .radio-tile-face {
+  transform: scale(0.97);
+}
+
+.radio-tile.now .radio-tile-face {
+  box-shadow:
+    inset 0 calc(1px * var(--text-scale, 1)) 0 rgb(255 255 255 / 28%),
+    0 0 0 calc(3px * var(--text-scale, 1)) var(--apple-blue),
+    0 calc(10px * var(--text-scale, 1)) calc(26px * var(--text-scale, 1)) rgb(0 0 0 / 24%);
+}
+
+.radio-tile-initials {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.radio-tile-face .radio-glyph {
   width: calc(34px * var(--text-scale, 1));
   height: calc(34px * var(--text-scale, 1));
-  border-radius: 50%;
-  background: var(--apple-fill);
-  color: var(--apple-label);
 }
 
-.radio-row.now .radio-row-mark {
-  background: var(--apple-blue);
-  color: #fff;
-}
-
-.radio-row-mark .radio-glyph {
-  width: calc(19px * var(--text-scale, 1));
-  height: calc(19px * var(--text-scale, 1));
-}
-
-.radio-row-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: calc(2px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.radio-row-name {
-  font-size: calc(23px * var(--text-scale, 1));
+.radio-tile-name {
+  font-size: calc(18px * var(--text-scale, 1));
   font-weight: 600;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.radio-row-meta {
-  color: var(--apple-label-secondary);
-  font-size: calc(17px * var(--text-scale, 1));
+.radio-tile.now .radio-tile-name {
+  color: var(--apple-blue);
 }
 
-/* A station that streams over http (or one that failed): a quiet tag at the row’s end. */
-.radio-row-http {
-  flex: none;
-  padding: calc(3px * var(--text-scale, 1)) calc(9px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill);
+.radio-tile-meta {
+  margin-top: calc(-3px * var(--text-scale, 1));
   color: var(--apple-label-secondary);
   font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Nothing read yet, or no list to read: the mark, then what to do about it. */
@@ -232,99 +415,4 @@
   color: var(--apple-label-secondary);
   font-size: calc(18px * var(--text-scale, 1));
   line-height: 1.45;
-}
-
-/* What plays: the station, its state, Stop and its volume, over the list’s foot. */
-.radio-bar {
-  position: absolute;
-  right: calc(18px * var(--text-scale, 1));
-  bottom: calc(18px * var(--text-scale, 1));
-  left: calc(18px * var(--text-scale, 1));
-  display: flex;
-  align-items: center;
-  gap: calc(14px * var(--text-scale, 1));
-  max-width: calc(1084px * var(--text-scale, 1));
-  margin: 0 auto;
-  padding: calc(13px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border-radius: calc(22px * var(--text-scale, 1));
-  background: color-mix(in srgb, var(--apple-card) 88%, transparent);
-  box-shadow: 0 12px 34px rgb(0 0 0 / 28%);
-  backdrop-filter: blur(24px) saturate(1.4);
-}
-
-.radio-dot {
-  flex: none;
-  width: calc(11px * var(--text-scale, 1));
-  height: calc(11px * var(--text-scale, 1));
-  border-radius: 50%;
-  background: var(--apple-label-secondary);
-}
-
-.radio-dot.on {
-  background: var(--apple-green, #34c759);
-  box-shadow: 0 0 0 calc(4px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-green, #34c759) 22%, transparent);
-}
-
-.radio-bar.failed .radio-dot {
-  background: var(--apple-red, #ff453a);
-}
-
-.radio-bar-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: calc(2px * var(--text-scale, 1));
-  min-width: 0;
-}
-
-.radio-bar-name {
-  font-size: calc(22px * var(--text-scale, 1));
-  font-weight: 650;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* What it’s doing: on the bar as a line under the station’s name. */
-.radio-bar-state {
-  color: var(--apple-label-secondary);
-  font-size: calc(16px * var(--text-scale, 1));
-  line-height: 1.35;
-}
-
-.radio-stop {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: calc(46px * var(--text-scale, 1));
-  height: calc(46px * var(--text-scale, 1));
-  border: 0;
-  border-radius: 50%;
-  background: var(--apple-fill);
-  color: var(--apple-label);
-  cursor: pointer;
-}
-
-.radio-stop .radio-glyph {
-  width: calc(22px * var(--text-scale, 1));
-  height: calc(22px * var(--text-scale, 1));
-}
-
-.radio-volume {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: calc(9px * var(--text-scale, 1));
-  color: var(--apple-label-secondary);
-}
-
-.radio-volume .radio-glyph {
-  width: calc(22px * var(--text-scale, 1));
-  height: calc(22px * var(--text-scale, 1));
-}
-
-.radio-volume input[type='range'] {
-  width: calc(150px * var(--text-scale, 1));
-  accent-color: var(--apple-blue);
-  cursor: pointer;
 }

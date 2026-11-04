@@ -680,12 +680,19 @@ export interface Strings {
     /** The stations the game gives no genre to. */
     other: string
     refresh: string
-    stop: string
+    /** The set's face while nothing plays. */
+    idle: string
+    /** Its one button: it plays the station, and pauses the one playing. */
+    play: string
+    pause: string
+    /** The buttons either side of it: the station before the one playing, and the one after. */
+    previous: string
+    next: string
     playingNow: string
     paused: string
-    /** A station the cab can't play: it streams over http, and the page is https (mixed content). */
+    /** A station that didn't play: off the air, or its server refused the cab. */
     unavailable: string
-    /** What the row of a station that couldn't play says. */
+    /** What the preset of a station that didn't play says. */
     unavailableTag: string
     volume: string
   }
@@ -1355,11 +1362,15 @@ const ENGLISH_STRINGS: Strings = {
     all: 'All',
     other: 'Other',
     refresh: 'Refresh',
-    stop: 'Stop',
+    idle: 'Switch on a station',
+    play: 'Play',
+    pause: 'Pause',
+    previous: 'Previous station',
+    next: 'Next station',
     playingNow: 'Now playing',
     paused: 'Paused',
-    unavailable: 'This station streams only over http, which the cab’s page can’t play.',
-    unavailableTag: 'Can’t play',
+    unavailable: 'This station didn’t play: it may be off the air, or its server may refuse the cab.',
+    unavailableTag: 'No sound',
     volume: 'Volume',
   },
   apps: {
@@ -2046,11 +2057,15 @@ const TURKISH_STRINGS: Strings = {
     all: 'Tümü',
     other: 'Diğer',
     refresh: 'Yenile',
-    stop: 'Durdur',
+    idle: 'Bir istasyon aç',
+    play: 'Çal',
+    pause: 'Duraklat',
+    previous: 'Önceki istasyon',
+    next: 'Sonraki istasyon',
     playingNow: 'Şimdi çalıyor',
     paused: 'Duraklatıldı',
-    unavailable: 'Bu istasyon yalnızca http üzerinden yayın yapıyor; kabin sayfası bunu çalamıyor.',
-    unavailableTag: 'Çalınamaz',
+    unavailable: 'Bu istasyon çalmadı: yayında olmayabilir ya da sunucusu kabini reddediyor olabilir.',
+    unavailableTag: 'Ses yok',
     volume: 'Ses',
   },
   apps: {
@@ -2749,11 +2764,15 @@ const SPANISH_STRINGS: Strings = {
     all: 'Todas',
     other: 'Otras',
     refresh: 'Actualizar',
-    stop: 'Detener',
+    idle: 'Pon una emisora',
+    play: 'Reproducir',
+    pause: 'Pausar',
+    previous: 'Emisora anterior',
+    next: 'Emisora siguiente',
     playingNow: 'Reproduciendo',
     paused: 'En pausa',
-    unavailable: 'Esta emisora solo emite por http, y la página de la cabina no puede reproducirla.',
-    unavailableTag: 'No se puede',
+    unavailable: 'Esta emisora no ha sonado: puede que esté fuera del aire o que su servidor rechace la cabina.',
+    unavailableTag: 'Sin sonido',
     volume: 'Volumen',
   },
   apps: {
