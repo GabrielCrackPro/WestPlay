@@ -43,9 +43,9 @@ export function BrowserApp() {
   const bookmarks = useBrowser((store) => store.bookmarks)
   const configuring = useBrowser((store) => store.configuring)
   const saved = page !== null && bookmarks.some((bookmark) => bookmark.url === page.url)
-  // The cabin's keyboard is up for the page's field: the page stays above it (the CarPlay area's mask would
-  // cut the keyboard out over the page's picture).
-  const keyboardUp = useKeyboard((state) => state.field?.id === PAGE)
+  // The cabin's keyboard is up for one of the app's fields: the page stays above it (the CarPlay area's mask
+  // would cut the keyboard out over the page's picture).
+  const keyboardUp = useKeyboard((state) => state.field?.id === PAGE || state.field?.id === ADDRESS)
 
   return (
     <section className={`app-panel browser-app${keyboardUp ? ' keyboard-up' : ''}`} aria-label={text.apps.browser}>

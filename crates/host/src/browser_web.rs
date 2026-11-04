@@ -277,7 +277,8 @@ pub fn focus_message(editable: bool) -> String {
 }
 
 /// What the page posted: `{"browser":{…}}` or `{"browserFocus":{…}}` (`browser.js`); `None` for the other
-/// messages a page posts (`cab_sound.js`'s).
+/// messages a page posts (`cab_sound.js`'s). The page posts a string of JSON (`say`), which WebView2 hands over
+/// as that string's JSON (`WebMessageAsJson`): both shapes are read, as the players' pages do.
 fn read_report(message: &str) -> Option<Report> {
     #[derive(serde::Deserialize)]
     struct Focus {
@@ -290,7 +291,10 @@ fn read_report(message: &str) -> Option<Report> {
         #[serde(default, rename = "browserFocus")]
         browser_focus: Option<Focus>,
     }
-    let posted: Posted = serde_json::from_str(message).ok()?;
+    let posted: Posted = match serde_json::from_str::<String>(message) {
+        Ok(said) => serde_json::from_str(&said).ok()?,
+        Err(_) => serde_json::from_str(message).ok()?,
+    };
     if let Some(state) = posted.browser {
         return Some(Report::State(state));
     }
@@ -360,6 +364,68 @@ mod tests {
         assert_eq!(pointer_point(&placed, 2.0, -1.0), POINT { x: 999, y: 0 });
     }
 
+    /// The real thing: an address opens, and the page says where it is (its own address and title), which is
+    /// what the app shows it by; and what the cabin's keyboard types reaches the page's own field. Needs
+    /// WebView2 and the network: `cargo test -p westplay-host -- --ignored says_where_it_goes`.
+    #[test]
+    #[ignore = "opens example.com"]
+    fn says_where_it_goes() {
+        use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+        // SAFETY: COM on this test's own thread, once, before anything uses it.
+        unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap() };
+        let user_data = std::env::temp_dir().join(format!("westplay-browser-test-{}", std::process::id()));
+        let stage = Stage::new(1280, 720).unwrap();
+        let browser = Browser::start(&stage, 1280, 720, &user_data).unwrap();
+        browser.command(&Command::Open { url: "example.com".into() });
+        let started = std::time::Instant::now();
+        let mut said: Vec<String> = Vec::new();
+        let mut loaded = false;
+        while started.elapsed() < std::time::Duration::from_secs(40) {
+            crate::pump_messages();
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            for report in browser.take_reports() {
+                if let Report::State(state) = report {
+                    println!("said: {} ({:?})", state.url, state.title);
+                    loaded |= state.url.contains("example.com") && !state.title.is_empty();
+                    said.push(state.url);
+                }
+            }
+            if loaded {
+                break;
+            }
+        }
+        assert!(loaded, "no page for example.com (said: {said:?})");
+        // The cabin's keyboard's typing reaches the field the page has focused.
+        let run = |script: &str| -> String {
+            let seen = std::rc::Rc::new(std::cell::RefCell::new(None));
+            let into = seen.clone();
+            browser.view.run_script(script, move |json| *into.borrow_mut() = Some(json)).unwrap();
+            while seen.borrow().is_none() {
+                crate::pump_messages();
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            seen.borrow_mut().take().unwrap_or_default()
+        };
+        run(
+            "document.body.insertAdjacentHTML('afterbegin', '<input id=\"probe\">'); document.querySelector('#probe').focus(); document.activeElement.id",
+        );
+        browser.command(&Command::Type { text: Some("ets2".into()), key: None });
+        let typed = std::time::Instant::now();
+        let mut value = String::new();
+        while typed.elapsed() < std::time::Duration::from_secs(5) {
+            crate::pump_messages();
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            value = run("document.querySelector('#probe').value");
+            if value.contains("ets2") {
+                break;
+            }
+        }
+        println!("typed: {value}");
+        let _ = std::fs::remove_dir_all(&user_data);
+        browser.close(&stage);
+        assert!(value.contains("ets2"), "the page's field has {value:?}");
+    }
+
     #[test]
     fn a_page_says_where_it_is() {
         let said = read_report(r#"{"browser":{"url":"https://example.com/","title":"Example","loading":false}}"#);
@@ -372,6 +438,18 @@ mod tests {
             }))
         );
         assert_eq!(read_report(r#"{"browserFocus":{"editable":true}}"#), Some(Report::Focus(true)));
+        // As the page posts it: a string of JSON, which WebView2 hands over as that string's JSON.
+        assert_eq!(
+            read_report(
+                r#""{\"browser\":{\"url\":\"https://example.com/\",\"title\":\"Example\",\"loading\":false}}""#
+            ),
+            Some(Report::State(State {
+                url: "https://example.com/".to_owned(),
+                title: "Example".to_owned(),
+                loading: false
+            }))
+        );
+        assert_eq!(read_report(r#""{\"browserFocus\":{\"editable\":true}}""#), Some(Report::Focus(true)));
         assert_eq!(read_report(r#"{"cabSound":{"outside":false}}"#), None);
         assert_eq!(read_report("not json"), None);
     }

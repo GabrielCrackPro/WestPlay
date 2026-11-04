@@ -123,9 +123,9 @@
   user-select: none;
 }
 
-/* The cabin's keyboard is up for the page's field: the page stops above it (the mask that cuts the page's
-   picture out of the CarPlay area would cut the keyboard out too). The keyboard is 40px from the bottom of
-   the screen and 336px tall (keyboard.css), with a little air over it. */
+/* The cabin's keyboard is up for one of the app's fields: the page stops above it (the mask that cuts the
+   page's picture out of the CarPlay area would cut the keyboard out too). The keyboard is 40px from the
+   bottom of the screen and 336px tall (keyboard.css), with a little air over it. */
 .browser-app.keyboard-up .browser-page {
   margin-bottom: 404px;
 }

@@ -16,7 +16,9 @@
   }
 
   // What shows: said as each page loads, and as a page renames itself (a video playing, a message arriving).
-  const tell = () =>
+  // The WebView's first document (nothing open yet) isn't a page the app shows: the address it's given is.
+  const tell = () => {
+    if (location.href === 'about:blank') return
     say({
       browser: {
         url: location.href,
@@ -24,6 +26,7 @@
         loading: document.readyState !== 'complete',
       },
     })
+  }
   let seen = ''
   const told = () => {
     const now = JSON.stringify([location.href, document.title, document.readyState])
