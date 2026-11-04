@@ -38,7 +38,7 @@ afterEach(() => {
 })
 
 describe('connectHost', () => {
-  it('tells the host whether WestPlay is open, and opens or closes it when the host asks', async () => {
+  it('keeps Cabin Play on the truck’s screen, and tells the host so, whatever asks it closed', async () => {
     const webview = fakeWebView()
     vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
     const { connectHost, useCabin } = await import('./store')
@@ -49,24 +49,18 @@ describe('connectHost', () => {
     expect(webview.posted[0]).toEqual({ type: 'ready' })
     expect(westplay()).toEqual([{ type: 'westplay', open: true }])
 
-    // The companion's switch: closed, and the page says so.
+    // The companion's switch, or the game, asking it closed: Cabin Play stays up, and the host hears nothing new.
     webview.send({ type: 'westplay', open: false })
-    expect(useCabin.getState().truckScreen).toBe(true)
-    expect(westplay().at(-1)).toEqual({ type: 'westplay', open: false })
-
-    // Asked for what it already is: nothing to report.
-    webview.send({ type: 'westplay', open: false })
-    expect(westplay()).toHaveLength(2)
-
-    // Opened in the cab (its WestPlay button): reported too.
-    useCabin.getState().setTruckScreen(false)
     expect(useCabin.getState().truckScreen).toBe(false)
-    expect(westplay().at(-1)).toEqual({ type: 'westplay', open: true })
+    expect(westplay()).toHaveLength(1)
+
+    // Nothing hands it over, not even the page itself.
+    useCabin.getState().setTruckScreen(true)
+    expect(useCabin.getState().truckScreen).toBe(false)
+    expect(westplay()).toHaveLength(1)
 
     // Disconnected: no more reports.
     disconnect()
-    useCabin.getState().setTruckScreen(true)
-    expect(westplay()).toHaveLength(3)
   })
 
   it("follows the companion's truck strip setting", async () => {

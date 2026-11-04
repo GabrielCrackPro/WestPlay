@@ -185,8 +185,9 @@ interface CabinState {
   equalizerCustom: boolean
   power: PowerState
   /**
-   * The screen is handed back to the truck (its stock screen shows, with WestPlay's button to come back),
-   * like CarPlay's car button. Not kept: WestPlay comes back with every power-up, like CarPlay reconnecting.
+   * The screen handed back to the truck (its stock screen shows, with Cabin Play's button to come back), like
+   * CarPlay's car button. Never reached now: Cabin Play can't be closed from the game (owner 2026-11-04), so it
+   * stays false and the shell's hand-over pieces never show. Not kept: it comes back with every power-up.
    */
   truckScreen: boolean
   navigate(action: NavigationAction): void
@@ -244,6 +245,7 @@ interface CabinState {
   /** The player's choice, in Settings: applied, and kept with WestPlay's settings. */
   chooseOemMode(mode: OemMode): void
   powerEvent(event: PowerEvent): void
+  /** Kept for the shell's hand-over pieces: whatever is asked, Cabin Play stays up (`truckScreen` false). */
   setTruckScreen(shown: boolean): void
 }
 
@@ -474,7 +476,11 @@ export const useCabin = create<CabinState>()(
           return { power: next, truckScreen: next.phase === 'off' ? false : state.truckScreen }
         }),
       truckScreen: false,
-      setTruckScreen: (truckScreen) => set({ truckScreen }),
+      // Cabin Play is never handed back to the truck's own screen (owner 2026-11-04): once it's up it stays on the
+      // screen until the electrics go off. Whatever asks it closed — the companion's switch, the game — is refused
+      // here, so no press and no message can take it away. (The shell's hand-over pieces stay for the day that
+      // changes; the state they answer to can't be reached.)
+      setTruckScreen: (_shown: boolean) => set({ truckScreen: false }),
     }),
     {
       // The onboarding's demo keeps its own: it never changes the player's.
@@ -895,6 +901,8 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         useLooks.setState({ custom: { wallpapers: message.wallpapers, iconSets: message.iconSets } })
         break
       case 'westplay':
+        // A close asked for goes nowhere: the cabin page owns that state, and it keeps Cabin Play up (see
+        // `setTruckScreen`).
         useCabin.getState().setTruckScreen(!message.open)
         break
       case 'youtube':

@@ -1,5 +1,4 @@
-import { setWestplayOpen } from '../useHostStatus'
-import { Group, Note, Panel, Row, Switch, Tick } from '../room/parts'
+import { Group, Note, Panel, Row, Tick } from '../room/parts'
 import { banner, n } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
 import { SectionGlyph } from './glyphs'
@@ -14,8 +13,6 @@ import type { CompanionWords } from './words'
 export function ScreenPage({ status, settings, cw }: PageProps) {
   const w = cw.screen
   const state = screenState(status)
-  // Known once the cabin page has said (it owns the state): the switch waits for it.
-  const open = status?.westplayOpen ?? null
   useScreenAt(
     state === 'original' ? 'dashboard' : 'home',
     GLOW.home,
@@ -35,22 +32,8 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
   return (
     <Panel place="page" title={w.titles[state]} sub={w.subs[state]} icon={<SectionGlyph id="screen" />}>
       <ConnectionPath status={status} state={state} w={w} cw={cw} fps={fps} place={4} />
-      <Group place={5}>
-        <Row
-          title={w.show}
-          detail={w.showDetail}
-          accessory={
-            <Switch
-              on={open ?? false}
-              disabled={open === null || !status?.screenDrawing}
-              label={w.show}
-              change={(on) => {
-                setWestplayOpen(on).catch((error: unknown) => console.error('Cabin Play could not be switched', error))
-              }}
-            />
-          }
-        />
-      </Group>
+      {/* No switch to turn Cabin Play off (owner 2026-11-04): once it's on the truck's screen it stays there for as
+          long as the game runs, so the only thing to show about it is how the connection is doing, above. */}
       {status?.gameElevated && (
         <Note tone="bad">
           <b>{w.elevated.title}</b> {w.elevated.text}
