@@ -182,10 +182,6 @@ function MusicWidget({
               {track && <span className="service">{text.apps[SERVICE_APPS[track.source.service]]}</span>}
               <span className="title">{track?.source.title ?? text.notPlaying}</span>
               {track && <span className="artist">{track.source.artist}</span>}
-              {/* The album, where it says more than the song's own name (a single's album is the song). */}
-              {track && track.source.album && track.source.album !== track.source.title && (
-                <span className="album">{track.source.album}</span>
-              )}
             </>
           )}
         />

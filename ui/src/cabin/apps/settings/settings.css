@@ -199,6 +199,12 @@
   background: var(--apple-card-raised);
 }
 
+/* A row that can't be flipped yet (the sidebar's pins are full): dimmed, and it takes no press. */
+.shell button.settings-row:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .settings-volume {
   padding: 18px 26px 15px;
 }

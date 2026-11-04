@@ -40,7 +40,15 @@ import { receiveMapFolder } from '../maps/mapData'
 import { receiveDetours, receiveFollowed, receiveRouteAnswer, receiveRoutes } from '../maps/routeChange'
 import type { Point, RouteNode } from '../maps/route'
 import { DEFAULT_WALLPAPER_ID } from '../wallpapers'
-import { homeOrderOf, hiddenHomeApps, isReleasedApp, RELEASED_APP_IDS, visibleHomeApps, type AppId } from './apps'
+import {
+  homeOrderOf,
+  hiddenHomeApps,
+  isReleasedApp,
+  pinnedAppsOf,
+  RELEASED_APP_IDS,
+  visibleHomeApps,
+  type AppId,
+} from './apps'
 import type { AppearanceMode } from './appearance'
 import {
   MAP_MARKERS,
@@ -139,6 +147,9 @@ interface CabinState {
   /** Home's apps in the player's order, and the ones hidden from it (Settings › Home Screen). */
   homeOrder: AppId[]
   homeHidden: AppId[]
+  /** The apps pinned to the top of the sidebar, in the order they were pinned (Settings › Home Screen): the
+   * sidebar keeps them there, whatever has been opened since. */
+  pinnedApps: AppId[]
   /** The live map's own settings (Settings › Maps): how much it draws, how it behaves at night and at
    * junctions, whose trucks it shows, and when it comes back to the truck. */
   mapDetail: MapDetail
@@ -194,6 +205,8 @@ interface CabinState {
   setHomeAppHidden(app: AppId, hidden: boolean): void
   /** Moves an app up (`by` -1) or down (+1) Home's order. */
   moveHomeApp(app: AppId, by: number): void
+  /** Pins an app to the top of the sidebar, or unpins it (as many as the sidebar has room for). */
+  setPinnedApp(app: AppId, pinned: boolean): void
   /** Home's apps back in their own order, all shown. */
   resetHomeScreen(): void
   setMapRoute(mapRoute: MapRouteColour): void
@@ -250,6 +263,7 @@ type Persisted = Pick<
   | 'autoOrder'
   | 'homeOrder'
   | 'homeHidden'
+  | 'pinnedApps'
   | 'mapDetail'
   | 'mapNight'
   | 'mapJunction'
@@ -278,14 +292,14 @@ type Persisted = Pick<
 /** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
 const SYSTEM_REDUCES_MOTION = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** The Dashboard's own order for a new player, top to bottom (the weather last: it's the one that comes in when
- * there's room). */
+/** The Dashboard's own order for a new player, top to bottom: the four the drive reads first, then the two it
+ * starts with turned off (the lifetime totals and the weather), where they'd sit if switched on. */
 const DEFAULT_WIDGET_ORDER: DashboardWidget[] = [
   'nowPlaying',
-  'driver',
   'destination',
   'driverHours',
   'diagnostics',
+  'driver',
   'weather',
 ]
 
@@ -298,14 +312,24 @@ function orderOf(saved: unknown): DashboardWidget[] {
   return [...new Set(kept), ...DASHBOARD_WIDGETS.filter((id) => !kept.includes(id))]
 }
 
-/** The widgets a new player starts with: all of them on. */
-const ALL_WIDGETS: Record<DashboardWidget, boolean> = {
+/**
+ * The widgets a new player starts with: what plays, where it's going, the rest clocks and the engine's readings.
+ * The Driver card's lifetime totals and the weather are turned on in Settings › Dashboard when wanted: a column of
+ * six cards was more than could be read on the move (owner 2026-11-04).
+ */
+const STARTER_WIDGETS: Record<DashboardWidget, boolean> = {
   nowPlaying: true,
   destination: true,
   driverHours: true,
-  driver: true,
-  weather: true,
   diagnostics: true,
+  driver: false,
+  weather: false,
+}
+
+/** Whether a saved column was the old default (every widget on): a player who never chose gets the leaner one. */
+function wasEveryWidgetOn(saved: unknown): boolean {
+  if (typeof saved !== 'object' || saved === null) return false
+  return DASHBOARD_WIDGETS.every((widget) => (saved as Record<string, unknown>)[widget] !== false)
 }
 
 export const useCabin = create<CabinState>()(
@@ -314,7 +338,7 @@ export const useCabin = create<CabinState>()(
       navigation: INITIAL_NAVIGATION,
       appearanceMode: 'auto',
       wallpaperId: DEFAULT_WALLPAPER_ID,
-      dashboardWidgets: ALL_WIDGETS,
+      dashboardWidgets: { ...STARTER_WIDGETS },
       clock: 'real',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
@@ -324,6 +348,7 @@ export const useCabin = create<CabinState>()(
       autoOrder: true,
       homeOrder: [...RELEASED_APP_IDS],
       homeHidden: [],
+      pinnedApps: [],
       // Balanced: the buildings still, a little less often than the game, for the PCs that share its GPU.
       mapDetail: 'balanced',
       mapNight: true,
@@ -395,7 +420,13 @@ export const useCabin = create<CabinState>()(
           homeOrder.splice(to, 0, app)
           return { homeOrder }
         }),
-      resetHomeScreen: () => set({ homeOrder: [...RELEASED_APP_IDS], homeHidden: [] }),
+      setPinnedApp: (app, pinned) =>
+        set((state) => ({
+          pinnedApps: pinned
+            ? pinnedAppsOf([...state.pinnedApps, app])
+            : state.pinnedApps.filter((each) => each !== app),
+        })),
+      resetHomeScreen: () => set({ homeOrder: [...RELEASED_APP_IDS], homeHidden: [], pinnedApps: [] }),
       setMapDetail: (mapDetail) => set({ mapDetail }),
       setMapNight: (mapNight) => set({ mapNight }),
       setMapJunction: (mapJunction) => set({ mapJunction }),
@@ -450,15 +481,20 @@ export const useCabin = create<CabinState>()(
       name: IS_DEMO ? 'westplay.cabin.demo' : 'westplay.cabin',
       // 2: Text Size's steps moved larger (2026-10-24): a step kept from before means another size now, so each
       // player starts on the new default. 3: two smaller steps added below them (the same day): a step kept is the
-      // same size two steps further on.
-      version: 3,
+      // same size two steps further on. 4: the Dashboard opened with six cards, too many to read on the move, so its
+      // default column is four now (the players who never chose their own get it).
+      version: 4,
       migrate: (stored, version) => {
         const kept = (stored ?? {}) as Partial<Persisted>
-        if (version < 2) return { ...kept, textSize: DEFAULT_TEXT_SIZE }
-        if (version < 3 && typeof kept.textSize === 'number') {
-          return { ...kept, textSize: kept.textSize + STEPS_ADDED_BELOW }
+        let next = kept
+        if (version < 2) next = { ...next, textSize: DEFAULT_TEXT_SIZE }
+        else if (version < 3 && typeof next.textSize === 'number') {
+          next = { ...next, textSize: next.textSize + STEPS_ADDED_BELOW }
         }
-        return kept
+        if (version < 4 && wasEveryWidgetOn(next.dashboardWidgets)) {
+          next = { ...next, dashboardWidgets: { ...STARTER_WIDGETS } }
+        }
+        return next
       },
       storage: createJSONStorage(() => localStorage),
       partialize: (state): Persisted => ({
@@ -475,6 +511,7 @@ export const useCabin = create<CabinState>()(
         autoOrder: state.autoOrder,
         homeOrder: state.homeOrder,
         homeHidden: state.homeHidden,
+        pinnedApps: state.pinnedApps,
         mapDetail: state.mapDetail,
         mapNight: state.mapNight,
         mapJunction: state.mapJunction,
@@ -541,6 +578,7 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.autoOrder === 'boolean') result.autoOrder = stored.autoOrder
   if (stored.homeOrder !== undefined) result.homeOrder = homeOrderOf(stored.homeOrder)
   if (stored.homeHidden !== undefined) result.homeHidden = hiddenHomeApps(stored.homeHidden)
+  if (stored.pinnedApps !== undefined) result.pinnedApps = pinnedAppsOf(stored.pinnedApps)
   if (MAP_DETAILS.includes(stored.mapDetail as MapDetail)) result.mapDetail = stored.mapDetail
   if (typeof stored.mapNight === 'boolean') result.mapNight = stored.mapNight
   if (typeof stored.mapJunction === 'boolean') result.mapJunction = stored.mapJunction

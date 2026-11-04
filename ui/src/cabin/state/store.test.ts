@@ -61,15 +61,15 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().albumArt).toBe(true)
   })
 
-  it('are all on when nothing was saved (an earlier WestPlay)', async () => {
+  it('start as the leaner column when nothing was saved (an earlier Cabin Play)', async () => {
     vi.stubGlobal('localStorage', savedStorage({ appearanceMode: 'dark' }))
     const { useCabin } = await import('./store')
     expect(useCabin.getState().dashboardWidgets).toEqual({
       nowPlaying: true,
       destination: true,
       driverHours: true,
-      driver: true,
-      weather: true,
+      driver: false,
+      weather: false,
       diagnostics: true,
     })
     expect(useCabin.getState().albumArt).toBe(true)
@@ -77,6 +77,43 @@ describe('the saved Settings choices', () => {
     // The sidebar's clock: the player's own time, unless they chose the game's.
     expect(useCabin.getState().clock).toBe('real')
     expect(useCabin.getState().uiSoundVolume).toBe(1)
+  })
+
+  it('drop the two extra cards from a column left at the old default of everything on', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage(
+        {
+          dashboardWidgets: {
+            nowPlaying: true,
+            destination: true,
+            driverHours: true,
+            driver: true,
+            weather: true,
+            diagnostics: true,
+          },
+        },
+        3,
+      ),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().dashboardWidgets).toEqual({
+      nowPlaying: true,
+      destination: true,
+      driverHours: true,
+      diagnostics: true,
+      driver: false,
+      weather: false,
+    })
+  })
+
+  it('keep the apps pinned to the sidebar, each once, in the order they were pinned', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({ pinnedApps: ['music', 'music', 'spotify', 'settings', 'weather', 'nope'] }, 3),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().pinnedApps).toEqual(['music', 'spotify', 'settings'])
   })
 
   it('keeps interface sound volume separate and within its range', async () => {

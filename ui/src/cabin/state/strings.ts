@@ -516,6 +516,11 @@ export interface Strings {
     showOnHome: string
     homeOrder: string
     resetHomeScreen: string
+    /** Pinning apps to the sidebar: the group's name, what a pinned app does, and taking it out again (the
+     * sidebar icon's own menu). */
+    pinToSidebar: string
+    unpinFromSidebar: string
+    pinnedFooter: string
     /** The sidebar's clock: the player's own time, or the game's. */
     realClock: string
     clockFooter: string
@@ -1173,6 +1178,10 @@ const ENGLISH_STRINGS: Strings = {
     showOnHome: 'Show on Home',
     homeOrder: 'Order',
     resetHomeScreen: 'Reset Home Screen',
+    pinToSidebar: 'Pin to Sidebar',
+    unpinFromSidebar: 'Unpin from Sidebar',
+    pinnedFooter:
+      'Pinned apps stay at the top of the sidebar, in the order you pin them, while your recent apps fill the rest. Up to three.',
     realClock: 'Real Time',
     clockFooter: 'The sidebar’s clock: your own time, or the game’s.',
     showAlbumArt: 'Show Album Art',
@@ -1837,6 +1846,10 @@ const TURKISH_STRINGS: Strings = {
     showOnHome: 'Ana Ekran’da Göster',
     homeOrder: 'Sıra',
     resetHomeScreen: 'Ana Ekranı Sıfırla',
+    pinToSidebar: 'Kenar Çubuğuna Sabitle',
+    unpinFromSidebar: 'Kenar Çubuğundan Kaldır',
+    pinnedFooter:
+      'Sabitlenen uygulamalar kenar çubuğunun üstünde, sabitlediğin sırayla kalır; kalan yeri son kullanılan uygulamalar doldurur. En fazla üç.',
     realClock: 'Gerçek Saat',
     clockFooter: 'Kenar çubuğundaki saat: kendi saatiniz ya da oyunun saati.',
     showAlbumArt: 'Albüm Kapağını Göster',
@@ -2512,6 +2525,10 @@ const SPANISH_STRINGS: Strings = {
     showOnHome: 'Mostrar en Inicio',
     homeOrder: 'Orden',
     resetHomeScreen: 'Restablecer pantalla de inicio',
+    pinToSidebar: 'Fijar en la barra lateral',
+    unpinFromSidebar: 'Quitar de la barra lateral',
+    pinnedFooter:
+      'Las apps fijadas se quedan arriba en la barra lateral, en el orden en que las fijas, y las recientes ocupan el resto. Hasta tres.',
     realClock: 'Hora real',
     clockFooter: 'El reloj de la barra lateral: tu hora o la del juego.',
     showAlbumArt: 'Mostrar carátula del álbum',

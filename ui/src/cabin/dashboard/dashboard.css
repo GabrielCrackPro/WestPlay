@@ -34,10 +34,11 @@
   display: none;
 }
 
-/* The cards are read from the driver's seat: their secondary words keep a little more contrast than the rest of
-   the cabin's dim text, so a label or a distance doesn't fade into the glass. */
+/* The cards are read from the driver's seat: their secondary words keep a good deal more contrast than the rest of
+   the cabin's dim text, so a label or a distance doesn't fade into the glass (owner 2026-11-04: some of the widgets
+   were hard to read while driving). */
 .widgets .widget {
-  --text-dim: color-mix(in srgb, var(--text) 80%, transparent);
+  --text-dim: color-mix(in srgb, var(--text) 88%, transparent);
 }
 
 .widget {
@@ -56,7 +57,7 @@
    of the cab's own cards. A card that needs the label larger (Diagnostics) sets it itself. */
 .widget .kicker {
   color: var(--text-dim);
-  font-size: calc(17px * var(--text-scale, 1));
+  font-size: calc(18px * var(--text-scale, 1));
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -123,15 +124,15 @@ button.widget:active {
    so a look says what the engine, the brakes and the tank are doing (owner 2026-11-01: "i can bearly read the
    diagnostic widget"). */
 .widget.diagnostics .kicker {
-  font-size: calc(18px * var(--text-scale, 1));
+  font-size: calc(19px * var(--text-scale, 1));
 }
 
 .widget.diagnostics .destination {
-  font-size: calc(27px * var(--text-scale, 1));
+  font-size: calc(28px * var(--text-scale, 1));
 }
 
 .widget.diagnostics .place {
-  font-size: calc(23px * var(--text-scale, 1));
+  font-size: calc(24px * var(--text-scale, 1));
 }
 
 /* Its gauge, in the fuel pump's own soft colour. */
@@ -149,7 +150,7 @@ button.widget:active {
   column-gap: calc(12px * var(--text-scale, 1));
   min-width: 0;
   margin-top: calc(4px * var(--text-scale, 1));
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(17px * var(--text-scale, 1));
   line-height: 1.3;
 }
 
@@ -229,7 +230,7 @@ button.widget:active {
 /* The app's lifetime totals, a step down: two to a row, each figure under its name, as a card's readings are. */
 .driver-widget-totals {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: calc(2px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
   min-width: 0;
   margin-top: calc(3px * var(--text-scale, 1));
@@ -244,7 +245,7 @@ button.widget:active {
 .driver-widget-total-label {
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(12px * var(--text-scale, 1));
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -253,7 +254,7 @@ button.widget:active {
 
 .driver-widget-total-value {
   overflow: hidden;
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
@@ -276,7 +277,7 @@ button.widget:active {
 
 .widget.driver-hours .hours-value {
   flex: none;
-  font-size: calc(27px * var(--text-scale, 1));
+  font-size: calc(28px * var(--text-scale, 1));
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -284,7 +285,7 @@ button.widget:active {
 }
 
 .widget.driver-hours .hours-line.small .hours-value {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(23px * var(--text-scale, 1));
   font-weight: 600;
 }
 
@@ -292,7 +293,7 @@ button.widget:active {
   min-width: 0;
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -302,7 +303,7 @@ button.widget:active {
   margin-top: calc(4px * var(--text-scale, 1));
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
   font-weight: 500;
   line-height: 1.3;
   text-overflow: ellipsis;
@@ -400,7 +401,7 @@ button.widget:active {
 }
 
 .now-playing .title {
-  font-size: calc(24px * var(--text-scale, 1));
+  font-size: calc(25px * var(--text-scale, 1));
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
@@ -411,7 +412,7 @@ button.widget:active {
 /* Which app plays it, above the name: a small sentence-case line, as CarPlay's Now Playing has it. */
 .now-playing .service {
   overflow: hidden;
-  font-size: calc(15px * var(--text-scale, 1));
+  font-size: calc(16px * var(--text-scale, 1));
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-dim);
@@ -421,21 +422,10 @@ button.widget:active {
 
 .now-playing .artist {
   overflow: hidden;
-  font-size: calc(21px * var(--text-scale, 1));
+  font-size: calc(22px * var(--text-scale, 1));
   font-weight: 500;
   line-height: 1.3;
   opacity: 0.86;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* The album under it, a step down from who it's by. */
-.now-playing .album {
-  overflow: hidden;
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 500;
-  line-height: 1.3;
-  opacity: 0.72;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -446,7 +436,7 @@ button.widget:active {
   align-items: center;
   gap: calc(10px * var(--text-scale, 1));
   padding: 0 calc(4px * var(--text-scale, 1));
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
@@ -506,17 +496,17 @@ button.widget:active {
 }
 
 .job .destination {
-  font-size: calc(28px * var(--text-scale, 1));
+  font-size: calc(29px * var(--text-scale, 1));
   font-weight: 650;
 }
 
 .job .place {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(23px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .job .deadline {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(23px * var(--text-scale, 1));
   font-weight: 500;
   color: var(--text-dim);
 }
@@ -544,7 +534,7 @@ button.widget:active {
 }
 
 .fuel .destination {
-  font-size: calc(23px * var(--text-scale, 1));
+  font-size: calc(24px * var(--text-scale, 1));
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -552,7 +542,7 @@ button.widget:active {
 }
 
 .fuel .place {
-  font-size: calc(19px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -574,7 +564,7 @@ button.widget:active {
   min-width: 0;
   max-width: 100%;
   margin-top: calc(4px * var(--text-scale, 1));
-  font-size: calc(19px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
   line-height: 1.3;
 }
 
@@ -621,7 +611,7 @@ button.widget:active {
 }
 
 .weather .place {
-  font-size: calc(23px * var(--text-scale, 1));
+  font-size: calc(24px * var(--text-scale, 1));
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -629,7 +619,7 @@ button.widget:active {
 }
 
 .weather .condition {
-  font-size: calc(32px * var(--text-scale, 1));
+  font-size: calc(33px * var(--text-scale, 1));
   font-weight: 650;
 }
 
@@ -643,10 +633,9 @@ button.widget:active {
   color: color-mix(in srgb, var(--text) 85%, transparent);
 }
 
-/* Neutral widgets get smoky glass in dark mode, so text stays readable over bright wallpaper areas. */
-.appearance-dark .weather,
-.appearance-dark .job,
-.appearance-dark .fuel {
+/* Every card gets smoky glass in dark mode, so its words stay readable over bright wallpaper areas: clear glass
+   over a pale wallpaper was the worst of them to read at a glance (owner 2026-11-04). */
+.appearance-dark .widgets .widget {
   --glass: rgb(16 18 24 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.22);
 }
@@ -673,7 +662,7 @@ button.widget:active {
 
   .widgets .now-playing .np-progress {
     gap: calc(8px * var(--text-scale, 1));
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .widgets .now-playing .controls button {
@@ -700,11 +689,11 @@ button.widget:active {
   }
 
   .widgets .driver-widget-total-label {
-    font-size: calc(11px * var(--text-scale, 1));
+    font-size: calc(12px * var(--text-scale, 1));
   }
 
   .widgets .driver-widget-total-value {
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .widgets .job .destination {
@@ -730,7 +719,7 @@ button.widget:active {
   }
 
   .widgets .widget.diagnostics .diag-extra {
-    font-size: calc(15.5px * var(--text-scale, 1));
+    font-size: calc(16.5px * var(--text-scale, 1));
   }
 
   .widgets .widget.driver-hours .hours-value {
@@ -743,7 +732,7 @@ button.widget:active {
 
   .widgets .widget.driver-hours .hours-label,
   .widgets .widget.driver-hours .hours-detail {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
   }
 
   .widgets .widget.driver-hours .hours-glyph {
@@ -777,12 +766,8 @@ button.widget:active {
     font-size: calc(19px * var(--text-scale, 1));
   }
 
-  .now-playing .album {
-    font-size: calc(16px * var(--text-scale, 1));
-  }
-
   .now-playing .service {
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .now-playing .controls button {
@@ -890,12 +875,8 @@ button.widget:active {
     font-size: calc(18px * var(--text-scale, 1));
   }
 
-  .now-playing .album {
-    font-size: calc(15px * var(--text-scale, 1));
-  }
-
   .now-playing .service {
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
   }
 
   .now-playing .np-progress {
@@ -979,7 +960,7 @@ button.widget:active {
   }
 
   .widget.diagnostics .diag-extra {
-    font-size: calc(15.5px * var(--text-scale, 1));
+    font-size: calc(16.5px * var(--text-scale, 1));
   }
 
   .widget.driver-hours {

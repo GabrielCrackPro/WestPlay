@@ -72,6 +72,17 @@ export function hiddenHomeApps(saved: unknown): AppId[] {
   return [...new Set((Array.isArray(saved) ? saved : []).filter(isReleasedApp))]
 }
 
+/** How many apps the sidebar's pinned group holds: more than that, and its recent apps would have no room. */
+export const PINNED_LIMIT = 3
+
+/**
+ * The apps pinned to the sidebar (Settings › Home Screen), each once, in the order they were pinned, as many as the
+ * sidebar has room for.
+ */
+export function pinnedAppsOf(saved: unknown): AppId[] {
+  return [...new Set((Array.isArray(saved) ? saved : []).filter(isReleasedApp))].slice(0, PINNED_LIMIT)
+}
+
 /**
  * The apps Home shows: the player's order, less the ones hidden. At least one stays: hiding the last one would
  * leave no way back to Settings from Home.

@@ -39,6 +39,7 @@ import {
   useCabin,
   useLive,
 } from '../../state/store'
+import { PINNED_LIMIT } from '../../state/apps'
 import { useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
 import {
@@ -599,6 +600,8 @@ function HomeScreenPage() {
   const hidden = useCabin((state) => state.homeHidden)
   const setHidden = useCabin((state) => state.setHomeAppHidden)
   const move = useCabin((state) => state.moveHomeApp)
+  const pinned = useCabin((state) => state.pinnedApps)
+  const setPinned = useCabin((state) => state.setPinnedApp)
   const reset = useCabin((state) => state.resetHomeScreen)
   const names = text.apps
   return (
@@ -606,6 +609,18 @@ function HomeScreenPage() {
       <Group header={text.settings.showOnHome} footer={text.settings.homeScreenFooter}>
         {order.map((app) => (
           <SwitchRow key={app} label={names[app]} on={!hidden.includes(app)} onToggle={(on) => setHidden(app, !on)} />
+        ))}
+      </Group>
+      {/* The apps that stay put in the sidebar, in the order they were pinned: at its limit, the rest are off. */}
+      <Group header={text.settings.pinToSidebar} footer={text.settings.pinnedFooter}>
+        {order.map((app) => (
+          <SwitchRow
+            key={app}
+            label={names[app]}
+            on={pinned.includes(app)}
+            disabled={!pinned.includes(app) && pinned.length >= PINNED_LIMIT}
+            onToggle={(on) => setPinned(app, on)}
+          />
         ))}
       </Group>
       {/* The order the apps show in, top to bottom. Hidden apps keep their place here. */}
@@ -1258,12 +1273,23 @@ function NavRow({ value, onOpen, ...start }: RowLabel & { value?: string; onOpen
 }
 
 /** A row with a switch; the whole row flips it (a big target on a truck's screen). */
-function SwitchRow({ on, onToggle, ...start }: RowLabel & { on: boolean; onToggle: (on: boolean) => void }) {
+function SwitchRow({
+  on,
+  onToggle,
+  disabled = false,
+  ...start
+}: RowLabel & {
+  on: boolean
+  onToggle: (on: boolean) => void
+  /** At a limit of its own (the sidebar's pins are full): the row says so rather than pretending to work. */
+  disabled?: boolean
+}) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
+      disabled={disabled}
       className={start.tile ? 'settings-row with-tile' : 'settings-row'}
       onClick={() => onToggle(!on)}
     >
