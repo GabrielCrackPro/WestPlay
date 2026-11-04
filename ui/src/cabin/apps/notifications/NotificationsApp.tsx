@@ -104,12 +104,15 @@ function NoteRow({
         <span className="notes-time">{formatGameTime(note.clock ?? realMinutes(note.at))}</span>
         {day && <span className="notes-day">{day}</span>}
       </span>
-      <span className="notes-mark" aria-hidden />
       <span className="notes-body">
         <span className="notes-name">{note.title}</span>
         <span className="notes-detail">{note.detail}</span>
       </span>
-      <span className="notes-tone">{note.tone === 'alarm' ? alert : warning}</span>
+      {/* How serious it was, in its tone: a mark rather than the word in every row, the word kept as its name for a
+          screen reader. */}
+      <span className="notes-tone" role="img" aria-label={note.tone === 'alarm' ? alert : warning}>
+        <ToneGlyph tone={note.tone} />
+      </span>
     </li>
   )
 }
@@ -129,6 +132,24 @@ function dayOf(at: number, language: Language): string | null {
 function realMinutes(at: number): number {
   const shown = formatRealTime(at).split(':')
   return Number(shown[0]) * 60 + Number(shown[1])
+}
+
+/**
+ * How serious a note was: a stop sign's octagon for an alert, a caution's triangle for a warning, each with the
+ * exclamation in it, drawn in the row's tone (red or amber).
+ */
+function ToneGlyph({ tone }: { tone: 'alarm' | 'warn' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      {tone === 'alarm' ? (
+        <path d="M8.7 3.3h6.6l5.4 5.4v6.6l-5.4 5.4H8.7l-5.4-5.4V8.7z" strokeLinejoin="round" />
+      ) : (
+        <path d="M12 3.4 21.7 19.6a1 1 0 0 1-.9 1.6H3.2a1 1 0 0 1-.9-1.6z" strokeLinejoin="round" />
+      )}
+      <path d="M12 8.4v4.4" strokeLinecap="round" />
+      <circle cx="12" cy="16.3" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
+  )
 }
 
 /** The app's own bell, in the size the empty list draws it. */

@@ -132,7 +132,7 @@
 
 .notes-item {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: calc(14px * var(--text-scale, 1));
   min-height: calc(82px * var(--text-scale, 1));
@@ -176,18 +176,6 @@
   font-weight: 500;
 }
 
-/* How serious it was: a dot in its tone, the word at the row's end. */
-.notes-mark {
-  width: calc(9px * var(--text-scale, 1));
-  height: calc(9px * var(--text-scale, 1));
-  border-radius: 50%;
-  background: var(--apple-orange);
-}
-
-.notes-item.alarm .notes-mark {
-  background: var(--apple-red);
-}
-
 .notes-body {
   display: flex;
   flex-direction: column;
@@ -215,11 +203,19 @@
   white-space: nowrap;
 }
 
+/* How serious it was: the mark at the row's end, in its tone (a stop sign's octagon for an alert, above; a
+   caution's triangle for a warning; NotificationsApp.tsx's ToneGlyph). One size, so the column doesn't move. */
 .notes-tone {
-  color: var(--apple-label-secondary);
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 600;
-  white-space: nowrap;
+  display: grid;
+  place-items: center;
+  width: calc(38px * var(--text-scale, 1));
+  height: calc(38px * var(--text-scale, 1));
+  color: var(--apple-orange);
+}
+
+.notes-tone svg {
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
 }
 
 .notes-item.alarm .notes-tone {
