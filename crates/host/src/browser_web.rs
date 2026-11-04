@@ -59,6 +59,14 @@ pub enum Command {
         #[serde(default)]
         key: Option<PageKey>,
     },
+    /// The app's settings for the page: its zoom (1: as laid out) and whether it says it's a phone.
+    Configure {
+        zoom: f32,
+        #[serde(default)]
+        mobile: bool,
+    },
+    /// Forgets the page's cookies (signing out of the sites opened here) and loads it again.
+    Clear,
     /// Takes it down: lib.rs closes it, and the app opens it again for the next address.
     Close,
 }
@@ -116,6 +124,9 @@ pub struct Browser {
     view: OffscreenWebView,
     frame: PageSize,
     placed: Cell<Option<Placed>>,
+    /// The agent the page sent before the app's settings said otherwise (a desktop browser's, WebView2's own):
+    /// what it sends again for the sites' desktop versions.
+    desktop_agent: String,
 }
 
 impl Browser {
@@ -128,7 +139,8 @@ impl Browser {
         stage.add(&view, false)?;
         // The truck's speakers first: a page's sound (a video, a radio stream) is the cab's, as the players'.
         view.add_startup_script(concat!(include_str!("cab_sound.js"), "\n", include_str!("browser.js")))?;
-        Ok(Self { view, frame: stage.page_size(), placed: Cell::new(None) })
+        let desktop_agent = view.user_agent().unwrap_or_default();
+        Ok(Self { view, frame: stage.page_size(), placed: Cell::new(None), desktop_agent })
     }
 
     pub fn command(&self, command: &Command) {
@@ -187,6 +199,26 @@ impl Browser {
                     log!("[browser] typing failed: {e}");
                 }
             }
+            Command::Configure { zoom, mobile } => {
+                if let Err(e) = self.view.set_zoom(*zoom) {
+                    log!("[browser] setting the zoom failed: {e}");
+                }
+                let agent = if *mobile { MOBILE_AGENT } else { self.desktop_agent.as_str() };
+                if !agent.is_empty()
+                    && let Err(e) = self.view.set_user_agent(agent)
+                {
+                    log!("[browser] setting the agent failed: {e}");
+                }
+            }
+            Command::Clear => {
+                // Its profile is its own (webview2-browser): this signs out of nothing else.
+                if let Err(e) = self.view.delete_cookies() {
+                    log!("[browser] clearing its cookies failed: {e}");
+                }
+                if let Err(e) = self.view.reload() {
+                    log!("[browser] reloading after clearing failed: {e}");
+                }
+            }
             Command::Close => {}
         }
     }
@@ -206,6 +238,10 @@ impl Browser {
         let _ = stage.remove(&self.view);
     }
 }
+
+/// What the page says it is when the app's settings ask for sites' phone versions: a phone's browser.
+const MOBILE_AGENT: &str = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) \
+     Chrome/124.0.0.0 Mobile Safari/537.36";
 
 /// The page's mouse event for the app's, and its name in the log.
 fn mouse_event(

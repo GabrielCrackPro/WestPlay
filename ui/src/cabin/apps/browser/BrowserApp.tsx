@@ -12,10 +12,12 @@ import {
   openBookmark,
   reload,
   setAddress,
+  showSettings,
   toggleBookmark,
   typeIntoPage,
   useBrowser,
 } from './browser'
+import { BrowserSettings } from './BrowserSettings'
 import { PageHole } from './PageHole'
 import './browser.css'
 
@@ -39,6 +41,7 @@ export function BrowserApp() {
   const refused = useBrowser((store) => store.refused)
   const editable = useBrowser((store) => store.editable)
   const bookmarks = useBrowser((store) => store.bookmarks)
+  const configuring = useBrowser((store) => store.configuring)
   const saved = page !== null && bookmarks.some((bookmark) => bookmark.url === page.url)
   // The cabin's keyboard is up for the page's field: the page stays above it (the CarPlay area's mask would
   // cut the keyboard out over the page's picture).
@@ -94,6 +97,15 @@ export function BrowserApp() {
         </button>
         <button
           type="button"
+          className={configuring ? 'browser-button chosen' : 'browser-button'}
+          aria-label={text.browser.settings}
+          aria-pressed={configuring}
+          onClick={() => showSettings(!configuring)}
+        >
+          <Gear />
+        </button>
+        <button
+          type="button"
           className="browser-button"
           aria-label={text.browser.close}
           disabled={page === null}
@@ -118,7 +130,7 @@ export function BrowserApp() {
         ) : null}
       </div>
 
-      {page ? <PageHole /> : <StartPage bookmarks={bookmarks} />}
+      {configuring ? <BrowserSettings /> : page ? <PageHole /> : <StartPage bookmarks={bookmarks} />}
     </section>
   )
 }
@@ -218,6 +230,20 @@ function Reload() {
     <>
       <path d="M19 12a7 7 0 1 1-2.6-5.4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M19 4.5V9h-4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </>,
+  )
+}
+
+function Gear() {
+  return glyph(
+    <>
+      <circle cx="12" cy="12" r="3.1" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 3.4v2M12 18.6v2M4.6 12h-2M21.4 12h-2M6.8 6.8L5.4 5.4M18.6 18.6l-1.4-1.4M17.2 6.8l1.4-1.4M5.4 18.6l1.4-1.4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </>,
   )
 }

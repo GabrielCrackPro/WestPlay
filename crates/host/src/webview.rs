@@ -18,7 +18,7 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
     COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE, CreateCoreWebView2EnvironmentWithOptions,
     ICoreWebView2, ICoreWebView2_2, ICoreWebView2_3, ICoreWebView2CompositionController, ICoreWebView2Controller,
     ICoreWebView2Controller2, ICoreWebView2Controller3, ICoreWebView2Environment, ICoreWebView2Environment3,
-    ICoreWebView2EnvironmentOptions, ICoreWebView2Settings5, ICoreWebView2Settings6,
+    ICoreWebView2EnvironmentOptions, ICoreWebView2Settings2, ICoreWebView2Settings5, ICoreWebView2Settings6,
 };
 use webview2_com::{
     AddScriptToExecuteOnDocumentCreatedCompletedHandler, CoTaskMemPWSTR, CoreWebView2EnvironmentOptions,
@@ -373,6 +373,32 @@ impl OffscreenWebView {
     pub fn reload(&self) -> windows::core::Result<()> {
         // SAFETY: the WebView is alive as long as `self`.
         unsafe { self.webview.Reload() }
+    }
+
+    /// How large its page shows, its layout and all (1: as laid out; 1.5: half again as large).
+    pub fn set_zoom(&self, factor: f32) -> windows::core::Result<()> {
+        // SAFETY: the controller is alive as long as `self`; a plain value.
+        unsafe { self.controller.SetZoomFactor(factor.clamp(0.25, 5.0) as f64) }
+    }
+
+    /// The user agent its page sends, as it is (WebView2's own unless another was set).
+    pub fn user_agent(&self) -> windows::core::Result<String> {
+        // SAFETY: the WebView is alive as long as `self`; the settings are its own, and the string it hands
+        // over is ours to free.
+        let settings: ICoreWebView2Settings2 = unsafe { self.webview.Settings()? }.cast()?;
+        unsafe {
+            let mut agent = PWSTR::null();
+            settings.UserAgent(&mut agent)?;
+            Ok(webview2_com::take_pwstr(agent))
+        }
+    }
+
+    /// Has its page send `agent` as itself: a phone's, for the sites that send another version then.
+    pub fn set_user_agent(&self, agent: &str) -> windows::core::Result<()> {
+        // SAFETY: the WebView is alive as long as `self`; the settings are its own, and `agent` lives through
+        // the call.
+        let settings: ICoreWebView2Settings2 = unsafe { self.webview.Settings()? }.cast()?;
+        unsafe { settings.SetUserAgent(&HSTRING::from(agent)) }
     }
 
     /// Where on the stage the WebView shows, and its size: the page lays itself out at that size.

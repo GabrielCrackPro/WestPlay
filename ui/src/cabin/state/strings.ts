@@ -720,6 +720,18 @@ export interface Strings {
     cannotOpen: string
     /** The field of the page's, while it has the focus (the cabin's keyboard types there). */
     pageHint: string
+    /** The settings (apps/browser/BrowserSettings.tsx). */
+    settings: string
+    done: string
+    zoom: string
+    siteVersion: string
+    siteVersionHint: string
+    desktop: string
+    mobile: string
+    clearData: string
+    clearDataHint: string
+    clearBookmarks: string
+    clearBookmarksHint: string
     close: string
   }
   apps: Record<AppId, string>
@@ -1418,6 +1430,17 @@ const ENGLISH_STRINGS: Strings = {
     noBookmarks: 'No Bookmarks',
     cannotOpen: 'That isn’t a web address.',
     pageHint: 'Type into the page',
+    settings: 'Browser Settings',
+    done: 'Done',
+    zoom: 'Zoom',
+    siteVersion: 'Site Version',
+    siteVersionHint: 'Sites that have a simpler version for phones send it.',
+    desktop: 'Desktop',
+    mobile: 'Mobile',
+    clearData: 'Clear Cookies',
+    clearDataHint: 'Signs out of the sites you opened here, and forgets this browser’s own data.',
+    clearBookmarks: 'Forget Bookmarks',
+    clearBookmarksHint: 'The start page goes back to empty.',
     close: 'Close Page',
   },
   apps: {
@@ -2135,6 +2158,17 @@ const TURKISH_STRINGS: Strings = {
     noBookmarks: 'Yer İmi Yok',
     cannotOpen: 'Bu bir web adresi değil.',
     pageHint: 'Sayfaya yaz',
+    settings: 'Tarayıcı Ayarları',
+    done: 'Bitti',
+    zoom: 'Yakınlaştırma',
+    siteVersion: 'Site Sürümü',
+    siteVersionHint: 'Telefonlar için daha sade bir sürümü olan siteler onu gönderir.',
+    desktop: 'Masaüstü',
+    mobile: 'Mobil',
+    clearData: 'Çerezleri Sil',
+    clearDataHint: 'Burada açtığın sitelerden çıkış yapar ve bu tarayıcının kendi verilerini unutur.',
+    clearBookmarks: 'Yer İmlerini Unut',
+    clearBookmarksHint: 'Başlangıç sayfası yine boşalır.',
     close: 'Sayfayı Kapat',
   },
   apps: {
@@ -2864,6 +2898,17 @@ const SPANISH_STRINGS: Strings = {
     noBookmarks: 'Sin marcadores',
     cannotOpen: 'Eso no es una dirección web.',
     pageHint: 'Escribe en la página',
+    settings: 'Ajustes del navegador',
+    done: 'Listo',
+    zoom: 'Zoom',
+    siteVersion: 'Versión del sitio',
+    siteVersionHint: 'Los sitios con una versión más simple para móviles envían esa.',
+    desktop: 'Escritorio',
+    mobile: 'Móvil',
+    clearData: 'Borrar cookies',
+    clearDataHint: 'Cierra la sesión de los sitios que abriste aquí y olvida los datos de este navegador.',
+    clearBookmarks: 'Olvidar marcadores',
+    clearBookmarksHint: 'La página de inicio vuelve a quedar vacía.',
     close: 'Cerrar página',
   },
   apps: {

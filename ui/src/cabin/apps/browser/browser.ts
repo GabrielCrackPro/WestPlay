@@ -28,7 +28,16 @@ interface BrowserStore {
   bookmarks: Bookmark[]
   /** Where the page shows through the CarPlay area, in its CSS pixels (Shell.tsx cuts it open there). */
   hole: BrowserHole | null
+  /** How large the page shows (1: as laid out), and whether it says it's a phone (the sites that send another
+   * version then): the app's settings, kept on this PC. */
+  zoom: number
+  mobile: boolean
+  /** The settings show, in the page's place. */
+  configuring: boolean
 }
+
+/** The zooms the settings offer. */
+export const ZOOMS = [0.8, 1, 1.25, 1.5] as const
 
 /** A rounded rectangle of the CarPlay area, in its CSS pixels. */
 export interface BrowserHole {
@@ -49,17 +58,32 @@ const BOOKMARKS_KEPT = 24
 
 export const useBrowser = create<BrowserStore>()(
   persist(
-    (): BrowserStore => ({ state: null, address: '', refused: false, editable: false, bookmarks: [], hole: null }),
+    (): BrowserStore => ({
+      state: null,
+      address: '',
+      refused: false,
+      editable: false,
+      bookmarks: [],
+      hole: null,
+      zoom: 1,
+      mobile: false,
+      configuring: false,
+    }),
     {
       name: 'westplay.browser',
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (store) => ({ bookmarks: store.bookmarks }),
-      // Kept by an earlier WestPlay (or edited): only web addresses, each once.
-      merge: (stored, current) => ({
-        ...current,
-        bookmarks: keptBookmarks((stored as Partial<BrowserStore> | undefined)?.bookmarks),
-      }),
+      partialize: (store) => ({ bookmarks: store.bookmarks, zoom: store.zoom, mobile: store.mobile }),
+      // Kept by an earlier WestPlay (or edited): only web addresses, each once, and a zoom it offers.
+      merge: (stored, current) => {
+        const kept = stored as Partial<BrowserStore> | undefined
+        return {
+          ...current,
+          bookmarks: keptBookmarks(kept?.bookmarks),
+          zoom: ZOOMS.find((zoom) => zoom === kept?.zoom) ?? 1,
+          mobile: kept?.mobile === true,
+        }
+      },
     },
   ),
 )
@@ -102,8 +126,43 @@ export function openAddress(text: string): void {
     useBrowser.setState({ refused: true, address: text })
     return
   }
-  useBrowser.setState({ refused: false, address: url })
+  useBrowser.setState({ refused: false, address: url, configuring: false })
+  // The page as the settings have it (a WebView started for this address starts with them).
+  configure()
   command({ action: 'open', url })
+}
+
+/** Tells the page how the app's settings have it: its zoom, and what it says it is. */
+export function configure(): void {
+  const { zoom, mobile } = useBrowser.getState()
+  command({ action: 'configure', zoom, mobile })
+}
+
+/** How large the page shows (the sites lay themselves out for it, as for a smaller screen). */
+export function setZoom(zoom: number): void {
+  useBrowser.setState({ zoom })
+  configure()
+}
+
+/** Whether the page says it's a phone: the sites that send a simpler version then. */
+export function setMobile(mobile: boolean): void {
+  useBrowser.setState({ mobile })
+  configure()
+}
+
+/** The settings, in the page's place (its picture goes while they show). */
+export function showSettings(configuring: boolean): void {
+  useBrowser.setState({ configuring, editable: false })
+}
+
+/** Forgets the page's cookies (signing out of the sites opened here) and loads it again. */
+export function clearData(): void {
+  command({ action: 'clear' })
+}
+
+/** Forgets every bookmark (the start page's tiles). */
+export function forgetBookmarks(): void {
+  useBrowser.setState({ bookmarks: [] })
 }
 
 /** A mouse event for the page, as it happens (the page's own chrome: clicks, drags, the wheel). */
@@ -142,7 +201,7 @@ export function reload(): void {
 /** Leaves the page for the start page: its WebView closes, and the app opens it again for the next address. */
 export function closePage(): void {
   command({ action: 'close' })
-  useBrowser.setState({ state: null, address: '', refused: false, editable: false })
+  useBrowser.setState({ state: null, address: '', refused: false, editable: false, configuring: false })
 }
 
 /** Keeps the page as a bookmark, or forgets it. */

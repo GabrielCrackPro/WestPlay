@@ -1126,6 +1126,10 @@ export type BrowserCommand =
   | { action: 'hide' }
   | { action: 'pointer'; kind: BrowserPointer; x: number; y: number; pressed: boolean; data?: number }
   | { action: 'type'; text?: string; key?: BrowserKey }
+  /** The app's settings for its page: its zoom (1: as laid out) and whether it says it's a phone. */
+  | { action: 'configure'; zoom: number; mobile: boolean }
+  /** Forgets the page's cookies (signing out of the sites opened here) and loads it again. */
+  | { action: 'clear' }
   | { action: 'close' }
 
 /** Text typed, or a key with a meaning of its own. */

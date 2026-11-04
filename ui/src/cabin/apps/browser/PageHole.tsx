@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { command, pointer, useBrowser } from './browser'
+import { command, configure, pointer, useBrowser } from './browser'
 
 /**
  * Where the page shows: its picture is the host's own WebView, placed under the page, and the CarPlay area is
@@ -37,6 +37,8 @@ export function PageHole() {
         height: Math.round(box.height * scale),
       })
     }
+    // The page as the app's settings have it (a WebView started for the page starts with them).
+    configure()
     place()
     const resized = new ResizeObserver(place)
     resized.observe(element)
