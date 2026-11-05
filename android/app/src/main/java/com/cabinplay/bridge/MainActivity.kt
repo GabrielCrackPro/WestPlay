@@ -159,7 +159,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun notificationAccess() {
-        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        // MIUI / HyperOS drops third-party captures even when the listener is enabled, so route the user to the
+        // Privacy protection -> Special permissions -> Notification access editor instead of the stock page.
+        val miuiIntent = Intent("miui.intent.action.APP_PERM_EDITOR")
+        miuiIntent.setClassName(
+            "com.miui.securitycenter",
+            "com.miui.permcenter.permissions.PermissionsEditorActivity",
+        )
+        miuiIntent.putExtra("extra_pkgname", packageName)
+        startActivity(miuiIntent)
     }
 
     private fun allowed(permission: String): Boolean =

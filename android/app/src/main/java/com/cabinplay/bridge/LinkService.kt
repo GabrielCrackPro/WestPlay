@@ -120,6 +120,7 @@ class LinkService : Service() {
                 alertShown = false
                 cancelAlert()
                 PhoneHub.setStatus(getString(R.string.connected_to, pairing.host), LinkPhase.Live)
+                PhoneHub.notifyLinked()
                 // A call already ringing or answered when the link came back.
                 calls.current()?.let { link?.sendCall(it) }
                 handler.removeCallbacks(batteryTick)

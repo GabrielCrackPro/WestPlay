@@ -90,6 +90,15 @@ object PhoneHub {
         listener = service
     }
 
+    /** The socket has connected: flush any notifications that arrived before the handshake. */
+    @Synchronized
+    fun notifyLinked() {
+        val entries = synchronized(notifications) { notifications.values.toList() }
+        for (entry in entries) {
+            link?.sendNotification(publicJson(entry).toString())
+        }
+    }
+
     fun listenerDisconnected() {
         listener = null
     }
@@ -100,7 +109,9 @@ object PhoneHub {
         val entry = entryOf(context, posted) ?: return
         notifications[entry.id] = entry
         trim()
-        link?.sendNotification(publicJson(entry).toString())
+        if (link != null) {
+            link?.sendNotification(publicJson(entry).toString())
+        }
     }
 
     /**
