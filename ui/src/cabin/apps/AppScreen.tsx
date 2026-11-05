@@ -9,6 +9,7 @@ import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
 import { DriverApp } from './driver/DriverApp'
 import { MusicApp } from './music/MusicApp'
 import { NotificationsApp } from './notifications/NotificationsApp'
+import { PhoneApp } from './phone/PhoneApp'
 import { RadioApp } from './radio/RadioApp'
 import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
@@ -99,6 +100,8 @@ function AppContent({ app }: { app: AppId }) {
       return <DriverApp />
     case 'notifications':
       return <NotificationsApp />
+    case 'phone':
+      return <PhoneApp />
     default:
       return <NotBuiltYet app={app} />
   }

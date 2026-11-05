@@ -1,0 +1,952 @@
+/* The Phone app (PhoneApp.tsx): the paired Android phone's notifications, a ringing or answered call, and the
+   pairing address and code until it connects. Drawn as the native apps draw a page — a large title with its
+   figures beside it, then grouped cards with hairline rows — on Apple's colours (shell/apple.css), at Settings'
+   cab scale (1.35 px per iPhone point: a 34 pt title is 46 px, 17 pt text 24 px) and the cab's text size. */
+
+.phone-app {
+  border-radius: var(--panel-radius);
+  background: var(--apple-background);
+  color: var(--apple-label);
+  overflow: hidden;
+}
+
+.phone-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.phone-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.phone-page {
+  display: flex;
+  flex-direction: column;
+  gap: calc(20px * var(--text-scale, 1));
+  width: min(100%, 1120px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(36px * var(--text-scale, 1));
+}
+
+/* --- The head: the title, and what it's connected as (the phone's lists sync themselves) -------------------- */
+
+.phone-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(18px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.phone-title {
+  min-width: 0;
+}
+
+.phone-title h1 {
+  margin: 0;
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.phone-sub {
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+/* Whether the phone is on the other end: a green dot as it is, a grey one as it isn't. */
+.phone-state-dot {
+  display: inline-block;
+  width: calc(11px * var(--text-scale, 1));
+  height: calc(11px * var(--text-scale, 1));
+  margin-right: calc(9px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-label-tertiary);
+}
+
+.phone-state-dot.on {
+  background: var(--apple-green);
+}
+
+/* --- A call: ringing or answered, with its buttons ------------------------------------------------ */
+
+.phone-call {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  padding: calc(16px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+  background: var(--apple-card);
+}
+
+.phone-call.ringing {
+  background: color-mix(in srgb, var(--apple-green) 18%, var(--apple-card));
+}
+
+.phone-call-glyph {
+  display: grid;
+  flex: none;
+  width: calc(46px * var(--text-scale, 1));
+  height: calc(46px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-green);
+  color: #fff;
+  place-items: center;
+}
+
+.phone-call-glyph svg {
+  width: 62%;
+  height: 62%;
+}
+
+.phone-call-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.phone-call-state {
+  color: var(--apple-label-secondary);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.phone-call-who {
+  overflow: hidden;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-call-number {
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+}
+
+.phone-call-buttons {
+  display: flex;
+  flex: none;
+  gap: calc(10px * var(--text-scale, 1));
+}
+
+.phone-call-answer,
+.phone-call-end {
+  padding: calc(10px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
+  border-radius: 999px;
+  color: #fff;
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.phone-call-answer {
+  background: var(--apple-green);
+}
+
+.phone-call-end {
+  background: var(--apple-red);
+}
+
+/* Decline, pressed once: a ring says the next press is what drops the call. */
+.phone-call-end.armed {
+  box-shadow: 0 0 0 calc(3px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-red) 45%, transparent);
+}
+
+.phone-call-answer:hover,
+.phone-call-end:hover {
+  filter: brightness(1.1);
+}
+
+/* --- A dial asked for: the sheet over the page that asks a second time before the phone calls ----------- */
+
+.phone-dial-veil {
+  position: absolute;
+  z-index: 10;
+  display: grid;
+  inset: 0;
+  background: color-mix(in srgb, #000 52%, transparent);
+  backdrop-filter: blur(10px) saturate(120%);
+  place-items: center;
+}
+
+.phone-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  width: min(88%, calc(520px * var(--text-scale, 1)));
+  padding: calc(30px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
+  border-radius: calc(26px * var(--text-scale, 1));
+  background: var(--apple-card-raised);
+  box-shadow: 0 calc(24px * var(--text-scale, 1)) calc(60px * var(--text-scale, 1)) rgb(0 0 0 / 0.38);
+  text-align: center;
+  animation: phone-dial-in 180ms var(--motion-ease);
+}
+
+@keyframes phone-dial-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.phone-dial-glyph {
+  display: grid;
+  width: calc(58px * var(--text-scale, 1));
+  height: calc(58px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--apple-green) 18%, transparent);
+  color: var(--apple-green);
+  place-items: center;
+}
+
+.phone-dial-glyph svg {
+  width: 54%;
+  height: 54%;
+}
+
+.phone-dial-title {
+  margin: calc(6px * var(--text-scale, 1)) 0 0;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.phone-dial-number {
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(20px * var(--text-scale, 1));
+  letter-spacing: 0.02em;
+}
+
+/* A contact with more than one number: which of them the call is to, chosen before the second press. */
+.phone-dial-choices {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--text-scale, 1));
+  width: 100%;
+  margin-top: calc(4px * var(--text-scale, 1));
+}
+
+.phone-dial-choice {
+  padding: calc(10px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  border-radius: calc(12px * var(--text-scale, 1));
+  background: var(--apple-fill-tertiary);
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.phone-dial-choice.current {
+  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+  color: var(--apple-blue);
+}
+
+.phone-dial-hint {
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+.phone-dial-buttons {
+  display: flex;
+  gap: calc(12px * var(--text-scale, 1));
+  width: 100%;
+  margin-top: calc(14px * var(--text-scale, 1));
+}
+
+.phone-dial-cancel,
+.phone-dial-call {
+  flex: 1;
+  padding: calc(14px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border-radius: 999px;
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.phone-dial-cancel {
+  background: var(--apple-fill);
+  color: var(--apple-label);
+}
+
+.phone-dial-cancel:hover {
+  background: var(--apple-fill-secondary);
+}
+
+.phone-dial-call {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--text-scale, 1));
+  background: var(--apple-green);
+  color: #fff;
+  transition:
+    background-color 140ms var(--motion-ease),
+    opacity 140ms var(--motion-ease);
+}
+
+.phone-dial-call:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* The moment before it arms: a press this soon after the first tap is that tap's bounce, not a second step. */
+.phone-dial-call:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.phone-dial-call svg {
+  width: calc(22px * var(--text-scale, 1));
+  height: calc(22px * var(--text-scale, 1));
+}
+
+/* --- Until the phone connects: where to pair it, the companion window (never the cab's screen) --- */
+
+.phone-pair {
+  margin: 0;
+  padding: calc(14px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border-radius: calc(12px * var(--text-scale, 1));
+  background: var(--apple-fill-quaternary, rgb(120 120 128 / 0.12));
+  color: var(--apple-secondary-label, #8a8a8e);
+  font-size: calc(14px * var(--text-scale, 1));
+  line-height: 1.45;
+}
+
+/* A command the phone couldn't do (its dialer refused, the call wouldn't end): said on the page, not swallowed. */
+.phone-failure {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--text-scale, 1));
+  margin: 0;
+  padding: calc(14px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border-radius: calc(14px * var(--text-scale, 1));
+  background: color-mix(in srgb, var(--apple-red) 16%, transparent);
+  color: var(--apple-label);
+  font-size: calc(17px * var(--text-scale, 1));
+  line-height: 1.4;
+}
+
+.phone-failure-close {
+  display: grid;
+  flex: none;
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+  margin-left: auto;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--apple-label) 12%, transparent);
+  color: var(--apple-label-secondary);
+  place-items: center;
+}
+
+.phone-failure-close:hover {
+  color: var(--apple-label);
+}
+
+.phone-failure-close svg {
+  width: 58%;
+  height: 58%;
+}
+
+/* --- The phone's contacts: search, then one tall row each, its call button at the end ------------------ */
+
+.phone-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.phone-contacts-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(16px * var(--text-scale, 1));
+}
+
+.phone-contacts-head h2 {
+  margin: 0;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.phone-contacts-count {
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+.phone-contacts-icon {
+  width: calc(48px * var(--text-scale, 1));
+  height: calc(48px * var(--text-scale, 1));
+  margin-bottom: calc(4px * var(--text-scale, 1));
+  color: var(--apple-label-tertiary);
+}
+
+/* The search for a contact by name or number: the cabin's own field, drawn on a card. */
+.phone-search {
+  display: flex;
+  flex: none;
+  max-width: calc(620px * var(--text-scale, 1));
+}
+
+.phone-search > .text-field {
+  flex: 1;
+  height: calc(58px * var(--text-scale, 1));
+  padding-inline: calc(18px * var(--text-scale, 1));
+  border-radius: calc(16px * var(--text-scale, 1));
+  background: var(--apple-card-raised);
+  box-shadow: inset 0 0 0 1px var(--apple-separator);
+  font-size: calc(24px * var(--text-scale, 1));
+}
+
+.phone-search > .text-field > svg {
+  width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+}
+
+.phone-no-match {
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+.phone-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phone-contact-row {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  width: 100%;
+  min-height: calc(84px * var(--text-scale, 1));
+  padding: calc(12px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border: 0;
+  border-radius: calc(18px * var(--text-scale, 1));
+  background: var(--apple-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms var(--motion-ease);
+}
+
+.phone-contact-row:hover:not(:disabled) {
+  background: var(--apple-card-raised);
+}
+
+.phone-contact-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Their initials on the Phone app's blue; a photo, when they have one, fills the circle instead. */
+.phone-contact-avatar {
+  display: grid;
+  flex: none;
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(60px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--apple-blue), color-mix(in srgb, var(--apple-blue) 65%, #000));
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  place-items: center;
+}
+
+.phone-contact-avatar.photo {
+  color: transparent;
+}
+
+.phone-contact-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.phone-contact-name {
+  overflow: hidden;
+  font-size: calc(23px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-contact-number {
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-contact-dial {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(7px * var(--text-scale, 1)) calc(15px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--apple-blue) 14%, transparent);
+  color: var(--apple-blue);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.phone-contact-dial svg {
+  width: calc(20px * var(--text-scale, 1));
+  height: calc(20px * var(--text-scale, 1));
+}
+
+/* --- The app's pages, one at a time: their tabs on a bar under the head ----------------------------- */
+
+.phone-tabs {
+  display: flex;
+  flex: none;
+  align-self: flex-start;
+  gap: calc(4px * var(--text-scale, 1));
+  padding: calc(4px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill-tertiary);
+}
+
+.phone-tab {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: 999px;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 650;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.phone-tab:hover {
+  color: var(--apple-label);
+}
+
+.phone-tab.current {
+  background: var(--apple-card-raised);
+  color: var(--apple-label);
+}
+
+.phone-tab-count {
+  padding: 0 calc(8px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill);
+  color: var(--apple-label-secondary);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+/* The panel takes no room of its own: the page's own gap spaces its sections. */
+.phone-panel {
+  display: contents;
+}
+
+/* --- The call log: a section like the contacts', its rows the contacts' with a kind for an avatar ----- */
+
+.phone-recents {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.phone-recents-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(16px * var(--text-scale, 1));
+}
+
+.phone-recents-head h2 {
+  margin: 0;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.phone-recents-count {
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+/* A call's kind, where a contact's photo would be: green taken, blue made, red missed. */
+.phone-recent-kind {
+  display: grid;
+  flex: none;
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(60px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--apple-green) 16%, transparent);
+  color: var(--apple-green);
+  place-items: center;
+}
+
+.phone-recent-kind.outgoing {
+  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+  color: var(--apple-blue);
+}
+
+.phone-recent-kind.missed {
+  background: color-mix(in srgb, var(--apple-red) 16%, transparent);
+  color: var(--apple-red);
+}
+
+.phone-recent-kind svg {
+  width: 52%;
+  height: 52%;
+}
+
+/* A caller the address book knows: their face, the call's kind on its foot, as the phone's own log draws it. */
+.phone-recent-face {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(60px * var(--text-scale, 1));
+}
+
+.phone-recent-face .phone-contact-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.phone-recent-kind.badge {
+  position: absolute;
+  right: calc(-4px * var(--text-scale, 1));
+  bottom: calc(-4px * var(--text-scale, 1));
+  width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+  box-shadow: 0 0 0 calc(2px * var(--text-scale, 1)) var(--apple-card);
+}
+
+.phone-recent-meta {
+  overflow: hidden;
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- The keypad: a number typed on the phone's own keys, and the button that dials it ---------------- */
+
+.phone-keypad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(18px * var(--text-scale, 1));
+  width: min(100%, calc(420px * var(--text-scale, 1)));
+  margin: 0 auto;
+}
+
+.phone-keypad-display {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: calc(80px * var(--text-scale, 1));
+  padding: calc(10px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
+  border-radius: calc(18px * var(--text-scale, 1));
+  background: var(--apple-card);
+}
+
+.phone-keypad-number {
+  width: 100%;
+  overflow: hidden;
+  font-size: calc(38px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nothing typed yet: the field says what to do, in a quieter size. */
+.phone-keypad-number.empty {
+  color: var(--apple-label-tertiary);
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 500;
+}
+
+.phone-keypad-keys {
+  display: grid;
+  width: 100%;
+  gap: calc(12px * var(--text-scale, 1));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* A key: a circle, as the phone's own dialer draws them, never larger than a thumb's reach. */
+.phone-keypad-key {
+  width: 100%;
+  max-width: calc(96px * var(--text-scale, 1));
+  margin: 0 auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--apple-fill-tertiary);
+  color: var(--apple-label);
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 500;
+  transition: background-color 140ms var(--motion-ease);
+}
+
+.phone-keypad-key:hover {
+  background: var(--apple-fill);
+}
+
+.phone-keypad-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(26px * var(--text-scale, 1));
+  width: 100%;
+}
+
+.phone-keypad-call {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: calc(14px * var(--text-scale, 1)) calc(34px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-green);
+  color: #fff;
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 650;
+  transition:
+    filter 160ms var(--motion-ease),
+    opacity 160ms var(--motion-ease);
+}
+
+.phone-keypad-call:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.phone-keypad-call:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.phone-keypad-call svg {
+  width: calc(22px * var(--text-scale, 1));
+  height: calc(22px * var(--text-scale, 1));
+}
+
+.phone-keypad-delete {
+  display: grid;
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-fill-tertiary);
+  color: var(--apple-label-secondary);
+  place-items: center;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.phone-keypad-delete:hover:not(:disabled) {
+  background: var(--apple-fill);
+  color: var(--apple-label);
+}
+
+.phone-keypad-delete:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.phone-keypad-delete svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* --- The phone's notifications -------------------------------------------------------------------- */
+
+.phone-notes {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.phone-notes-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(16px * var(--text-scale, 1));
+}
+
+.phone-notes-head h2 {
+  margin: 0;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.phone-notes-count {
+  color: var(--apple-label-secondary);
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+.phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phone-note {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--text-scale, 1));
+  padding: calc(16px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: calc(18px * var(--text-scale, 1));
+  background: var(--apple-card);
+}
+
+.phone-note-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(14px * var(--text-scale, 1));
+}
+
+.phone-note-app {
+  color: var(--apple-label-secondary);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.phone-note-time {
+  flex: none;
+  color: var(--apple-label-tertiary);
+  font-size: calc(15px * var(--text-scale, 1));
+}
+
+.phone-note-title {
+  margin: 0;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.phone-note-text {
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.phone-note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12px * var(--text-scale, 1));
+  min-height: calc(30px * var(--text-scale, 1));
+}
+
+/* The notification's own actions ("Reply", "Mark as read"), as words: the cab can show them, not press them, and
+   they aren't drawn as buttons it can't honour. */
+.phone-note-actions {
+  color: var(--apple-label-secondary);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.phone-note-dismiss {
+  display: grid;
+  flex: none;
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--apple-fill-tertiary);
+  color: var(--apple-label-secondary);
+  place-items: center;
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.phone-note-dismiss:hover {
+  background: var(--apple-fill);
+  color: var(--apple-label);
+}
+
+.phone-note-dismiss svg {
+  width: 58%;
+  height: 58%;
+}
+
+.phone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(44px * var(--text-scale, 1)) calc(24px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+  background: var(--apple-card);
+  text-align: center;
+}
+
+.phone-bell {
+  width: calc(48px * var(--text-scale, 1));
+  height: calc(48px * var(--text-scale, 1));
+  margin-bottom: calc(4px * var(--text-scale, 1));
+  color: var(--apple-label-tertiary);
+}
+
+.phone-empty-title {
+  margin: 0;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+.phone-empty-hint {
+  max-width: 38em;
+  margin: 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  line-height: 1.45;
+}
+
+/* The lists on their way (the phone's first snapshot hasn't arrived): a turning ring, not an empty state. */
+.phone-syncing {
+  width: calc(28px * var(--text-scale, 1));
+  height: calc(28px * var(--text-scale, 1));
+  margin-bottom: calc(6px * var(--text-scale, 1));
+  border: calc(3px * var(--text-scale, 1)) solid color-mix(in srgb, var(--apple-label) 18%, transparent);
+  border-top-color: var(--apple-blue);
+  border-radius: 50%;
+  animation: phone-syncing 0.9s linear infinite;
+}
+
+@keyframes phone-syncing {
+  to {
+    transform: rotate(1turn);
+  }
+}

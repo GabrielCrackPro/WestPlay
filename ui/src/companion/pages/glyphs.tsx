@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import type { SectionId } from './words'
+import type { Section } from './words'
 
 /* The companion's sections, drawn: one mark each, in the onboarding's line weight (stroke 1.7 on 24), so the
    sidebar and the page it opens speak the same shape. */
 
-const PATHS: Record<SectionId, ReactNode> = {
+const PATHS: Record<Section, ReactNode> = {
   // The screen itself: a display in its bezel.
   screen: (
     <>
@@ -43,6 +43,13 @@ const PATHS: Record<SectionId, ReactNode> = {
       <path d="M9 4.6v12.8M15 6.7v12.8" />
     </>
   ),
+  // The paired phone: a handset, as the cabin's Phone app draws one.
+  phone: (
+    <>
+      <rect x="6.4" y="2.6" width="11.2" height="18.8" rx="2.6" />
+      <path d="M10.6 18.4h2.8" />
+    </>
+  ),
   // The plugin going into the game's folder.
   setup: (
     <>
@@ -60,7 +67,7 @@ const PATHS: Record<SectionId, ReactNode> = {
 }
 
 /** A section's mark, sized by the CSS around it. */
-export function SectionGlyph({ id }: { id: SectionId }) {
+export function SectionGlyph({ id }: { id: Section }) {
   return (
     <svg
       viewBox="0 0 24 24"

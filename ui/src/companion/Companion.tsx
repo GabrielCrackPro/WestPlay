@@ -13,12 +13,13 @@ import { Customize } from './pages/Customize'
 import { type MapProgress, useMapProgress } from './mapProgress'
 import { SectionGlyph } from './pages/glyphs'
 import { MapPage } from './pages/MapPage'
+import { PhonePage } from './pages/PhonePage'
 import { screenState } from './pages/page'
 import { ScreenPage } from './pages/ScreenPage'
 import { Setup } from './pages/Setup'
 import { UninstallSheet } from './pages/UninstallSheet'
 import { FinishUpdate } from './pages/FinishUpdate'
-import { type CompanionWords, companionWords, type SectionId } from './pages/words'
+import { type CompanionWords, companionWords, type Section } from './pages/words'
 import { RoomText, n, WordsContext } from './room/room'
 import './room/room.css'
 import { GLOW, type Screen, ScreenContext } from './room/screen'
@@ -76,13 +77,13 @@ export function Companion() {
   )
 }
 
-const SECTIONS: SectionId[][] = [
+const SECTIONS: Section[][] = [
   ['screen', 'controls', 'customize'],
   ['accounts', 'map'],
-  ['setup', 'about'],
+  ['phone', 'setup', 'about'],
 ]
-/** The sections in order: the tutorial's tour goes through them. */
-const TOUR = SECTIONS.flat()
+/** The sections in order: the tutorial's tour goes through them, the phone's aside (it has no step of its own). */
+const TOUR: Section[] = SECTIONS.flat().filter((id) => id !== 'phone')
 
 /** The room as it is: the tutorial's lesson (the screen full size), its tour of the sections, its end
  * (what to do in the game), or the companion. */
@@ -92,12 +93,13 @@ type Phase = 'lesson' | 'tour' | 'launch' | 'room'
 const POSE: Record<Phase, Pose> = { lesson: 'full', tour: 'aside', launch: 'final', room: 'aside' }
 
 /** The light the screen casts while each section is up. */
-const SECTION_GLOW: Record<SectionId, string> = {
+const SECTION_GLOW: Record<Section, string> = {
   screen: GLOW.home,
   controls: GLOW.home,
   customize: GLOW.home,
   accounts: GLOW.youtube,
   map: GLOW.maps,
+  phone: GLOW.home,
   setup: GLOW.scan,
   about: GLOW.dashboard,
 }
@@ -124,7 +126,7 @@ function Room({
   const [code] = useState(() => setup.language ?? languageOf(navigator.languages))
   const words = wordsFor(code)
   const cw = companionWords(code)
-  const [section, setSection] = useState<SectionId>('screen')
+  const [section, setSection] = useState<Section>('screen')
   const [leaving, setLeaving] = useState(false)
   const [phase, setPhase] = useState<Phase>(tutorial ?? 'room')
   // The screen comes out of the dive the onboarding ended in, to where the phase has it.
@@ -217,7 +219,7 @@ function Room({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapKey, demo.ready, send])
 
-  const open = (next: SectionId) => {
+  const open = (next: Section) => {
     if (next === section || leaving) return
     setLeaving(true)
     window.setTimeout(() => {
@@ -319,9 +321,10 @@ function Room({
             {roomShown && section === 'customize' && <Customize {...page} />}
             {roomShown && section === 'accounts' && <Accounts {...page} />}
             {roomShown && section === 'map' && <MapPage {...page} />}
+            {roomShown && section === 'phone' && <PhonePage {...page} />}
             {roomShown && section === 'setup' && <Setup {...page} />}
             {roomShown && section === 'about' && <About {...page} />}
-            {phase === 'tour' && (
+            {phase === 'tour' && section !== 'phone' && (
               <TourCard cw={cw} section={section} last={section === TOUR[TOUR.length - 1]} next={nextInTour} />
             )}
             {uninstalling && (
@@ -351,8 +354,8 @@ function SectionList({
   setup,
   mapProgress,
 }: {
-  section: SectionId
-  open(section: SectionId): void
+  section: Section
+  open(section: Section): void
   cw: CompanionWords
   words: Words
   status: HostStatus | null
@@ -372,7 +375,7 @@ function SectionList({
     if (row) setLit({ top: row.offsetTop, height: row.offsetHeight })
   }, [section])
 
-  const value: Record<SectionId, string> = {
+  const value: Record<Section, string> = {
     screen:
       state === 'live'
         ? cw.values.on
@@ -392,6 +395,8 @@ function SectionList({
             .filter(Boolean)
             .join(', ') || cw.values.none,
     map: mapValue(status, mapProgress, cw, words),
+    // The phone's own line: the name it gave, while it's connected.
+    phone: status?.phone?.connected ? (status.phone.device?.name ?? cw.phone.connected) : '',
     setup: setup.game?.version ?? '',
     about: version,
   }
@@ -429,7 +434,7 @@ function SectionList({
               {/* What it is now under what it is: the rail is narrow, so they stack rather than push each other
                   out (companion.css .cp-row-text). */}
               <span className="cp-row-text">
-                <b>{cw.sections[id]}</b>
+                <b>{sectionName(cw, id)}</b>
                 <span key={value[id]} className="cp-row-value" data-value="">
                   {value[id]}
                 </span>
@@ -440,6 +445,11 @@ function SectionList({
       ))}
     </nav>
   )
+}
+
+/** A section's name: the phone's is its own block of words, the rest are the list's. */
+function sectionName(cw: CompanionWords, id: Section): string {
+  return id === 'phone' ? cw.phone.phone : cw.sections[id]
 }
 
 function mapValue(status: HostStatus | null, progress: MapProgress, cw: CompanionWords, words: Words): string {

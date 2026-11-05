@@ -10,6 +10,7 @@ import { type PageProps, useGameCheck } from './page'
  * Where Cabin Play is installed and how to put it right: the game it's in, the plugin as it is
  * there, and a reinstall (the onboarding's install, again, while the game is closed). On the room's
  * screen, the check's scan while the game is looked at, and Cabin Play booting again after a reinstall.
+ * The paired phone has a page of its own beside this one (PhonePage).
  */
 export function Setup(props: PageProps) {
   const { setup, cw, check, checked, uninstall, tutorial } = props

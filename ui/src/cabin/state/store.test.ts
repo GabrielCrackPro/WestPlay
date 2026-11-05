@@ -33,6 +33,7 @@ describe('the saved Settings choices', () => {
       driverHours: false,
       driver: true,
       diagnostics: true,
+      phone: true,
       weather: false,
     })
     expect(useCabin.getState().albumArt).toBe(false)
@@ -56,6 +57,7 @@ describe('the saved Settings choices', () => {
       driverHours: true,
       driver: true,
       diagnostics: true,
+      phone: true,
       weather: false,
     })
     expect(useCabin.getState().albumArt).toBe(true)
@@ -71,6 +73,7 @@ describe('the saved Settings choices', () => {
       driver: false,
       weather: false,
       diagnostics: true,
+      phone: true,
     })
     expect(useCabin.getState().albumArt).toBe(true)
     expect(useCabin.getState().appearanceMode).toBe('dark')
@@ -104,6 +107,7 @@ describe('the saved Settings choices', () => {
       diagnostics: true,
       driver: false,
       weather: false,
+      phone: true,
     })
   })
 

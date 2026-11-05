@@ -41,7 +41,35 @@ export interface HostStatus {
   /** Every profile's map (mirrors `westplay_host::maps::ProfileMap`): Cabin Play makes one for each, one by
    * one, the profile played first. */
   profileMaps: ProfileMap[]
+  /** The paired phone: whether it's connected, which one, and how to pair it (mirrors
+   * `westplay_host::PhoneStatus`). The Setup pairs the phone; the cabin's Phone app is only given its content. */
+  phone: PhoneStatus
   error: string | null
+}
+
+/** The phone paired with this PC. */
+export interface PhoneStatus {
+  connected: boolean
+  /** The phone as it last said: what it calls itself, and its battery. */
+  device: PhoneDevice | null
+  /** How the phone finds this PC (`null`: this PC has no local network address to pair over). */
+  pairing: PhonePairing | null
+}
+
+export interface PhoneDevice {
+  name: string
+  model?: string
+  /** Percent, and whether it's charging. */
+  battery?: number
+  charging?: boolean
+}
+
+/** The line a phone scans or types (`cabinplay://pair?host=…&port=…&token=…`), and the parts it's made of. */
+export interface PhonePairing {
+  host: string
+  port: number
+  token: string
+  uri: string
 }
 
 export interface Adapter {
@@ -146,4 +174,9 @@ export function appleMusicCheck(): Promise<void> {
 /** Opens or closes Cabin Play on the truck's screen (the status then reports it, once the cabin has). */
 export function setWestplayOpen(open: boolean): Promise<void> {
   return call('set_westplay_open', { open })
+}
+
+/** Forgets the paired phone: the link takes a new code, and the phone connected now has to pair again. */
+export function phoneUnpair(): Promise<void> {
+  return call('phone_unpair')
 }

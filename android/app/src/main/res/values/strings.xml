@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cabin Play Bridge</string>
+    <string name="channel_name">Phone link</string>
+    <string name="channel_description">Keeps Cabin Play connected to this phone</string>
+    <string name="service_title">Cabin Play Bridge</string>
+
+    <string name="intro">Enter the address and code the cabin’s Phone app shows while no phone is connected. The link stays on while this service runs; the phone can sleep.</string>
+    <string name="host">Address</string>
+    <string name="host_hint">192.168.1.20</string>
+    <string name="port">Port</string>
+    <string name="default_port">47654</string>
+    <string name="token">Code</string>
+    <string name="token_hint">The code from the Phone app</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="permissions">Permissions</string>
+    <string name="permissions_all">All permissions are granted.</string>
+    <string name="notification_access">Notification access</string>
+    <string name="access_granted">Notification access: granted</string>
+    <string name="access_missing">Notification access: not granted. Android 13+ sideloaded apps may need “Allow restricted settings” in App info first.</string>
+    <string name="contacts_granted">Contacts: granted</string>
+    <string name="contacts_missing">Contacts: not granted — the cab can’t show or search them.</string>
+    <string name="calls_granted">Call control: granted</string>
+    <string name="calls_partial">Call state: granted, answer/end: not granted</string>
+    <string name="calls_missing">Call state and answer/end: not granted</string>
+    <string name="pairing_line">Or paste the pairing line</string>
+    <string name="pairing_line_hint">cabinplay://pair?host=…&amp;port=…&amp;token=…</string>
+    <string name="use_line">Use pairing line</string>
+    <string name="caveats">Notifications, battery, contacts and call state for now. Call audio cannot be captured by third-party apps; calls stay on the phone. SMS comes later. The link is token-gated and private-network-only, not encrypted: use it on a trusted home network.</string>
+    <string name="bad_pairing">Fill in the address, the port and the code.</string>
+    <string name="bad_line">That isn’t a cabinplay://pair line.</string>
+    <string name="line_used">Filled in from the pairing line. Press Connect.</string>
+    <string name="disconnected">Not connected</string>
+</resources>

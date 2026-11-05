@@ -31,9 +31,12 @@ try {
   console.error(`build: the plugin wasn't made: ${plugin} is missing`)
   process.exit(1)
 }
+// The workspace's own Cargo.toml is deliberately not watched: it changes for the other crates (a member, a
+// dependency), cargo only relinks the plugin when a change reaches it, and comparing against it failed builds
+// whose plugin cargo had correctly left alone. Its own files plus the shared crate are the inputs that matter.
 const newest = Math.max(
-  ...[join(root, 'Cargo.toml'), ...sources(join(root, 'crates/plugin')), ...sources(join(root, 'crates/shared'))].map(
-    (file) => statSync(file).mtimeMs,
+  ...[...sources(join(root, 'crates/plugin')), ...sources(join(root, 'crates/shared'))].map((file) =>
+    statSync(file).mtimeMs,
   ),
 )
 if (built < newest) {

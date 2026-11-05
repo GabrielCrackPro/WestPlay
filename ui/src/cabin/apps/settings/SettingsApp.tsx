@@ -539,6 +539,7 @@ function DashboardPage() {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
     driverHours: text.diagnostics.driverHours,
+    phone: text.apps.phone,
     driver: text.apps.driver,
     weather: text.apps.weather,
     diagnostics: text.apps.diagnostics,

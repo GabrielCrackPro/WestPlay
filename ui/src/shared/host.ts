@@ -199,6 +199,89 @@ export interface Speaker {
   delay: number
 }
 
+/** The phone paired with the PC (`westplay_link::Device`): its name, and the battery as it last said. */
+export interface PhoneDevice {
+  name: string
+  model?: string
+  /** Percent. */
+  battery?: number
+  charging?: boolean
+}
+
+/** One notification on the phone (`westplay_link::Notification`), as Android's listener gives it. */
+export interface PhoneNotification {
+  /** Stable for the phone's notification: the package, its id and its post time. */
+  id: string
+  package: string
+  /** The app's own name, as the phone shows it. */
+  app: string
+  title?: string
+  text?: string
+  /** When it was posted (Unix seconds). */
+  time?: number
+  ongoing: boolean
+  /** The notification's action labels ("Reply", "Mark as read", …); missing when it has none. */
+  actions?: string[]
+}
+
+/** One contact on the phone (`westplay_link::Contact`). */
+export interface PhoneContact {
+  id: string
+  name: string
+  numbers: string[]
+  /** A `data:` URL of the contact's photo, when it has one. */
+  photo?: string
+}
+
+/** One call in the phone's log (`westplay_link::Recent`). */
+export interface PhoneRecent {
+  id: string
+  number: string
+  /** The name the phone has for that number, when it has one. */
+  name?: string
+  /** What the call was: taken, made, missed, or one Android doesn't name. */
+  kind: 'incoming' | 'outgoing' | 'missed' | 'other'
+  /** When it came or was made (Unix seconds). */
+  time: number
+  /** How long it lasted, in seconds (0 for one that never connected). */
+  duration: number
+}
+
+/** A call on the phone (`westplay_link::Call`). */
+export interface PhoneCall {
+  id: string
+  state: 'idle' | 'ringing' | 'offHook'
+  number?: string
+  name?: string
+  /** When it began ringing or was answered (Unix seconds). */
+  startedAt?: number
+}
+
+/** Everything the cab knows of the paired phone (`westplay_host::phone::Phone`), sent whole whenever it changes.
+ * Where the phone pairs is the companion's (`Status.phone`): the cab is only ever given the phone's content. */
+export interface PhoneState {
+  connected: boolean
+  /** Whether the address book or the call log has arrived since the phone connected: an empty list before then is
+   * "not here yet", and the app says so rather than "nothing". */
+  ready: boolean
+  device: PhoneDevice | null
+  notifications: PhoneNotification[]
+  contacts: PhoneContact[]
+  /** The phone's call log, newest first. */
+  recents: PhoneRecent[]
+  call: PhoneCall | null
+}
+
+/** What the cab asks of the phone (`westplay_link::Command`). */
+export type PhoneCommand =
+  | { action: 'sync' }
+  | { action: 'dismiss'; id: string }
+  | { action: 'dial'; number: string }
+  | { action: 'answer' }
+  | { action: 'end' }
+  | { action: 'sms'; number: string; body: string }
+  | { action: 'reply'; id: string; text: string }
+
 export type HostMessage =
   | { type: 'telemetry'; data: Telemetry }
   | { type: 'truck'; data: TruckInfo }
@@ -362,6 +445,15 @@ export type HostMessage =
   | ({ type: 'youtubeMusicAnswer'; id: number; failed?: boolean } & Partial<YouTubeMusicAnswers>)
   /** What YouTube Music plays; `null`: nothing. */
   | { type: 'youtubeMusicPlayback'; playback: YouTubeMusicPlayback | null }
+  /** The paired phone: whether it's connected, its notifications, contacts and call, and the pairing to show
+   * when it isn't connected. Sent whole as the page loads and whenever the phone says something. */
+  | { type: 'phone'; state: PhoneState }
+  /** The phone's notifications alone: what changes far more often than the rest of its state, which the page is
+   * never sent again for a notification's sake. */
+  | { type: 'phoneNotes'; notifications: PhoneNotification[] }
+  /** A command the phone couldn't do, in its own words: its dialer refused, the call wouldn't end, or no phone is
+   * connected at all. */
+  | { type: 'phoneError'; error: string }
 
 /** The game's weather: the one there is and the one it's turning to (the same once it has); in game minutes,
  * how long until the game changes it next; and how wet the roads are, percent. Each of the last two `null`
@@ -447,6 +539,9 @@ export type PageMessage =
   | { type: 'appleMusic'; command: AppleMusicCommand }
   /** A command for YouTube Music's web player (`westplay_host::youtube_music::Command`). */
   | { type: 'youtubeMusic'; command: YouTubeMusicCommand }
+  /** A command for the paired phone (`westplay_link::Command`): sync, dismiss a notification, dial, answer or
+   * end a call. */
+  | { type: 'phone'; command: PhoneCommand }
 
 /** What the Spotify app asks of Spotify's web player (`westplay_host::spotify::Command`), run hidden by the
  * host: its sign-in, a question (answered with `spotifyAnswer` and the same `id`), and the player's controls

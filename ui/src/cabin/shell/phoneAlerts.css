@@ -1,0 +1,268 @@
+/* The phone over the cab (PhoneAlerts.tsx): its call at the top of the CarPlay area, to answer or decline from any
+   app, and the phone's notifications as toasts at the top right. Above the apps and a full-screen video; under the
+   boot sequence's overlay, the cursor and the screen's rim. */
+
+.phone-alerts {
+  position: absolute;
+  z-index: 22;
+  inset: 0;
+  zoom: var(--ui-scale, 1);
+  pointer-events: none;
+}
+
+/* --- The call ------------------------------------------------------------------------------------- */
+
+.phone-alert {
+  position: absolute;
+  top: calc(16px * var(--text-scale, 1));
+  left: calc(var(--content-left, 170px) + (100% - var(--content-left, 170px)) / 2);
+  display: flex;
+  align-items: center;
+  gap: calc(14px * var(--text-scale, 1));
+  width: min(
+    calc(100% - var(--content-left, 170px) - 36px),
+    calc(640px * var(--text-scale, 1))
+  );
+  box-sizing: border-box;
+  padding: calc(11px * var(--text-scale, 1)) calc(15px * var(--text-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--apple-green) 34%, var(--glass-rim));
+  border-radius: calc(20px * var(--text-scale, 1));
+  background:
+    radial-gradient(
+      120% 220% at 0% 50%,
+      color-mix(in srgb, var(--apple-green) 22%, transparent),
+      transparent 62%
+    ),
+    var(--keyboard-glass);
+  backdrop-filter: blur(30px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--shadow-raised-large);
+  color: var(--text);
+  translate: -50% 0;
+  pointer-events: auto;
+  animation: phone-alert-in 240ms var(--motion-ease) both;
+}
+
+/* Answered: the same card, in the call's own blue instead of the ring's green. */
+.phone-alert.calling {
+  border-color: color-mix(in srgb, var(--apple-blue) 30%, var(--glass-rim));
+  background:
+    radial-gradient(
+      120% 220% at 0% 50%,
+      color-mix(in srgb, var(--apple-blue) 18%, transparent),
+      transparent 62%
+    ),
+    var(--keyboard-glass);
+}
+
+@keyframes phone-alert-in {
+  from {
+    opacity: 0;
+    translate: -50% calc(-12px * var(--text-scale, 1));
+    scale: 0.97;
+  }
+}
+
+.phone-alert-glyph {
+  display: grid;
+  flex: none;
+  width: calc(42px * var(--text-scale, 1));
+  height: calc(42px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-green);
+  color: #fff;
+  place-items: center;
+}
+
+.phone-alert.calling .phone-alert-glyph {
+  background: var(--apple-blue);
+}
+
+.phone-alert-glyph svg {
+  width: 60%;
+  height: 60%;
+}
+
+.phone-alert-open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.phone-alert-state {
+  color: var(--apple-label-secondary, var(--text-dim));
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.phone-alert-who {
+  overflow: hidden;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-alert-buttons {
+  display: flex;
+  flex: none;
+  gap: calc(9px * var(--text-scale, 1));
+}
+
+.shell .phone-alert-answer,
+.shell .phone-alert-end {
+  padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: 999px;
+  color: #fff;
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 700;
+  transition: filter 140ms var(--motion-ease);
+}
+
+.shell .phone-alert-answer {
+  background: var(--apple-green);
+}
+
+.shell .phone-alert-end {
+  background: var(--apple-red);
+}
+
+.shell .phone-alert-answer:hover,
+.shell .phone-alert-end:hover {
+  filter: brightness(1.1);
+}
+
+.shell .phone-alert-answer:active,
+.shell .phone-alert-end:active {
+  scale: 0.97;
+}
+
+/* --- The phone's notifications, as they come ------------------------------------------------------ */
+
+.phone-toasts {
+  position: absolute;
+  top: calc(84px * var(--text-scale, 1));
+  right: calc(20px * var(--text-scale, 1));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(10px * var(--text-scale, 1));
+}
+
+.phone-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(10px * var(--text-scale, 1));
+  width: min(calc(390px * var(--text-scale, 1)), 88vw);
+  box-sizing: border-box;
+  padding: calc(11px * var(--text-scale, 1)) calc(13px * var(--text-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--apple-blue) 26%, var(--glass-rim));
+  border-radius: calc(17px * var(--text-scale, 1));
+  background: var(--keyboard-glass);
+  backdrop-filter: blur(30px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--shadow-raised-large);
+  color: var(--text);
+  pointer-events: auto;
+  animation: phone-toast-in 220ms var(--motion-ease) both;
+}
+
+@keyframes phone-toast-in {
+  from {
+    opacity: 0;
+    translate: calc(14px * var(--text-scale, 1)) 0;
+    scale: 0.97;
+  }
+}
+
+.phone-toast-app {
+  flex: none;
+  max-width: calc(96px * var(--text-scale, 1));
+  padding-top: calc(3px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--apple-label-secondary, var(--text-dim));
+  font-size: calc(11px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.phone-toast-open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.phone-toast-title {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.phone-toast-text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--apple-label-secondary, var(--text-dim));
+  font-size: calc(14px * var(--text-scale, 1));
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.shell .phone-toast-close {
+  display: grid;
+  flex: none;
+  width: calc(26px * var(--text-scale, 1));
+  height: calc(26px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--apple-label-secondary, var(--text-dim));
+  place-items: center;
+}
+
+.shell .phone-toast-close:hover {
+  color: var(--text);
+}
+
+.phone-toast-close svg {
+  width: 58%;
+  height: 58%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-alert,
+  .phone-toast {
+    animation: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .phone-toast-app {
+    display: none;
+  }
+}

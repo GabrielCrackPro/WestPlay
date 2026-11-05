@@ -52,6 +52,72 @@
   min-height: 0;
 }
 
+/* --- The paired phone: whether it is there, its battery, a call, and the newest thing it posted ------------- */
+
+.widget.phone-widget {
+  align-items: flex-start;
+}
+
+/* A call ringing is the one thing on the column worth a colour of its own. */
+.widget.phone-widget.ringing {
+  background: color-mix(in srgb, var(--apple-green, #34c759) 22%, transparent);
+}
+
+.phone-widget-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+.phone-widget-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Green while the phone is on the other end, the column's own grey while it isn't. */
+.phone-widget-dot {
+  flex: none;
+  width: calc(11px * var(--text-scale, 1));
+  height: calc(11px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+.phone-widget-dot.on {
+  background: var(--apple-green, #34c759);
+}
+
+.phone-widget-call {
+  overflow: hidden;
+  color: var(--apple-green, #34c759);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-widget-meta {
+  color: var(--text-dim);
+  font-size: calc(17px * var(--text-scale, 1));
+}
+
+.phone-widget-note {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Every card's small label above its figure: one size, one weight, sentence case. The cards had four sizes and
    three different tracked capitals between them, which read as captions from other apps rather than one column
    of the cab's own cards. A card that needs the label larger (Diagnostics) sets it itself. */

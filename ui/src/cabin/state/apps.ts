@@ -47,9 +47,9 @@ export function isAppId(value: unknown): value is AppId {
   return typeof value === 'string' && (APP_IDS as readonly string[]).includes(value)
 }
 
-/** Not in this release: Podcasts, Phone and Messages come in the one after 1.0 (PLAN.md). Their ids stay (their
- * icons, players' icon sets), but they're not on Home, and a saved screen or recent can't open them. */
-const NEXT_RELEASE: ReadonlySet<AppId> = new Set<AppId>(['podcasts', 'phone', 'messages'])
+/** Not in this release: Podcasts and Messages come later (PLAN.md). Their ids stay (their icons, players' icon
+ * sets), but they're not on Home, and a saved screen or recent can't open them. */
+const NEXT_RELEASE: ReadonlySet<AppId> = new Set<AppId>(['podcasts', 'messages'])
 
 /** The apps this release has, in Home grid order. */
 export const RELEASED_APP_IDS: readonly AppId[] = APP_IDS.filter((id) => !NEXT_RELEASE.has(id))

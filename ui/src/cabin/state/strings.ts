@@ -668,6 +668,70 @@ export interface Strings {
     openMaps: string
     openDiagnostics: string
   }
+  /** The Phone app: the paired phone, its contacts, calls and notifications. */
+  phoneApp: {
+    /** How many notifications the phone has posted (the host keeps the most recent). */
+    summary: (count: number) => string
+    empty: string
+    /** Where the notifications come from, and what to do about them. */
+    hint: string
+    refresh: string
+    connected: string
+    disconnected: string
+    /** While no phone is connected: keep the bridge running on the phone, and where it's paired (the companion
+     * window's Setup, never the cab). */
+    pairingHint: string
+    battery: (level: number) => string
+    charging: string
+    dismiss: string
+    /** A ringing call: answer it, or decline it; and one in progress. */
+    answer: string
+    decline: string
+    end: string
+    ringing: string
+    inCall: string
+    unknownCaller: string
+    /** The contacts the phone sent, and the search among them. */
+    contacts: string
+    contactsHint: string
+    contactsEmpty: string
+    searchContacts: string
+    dial: string
+    noMatches: string
+    /** How many contacts the search shows, out of how many the phone sent. */
+    showing: (shown: number, total: number) => string
+    /** The app's first tab: the calls the phone made and took, and how many there are. */
+    recents: string
+    recentCount: (count: number) => string
+    recentsEmpty: string
+    recentsHint: string
+    /** One call's kind, and how long it lasted (`duration`: seconds). */
+    incoming: string
+    outgoing: string
+    missed: string
+    otherCall: string
+    duration: (seconds: number) => string
+    /** A call in the log's button: dial that number again. */
+    callBack: string
+    /** A dial asked for, before the phone makes it: who it's to (`dialTitle`), the second press's hint, and the
+     * press that calls it off. */
+    dialTitle: (who: string) => string
+    dialHint: string
+    cancel: string
+    /** While the phone's first snapshot is on its way: an empty list before it is "not here yet". */
+    syncing: string
+    /** The keypad's 0: a press types it, a long press types + (for an international number). */
+    holdPlus: string
+    /** A ringing call's Decline, pressed once: the next press is what drops it. */
+    declineAgain: string
+    /** The Keypad tab: the number being typed, what its field says while it's empty, and its buttons. */
+    keypad: string
+    keypadHint: string
+    call: string
+    /** The backspace key: a press deletes a digit, a long press clears the number. */
+    delete: string
+    deleteHold: string
+  }
   /** The Radio app: the stations of the game's own radio list, by genre, and what plays. */
   radioApp: {
     /** How many stations the list has. */
@@ -1363,6 +1427,55 @@ const ENGLISH_STRINGS: Strings = {
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
     openMaps: 'Open Maps',
     openDiagnostics: 'Open Diagnostics',
+  },
+  phoneApp: {
+    summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
+    empty: 'No notifications from the phone',
+    hint: 'Run Cabin Play Bridge on your Android phone, and turn on its Notification access — a switch of its own in Android’s settings, apart from the app’s permissions. The notifications it posts after that show here.',
+    refresh: 'Sync',
+    connected: 'Connected',
+    disconnected: 'Not connected',
+    pairingHint:
+      'No phone is connected. Keep Cabin Play Bridge running on your Android phone, on the same Wi-Fi; if it has never been paired, Cabin Play’s Setup › Phone shows the code.',
+    battery: (level) => `${level}%`,
+    charging: 'Charging',
+    dismiss: 'Dismiss',
+    answer: 'Answer',
+    decline: 'Decline',
+    end: 'End',
+    ringing: 'Incoming call',
+    inCall: 'In call',
+    unknownCaller: 'Unknown caller',
+    contacts: 'Contacts',
+    contactsHint: 'Allow contact access in Cabin Play Bridge on your phone to see the address book here.',
+    recents: 'Recents',
+    recentCount: (count) => (count === 1 ? '1 call' : `${count} calls`),
+    recentsEmpty: 'No calls yet',
+    recentsHint:
+      'The calls your phone made and took show here. Allow call log access in Cabin Play Bridge to see them.',
+    incoming: 'Incoming',
+    outgoing: 'Outgoing',
+    missed: 'Missed',
+    otherCall: 'Call',
+    duration: (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`,
+    callBack: 'Call back',
+    dialTitle: (who) => `Call ${who}?`,
+    dialHint: 'Press Call once more to dial.',
+    cancel: 'Cancel',
+    syncing: 'Syncing with the phone…',
+    holdPlus: '0 (hold for +)',
+    declineAgain: 'Press again to decline',
+    keypad: 'Keypad',
+    keypadHint: 'Type a number',
+    call: 'Call',
+    delete: 'Delete',
+    deleteHold: 'Delete (hold to clear)',
+    contactsEmpty: 'No contacts from the phone',
+    searchContacts: 'Search contacts',
+    dial: 'Call',
+    noMatches: 'No contact matches that.',
+    showing: (shown, total) =>
+      shown === total ? (total === 1 ? '1 contact' : `${total} contacts`) : `${shown} of ${total}`,
   },
   radioApp: {
     summary: (count) => (count === 1 ? '1 station' : `${count} stations`),
@@ -2063,6 +2176,54 @@ const TURKISH_STRINGS: Strings = {
     summary: (count) => `${count} bildirim`,
     openMaps: 'Haritalar’ı Aç',
     openDiagnostics: 'Tanılamayı Aç',
+  },
+  phoneApp: {
+    summary: (count) => `${count} bildirim`,
+    empty: 'Telefondan bildirim yok',
+    hint: 'Android telefonunuzda Cabin Play Köprüsü’nü çalıştırın ve Bildirim erişimini açın — uygulamanın izinlerinden ayrı, Android ayarlarındaki kendi anahtarıdır. Bundan sonra gelen bildirimler burada görünür.',
+    refresh: 'Eşitle',
+    connected: 'Bağlı',
+    disconnected: 'Bağlı değil',
+    pairingHint:
+      'Bağlı telefon yok. Cabin Play Köprüsü’nü Android telefonunuzda, aynı Wi-Fi ağında açık tutun; hiç eşleştirmediyseniz Cabin Play’in Kurulum › Telefon bölümü kodu gösterir.',
+    battery: (level) => `%${level}`,
+    charging: 'Şarj oluyor',
+    dismiss: 'Kapat',
+    answer: 'Yanıtla',
+    decline: 'Reddet',
+    end: 'Bitir',
+    ringing: 'Gelen arama',
+    inCall: 'Aramada',
+    unknownCaller: 'Bilinmeyen arayan',
+    contacts: 'Kişiler',
+    contactsHint: 'Telefonunuzdaki Cabin Play Köprüsü’nde kişi erişimine izin verin; adres defteri burada görünsün.',
+    recents: 'Son aramalar',
+    recentCount: (count) => `${count} arama`,
+    recentsEmpty: 'Henüz arama yok',
+    recentsHint:
+      'Telefonunuzun yaptığı ve aldığı aramalar burada görünür. Görmek için Cabin Play Köprüsü’nde arama kaydı erişimine izin verin.',
+    incoming: 'Gelen',
+    outgoing: 'Giden',
+    missed: 'Cevapsız',
+    otherCall: 'Arama',
+    duration: (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`,
+    callBack: 'Geri ara',
+    dialTitle: (who) => `${who} aransın mı?`,
+    dialHint: 'Aramak için bir kez daha Ara’ya basın.',
+    cancel: 'Vazgeç',
+    syncing: 'Telefonla eşitleniyor…',
+    holdPlus: '0 (+ için basılı tutun)',
+    declineAgain: 'Reddetmek için bir kez daha basın',
+    keypad: 'Tuş takımı',
+    keypadHint: 'Bir numara yazın',
+    call: 'Ara',
+    delete: 'Sil',
+    deleteHold: 'Sil (tümünü silmek için basılı tutun)',
+    contactsEmpty: 'Telefondan kişi yok',
+    searchContacts: 'Kişi ara',
+    dial: 'Ara',
+    noMatches: 'Bu aramayla eşleşen kişi yok.',
+    showing: (shown, total) => (shown === total ? `${total} kişi` : `${total} kişiden ${shown}`),
   },
   radioApp: {
     summary: (count) => (count === 1 ? '1 istasyon' : `${count} istasyon`),
@@ -2775,6 +2936,59 @@ const SPANISH_STRINGS: Strings = {
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
     openMaps: 'Abrir Mapas',
     openDiagnostics: 'Abrir Diagnóstico',
+  },
+  phoneApp: {
+    summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
+    empty: 'No hay notificaciones del teléfono',
+    hint: 'Ejecuta Cabin Play Bridge en tu teléfono Android y activa su acceso a notificaciones: es un interruptor aparte en los ajustes de Android, independiente de los permisos de la app. Las notificaciones que publique desde entonces aparecerán aquí.',
+    refresh: 'Sincronizar',
+    connected: 'Conectado',
+    disconnected: 'Sin conexión',
+    pairingHint:
+      'No hay ningún teléfono conectado. Mantén Cabin Play Bridge abierto en tu teléfono Android, en la misma Wi-Fi; si nunca se ha emparejado, Configuración › Teléfono en Cabin Play tiene el código.',
+    battery: (level) => `${level} %`,
+    charging: 'Cargando',
+    dismiss: 'Descartar',
+    answer: 'Responder',
+    decline: 'Rechazar',
+    end: 'Finalizar',
+    ringing: 'Llamada entrante',
+    inCall: 'En llamada',
+    unknownCaller: 'Llamante desconocido',
+    contacts: 'Contactos',
+    contactsHint: 'Permite el acceso a contactos en Cabin Play Bridge en tu teléfono para ver la agenda aquí.',
+    recents: 'Recientes',
+    recentCount: (count) => (count === 1 ? '1 llamada' : `${count} llamadas`),
+    recentsEmpty: 'Aún no hay llamadas',
+    recentsHint:
+      'Aquí aparecen las llamadas que hizo y recibió tu teléfono. Permite el acceso al registro de llamadas en Cabin Play Bridge para verlas.',
+    incoming: 'Entrante',
+    outgoing: 'Saliente',
+    missed: 'Perdida',
+    otherCall: 'Llamada',
+    duration: (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`,
+    callBack: 'Devolver llamada',
+    dialTitle: (who) => `¿Llamar a ${who}?`,
+    dialHint: 'Pulsa Llamar otra vez para marcar.',
+    cancel: 'Cancelar',
+    syncing: 'Sincronizando con el teléfono…',
+    holdPlus: '0 (mantén pulsado para +)',
+    declineAgain: 'Pulsa otra vez para rechazar',
+    keypad: 'Teclado',
+    keypadHint: 'Escribe un número',
+    call: 'Llamar',
+    delete: 'Borrar',
+    deleteHold: 'Borrar (mantén pulsado para vaciar)',
+    contactsEmpty: 'No hay contactos del teléfono',
+    searchContacts: 'Buscar contactos',
+    dial: 'Llamar',
+    noMatches: 'Ningún contacto coincide con esa búsqueda.',
+    showing: (shown, total) =>
+      shown === total
+        ? total === 1
+          ? '1 contacto'
+          : `${total} contactos`
+        : `${shown} de ${total}`,
   },
   radioApp: {
     summary: (count) => (count === 1 ? '1 emisora' : `${count} emisoras`),

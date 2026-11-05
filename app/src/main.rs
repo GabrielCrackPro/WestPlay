@@ -19,6 +19,7 @@ use westplay_host::maps::SetUpGame;
 use westplay_host::settings::{Settings, SettingsFile, SharedSettings};
 use westplay_host::{
     AccountAction, AccountRequests, BrowserGone, Config, Content, OpenRequest, SCREEN_HEIGHT, SCREEN_WIDTH, Status,
+    UnpairRequest,
 };
 
 struct Host {
@@ -33,6 +34,9 @@ struct WestplayOpen(Arc<OpenRequest>);
 
 /// The companion's sign-ins and sign-outs (YouTube, Spotify, Apple Music), for the host.
 struct Accounts(Arc<AccountRequests>);
+
+/// The companion's request to forget the paired phone (the Setup), for the host.
+struct PhoneUnpair(Arc<UnpairRequest>);
 
 /// The player's settings: kept on disk, applied live by the host thread, changed from the companion window.
 struct SettingsStore {
@@ -57,6 +61,12 @@ fn companion_ready(window: WebviewWindow) {
 #[tauri::command]
 fn set_westplay_open(open: bool, request: State<WestplayOpen>) {
     request.0.request(open);
+}
+
+/// Forgets the paired phone: the link takes a new code, and the phone connected now has to pair again.
+#[tauri::command]
+fn phone_unpair(request: State<PhoneUnpair>) {
+    request.0.request();
 }
 
 /// Opens Google's sign-in for YouTube in a window on the desktop (the status then says when it's done).
@@ -158,14 +168,17 @@ fn main() {
     westplay_host::startup::mark("app: started");
     let open_request = Arc::new(OpenRequest::default());
     let accounts = Arc::new(AccountRequests::default());
+    let unpair = Arc::new(UnpairRequest::default());
     let app = tauri::Builder::default()
         .manage(WestplayOpen(open_request.clone()))
         .manage(Accounts(accounts.clone()))
+        .manage(PhoneUnpair(unpair.clone()))
         .register_asynchronous_uri_scheme_protocol(maps::SCHEME, maps::serve)
         .register_asynchronous_uri_scheme_protocol(maps::CUSTOMIZE_SCHEME, maps::serve_customize)
         .invoke_handler(tauri::generate_handler![
             companion_ready,
             set_westplay_open,
+            phone_unpair,
             youtube_sign_in,
             youtube_sign_out,
             youtube_check,
@@ -220,6 +233,7 @@ fn main() {
                 app.handle(),
                 open_request.clone(),
                 accounts.clone(),
+                unpair.clone(),
                 shared.clone(),
                 setup.game(),
                 Looks { config_dir: config_dir.clone(), customize_changed: customize.changed.clone() },
@@ -278,6 +292,7 @@ fn start_host(
     app: &AppHandle,
     open_request: Arc<OpenRequest>,
     accounts: Arc<AccountRequests>,
+    unpair: Arc<UnpairRequest>,
     settings: Arc<SharedSettings>,
     game: Arc<SetUpGame>,
     looks: Looks,
@@ -297,6 +312,7 @@ fn start_host(
             let (content, data_dir) = (content.clone(), data_dir.clone());
             let (open_request, settings, stop) = (open_request.clone(), settings.clone(), thread_stop.clone());
             let (accounts, game) = (accounts.clone(), game.clone());
+            let unpair = unpair.clone();
             let status_events = events.clone();
             let (settings_events, settings_dir) = (events.clone(), looks.config_dir.clone());
             let customize_changed = looks.customize_changed.clone();
@@ -308,6 +324,7 @@ fn start_host(
                     data_dir,
                     open_request,
                     accounts,
+                    unpair,
                     settings,
                     game,
                     on_status: Box::new(move |status| {

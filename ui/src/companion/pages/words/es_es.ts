@@ -1,6 +1,21 @@
 import type { CompanionWords } from '.'
 
 export const words: CompanionWords = {
+  phone: {
+    unpair: 'Desemparejar teléfono',
+    title: 'Teléfono',
+    phone: 'Teléfono',
+    waiting: 'Ningún teléfono conectado',
+    connected: 'Conectado',
+    address: 'Dirección',
+    code: 'Código',
+    scan: 'En Cabin Play Bridge, en tu teléfono Android y en la misma Wi-Fi, escanea este código hasta que se empareje.',
+    copy: 'Copiar',
+    copied: 'Copiado',
+    qr: 'Código QR de emparejamiento',
+    noDoor:
+      'Este PC no tiene dirección de red local, así que ningún teléfono puede emparejarse. Conecta el PC a la Wi-Fi y vuelve a abrir Cabin Play.',
+  },
   sections: {
     screen: 'Pantalla del camión',
     controls: 'Controles',

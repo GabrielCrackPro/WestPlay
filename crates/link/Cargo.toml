@@ -1,0 +1,17 @@
+[package]
+name = "westplay-link"
+description = "Cabin Play's local link to the phone companion: protocol and LAN server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+base64 = "0.22"
+getrandom = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tungstenite = "0.30"
+
+[lints]
+workspace = true

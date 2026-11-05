@@ -638,6 +638,42 @@ button {
   font-size: var(--t-value);
 }
 
+/* ---------- The phone's pairing ---------- */
+
+/* The pairing line as a code, beside what to do with it: the app's card, on the page's paper. */
+.cp-phone-pair {
+  display: flex;
+  flex-shrink: 0;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.045);
+}
+
+/* White and black whatever the companion's look, so a phone's camera reads it. */
+.cp-phone-qr {
+  flex: none;
+  width: 148px;
+  height: auto;
+  border-radius: 7px;
+}
+
+.cp-phone-pair-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cp-phone-pair-words p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--t-detail);
+  line-height: 1.38;
+}
+
 .cp button.ob-row:hover {
   background: rgb(255 255 255 / 0.03);
 }

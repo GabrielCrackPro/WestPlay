@@ -5,6 +5,21 @@ import { words as spain } from './es_es'
  * for what just happened, "computadora", "mouse", "presionar", "videos"). */
 export const words: CompanionWords = {
   ...spain,
+  phone: {
+    unpair: 'Desemparejar teléfono',
+    title: 'Teléfono',
+    phone: 'Teléfono',
+    waiting: 'Ningún teléfono conectado',
+    connected: 'Conectado',
+    address: 'Dirección',
+    code: 'Código',
+    scan: 'En Cabin Play Bridge, en tu teléfono Android y en la misma Wi-Fi, escanea este código hasta que se empareje.',
+    copy: 'Copiar',
+    copied: 'Copiado',
+    qr: 'Código QR de emparejamiento',
+    noDoor:
+      'Esta computadora no tiene dirección de red local, así que ningún teléfono puede emparejarse. Conecta la computadora a la Wi-Fi y vuelve a abrir Cabin Play.',
+  },
   screen: {
     ...spain.screen,
     titles: { ...spain.screen.titles, stopped: 'Algo falló' },

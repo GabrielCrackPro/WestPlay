@@ -149,6 +149,24 @@ export interface CompanionWords {
     checking: { title: string; text: string }
     checked: { title: string; text: string }
   }
+  /** The phone paired with this PC, and how to pair one: the Setup shows it, and the cabin page never does. */
+  phone: {
+    title: string
+    phone: string
+    waiting: string
+    /** The phone's own name, when it hasn't given one. */
+    connected: string
+    address: string
+    code: string
+    /** Forgets the phone: a new code, and the phone connected now pairs again. */
+    unpair: string
+    scan: string
+    copy: string
+    copied: string
+    /** The QR code's name, for a screen reader. */
+    qr: string
+    noDoor: string
+  }
   uninstall: UninstallWords
   tutorial: TutorialWords
   about: {
@@ -249,6 +267,10 @@ export interface TutorialWords {
 }
 
 export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'setup' | 'about'
+
+/** A section of the companion's list. The phone has a page of its own, whose words are `phone`'s (already in every
+ * language), so a new one costs the other languages nothing. */
+export type Section = SectionId | 'phone'
 
 const WORDS: Record<string, CompanionWords> = Object.fromEntries(
   Object.entries(import.meta.glob<CompanionWords>('./[a-z][a-z]_[a-z][a-z].ts', { eager: true, import: 'words' })).map(

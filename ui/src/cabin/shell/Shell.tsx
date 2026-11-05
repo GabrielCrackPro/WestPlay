@@ -14,6 +14,7 @@ import { Sidebar } from './Sidebar'
 import { useSidebarPeek } from './sidebarPeek'
 import { VolumeHud } from './VolumeHud'
 import { Notifications } from './Notifications'
+import { PhoneAlerts } from './PhoneAlerts'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
 
@@ -112,6 +113,8 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
           {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>
       </div>
+      {/* The phone over any app: its call, and its notifications as they come (shell/PhoneAlerts.tsx). */}
+      <PhoneAlerts />
       {/* What's drawn over the video where it shows through the CarPlay area (apps/youtube/VideoHole.tsx). */}
       <div id="video-over" className={truckScreen ? 'video-over handed-over' : 'video-over'} />
       <button

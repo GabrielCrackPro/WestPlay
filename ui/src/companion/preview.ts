@@ -109,6 +109,17 @@ function status(): HostStatus {
     cabAdapter: (ADAPTERS.find((adapter) => adapter.id === settings.graphics.gpu) ?? ADAPTERS[0]).name,
     gameAdapter: gameState === 'off' ? null : ADAPTERS[0].name,
     adapters: ADAPTERS,
+    // The phone the player paired, and the line it paired with, so the Setup's card and its code show.
+    phone: {
+      connected: false,
+      device: null,
+      pairing: {
+        host: '192.168.1.20',
+        port: 49321,
+        token: 'k3f9qp',
+        uri: 'cabinplay://pair?host=192.168.1.20&port=49321&token=k3f9qp',
+      },
+    },
     framesPerSecond: live ? 58 + Math.round(Math.random() * 3) : 0,
     droppedTotal: live ? 3 : 0,
     gameConnected: gameState !== 'off',

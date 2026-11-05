@@ -19,6 +19,7 @@ mod handover;
 mod lyrics;
 pub mod maps;
 mod performance;
+mod phone;
 mod planner;
 mod play_log;
 mod player;
@@ -58,6 +59,7 @@ use weather::{Sky, Weather, WeatherWatch};
 use webview::{OffscreenWebView, Stage};
 use westplay_mapdata::junctions::Turn;
 
+pub use phone::PhoneStatus;
 pub use webview::{Error, wait_for_browsers};
 /// Size the cabin page is rendered at: the size of the frames the plugin copies into the screen textures.
 pub use westplay_shared::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -120,6 +122,9 @@ pub struct Status {
     pub map_built: Option<u64>,
     /// Every profile's map: ready, being built, to build, failed...
     pub profile_maps: Vec<maps::ProfileMap>,
+    /// The paired phone: whether it's connected, which device, and how to pair it. The companion's Setup
+    /// shows this; the cabin page's Phone app gets only the phone's content.
+    pub phone: PhoneStatus,
     pub error: Option<String>,
 }
 
@@ -198,6 +203,23 @@ impl OpenRequest {
     }
 }
 
+/// A request to forget the paired phone (the companion's Setup), from any thread: the link takes a new token,
+/// and a phone connected now is let go, so a phone has to pair again.
+#[derive(Debug, Default)]
+pub struct UnpairRequest(AtomicBool);
+
+impl UnpairRequest {
+    /// Asks for the phone to be forgotten.
+    pub fn request(&self) {
+        self.0.store(true, Ordering::Release);
+    }
+
+    /// Whether it was asked for, and not carried out yet.
+    pub fn take(&self) -> bool {
+        self.0.swap(false, Ordering::AcqRel)
+    }
+}
+
 pub struct Config {
     pub width: u32,
     pub height: u32,
@@ -206,6 +228,8 @@ pub struct Config {
     pub data_dir: PathBuf,
     /// Requests to open or close WestPlay on the truck's screen, from any thread.
     pub open_request: Arc<OpenRequest>,
+    /// A request to forget the paired phone, from the companion window.
+    pub unpair: Arc<UnpairRequest>,
     /// Signing YouTube or Spotify in or out (or finding out whether it is), from the companion window.
     pub accounts: Arc<AccountRequests>,
     /// Called on the host thread about once per second, and right after WestPlay opens or closes.
@@ -291,10 +315,13 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut customize_message: Option<String> = None;
     let map_watch = maps::MapWatch::start(maps_dir.clone(), config.game.clone());
     let mut map_shown: (Option<String>, Option<u64>) = (None, None);
+    // The paired phone (phone.rs): its notifications, contacts and call, and the commands the cab sends it.
+    let mut phone = phone::Phone::start(&config.data_dir.join("phone-pairing.txt"));
     let mut status = Status {
         webview_version: webview.version.clone(),
         cab_adapter: cab_gpu.and_then(|luid| graphics::name_of(luid, &adapters)),
         adapters: adapters.clone(),
+        phone: phone.status(),
         ..Default::default()
     };
 
@@ -618,6 +645,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     _ => None,
                 };
                 status.game_elevated = status.game_connected && game_elevated;
+                status.phone = phone.status();
                 let mut profiles = vec![(performance::Profile::Cab, webview.environment())];
                 if let Some(spotify) = &spotify {
                     profiles.push((performance::Profile::Spotify, spotify.view().environment()));
@@ -754,6 +782,29 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             part_speakers = Some(found);
         }
 
+        // The Setup's unpair: a code for the next phone, the one connected now let go, and its content with it.
+        if config.unpair.take() {
+            if let Some(message) = phone.unpair() {
+                let _ = webview.post_json(&message);
+            }
+            let phone_status = phone.status();
+            if status.phone != phone_status {
+                status.phone = phone_status;
+                (config.on_status)(&status);
+            }
+        }
+
+        // The phone's changes since last turn: one snapshot for the cabin page, or its notifications alone.
+        if let Some(message) = phone.poll() {
+            let _ = webview.post_json(&message);
+        }
+        // What the phone said it couldn't do (its dialer refused, the call wouldn't end): said on the cab's
+        // screen, so a command that failed isn't silent.
+        for error in phone.take_errors() {
+            let message = serde_json::json!({ "type": "phoneError", "error": error });
+            let _ = webview.post_json(&message.to_string());
+        }
+
         for message in webview.take_page_messages() {
             match parse_page_message(&message) {
                 // The page announces itself when it (re)loads; it missed everything sent before, so send the
@@ -805,6 +856,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     let _ = webview.post_json(&stations);
                     // The speakers go again with the reloaded page, as they were last told.
                     cab_sound_told = None;
+                    // The phone's whole state, for the Phone app (pairing is the companion's Setup).
+                    let _ = webview.post_json(&phone.state_message());
                     if let Some(message) = &customize_message {
                         let _ = webview.post_json(message);
                     }
@@ -908,6 +961,13 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         {
                             let _ = youtube.reload();
                         }
+                    }
+                }
+                Some(PageMessage::Phone { command }) => {
+                    if !phone.command(command.clone()) {
+                        log!("[phone] no phone connected for {command:?}");
+                        let message = serde_json::json!({ "type": "phoneError", "error": "The phone isn’t connected." });
+                        let _ = webview.post_json(&message.to_string());
                     }
                 }
                 Some(PageMessage::Typing { selection }) => {
@@ -2092,6 +2152,8 @@ enum PageMessage {
     AppleMusic { command: apple_music::Command },
     /// A command for YouTube Music's web player (`youtubeMusic`): its sign-in, a question, its controls.
     YoutubeMusic { command: youtube_music::Command },
+    /// A command for the paired phone (`phone`): dismiss a notification, dial, answer or end a call.
+    Phone { command: westplay_link::Command },
     /// The text field selected on the page, a number that changes with every selection (0: none), for the
     /// player's own keyboard to type into (`typing`).
     Typing { selection: u32 },
@@ -2383,6 +2445,14 @@ mod tests {
         assert_eq!(
             parse_page_message(r#"{"type":"youtube","command":{"action":"pause"}}"#),
             Some(PageMessage::Youtube { command: crate::youtube::Command::Pause })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"phone","command":{"action":"dismiss","id":"app|1|2"}}"#),
+            Some(PageMessage::Phone { command: westplay_link::Command::Dismiss { id: "app|1|2".into() } })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"phone","command":{"action":"answer"}}"#),
+            Some(PageMessage::Phone { command: westplay_link::Command::Answer })
         );
         assert_eq!(parse_page_message(r#"{"type":"other"}"#), None);
         assert_eq!(parse_page_message("not json"), None);
