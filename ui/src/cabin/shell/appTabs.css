@@ -1,46 +1,53 @@
 /* The apps' tab bars — Radio's genres, Diagnostics' pages, the Phone's pages. One system for all three, so a tab
-   is read the same way wherever it is: the cab's text at a size found at a glance, at full contrast, and never cut
-   off (a tab's name wraps and the bar gives way instead of ellipsing it — the text size goes up to twice the
-   design). A tab may carry an icon: over its name on a bar, beside it in a pill. The selected tab is a raised
-   card with the blue mark under it. An app sets where the bar sits (its own stylesheet); this sets what it looks
-   like. */
+   is read the same way wherever it is: a compact cell with its mark beside its name, at full contrast, and never
+   cut off (a name wraps and the bar gives way instead of ellipsing it — the text size goes up to twice the
+   design). The selected tab is a raised card in the bar's track; a filter rail (Radio's genres) is a row of pills
+   instead. An app sets where the bar sits (its own stylesheet); this sets what it looks like.
 
-.app-tabs {
+   The shell takes the browser's own styling off its buttons (`.shell button`, shell.css), and that rule is more
+   specific than a bare `.app-tab`. Everything it resets (padding, background, colour, font) is therefore set on
+   `.shell .app-tab`, so a tab is drawn as here and not as a plain button. */
+
+/* The track: the bar's rounded trough, the tabs a hair apart. */
+.shell .app-tabs {
   display: flex;
   align-items: stretch;
   gap: calc(4px * var(--text-scale, 1));
   min-width: 0;
-  padding: calc(6px * var(--text-scale, 1));
-  border-radius: calc(22px * var(--text-scale, 1));
+  padding: calc(5px * var(--text-scale, 1));
+  border-radius: calc(18px * var(--text-scale, 1));
   background: var(--apple-fill-tertiary);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 60%);
 }
 
-/* A bar of the app's pages: each tab a column of its icon over its name, the bar's width shared between them. The
-   cells keep a floor of their own, so at a larger text size the bar turns into rows rather than squeezing names
-   into slivers. */
-.app-tabs.bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(190px * var(--text-scale, 1))), 1fr));
-  gap: calc(5px * var(--text-scale, 1));
+/* The pages' bar: a row of cells, each as wide as its own name and the row's spare width shared between them, so
+   a long name is given the room it needs while a short one doesn't sit in a cell twice its size. When the text
+   size grows, the tabs move to another row instead of squeezing a name into a sliver. */
+.shell .app-tabs.bar {
+  flex-wrap: wrap;
 }
 
-.app-tab {
-  position: relative;
+.shell .app-tabs.bar .app-tab {
+  flex: 1 1 auto;
+}
+
+/* One tab: its mark, then its name (and count), on one line in the middle of its cell. */
+.shell .app-tab {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: calc(10px * var(--text-scale, 1));
+  gap: calc(9px * var(--text-scale, 1));
   min-width: 0;
-  min-height: calc(58px * var(--text-scale, 1));
-  padding: calc(12px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border-radius: calc(16px * var(--text-scale, 1));
+  min-height: calc(44px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  border-radius: calc(13px * var(--text-scale, 1));
   background: none;
   /* Unselected names stay at nearly the label's own contrast: a tab is read before it is chosen. */
-  color: color-mix(in srgb, var(--apple-label) 84%, transparent);
-  font: inherit;
-  font-size: calc(21px * var(--text-scale, 1));
-  font-weight: 600;
+  color: color-mix(in srgb, var(--apple-label) 82%, transparent);
+  font-size: calc(19px * var(--text-scale, 1));
+  /* One weight for every tab: choosing one changes its card, not its width, so the bar doesn't shift under the
+     finger. */
+  font-weight: 650;
   line-height: 1.2;
   letter-spacing: -0.005em;
   text-align: center;
@@ -50,14 +57,6 @@
     color 160ms var(--motion-ease),
     box-shadow 200ms var(--motion-ease),
     scale 150ms var(--motion-ease);
-}
-
-.app-tabs.bar .app-tab {
-  flex-direction: column;
-  gap: calc(7px * var(--text-scale, 1));
-  min-height: calc(88px * var(--text-scale, 1));
-  /* Room under the name for the selected tab's mark. */
-  padding: calc(13px * var(--text-scale, 1)) calc(12px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
 }
 
 .app-tab:hover {
@@ -72,30 +71,14 @@
   scale: 0.985;
 }
 
-.app-tab:focus-visible {
-  outline: calc(3px * var(--text-scale, 1)) solid var(--apple-blue);
-  outline-offset: calc(2px * var(--text-scale, 1));
-}
-
-/* The one shown: a raised card, its name at full contrast, and the blue mark under it. */
+/* The one shown: a raised card, its name at full contrast. */
 .app-tab.on,
 .app-tab.on:hover {
   background: var(--apple-card-raised);
-  box-shadow: var(--shadow-raised);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 55%),
+    var(--shadow-raised);
   color: var(--apple-label);
-  font-weight: 700;
-}
-
-.app-tab.on::after {
-  content: '';
-  position: absolute;
-  bottom: calc(6px * var(--text-scale, 1));
-  left: 50%;
-  width: calc(28px * var(--text-scale, 1));
-  height: calc(3px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-blue);
-  translate: -50% 0;
 }
 
 /* A tab's mark: its own drawing, in the tab's colour (an app may tone it — Diagnostics does, for a page with a
@@ -104,8 +87,8 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: calc(27px * var(--text-scale, 1));
-  height: calc(27px * var(--text-scale, 1));
+  width: calc(24px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
   color: color-mix(in srgb, var(--apple-label) 62%, transparent);
 }
 
@@ -124,7 +107,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: calc(4px * var(--text-scale, 1)) calc(9px * var(--text-scale, 1));
+  gap: calc(3px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1));
   min-width: 0;
   max-width: 100%;
 }
@@ -137,15 +120,15 @@
 
 .app-tab-count {
   flex: none;
-  min-width: calc(30px * var(--text-scale, 1));
-  padding: calc(2px * var(--text-scale, 1)) calc(9px * var(--text-scale, 1));
+  min-width: calc(24px * var(--text-scale, 1));
+  padding: calc(1px * var(--text-scale, 1)) calc(7px * var(--text-scale, 1));
   border-radius: 999px;
-  background: var(--apple-fill);
+  background: var(--apple-fill-quaternary);
   color: var(--apple-label-secondary);
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .app-tab.on .app-tab-count {
@@ -153,10 +136,15 @@
   color: var(--apple-blue);
 }
 
-/* A pill rail: filters rather than pages (Radio's genres), one line that scrolls sideways when they don't all fit,
-   each pill one name that never wraps. */
-.app-tabs.pills {
+/* A rail of filters rather than pages (Radio's genres): one line that scrolls sideways when they don't all fit,
+   each a compact pill of one name that never wraps. The rail is no track — the pills are the shapes themselves. */
+.shell .app-tabs.pills {
   flex-wrap: nowrap;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(4px * var(--text-scale, 1));
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -164,22 +152,31 @@
   scroll-snap-type: x proximity;
 }
 
-.app-tabs.pills::-webkit-scrollbar {
+.shell .app-tabs.pills::-webkit-scrollbar {
   display: none;
 }
 
-.app-tabs.pills .app-tab {
+.shell .app-tabs.pills .app-tab {
   flex: none;
-  min-height: calc(54px * var(--text-scale, 1));
-  padding: calc(9px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(15px * var(--text-scale, 1));
+  min-height: 0;
+  padding: calc(9px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: var(--apple-fill-quaternary);
+  font-size: calc(18px * var(--text-scale, 1));
   scroll-snap-align: start;
 }
 
-/* A rail scrolls, so a drop shadow would be cut at its edge: the pill's own hairline marks it instead. */
-.app-tabs.pills .app-tab.on {
-  box-shadow: inset 0 0 0 1px var(--apple-separator);
+.shell .app-tabs.pills .app-tab:hover {
+  background: var(--apple-fill-tertiary);
 }
 
-.app-tabs.pills .app-tab-label {
+/* A rail scrolls, so a drop shadow would be cut at its edge: the pill's own fill and hairline mark it instead. */
+.shell .app-tabs.pills .app-tab.on,
+.shell .app-tabs.pills .app-tab.on:hover {
+  background: var(--apple-card-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 45%);
+}
+
+.shell .app-tabs.pills .app-tab-label {
   white-space: nowrap;
 }

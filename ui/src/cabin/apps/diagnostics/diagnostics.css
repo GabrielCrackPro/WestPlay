@@ -91,8 +91,8 @@
 
 /* --- The pages, as the cab's tab bar ------------------------------------------------------------------ */
 
-/* The bar itself is the shared one (shell/appTabs.css): a column of icon over name per page, across the page's
-   width, so a name is never cut short at a large text size. */
+/* The bar itself is the shared one (shell/appTabs.css): a mark beside each page's name, across the page's width,
+   so a name is never cut short at a large text size. */
 .diag-tabs {
   flex: none;
   width: 100%;

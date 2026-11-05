@@ -521,8 +521,8 @@
 
 /* --- The app's pages: their tab bar under the head ----------------------------------------------------- */
 
-/* The bar itself is the shared one (shell/appTabs.css): each page an icon over its name, its count beside it, on
-   the page's full width so no name is ever cut short at a large text size. */
+/* The bar itself is the shared one (shell/appTabs.css): each page a mark beside its name and count, on the page's
+   full width so no name is ever cut short at a large text size. */
 .phone-tabs {
   flex: none;
   width: 100%;

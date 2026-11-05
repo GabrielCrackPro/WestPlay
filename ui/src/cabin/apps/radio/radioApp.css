@@ -364,8 +364,8 @@
   height: calc(26px * var(--text-scale, 1));
 }
 
-/* The genres: the shared pill tab bar (shell/appTabs.css), one line the player scrolls when they don’t all fit.
-   Each genre is one pill of one word, so the rail is what gives way, never the name. */
+/* The genres: the shared pill rail (shell/appTabs.css), one compact line the player scrolls when they don’t all
+   fit. Each genre is one pill of one word, so the rail is what gives way, never the name. */
 .radio-chips {
   flex: none;
   width: fit-content;
