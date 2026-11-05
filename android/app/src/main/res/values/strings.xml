@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cabin Play Bridge</string>
+    <string name="brand_over">CABIN PLAY</string>
+    <string name="brand_title">Bridge</string>
     <string name="channel_name">Phone link</string>
     <string name="channel_description">Keeps Cabin Play connected to this phone</string>
     <string name="service_title">Cabin Play Bridge</string>
