@@ -47,17 +47,17 @@ The token is kept in the app's private preferences. The PC's host keeps the same
   answer, decline and end, but the voice stays on the phone (or a Bluetooth hands-free link).
 - No caller ID, SMS or media control yet. Caller ID on the banner needs a `CallScreeningService` role or
   another mechanism; the call log's names are whatever Android has cached for the number. Notification
-  replies are supported.- Dialing opens the phone's own dialer; recent Android may refuse that from a background service.
+  replies are supported.
+- Dialing opens the phone's own dialer; recent Android may refuse that from a background service.
 - The link is token-gated and private-network-only, not encrypted. Use it on a trusted home network; TLS with
   certificate pinning is a later step. If the phone can't reach the PC, allow Cabin Play through **Windows
   Firewall** on **private** networks and check both are on the same Wi-Fi (a VPN or guest network can isolate
   clients).
- - Notification text is sensitive. **Hide notification content** keeps titles and text on the phone; the cab
-   sees only the app name and the notification's buttons.
-
- When the system status bar shows the keep-alive service, the phone link hub carries that invite; with this on, the host also forwards passive notifications for other phones’ turn so they can start pairing.
-
-Bluetooth audio, SMS and call logging are not supported.
+- Notification text is sensitive. **Hide notification content** keeps titles and text on the phone; the cab
+  sees only the app name and the notification's buttons.
+- When the system status bar shows the keep-alive service, the phone link hub carries that invite; the host
+  also forwards passive notifications to other phones so they can start pairing.
+- Bluetooth audio, SMS and call logging are not supported.
 
 ## Files
 
