@@ -523,6 +523,8 @@ export interface Strings {
     homeScreen: string
     homeScreenFooter: string
     showOnHome: string
+    hideFromHome: string
+    editHomeScreen: string
     homeOrder: string
     resetHomeScreen: string
     /** Pinning apps to the sidebar: the group's name, what a pinned app does, and taking it out again (the
@@ -549,6 +551,10 @@ export interface Strings {
     mid: string
     high: string
     resetEqualizer: string
+    /** Maps: its own pages — what it draws, the traffic, the route's line, and the markers and pins. */
+    mapsDisplay: string
+    mapsRoute: string
+    mapsMarkers: string
     back: string
   }
   /** Apps. */
@@ -700,6 +706,18 @@ export interface Strings {
     noMatches: string
     /** How many contacts the search shows, out of how many the phone sent. */
     showing: (shown: number, total: number) => string
+    /** The phone's notifications, as the Phone app names them (apart from the truck's Alerts app). */
+    notifications: string
+    /** The reply composer's send button. */
+    send: string
+    /** The search above the phone's call log. */
+    searchRecents: string
+    /** A notification's app: hide its future notifications, or show them again. */
+    muteApp: string
+    unmuteApp: string
+    /** A contact's star, unpressed and pressed. */
+    addFavourite: string
+    removeFavourite: string
     /** The app's first tab: the calls the phone made and took, and how many there are. */
     recents: string
     recentCount: (count: number) => string
@@ -1297,6 +1315,8 @@ const ENGLISH_STRINGS: Strings = {
     homeScreenFooter:
       'Choose which apps appear on Home and the order they appear in. Hiding an app keeps it in Settings and the sidebar’s recents.',
     showOnHome: 'Show on Home',
+    hideFromHome: 'Hide from Home',
+    editHomeScreen: 'Edit Home Screen',
     homeOrder: 'Order',
     resetHomeScreen: 'Reset Home Screen',
     pinToSidebar: 'Pin to Sidebar',
@@ -1319,6 +1339,9 @@ const ENGLISH_STRINGS: Strings = {
     mid: 'Mid',
     high: 'High',
     resetEqualizer: 'Reset',
+    mapsDisplay: 'Display',
+    mapsRoute: 'Route',
+    mapsMarkers: 'Markers & Pins',
     back: 'Back',
   },
   diagnostics: {
@@ -1430,6 +1453,13 @@ const ENGLISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
+    notifications: 'Phone notifications',
+    send: 'Send',
+    searchRecents: 'Search calls',
+    muteApp: 'Mute app',
+    unmuteApp: 'Unmute app',
+    addFavourite: 'Add to favourites',
+    removeFavourite: 'Remove from favourites',
     empty: 'No notifications from the phone',
     hint: 'Run Cabin Play Bridge on your Android phone, and turn on its Notification access — a switch of its own in Android’s settings, apart from the app’s permissions. The notifications it posts after that show here.',
     refresh: 'Sync',
@@ -1513,9 +1543,9 @@ const ENGLISH_STRINGS: Strings = {
     weather: 'Weather',
     settings: 'Settings',
     diagnostics: 'Diagnostics',
-    driver: 'Driver',
-    notifications: 'Notifications',
+    driver: 'Driver',    notifications: 'Alerts',
   },
+
   notBuiltYet: 'Not built yet',
 }
 
@@ -2046,6 +2076,8 @@ const TURKISH_STRINGS: Strings = {
     homeScreenFooter:
       'Ana Ekran’da hangi uygulamaların görüneceğini ve sırasını seçin. Gizlenen uygulama Ayarlar’da ve kenar çubuğunun son kullanılanlarında kalır.',
     showOnHome: 'Ana Ekran’da Göster',
+    hideFromHome: 'Ana Ekrandan Gizle',
+    editHomeScreen: 'Ana Ekranı Düzenle',
     homeOrder: 'Sıra',
     resetHomeScreen: 'Ana Ekranı Sıfırla',
     pinToSidebar: 'Kenar Çubuğuna Sabitle',
@@ -2068,6 +2100,9 @@ const TURKISH_STRINGS: Strings = {
     mid: 'Orta',
     high: 'Yüksek',
     resetEqualizer: 'Sıfırla',
+    mapsDisplay: 'Görünüm',
+    mapsRoute: 'Güzergâh',
+    mapsMarkers: 'İşaretler ve İğneler',
     back: 'Geri',
   },
   diagnostics: {
@@ -2179,6 +2214,13 @@ const TURKISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => `${count} bildirim`,
+    notifications: 'Telefon bildirimleri',
+    send: 'Gönder',
+    searchRecents: 'Aramalarda ara',
+    muteApp: 'Uygulamayı sessize al',
+    unmuteApp: 'Uygulamanın sesini aç',
+    addFavourite: 'Favorilere ekle',
+    removeFavourite: 'Favorilerden çıkar',
     empty: 'Telefondan bildirim yok',
     hint: 'Android telefonunuzda Cabin Play Köprüsü’nü çalıştırın ve Bildirim erişimini açın — uygulamanın izinlerinden ayrı, Android ayarlarındaki kendi anahtarıdır. Bundan sonra gelen bildirimler burada görünür.',
     refresh: 'Eşitle',
@@ -2262,7 +2304,7 @@ const TURKISH_STRINGS: Strings = {
     settings: 'Ayarlar',
     diagnostics: 'Tanılama',
     driver: 'Sürücü',
-    notifications: 'Bildirimler',
+    notifications: 'Uyarılar',
   },
   notBuiltYet: 'Henüz hazır değil',
 }
@@ -2805,6 +2847,8 @@ const SPANISH_STRINGS: Strings = {
     homeScreenFooter:
       'Elige qué apps aparecen en Inicio y en qué orden. Una app oculta sigue en Ajustes y en los recientes de la barra lateral.',
     showOnHome: 'Mostrar en Inicio',
+    hideFromHome: 'Ocultar de Inicio',
+    editHomeScreen: 'Editar pantalla de inicio',
     homeOrder: 'Orden',
     resetHomeScreen: 'Restablecer pantalla de inicio',
     pinToSidebar: 'Fijar en la barra lateral',
@@ -2828,6 +2872,9 @@ const SPANISH_STRINGS: Strings = {
     mid: 'Medios',
     high: 'Agudos',
     resetEqualizer: 'Restablecer',
+    mapsDisplay: 'Visualización',
+    mapsRoute: 'Ruta',
+    mapsMarkers: 'Marcadores y pines',
     back: 'Atrás',
   },
   diagnostics: {
@@ -2939,6 +2986,13 @@ const SPANISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
+    notifications: 'Notificaciones del teléfono',
+    send: 'Enviar',
+    searchRecents: 'Buscar llamadas',
+    muteApp: 'Silenciar app',
+    unmuteApp: 'Activar sonido de la app',
+    addFavourite: 'Añadir a favoritos',
+    removeFavourite: 'Quitar de favoritos',
     empty: 'No hay notificaciones del teléfono',
     hint: 'Ejecuta Cabin Play Bridge en tu teléfono Android y activa su acceso a notificaciones: es un interruptor aparte en los ajustes de Android, independiente de los permisos de la app. Las notificaciones que publique desde entonces aparecerán aquí.',
     refresh: 'Sincronizar',
@@ -2984,11 +3038,7 @@ const SPANISH_STRINGS: Strings = {
     dial: 'Llamar',
     noMatches: 'Ningún contacto coincide con esa búsqueda.',
     showing: (shown, total) =>
-      shown === total
-        ? total === 1
-          ? '1 contacto'
-          : `${total} contactos`
-        : `${shown} de ${total}`,
+      shown === total ? (total === 1 ? '1 contacto' : `${total} contactos`) : `${shown} de ${total}`,
   },
   radioApp: {
     summary: (count) => (count === 1 ? '1 emisora' : `${count} emisoras`),
@@ -3027,7 +3077,7 @@ const SPANISH_STRINGS: Strings = {
     settings: 'Ajustes',
     diagnostics: 'Diagnóstico',
     driver: 'Conductor',
-    notifications: 'Notificaciones',
+    notifications: 'Avisos',
   },
   notBuiltYet: 'Aún no disponible',
 }

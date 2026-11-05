@@ -91,6 +91,58 @@ export function IconsGlyph() {
   )
 }
 
+/** Map Display: the map's layers, one over the other. */
+export function MapDisplayGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M12 3.4 21 7.8l-9 4.4-9-4.4Z" />
+      <path d="m4.3 12.4 7.7 3.8 7.7-3.8" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round" />
+      <path d="m4.3 16.6 7.7 3.8 7.7-3.8" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round" />
+    </TileGlyph>
+  )
+}
+
+/** Traffic: a traffic light, its lenses cut out of the tile's white. */
+export function MapTrafficGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M8.6 2.9h6.8a2.7 2.7 0 0 1 2.7 2.7v12.8a2.7 2.7 0 0 1-2.7 2.7H8.6a2.7 2.7 0 0 1-2.7-2.7V5.6a2.7 2.7 0 0 1 2.7-2.7Zm.6 3.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Zm0 4.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Zm0 4.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Z"
+      />
+    </TileGlyph>
+  )
+}
+
+/** Route: the line from where the truck is to where it's headed, its ends marked. */
+export function MapRouteGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        d="M5 19.4c4.6 0 4.2-5.2 8.2-5.2 3.1 0 3.2-3.3 5.6-4.4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <circle cx="5" cy="19.4" r="2.4" />
+      <circle cx="19.2" cy="9.6" r="2.4" />
+    </TileGlyph>
+  )
+}
+
+/** Markers and Pins: a map pin, its eye cut out of it. */
+export function MapPinsGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M12 2.8a7.3 7.3 0 0 0-7.3 7.3c0 5.5 7.3 11.2 7.3 11.2s7.3-5.7 7.3-11.2A7.3 7.3 0 0 0 12 2.8Zm0 4.4a2.9 2.9 0 1 0 0 5.8 2.9 2.9 0 0 0 0-5.8Z"
+      />
+    </TileGlyph>
+  )
+}
+
 /** The chevron after a row that opens a page. */
 export function ChevronGlyph({ back = false }: { back?: boolean }) {
   return (
@@ -107,6 +159,26 @@ export function ChevronGlyph({ back = false }: { back?: boolean }) {
       aria-hidden
     >
       <path d="m3 2.5 7 7.5-7 7.5" />
+    </svg>
+  )
+}
+
+/** The pin on a Home app's row: filled while the app is pinned to the sidebar. */
+export function PinGlyph({ pinned = false }: { pinned?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="100%"
+      height="100%"
+      fill={pinned ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 3.6h6l-.9 4.6 3.3 2.8v1.5H6.6V11l3.3-2.8Z" />
+      <path d="M12 12.5v7.4" />
     </svg>
   )
 }

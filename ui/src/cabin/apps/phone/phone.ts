@@ -24,6 +24,62 @@ const NO_PHONE: PhoneState = {
 
 export const usePhone = create<PhoneState>()(() => NO_PHONE)
 
+/** The phone's own quiet choices, kept on this PC: the apps whose notifications the cab hides, and the contacts
+ * the driver favourites (which sort first). */
+interface PhonePrefs {
+  muted: string[]
+  favourites: string[]
+  toggleMute(packageName: string): void
+  toggleFavourite(contactId: string): void
+}
+
+const PREFS_KEY = 'cabinplay.phone.prefs'
+
+function storedPrefs(): { muted: string[]; favourites: string[] } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Partial<{
+      muted: string[]
+      favourites: string[]
+    }>
+    return {
+      muted: Array.isArray(saved.muted) ? saved.muted.filter((value): value is string => typeof value === 'string') : [],
+      favourites: Array.isArray(saved.favourites)
+        ? saved.favourites.filter((value): value is string => typeof value === 'string')
+        : [],
+    }
+  } catch {
+    return { muted: [], favourites: [] }
+  }
+}
+
+const kept = storedPrefs()
+
+function keepPrefs(muted: string[], favourites: string[]): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ muted, favourites }))
+  } catch {
+    // A locked-down browser: the choices still last this session.
+  }
+}
+
+export const usePhonePrefs = create<PhonePrefs>()((set, get) => ({
+  ...kept,
+  toggleMute: (packageName) => {
+    const muted = get().muted.includes(packageName)
+      ? get().muted.filter((each) => each !== packageName)
+      : [...get().muted, packageName]
+    keepPrefs(muted, get().favourites)
+    set({ muted })
+  },
+  toggleFavourite: (contactId) => {
+    const favourites = get().favourites.includes(contactId)
+      ? get().favourites.filter((each) => each !== contactId)
+      : [...get().favourites, contactId]
+    keepPrefs(get().muted, favourites)
+    set({ favourites })
+  },
+}))
+
 /** The host's whole phone again (on connect, on the phone's changes, and as the page loads). */
 export function receivePhoneState(state: PhoneState): void {
   announce(state.notifications)
@@ -32,9 +88,10 @@ export function receivePhoneState(state: PhoneState): void {
 }
 
 /** The phone's notifications alone, as it posts and dismisses them: the rest of its state is unchanged, and isn't
- * sent again for their sake. */
-export function receivePhoneNotifications(notifications: PhoneNotification[]): void {
-  announce(notifications)
+ * sent again for their sake. `backlog`: the phone's whole list (a connect or a sync), which fills the list but
+ * isn't announced as news. */
+export function receivePhoneNotifications(notifications: PhoneNotification[], backlog = false): void {
+  announce(notifications, backlog)
   usePhone.setState({ notifications })
   // The dialer's notification is what names a caller, and it comes after the call itself.
   keepCaller(usePhone.getState())
@@ -87,8 +144,8 @@ let heard: Map<string, string> | null = null
 let quietUntil = 0
 
 /** Raises a toast for each notification that is new since last time: never an ongoing one (a control, not news),
- * and never one from the backlog the phone sends as it connects. */
-function announce(notifications: PhoneNotification[]): void {
+ * and never one from the backlog the phone sends as it connects or syncs (which only fills the list). */
+function announce(notifications: PhoneNotification[], backlog = false): void {
   if (notifications.length === 0) {
     // The host clears the list as the phone connects: what it sends next is what it already had.
     heard = new Map()
@@ -101,7 +158,8 @@ function announce(notifications: PhoneNotification[]): void {
     said.set(notification.id, printed)
     if (heard === null || heard.get(notification.id) === printed) continue
     if (notification.ongoing) continue
-    if (Date.now() < quietUntil) continue
+    if (usePhonePrefs.getState().muted.includes(notification.package)) continue
+    if (backlog || Date.now() < quietUntil) continue
     usePhoneToasts.getState().show(notification)
   }
   heard = said
@@ -256,4 +314,27 @@ export function contactsMatching(contacts: PhoneContact[], query: string): Phone
       contact.name.toLocaleLowerCase().includes(name) ||
       (digits.length > 0 && contact.numbers.some((number) => number.replace(/\D/g, '').includes(digits))),
   )
+}
+
+/** The calls a search finds by the name the phone has, or by the number's digits. */
+export function recentsMatching(recents: PhoneRecent[], query: string): PhoneRecent[] {
+  const name = query.trim().toLocaleLowerCase()
+  if (!name) return recents
+  const digits = name.replace(/\D/g, '')
+  return recents.filter(
+    (recent) =>
+      (recent.name ?? '').toLocaleLowerCase().includes(name) ||
+      (digits.length > 0 && recent.number.replace(/\D/g, '').includes(digits)),
+  )
+}
+
+/** The notifications the driver hasn't muted, in the phone's order. */
+export function visibleNotifications(notifications: PhoneNotification[], muted: string[]): PhoneNotification[] {
+  return notifications.filter((notification) => !muted.includes(notification.package))
+}
+
+/** The contacts with the favourites first, each group keeping the phone's own order. */
+export function favouritesFirst(contacts: PhoneContact[], favourites: string[]): PhoneContact[] {
+  if (favourites.length === 0) return contacts
+  return [...contacts].sort((a, b) => Number(favourites.includes(b.id)) - Number(favourites.includes(a.id)))
 }

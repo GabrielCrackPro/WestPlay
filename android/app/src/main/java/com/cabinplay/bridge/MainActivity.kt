@@ -1,70 +1,97 @@
 package com.cabinplay.bridge
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationManagerCompat
-import java.util.Locale
 
 /**
- * The bridge's one screen: where the PC is, the pairing code from the cabin's Phone app, and the switch that
- * keeps the link running. Pairing happens in the companion window's Setup, and lives here in the app's private
- * preferences; the notification access switch is Android's own.
+ * The bridge's one screen: where the PC is, the pairing code from the Cabin Play companion, and the access that lets
+ * notifications, contacts and calls through. The link itself is owned by [LinkService]; this screen only saves
+ * the pairing and asks Android for the grants.
  */
-class MainActivity : Activity() {
-    private lateinit var status: TextView
-    private lateinit var access: TextView
-    private lateinit var contactsAccess: TextView
-    private lateinit var callsAccess: TextView
-    private lateinit var host: EditText
-    private lateinit var port: EditText
-    private lateinit var token: EditText
-    private lateinit var line: EditText
+class MainActivity : ComponentActivity() {
+    private val status = mutableStateOf(PhoneHub.status)
+    private val phase = mutableStateOf(PhoneHub.phase)
+    private val access = mutableStateOf(PhoneAccess())
+    private val notice = mutableStateOf<String?>(null)
+    private val hideContent = mutableStateOf(false)
+    private val pairingSaved = mutableStateOf(false)
 
     private val statusListener: (String) -> Unit = { value ->
-        runOnUiThread { status.text = value }
+        runOnUiThread {
+            status.value = value
+            phase.value = PhoneHub.phase
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
+        )
+        hideContent.value = preferences().getBoolean(HIDE_CONTENT, false)
+        PhoneHub.setHideContent(hideContent.value)
+        pairingSaved.value = Pairing.load(this) != null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATIONS_REQUEST)
         }
-        setContentView(screen())
-        val saved = Pairing.load(this)
-        if (saved != null) {
-            host.setText(saved.host)
-            port.setText(String.format(Locale.ROOT, "%d", saved.port))
-            token.setText(saved.token)
+        refreshAccess()
+        setContent {
+            BridgeTheme {
+                BridgeScreen(
+                    status = status.value,
+                    phase = phase.value,
+                    access = access.value,
+                    notice = notice.value,
+                    hideContent = hideContent.value,
+                    pairingSaved = pairingSaved.value,
+                    onNotice = { notice.value = it },
+                    onHideContent = ::setHideContent,
+                    onConnect = ::connect,
+                    onDisconnect = ::disconnect,
+                    onRequestPermissions = ::requestAccess,
+                    onNotificationSettings = ::notificationAccess,
+                    onBatteryOptimization = ::batteryOptimization,
+                    onForget = ::forget,
+                )
+            }
         }
     }
 
     override fun onStart() {
         super.onStart()
         PhoneHub.addStatusListener(statusListener)
-        status.text = PhoneHub.status
+        status.value = PhoneHub.status
+        phase.value = PhoneHub.phase
     }
 
     override fun onResume() {
         super.onResume()
         refreshAccess()
+        pairingSaved.value = Pairing.load(this) != null
+    }
+
+    override fun onStop() {
+        PhoneHub.removeStatusListener(statusListener)
+        super.onStop()
     }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -73,26 +100,13 @@ class MainActivity : Activity() {
         if (requestCode == ACCESS_REQUEST && Pairing.load(this) != null) LinkService.start(this)
     }
 
-    override fun onStop() {
-        PhoneHub.removeStatusListener(statusListener)
-        super.onStop()
-    }
-
     private fun refreshAccess() {
-        val notifications = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
-        access.text = if (notifications) getString(R.string.access_granted) else getString(R.string.access_missing)
-        contactsAccess.text = if (Contacts.allowed(this)) {
-            getString(R.string.contacts_granted)
-        } else {
-            getString(R.string.contacts_missing)
-        }
-        val phone = allowed(Manifest.permission.READ_PHONE_STATE)
-        val answer = allowed(Manifest.permission.ANSWER_PHONE_CALLS)
-        callsAccess.text = when {
-            phone && answer -> getString(R.string.calls_granted)
-            phone -> getString(R.string.calls_partial)
-            else -> getString(R.string.calls_missing)
-        }
+        access.value = PhoneAccess(
+            notifications = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName),
+            contacts = Contacts.allowed(this),
+            phone = allowed(Manifest.permission.READ_PHONE_STATE),
+            answer = allowed(Manifest.permission.ANSWER_PHONE_CALLS),
+        )
     }
 
     private fun requestAccess() {
@@ -103,124 +117,59 @@ class MainActivity : Activity() {
             Manifest.permission.ANSWER_PHONE_CALLS,
         ).filter { !allowed(it) }
         if (needed.isEmpty()) {
-            status.text = getString(R.string.permissions_all)
+            notice.value = getString(R.string.permissions_all)
             return
         }
         requestPermissions(needed.toTypedArray(), ACCESS_REQUEST)
     }
 
-    private fun allowed(permission: String): Boolean =
-        checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-
-    private fun screen(): ScrollView {
-        val column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(28), dp(32), dp(28), dp(32))
-        }
-        column.addView(title(getString(R.string.app_name)))
-        column.addView(note(getString(R.string.intro)))
-        status = note(PhoneHub.status).also { it.setTextColor(getColor(R.color.status)) }
-        column.addView(status)
-        access = note("")
-        column.addView(access)
-        contactsAccess = note("")
-        column.addView(contactsAccess)
-        callsAccess = note("")
-        column.addView(callsAccess)
-
-        column.addView(label(getString(R.string.host)))
-        host = field(getString(R.string.host_hint))
-        column.addView(host)
-        column.addView(label(getString(R.string.port)))
-        port = field(getString(R.string.default_port)).apply { setText(getString(R.string.default_port)) }
-        column.addView(port)
-        column.addView(label(getString(R.string.token)))
-        token = field(getString(R.string.token_hint))
-        column.addView(token)
-
-        column.addView(button(getString(R.string.connect)) { connect() })
-        column.addView(button(getString(R.string.disconnect)) { disconnect() })
-        column.addView(button(getString(R.string.permissions)) { requestAccess() })
-        column.addView(button(getString(R.string.notification_access)) { notificationAccess() })
-
-        column.addView(label(getString(R.string.pairing_line)))
-        line = field(getString(R.string.pairing_line_hint))
-        column.addView(line)
-        column.addView(button(getString(R.string.use_line)) { useLine() })
-
-        column.addView(note(getString(R.string.caveats)))
-        return ScrollView(this).apply { addView(column) }
-    }
-
-    private fun connect() {
-        val hostText = host.text.toString().trim()
-        val portNumber = port.text.toString().trim().toIntOrNull()
-        val tokenText = token.text.toString().trim()
-        if (hostText.isEmpty() || portNumber == null || portNumber !in 1..65535 || tokenText.isEmpty()) {
-            status.text = getString(R.string.bad_pairing)
-            return
-        }
-        Pairing.save(this, Pairing(hostText, portNumber, tokenText))
+    private fun connect(host: String, port: Int, token: String) {
+        Pairing.save(this, Pairing(host, port, token))
         LinkService.start(this)
     }
 
     private fun disconnect() {
         LinkService.stop(this)
-        PhoneHub.setStatus(getString(R.string.disconnected))
+        PhoneHub.setStatus(getString(R.string.disconnected), LinkPhase.Idle)
+    }
+
+    private fun setHideContent(value: Boolean) {
+        hideContent.value = value
+        preferences().edit().putBoolean(HIDE_CONTENT, value).apply()
+        PhoneHub.setHideContent(value)
+        Pairing.load(this)?.let { LinkService.start(this) }
+    }
+
+    private fun batteryOptimization() {
+        val request = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:$packageName"),
+        )
+        runCatching { startActivity(request) }.onFailure {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
+
+    private fun forget() {
+        LinkService.stop(this)
+        Pairing.clear(this)
+        PhoneHub.setStatus(getString(R.string.disconnected), LinkPhase.Idle)
+        pairingSaved.value = false
+        recreate()
     }
 
     private fun notificationAccess() {
         startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
-    private fun useLine() {
-        val pairing = Pairing.parse(line.text.toString())
-        if (pairing == null) {
-            status.text = getString(R.string.bad_line)
-            return
-        }
-        host.setText(pairing.host)
-        port.setText(String.format(Locale.ROOT, "%d", pairing.port))
-        token.setText(pairing.token)
-        line.setText("")
-        status.text = getString(R.string.line_used)
-    }
+    private fun allowed(permission: String): Boolean =
+        checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun label(text: String) = TextView(this).apply {
-        this.text = text
-        textSize = 14f
-        setPadding(0, dp(16), 0, dp(4))
-        setTextColor(getColor(R.color.secondary))
-    }
-
-    private fun field(hintText: String) = EditText(this).apply {
-        hint = hintText
-        textSize = 16f
-        isSingleLine = true
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-    }
-
-    private fun title(text: String) = TextView(this).apply {
-        this.text = text
-        textSize = 26f
-    }
-
-    private fun note(text: String) = TextView(this).apply {
-        this.text = text
-        textSize = 15f
-        setPadding(0, dp(8), 0, dp(4))
-    }
-
-    private fun button(text: String, action: () -> Unit) = Button(this).apply {
-        this.text = text
-        setOnClickListener { action() }
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            .apply { topMargin = dp(12) }
-    }
-
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+    private fun preferences() = getSharedPreferences("settings", MODE_PRIVATE)
 
     private companion object {
+        const val NOTIFICATIONS_REQUEST = 1
         const val ACCESS_REQUEST = 2
+        const val HIDE_CONTENT = "hide_notification_content"
     }
 }

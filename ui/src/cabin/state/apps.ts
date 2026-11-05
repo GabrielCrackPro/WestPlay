@@ -1,7 +1,8 @@
 import type { AppIconRole } from '../../shared/icons'
 
-/** Every app WestPlay knows, in Home grid order. */
+/** Every app WestPlay knows, in Home grid order: Phone first (owner 2026-11-05), then the rest. */
 export const APP_IDS = [
+  'phone',
   'maps',
   'music',
   'radio',
@@ -9,7 +10,6 @@ export const APP_IDS = [
   'youtube',
   'youtubeMusic',
   'podcasts',
-  'phone',
   'messages',
   'weather',
   'settings',

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { PhoneCall, PhoneContact, PhoneNotification, PhoneState } from '../../../shared/host'
-import { callerOf, contactFor, contactsMatching, initialsOf } from './phone'
+import type { PhoneCall, PhoneContact, PhoneNotification, PhoneRecent, PhoneState } from '../../../shared/host'
+import {
+  callerOf,
+  contactFor,
+  contactsMatching,
+  favouritesFirst,
+  initialsOf,
+  recentsMatching,
+  visibleNotifications,
+} from './phone'
 
 const contacts: PhoneContact[] = [
   { id: '1', name: 'Ada Lovelace', numbers: ['+44 20 7946 0958'] },
@@ -55,6 +63,31 @@ const line = (over: Partial<PhoneState> = {}): PhoneState => ({
 })
 
 const ringing: PhoneCall = { id: 'c1', state: 'ringing' }
+
+describe('the phone’s quiet choices', () => {
+  it('hides a muted app’s notifications but keeps the other apps', () => {
+    const notes = [note({ id: 'a', package: 'com.whatsapp' }), note({ id: 'b', package: 'com.android.messaging' })]
+    expect(visibleNotifications(notes, ['com.whatsapp']).map((each) => each.id)).toEqual(['b'])
+  })
+
+  it('puts favourite contacts first and keeps the rest in order', () => {
+    expect(favouritesFirst(contacts, ['3']).map((contact) => contact.id)).toEqual(['3', '1', '2'])
+    expect(favouritesFirst(contacts, [])).toBe(contacts)
+  })
+})
+
+describe('the call log search', () => {
+  const recents: PhoneRecent[] = [
+    { id: 'r1', number: '+44 20 7946 0958', name: 'Ada Lovelace', kind: 'incoming', time: 1, duration: 0 },
+    { id: 'r2', number: '+1 555 010 2000', kind: 'missed', time: 2, duration: 0 },
+  ]
+
+  it('finds calls by name or by part of the number', () => {
+    expect(recentsMatching(recents, 'lovelace').map((recent) => recent.id)).toEqual(['r1'])
+    expect(recentsMatching(recents, '010 20').map((recent) => recent.id)).toEqual(['r2'])
+    expect(recentsMatching(recents, '')).toBe(recents)
+  })
+})
 
 describe('who is calling', () => {
   it('takes the name the phone gave for the call', () => {

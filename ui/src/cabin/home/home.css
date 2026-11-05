@@ -188,3 +188,119 @@
 .app:hover .app-icon {
   scale: 1.035;
 }
+
+/* Reorder: held, an app is picked up and follows the pointer (Home.tsx). Its cell stays in place, dimmed, and the
+   cell it's over shows the line it goes before or after. */
+.app {
+  position: relative;
+}
+
+.app.dragging .app-icon,
+.app.dragging .label {
+  opacity: 0.35;
+}
+
+.app.dragging:hover .app-icon {
+  scale: 1;
+}
+
+.app.drop-before::before,
+.app.drop-after::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--text);
+  box-shadow: 0 0 10px rgb(0 0 0 / 0.4);
+}
+
+.app.drop-before::before {
+  left: -10px;
+}
+
+.app.drop-after::before {
+  right: -10px;
+}
+
+.app-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  translate: -50% -50%;
+  scale: 1.07;
+  filter: drop-shadow(0 16px 24px rgb(0 0 0 / 0.45));
+}
+
+.app-ghost img {
+  width: 138px;
+  height: 138px;
+}
+
+.app-ghost.compact img {
+  width: 84px;
+  height: 84px;
+}
+
+/* An app's menu (a right-click, or a hold let go where it began): pin it to the sidebar, or hide it from Home. */
+.home-menu {
+  position: fixed;
+  z-index: 70;
+  translate: -50% 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 288px;
+  padding: 8px;
+  border-radius: 24px;
+  animation: home-menu-in 180ms var(--motion-ease) both;
+}
+
+@keyframes home-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.home-menu-title {
+  overflow: hidden;
+  padding: 10px 16px 8px;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-menu button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 0 16px;
+  border-radius: 16px;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color var(--motion-quick) var(--motion-ease);
+}
+
+.home-menu button:hover {
+  background: var(--glass);
+}
+
+.home-menu button:active {
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.home-menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.home-menu button svg {
+  flex: none;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+}

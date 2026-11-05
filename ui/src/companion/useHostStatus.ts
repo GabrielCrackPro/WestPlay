@@ -62,6 +62,8 @@ export interface PhoneDevice {
   /** Percent, and whether it's charging. */
   battery?: number
   charging?: boolean
+  /** The Bridge app's version, when the phone says (older ones don't). */
+  appVersion?: string
 }
 
 /** The line a phone scans or types (`cabinplay://pair?host=…&port=…&token=…`), and the parts it's made of. */

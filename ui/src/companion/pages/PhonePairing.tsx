@@ -21,6 +21,12 @@ export function PhonePairing({
 }) {
   const [copied, setCopied] = useState(false)
   const pairing = phone?.pairing ?? null
+  const device = phone?.device ?? null
+  const phoneDetail = phone?.connected
+    ? [device?.name ?? words.connected, device?.appVersion && `Bridge ${device.appVersion}`]
+        .filter(Boolean)
+        .join(' · ')
+    : words.waiting
 
   // The whole line as the phone takes it: scanned, or pasted in one go.
   const copy = async () => {
@@ -40,7 +46,7 @@ export function PhonePairing({
       <Group place={place}>
         <Row
           title={words.phone}
-          detail={phone?.connected ? (phone.device?.name ?? words.connected) : words.waiting}
+          detail={phoneDetail}
           accessory={phone?.connected ? <Tick done /> : undefined}
         />
         {pairing && (

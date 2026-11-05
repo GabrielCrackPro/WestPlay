@@ -84,13 +84,7 @@ import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
 export type DashboardWidget =
-  | 'nowPlaying'
-  | 'destination'
-  | 'driverHours'
-  | 'phone'
-  | 'driver'
-  | 'weather'
-  | 'diagnostics'
+  'nowPlaying' | 'destination' | 'driverHours' | 'phone' | 'driver' | 'weather' | 'diagnostics'
 
 export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'nowPlaying',
@@ -221,6 +215,8 @@ interface CabinState {
   setHomeAppHidden(app: AppId, hidden: boolean): void
   /** Moves an app up (`by` -1) or down (+1) Home's order. */
   moveHomeApp(app: AppId, by: number): void
+  /** Drops an app before another in Home's order, or after it (`after`): Home's own drag to reorder. */
+  moveHomeAppTo(app: AppId, target: AppId, after: boolean): void
   /** Pins an app to the top of the sidebar, or unpins it (as many as the sidebar has room for). */
   setPinnedApp(app: AppId, pinned: boolean): void
   /** Home's apps back in their own order, all shown. */
@@ -440,6 +436,16 @@ export const useCabin = create<CabinState>()(
           homeOrder.splice(to, 0, app)
           return { homeOrder }
         }),
+      moveHomeAppTo: (app, target, after) =>
+        set((state) => {
+          if (app === target) return {}
+          const from = state.homeOrder.indexOf(app)
+          if (from < 0 || !state.homeOrder.includes(target)) return {}
+          const homeOrder = state.homeOrder.filter((each) => each !== app)
+          homeOrder.splice(homeOrder.indexOf(target) + (after ? 1 : 0), 0, app)
+          if (homeOrder.every((each, at) => each === state.homeOrder[at])) return {}
+          return { homeOrder }
+        }),
       setPinnedApp: (app, pinned) =>
         set((state) => ({
           pinnedApps: pinned
@@ -508,8 +514,9 @@ export const useCabin = create<CabinState>()(
       // player starts on the new default. 3: two smaller steps added below them (the same day): a step kept is the
       // same size two steps further on. 4: the Dashboard opened with six cards, too many to read on the move, so its
       // default column is four now (the players who never chose their own get it). 5: the cab keeps the screen and app
-      // it was in only when the companion's switch says to (2026-11-04).
-      version: 5,
+      // it was in only when the companion's switch says to (2026-11-04). 6: Phone comes first on Home (2026-11-05), a
+      // saved order moved once to match.
+      version: 6,
       migrate: (stored, version) => {
         const kept = (stored ?? {}) as Partial<Persisted>
         let next = kept
@@ -522,6 +529,13 @@ export const useCabin = create<CabinState>()(
         }
         // A session saved before the switch existed is let go of: every cab opens on the Dashboard.
         if (version < 5) next = { ...next, navigation: INITIAL_NAVIGATION }
+        // Phone comes first on Home: a saved order keeps the rest as the player had it.
+        if (version < 6 && Array.isArray(next.homeOrder)) {
+          next = {
+            ...next,
+            homeOrder: ['phone', ...homeOrderOf(next.homeOrder).filter((app) => app !== 'phone')],
+          }
+        }
         return next
       },
       storage: createJSONStorage(() => localStorage),
@@ -1023,7 +1037,7 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         receivePhoneState(message.state)
         break
       case 'phoneNotes':
-        receivePhoneNotifications(message.notifications)
+        receivePhoneNotifications(message.notifications, message.backlog === true)
         break
       case 'phoneError':
         usePhoneFailure.getState().fail(message.error)

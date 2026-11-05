@@ -206,9 +206,17 @@ export interface PhoneDevice {
   /** Percent. */
   battery?: number
   charging?: boolean
+  /** The Bridge app's version, when the phone says (older ones don't). */
+  appVersion?: string
 }
 
 /** One notification on the phone (`westplay_link::Notification`), as Android's listener gives it. */
+export interface PhoneNotificationAction {
+  label: string
+  /** Whether the button takes typed text (a reply). */
+  reply?: boolean
+}
+
 export interface PhoneNotification {
   /** Stable for the phone's notification: the package, its id and its post time. */
   id: string
@@ -220,8 +228,16 @@ export interface PhoneNotification {
   /** When it was posted (Unix seconds). */
   time?: number
   ongoing: boolean
-  /** The notification's action labels ("Reply", "Mark as read", …); missing when it has none. */
-  actions?: string[]
+  /** Whether Android lets the player dismiss it. */
+  clearable?: boolean
+  /** Android's group key, when the app groups this notification with others. */
+  group?: string
+  /** Android's category (`msg`, `call`, `alarm`, …), when it gives one. */
+  category?: string
+  /** Android's priority, -2 (low) to 2 (high). */
+  priority?: number
+  /** The notification's buttons ("Reply", "Mark as read", …); missing when it has none. */
+  actions?: PhoneNotificationAction[]
 }
 
 /** One contact on the phone (`westplay_link::Contact`). */
@@ -276,6 +292,7 @@ export interface PhoneState {
 export type PhoneCommand =
   | { action: 'sync' }
   | { action: 'dismiss'; id: string }
+  | { action: 'action'; id: string; index: number }
   | { action: 'dial'; number: string }
   | { action: 'answer' }
   | { action: 'end' }
@@ -449,8 +466,9 @@ export type HostMessage =
    * when it isn't connected. Sent whole as the page loads and whenever the phone says something. */
   | { type: 'phone'; state: PhoneState }
   /** The phone's notifications alone: what changes far more often than the rest of its state, which the page is
-   * never sent again for a notification's sake. */
-  | { type: 'phoneNotes'; notifications: PhoneNotification[] }
+   * never sent again for a notification's sake. `backlog`: the phone's whole list as it connects or syncs, not a
+   * post to announce. */
+  | { type: 'phoneNotes'; notifications: PhoneNotification[]; backlog?: boolean }
   /** A command the phone couldn't do, in its own words: its dialer refused, the call wouldn't end, or no phone is
    * connected at all. */
   | { type: 'phoneError'; error: string }

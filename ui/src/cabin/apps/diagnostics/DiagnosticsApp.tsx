@@ -23,6 +23,7 @@ import { ChassisTabIcon, EngineTabIcon, HoursTabIcon, OverviewTabIcon } from './
 import { clock, tripAverage } from './trip'
 import { useDamped } from './useDamped'
 import { useTrends } from './useTrends'
+import '../../shell/appTabs.css'
 import './diagnostics.css'
 
 /** Each page's tab icon (tabIcons.tsx). */
@@ -197,20 +198,22 @@ export function DiagnosticsApp() {
             <span className={`diag-status ${overall}`}>{byOverall[overall]}</span>
           </header>
 
-          <nav className="diag-tabs" role="tablist" aria-label={text.apps.diagnostics}>
+          <nav className="diag-tabs app-tabs bar" role="tablist" aria-label={text.apps.diagnostics}>
             {pages.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 role="tab"
                 aria-selected={page === tab.id}
-                className={`diag-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
+                className={`diag-tab app-tab ${tab.state}${page === tab.id ? ' on' : ''}`}
                 onClick={() => setPage(tab.id)}
               >
-                <span className="diag-tab-icon" aria-hidden>
+                <span className="app-tab-icon" aria-hidden>
                   {TAB_ICONS[tab.id]}
                 </span>
-                <span className="diag-tab-label">{tab.label}</span>
+                <span className="app-tab-text">
+                  <span className="app-tab-label">{tab.label}</span>
+                </span>
               </button>
             ))}
           </nav>

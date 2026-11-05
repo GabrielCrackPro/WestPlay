@@ -68,17 +68,19 @@ flowchart LR
 WebSocket text frames, JSON. The client connects to `ws://<host>:<port>/phone?token=<token>` and sends:
 
 ```json
-{"type":"hello","protocol":1,"token":"<token>","device":{"name":"Pixel 8","model":"Pixel 8","battery":87,"charging":true}}
+{"type":"hello","protocol":1,"token":"<token>","device":{"name":"Pixel 8","model":"Pixel 8","appVersion":"2.1.4","battery":87,"charging":true}}
 ```
 
 Host → phone:
 
 ```json
 {"type":"command","id":12,"command":{"action":"dismiss","id":"com.app|123|1700000000"}}
-{"type":"command","id":13,"command":{"action":"dial","number":"+441234567890"}}
+{"type":"command","id":13,"command":{"action":"action","id":"com.app|123|1700000000","index":0}}
+{"type":"command","id":14,"command":{"action":"dial","number":"+441234567890"}}
 ```
 
-Commands: `sync`, `dismiss`, `dial`, `answer`, `end`, `sms`, `reply`.
+Commands: `sync`, `dismiss`, `action`, `dial`, `answer`, `end`, `sms`, `reply`. `action` presses one of the notification's
+own buttons by its `actions` index; a button marked `reply` is opened as a text field on the cab instead.
 
 Phone → host:
 
@@ -98,7 +100,7 @@ Host → page (full snapshot, easiest to replay after a reload):
 ```json
 {"type":"phone","state":{
   "connected":true,
-  "device":{"name":"Pixel 8","battery":87,"charging":true},
+  "device":{"name":"Pixel 8","appVersion":"2.1.4","battery":87,"charging":true},
   "notifications":[...],
   "contacts":[...],
   "call":null
@@ -110,6 +112,7 @@ Page → host:
 ```json
 {"type":"phone","command":{"action":"sync"}}
 {"type":"phone","command":{"action":"dismiss","id":"..."}}
+{"type":"phone","command":{"action":"action","id":"...","index":0}}
 {"type":"phone","command":{"action":"answer"}}
 ```
 
@@ -121,13 +124,17 @@ Page → host:
 - [x] `crates/link`: LAN WebSocket server, pairing token/URI, typed protocol, event queue, end-to-end
       pairing/notification/command tests.
 - [x] Host relay: drain link events, keep a snapshot, post it to the cabin page, accept commands.
-- [x] Cabin Phone app: connection state, notification list, dismiss, call banner with answer/end.
+- [x] Cabin Phone app: connection state, notification list, dismiss, notification buttons and inline replies,
+      call banner with answer/end.
 - [x] Pairing card in the companion's Setup — the address, the code and a copy button — so the link's
       token is never on the truck's screen (the cabin app only points at that window).
 - [x] Android companion: foreground service, notification listener, WebSocket client, pairing screen,
       contacts sync and call-state monitoring with best-effort answer/end.
 - [x] Android debug APK builds with the checked-in Gradle wrapper (`lintDebug` and `assembleDebug`).
 - [x] Contact search in the cabin app, with tap-to-dial.
+- [x] Notification recovery: the cab waits for the host's `welcome` before showing Live; the phone keeps the
+      link alive across network changes and reboots (foreground service, boot receiver, network callback, Quick
+      Settings tile).
 - [ ] TLS / certificate pinning (transport is token-gated only for now).
 - [x] Pairing QR code, drawn in the companion's Setup (the phone scans the `cabinplay://pair` line).
 - [x] Unpair in the companion's Setup: a new token, kept for the next launch, and the phone connected then let go.
@@ -139,24 +146,39 @@ Page → host:
 - [x] `READ_CONTACTS` sync and contact search in the Phone app.
 - [x] Tap a contact to dial (opens the phone's dialer, which recent Android may restrict in the background).
 - [ ] Incremental contact sync by `ContactsContract` version.
-- [ ] A search among the recents.
+- [x] A search among the recents.
 - [x] Phone app tabs: Notifications, Recents, Contacts, Keypad (type a number, Call dials it).
 - [x] Call log sync (`CallLog.Calls`, the newest 60, with the name Android caches for the number); tap a
       recent to dial it back.
-- [ ] Caller ID on the ringing banner.
+- [x] Caller ID on the ringing banner from the dialer's own notification (the link's call message still carries no
+      number on Android 12+, where the telephony callback doesn't provide it).
+- [x] Per-app notification mute and contact favourites, kept on the cab's PC.
 
 ### Phase 3 — SMS and replies
 
 - Default-SMS role or sideload-only reduced mode.
 - Thread list and conversation view; send via `SmsManager`.
-- Notification replies via `RemoteInput`.
+- [x] Notification replies via `RemoteInput` (`action` buttons on the cab, typed reply back to the phone).
 
 ### Phase 4 — polish and distribution
 
 - [x] QR pairing and unpair (both in the companion's Setup).
-- Battery optimization guidance, OEM quirks, reconnection UX.
-- APK built alongside the installer; privacy note; notification-content lock.
+- [x] Battery optimization guidance, OEM quirks, reconnection UX.
+- [x] APK built alongside the installer; privacy note; notification-content lock (hide title and text while
+      driving).
+- [x] Pairing QR carries the PC's address and code, and the README documents the Windows Firewall check.
+      mDNS discovery is deliberately not added: it would announce a tokenless service on the LAN for a step the
+      QR already removes.
+- [ ] mDNS/Bonjour discovery, if typing or scanning the address proves to be a real problem.
 - TLS with pinning, replay protection, single-device enforcement.
+
+## Troubleshooting
+
+- If the phone can't reach the PC, confirm both are on the same Wi-Fi and allow Cabin Play through **Windows
+  Firewall** on **private** networks. The phone connects out to the address in the QR/pairing line; the PC does
+  not need a port-forward.
+- A VPN or a guest Wi-Fi network that isolates clients will block the link even when the address is right.
+- The transport is still `ws://` and token-gated, not TLS; use it on a trusted home network only.
 
 ## Repo map
 

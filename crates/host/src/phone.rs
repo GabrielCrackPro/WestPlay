@@ -68,20 +68,31 @@ impl Phone {
     pub fn poll(&mut self) -> Option<String> {
         let mut changed = false;
         let mut whole = false;
+        // The phone's whole list (a connect or a sync), not a single post: a backlog, not news.
+        let mut snapshot = false;
         while let Some(update) = self.server.as_ref().and_then(link::Server::try_next) {
             changed = true;
+            snapshot |= matches!(&update, link::Update::Notifications { .. });
             whole |= !is_notes(&update);
             self.apply(update);
         }
         if !changed {
             return None;
         }
-        Some(if whole { self.state_message() } else { self.notes_message() })
+        Some(if whole { self.state_message() } else { self.notes_message(snapshot) })
     }
 
-    /// The phone's notifications alone: what changes far more often than the rest of it.
-    pub fn notes_message(&self) -> String {
-        serde_json::json!({ "type": "phoneNotes", "notifications": &self.state.notifications }).to_string()
+    /// The phone's notifications alone: what changes far more often than the rest of it. `backlog` marks the whole
+    /// list the phone sends as it connects or syncs (not news): the cab fills its list without announcing each.
+    pub fn notes_message(&self, backlog: bool) -> String {
+        let mut message = serde_json::json!({
+            "type": "phoneNotes",
+            "notifications": &self.state.notifications,
+        });
+        if backlog {
+            message["backlog"] = serde_json::Value::Bool(true);
+        }
+        message.to_string()
     }
 
     /// What the phone said it couldn't do since last asked, and forgets them (the page says them, once each).
@@ -209,7 +220,7 @@ fn sort_notifications(notifications: &mut [link::Notification]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{MOST_NOTIFICATIONS, MOST_RECENTS, Phone, State, is_notes};
+    use super::{is_notes, Phone, State, MOST_NOTIFICATIONS, MOST_RECENTS};
     use westplay_link as link;
 
     fn phone() -> Phone {
@@ -225,6 +236,10 @@ mod tests {
             text: Some("Text".into()),
             time: Some(time),
             ongoing: false,
+            clearable: true,
+            group: None,
+            category: None,
+            priority: 0,
             actions: vec![],
         }
     }
@@ -378,6 +393,16 @@ mod tests {
         assert!(!is_notes(&link::Update::Contacts { contacts: vec![] }));
         assert!(!is_notes(&link::Update::Call { call: link::Call::default() }));
         assert!(!is_notes(&link::Update::Connected { device: link::Device::default(), peer: "x".into() }));
+    }
+
+    #[test]
+    fn a_snapshot_is_marked_as_the_phones_backlog() {
+        let mut phone = phone();
+        phone.apply(link::Update::Notifications { notifications: vec![notification("a", 1)] });
+        let backlog: serde_json::Value = serde_json::from_str(&phone.notes_message(true)).unwrap();
+        assert_eq!(backlog["backlog"], true);
+        let posted: serde_json::Value = serde_json::from_str(&phone.notes_message(false)).unwrap();
+        assert!(posted.get("backlog").is_none(), "a single post is news, and says nothing of a backlog");
     }
 
     #[test]

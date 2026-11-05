@@ -2,8 +2,12 @@ package com.cabinplay.bridge
 
 import android.annotation.SuppressLint
 import android.app.Notification
+import android.app.PendingIntent
+import android.app.RemoteInput
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,10 +19,26 @@ import org.json.JSONObject
  * The listener and the service are both in this process. The listener may run before the service (and after
  * it), so the hub keeps the list even while no link is up.
  */
+/** Whether the link is down, trying, or up. The screen draws its state from this, never from translated words. */
+enum class LinkPhase { Idle, Connecting, Live }
+
 object PhoneHub {
     private const val MOST = 100
 
-    private data class Entry(val id: String, val key: String, val json: JSONObject)
+    private data class ActionSlot(
+        val label: String,
+        val intent: PendingIntent,
+        val inputs: Array<RemoteInput>,
+    ) {
+        val reply: Boolean get() = inputs.isNotEmpty()
+    }
+
+    private data class Entry(
+        val id: String,
+        val key: String,
+        val json: JSONObject,
+        val actions: List<ActionSlot>,
+    )
 
     private val notifications = LinkedHashMap<String, Entry>()
 
@@ -29,10 +49,26 @@ object PhoneHub {
     private val statusListeners = mutableSetOf<(String) -> Unit>()
 
     @Volatile
-    var status: String = "Not connected"
+    var status: String = ""
         private set
 
-    fun setStatus(value: String) {
+    @Volatile
+    var phase: LinkPhase = LinkPhase.Idle
+        private set
+
+    /** Whether the cab is only told an app posted something, not what it says. */
+    @Volatile
+    var hideContent: Boolean = false
+        private set
+
+    fun setHideContent(value: Boolean) {
+        hideContent = value
+        // The change applies to what the cab already has, not only to the next post.
+        link?.sendNotifications()
+    }
+
+    fun setStatus(value: String, phase: LinkPhase) {
+        this.phase = phase
         status = value
         val snapshot = synchronized(statusListeners) { statusListeners.toList() }
         snapshot.forEach { it(value) }
@@ -61,32 +97,94 @@ object PhoneHub {
     /** One notification posted (or updated: Android posts it again with the same id). */
     @Synchronized
     fun notificationPosted(context: Context, posted: StatusBarNotification) {
-        if (posted.packageName == context.packageName) return
-        val notification = posted.notification ?: return
-        if ((notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return
-        val id = "${posted.packageName}|${posted.id}|${posted.postTime}"
-        val json = jsonOf(context, posted, id, notification) ?: return
-        val entry = Entry(id, posted.key, json)
-        notifications[id] = entry
-        while (notifications.size > MOST) {
-            val oldest = notifications.keys.firstOrNull() ?: break
-            notifications.remove(oldest)
+        val entry = entryOf(context, posted) ?: return
+        notifications[entry.id] = entry
+        trim()
+        link?.sendNotification(publicJson(entry).toString())
+    }
+
+    /**
+     * The notifications already on the phone when the listener comes up: Android reports only what is posted after
+     * it is bound, so without these the cab shows nothing until every app posts again (after a reboot, or access
+     * granted while notifications wait). The link is sent the whole list, marked a backlog, so the cab fills its
+     * list without announcing each as news.
+     */
+    @Synchronized
+    fun seed(context: Context, posted: Array<StatusBarNotification>?) {
+        posted?.forEach { sbn ->
+            val entry = entryOf(context, sbn) ?: return@forEach
+            notifications[entry.id] = entry
         }
-        link?.sendNotification(entry.json.toString())
+        trim()
+        link?.sendNotifications()
     }
 
     @Synchronized
     fun notificationRemoved(posted: StatusBarNotification) {
-        val id = "${posted.packageName}|${posted.id}|${posted.postTime}"
+        val id = idOf(posted)
         if (notifications.remove(id) != null) link?.sendNotificationRemoved(id)
+    }
+
+    private fun entryOf(context: Context, posted: StatusBarNotification): Entry? {
+        if (posted.packageName == context.packageName) return null
+        val notification = posted.notification ?: return null
+        if ((notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0) return null
+        val id = idOf(posted)
+        val json = jsonOf(context, posted, id, notification) ?: return null
+        val actions = notification.actions.orEmpty().mapNotNull { action ->
+            val label = action.title?.toString()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val inputs = action.remoteInputs?.toList()?.toTypedArray() ?: emptyArray()
+            ActionSlot(label, action.actionIntent, inputs)
+        }
+        return Entry(id, posted.key, json, actions)
+    }
+
+    /** What the cab may see: the app always, the words only when content isn't hidden. */
+    private fun publicJson(entry: Entry): JSONObject = JSONObject(entry.json.toString()).apply {
+        if (hideContent) {
+            remove("title")
+            remove("text")
+        }
+    }
+
+    private fun idOf(posted: StatusBarNotification): String =
+        "${posted.packageName}|${posted.id}|${posted.postTime}"
+
+    private fun trim() {
+        while (notifications.size > MOST) {
+            val oldest = notifications.keys.firstOrNull() ?: break
+            notifications.remove(oldest)
+        }
     }
 
     /** The whole list, as a `notifications` message's array. */
     @Synchronized
     fun snapshot(): JSONArray {
         val array = JSONArray()
-        notifications.values.forEach { array.put(it.json) }
+        notifications.values.forEach { array.put(publicJson(it)) }
         return array
+    }
+
+    /** The cab pressed one of a notification's buttons. */
+    @Synchronized
+    fun action(context: Context, id: String, index: Int): Boolean {
+        val entry = notifications[id] ?: return false
+        val slot = entry.actions.getOrNull(index) ?: return false
+        if (slot.reply) return false
+        return runCatching { slot.intent.send(context, 0, Intent()) }.isSuccess
+    }
+
+    /** The cab replied to a notification through its first reply-capable button. */
+    @Synchronized
+    fun reply(context: Context, id: String, text: String): Boolean {
+        val entry = notifications[id] ?: return false
+        val slot = entry.actions.firstOrNull { it.reply } ?: return false
+        if (text.isBlank()) return false
+        val results = Bundle().apply {
+            slot.inputs.forEach { input -> putCharSequence(input.resultKey, text) }
+        }
+        val intent = Intent().also { RemoteInput.addResultsToIntent(slot.inputs, it, results) }
+        return runCatching { slot.intent.send(context, 0, intent) }.isSuccess
     }
 
     /** The phone's answer to the cab's `dismiss`: Android's own cancellation, then the host is told. */
@@ -117,9 +215,20 @@ object PhoneHub {
             text?.let { put("text", it) }
             put("time", posted.postTime / 1000)
             put("ongoing", posted.isOngoing || (notification.flags and Notification.FLAG_ONGOING_EVENT) != 0)
+            put("clearable", posted.isClearable)
+            (posted.groupKey ?: notification.group)?.let { put("group", it) }
+            notification.category?.let { put("category", it) }
+            put("priority", notification.priority)
             put("actions", JSONArray().apply {
                 notification.actions?.forEach { action ->
-                    action.title?.toString()?.takeIf { it.isNotBlank() }?.let { put(it) }
+                    action.title?.toString()?.takeIf { it.isNotBlank() }?.let { label ->
+                        put(
+                            JSONObject().apply {
+                                put("label", label)
+                                if (!action.remoteInputs.isNullOrEmpty()) put("reply", true)
+                            },
+                        )
+                    }
                 }
             })
         }

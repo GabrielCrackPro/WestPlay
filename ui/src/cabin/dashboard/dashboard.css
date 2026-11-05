@@ -54,8 +54,12 @@
 
 /* --- The paired phone: whether it is there, its battery, a call, and the newest thing it posted ------------- */
 
+/* Drawn as the fuel and diagnostics cards are: its state and its newest note on the left, its glyph beside them,
+   and the call or the paired phone as the card's own figure — the column's cards all read alike. */
 .widget.phone-widget {
-  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(14px * var(--text-scale, 1));
+  padding: 14px 20px;
 }
 
 /* A call ringing is the one thing on the column worth a colour of its own. */
@@ -65,26 +69,38 @@
 
 .phone-widget-text {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 3px;
-  width: 100%;
+  gap: calc(2px * var(--text-scale, 1));
   min-width: 0;
 }
 
-.phone-widget-name {
+/* The card's own figure, as the fuel card's destination: the call in progress, or the phone it's paired with. */
+.phone-widget-primary {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.phone-widget-line {
+  min-width: 0;
   overflow: hidden;
-  color: var(--text);
   font-size: calc(24px * var(--text-scale, 1));
   font-weight: 650;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* A call is the green the app gives it, as the ringing card is tinted. */
+.phone-widget-primary.call .phone-widget-line {
+  color: var(--apple-green, #34c759);
+}
+
 /* Green while the phone is on the other end, the column's own grey while it isn't. */
 .phone-widget-dot {
+  position: relative;
   flex: none;
   width: calc(11px * var(--text-scale, 1));
   height: calc(11px * var(--text-scale, 1));
@@ -96,26 +112,64 @@
   background: var(--apple-green, #34c759);
 }
 
-.phone-widget-call {
-  overflow: hidden;
-  color: var(--apple-green, #34c759);
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* The charge left, as a ring around the dot: filled from the top clockwise in the dot's green, on a quiet track.
+   Only while the phone has a level to give (widgets.tsx), so an absent ring reads as "not known", never as empty. */
+.phone-widget-dot[data-battery]::before {
+  content: '';
+  position: absolute;
+  inset: calc(-5px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    var(--apple-green, #34c759) calc(var(--battery, 0) * 1%),
+    color-mix(in srgb, var(--text) 24%, transparent) 0
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - calc(2.5px * var(--text-scale, 1))), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - calc(2.5px * var(--text-scale, 1))), #000 0);
 }
 
+/* On the charger: a bolt on the dot itself, as a phone's own battery symbol draws one — the words say it too, so
+   the dot needn't. */
+.phone-widget-dot[data-charging]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: calc(6px * var(--text-scale, 1));
+  height: calc(8px * var(--text-scale, 1));
+  margin: auto;
+  background: #fff;
+  clip-path: polygon(58% 0, 10% 58%, 44% 58%, 36% 100%, 90% 42%, 54% 42%);
+}
+
+/* The battery under it, and the newest note under that, as quiet as the other cards' second and third lines. */
 .phone-widget-meta {
+  overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(17px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .phone-widget-note {
   overflow: hidden;
+  margin-top: calc(2px * var(--text-scale, 1));
   color: var(--text-dim);
-  font-size: calc(16px * var(--text-scale, 1));
+  font-size: calc(17px * var(--text-scale, 1));
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Its handset, in the fuel pump's and the gauge's soft colour. */
+.phone-widget-glyph {
+  flex: none;
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+.appearance-dark .phone-widget-glyph {
+  color: color-mix(in srgb, var(--text) 85%, transparent);
 }
 
 /* Every card's small label above its figure: one size, one weight, sentence case. The cards had four sizes and
@@ -1070,6 +1124,24 @@ button.widget:active {
   .widget.driver-hours .hours-glyph {
     width: calc(38px * var(--text-scale, 1));
     height: calc(38px * var(--text-scale, 1));
+  }
+
+  /* The phone card's figure and glyph, the narrow column's step. */
+  .phone-widget-line {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .phone-widget-meta {
+    font-size: calc(17px * var(--text-scale, 1));
+  }
+
+  .phone-widget-note {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .phone-widget-glyph {
+    width: 40px;
+    height: 40px;
   }
 }
 

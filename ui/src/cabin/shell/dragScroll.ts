@@ -88,6 +88,11 @@ export function installDragScroll(): () => void {
 
   const move = (event: PointerEvent) => {
     if (!press || event.pointerId !== press.pointer) return
+    // A control that took the press for a drag of its own (Home's apps, held to be moved): not a scroll.
+    if (press.target.closest('[data-own-drag]')) {
+      press = null
+      return
+    }
     if (!drag) {
       const axis = dragAxis(event.clientX - press.x, event.clientY - press.y)
       if (!axis) return

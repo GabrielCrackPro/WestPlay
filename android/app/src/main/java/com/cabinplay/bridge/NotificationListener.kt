@@ -10,6 +10,9 @@ import android.service.notification.StatusBarNotification
 class NotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         PhoneHub.listenerConnected(this)
+        // What was posted before the listener was bound (access just granted, or the app restarted) is still on the
+        // phone: Android only calls back for what comes next, so the hub takes the list now.
+        PhoneHub.seed(this, activeNotifications)
     }
 
     override fun onListenerDisconnected() {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { type PhoneCall, type PhoneContact, type PhoneNotification, type PhoneRecent } from '../../../shared/host'
 import { formatRealTime } from '../../../shared/format'
 import { SearchGlyph } from '../../keyboard/glyphs'
@@ -7,21 +7,37 @@ import { useText } from '../../state/text'
 import {
   contactFor,
   contactsMatching,
+  favouritesFirst,
   initialsOf,
+  recentsMatching,
   recentWho,
   sendPhoneCommand,
   useCaller,
   usePhone,
   usePhoneFailure,
+  usePhonePrefs,
+  visibleNotifications,
 } from './phone'
+import { ContactsTabIcon, KeypadTabIcon, NotificationsTabIcon, RecentsTabIcon } from './tabIcons'
+import '../../shell/appTabs.css'
 import './phoneApp.css'
 
 /** The contact search's id (one on screen: the keyboard types into it). */
 const CONTACT_FIELD = 'phone-contact-search'
+/** The call-log search's id, apart from the contact search's. */
+const RECENT_FIELD = 'phone-recent-search'
 
 /** The app's pages: the phone's call log, its address book, a keypad, and its notifications. */
 const TABS = ['recents', 'contacts', 'keypad', 'notifications'] as const
 type Tab = (typeof TABS)[number]
+
+/** Each page's tab icon (tabIcons.tsx). */
+const TAB_ICONS = {
+  recents: <RecentsTabIcon />,
+  contacts: <ContactsTabIcon />,
+  keypad: <KeypadTabIcon />,
+  notifications: <NotificationsTabIcon />,
+} satisfies Record<Tab, ReactNode>
 
 /** The keypad's keys, in the phone's own order. */
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
@@ -68,8 +84,13 @@ export function PhoneApp() {
   const notifications = phone.notifications
   const contacts = phone.contacts
   const recents = phone.recents
+  const muted = usePhonePrefs((state) => state.muted)
+  const favouriteContacts = usePhonePrefs((state) => state.favourites)
+  const toggleMute = usePhonePrefs((state) => state.toggleMute)
+  const toggleFavourite = usePhonePrefs((state) => state.toggleFavourite)
   const [tab, setTab] = useState<Tab>('recents')
   const [query, setQuery] = useState('')
+  const [recentQuery, setRecentQuery] = useState('')
   // The keypad's number, as typed: the phone's own dialer takes it when the dial sheet is confirmed.
   const [number, setNumber] = useState('')
   // The dial a press asked for, held until the sheet confirms it: a stray tap calls nobody. A contact with several
@@ -198,14 +219,16 @@ export function PhoneApp() {
     sendPhoneCommand({ action: 'dial', number: asked.number })
     setAsked(null)
   }
-  const shown = contactsMatching(contacts, query)
+  const shown = favouritesFirst(contactsMatching(contacts, query), favouriteContacts)
+  const shownRecents = recentsMatching(recents, recentQuery)
+  const visible = visibleNotifications(notifications, muted)
   // The lists are on their way as the app opens: empty before the phone's first snapshot is "not here yet".
   const syncing = phone.connected && !phone.ready
   const tabs: Record<Tab, { label: string; count: number }> = {
     recents: { label: words.recents, count: recents.length },
     contacts: { label: words.contacts, count: contacts.length },
     keypad: { label: words.keypad, count: 0 },
-    notifications: { label: text.apps.notifications, count: notifications.length },
+    notifications: { label: words.notifications, count: visible.length },
   }
 
   const battery =
@@ -260,7 +283,7 @@ export function PhoneApp() {
 
           {!phone.connected && <p className="phone-pair">{words.pairingHint}</p>}
 
-          <div className="phone-tabs" role="tablist" aria-label={text.apps.phone}>
+          <div className="phone-tabs app-tabs bar" role="tablist" aria-label={text.apps.phone}>
             {TABS.map((each) => (
               <button
                 key={each}
@@ -269,14 +292,19 @@ export function PhoneApp() {
                 id={`phone-tab-${each}`}
                 aria-selected={tab === each}
                 aria-controls={`phone-panel-${each}`}
-                className={tab === each ? 'phone-tab current' : 'phone-tab'}
+                className={tab === each ? 'phone-tab app-tab on' : 'phone-tab app-tab'}
                 onClick={() => {
                   setTab(each)
                   setAsked(null)
                 }}
               >
-                {tabs[each].label}
-                {tabs[each].count > 0 && <span className="phone-tab-count">{tabs[each].count}</span>}
+                <span className="app-tab-icon" aria-hidden>
+                  {TAB_ICONS[each]}
+                </span>
+                <span className="app-tab-text">
+                  <span className="app-tab-label">{tabs[each].label}</span>
+                  {tabs[each].count > 0 && <span className="app-tab-count">{tabs[each].count}</span>}
+                </span>
               </button>
             ))}
           </div>
@@ -286,7 +314,7 @@ export function PhoneApp() {
               <section className="phone-recents" aria-label={words.recents}>
                 <header className="phone-recents-head">
                   <h2>{words.recents}</h2>
-                  <span className="phone-recents-count">{words.recentCount(recents.length)}</span>
+                  <span className="phone-recents-count">{words.recentCount(shownRecents.length)}</span>
                 </header>
                 {syncing ? (
                   <Syncing text={words.syncing} />
@@ -297,8 +325,20 @@ export function PhoneApp() {
                     <p className="phone-empty-hint">{words.recentsHint}</p>
                   </div>
                 ) : (
-                  <ol className="phone-contact-list">
-                    {recents.map((recent) => (
+                  <>
+                    <div className="phone-search">
+                      <TextField
+                        id={RECENT_FIELD}
+                        value={recentQuery}
+                        onChange={setRecentQuery}
+                        hint={words.searchRecents}
+                        label={words.searchRecents}
+                        icon={<SearchGlyph />}
+                      />
+                    </div>
+                    {shownRecents.length === 0 && <p className="phone-no-match">{words.noMatches}</p>}
+                    <ol className="phone-contact-list">
+                    {shownRecents.map((recent) => (
                       <RecentRow
                         key={recent.id}
                         recent={recent}
@@ -311,7 +351,8 @@ export function PhoneApp() {
                         onDial={askDial}
                       />
                     ))}
-                  </ol>
+                    </ol>
+                  </>
                 )}
               </section>
             )}
@@ -352,6 +393,10 @@ export function PhoneApp() {
                             contact={contact}
                             dial={words.dial}
                             connected={phone.connected}
+                            favourite={favouriteContacts.includes(contact.id)}
+                            addFavourite={words.addFavourite}
+                            removeFavourite={words.removeFavourite}
+                            onFavourite={toggleFavourite}
                             onDial={askDial}
                           />
                         ))}
@@ -427,14 +472,14 @@ export function PhoneApp() {
             )}
 
             {tab === 'notifications' && (
-              <section className="phone-notes" aria-label={text.apps.notifications}>
+              <section className="phone-notes" aria-label={words.notifications}>
                 <header className="phone-notes-head">
-                  <h2>{text.apps.notifications}</h2>
-                  <span className="phone-notes-count">{words.summary(notifications.length)}</span>
+                  <h2>{words.notifications}</h2>
+                  <span className="phone-notes-count">{words.summary(visible.length)}</span>
                 </header>
                 {syncing ? (
                   <Syncing text={words.syncing} />
-                ) : notifications.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <div className="phone-empty">
                     <Bell />
                     <p className="phone-empty-title">{words.empty}</p>
@@ -442,8 +487,18 @@ export function PhoneApp() {
                   </div>
                 ) : (
                   <ol className="phone-list">
-                    {notifications.map((notification) => (
-                      <NoteRow key={notification.id} notification={notification} dismiss={words.dismiss} />
+                    {visible.map((notification) => (
+                      <NoteRow
+                        key={notification.id}
+                        notification={notification}
+                        dismiss={words.dismiss}
+                        send={words.send}
+                        cancel={words.cancel}
+                        muted={muted.includes(notification.package)}
+                        mute={words.muteApp}
+                        unmute={words.unmuteApp}
+                        onMute={toggleMute}
+                      />
                     ))}
                   </ol>
                 )}
@@ -619,11 +674,19 @@ function ContactRow({
   contact,
   dial,
   connected,
+  favourite,
+  addFavourite,
+  removeFavourite,
+  onFavourite,
   onDial,
 }: {
   contact: PhoneContact
   dial: string
   connected: boolean
+  favourite: boolean
+  addFavourite: string
+  removeFavourite: string
+  onFavourite(id: string): void
   onDial(who: string, numbers: string[]): void
 }) {
   return (
@@ -651,13 +714,51 @@ function ContactRow({
           <span>{dial}</span>
         </span>
       </button>
+      <button
+        type="button"
+        className={favourite ? 'phone-contact-star on' : 'phone-contact-star'}
+        aria-label={favourite ? removeFavourite : addFavourite}
+        title={favourite ? removeFavourite : addFavourite}
+        onClick={() => onFavourite(contact.id)}
+      >
+        {favourite ? '\u2605' : '\u2606'}
+      </button>
     </li>
   )
 }
 
-/** One notification: its app and time, its title and words, and its dismissal. */
-function NoteRow({ notification, dismiss }: { notification: PhoneNotification; dismiss: string }) {
+/** One notification: its app and time, its words, its buttons, and its dismissal or reply. */
+function NoteRow({
+  notification,
+  dismiss,
+  send,
+  cancel,
+  muted,
+  mute,
+  unmute,
+  onMute,
+}: {
+  notification: PhoneNotification
+  dismiss: string
+  send: string
+  cancel: string
+  muted: boolean
+  mute: string
+  unmute: string
+  onMute(packageName: string): void
+}) {
   const time = notification.time !== undefined ? formatRealTime(notification.time * 1000) : null
+  const [replying, setReplying] = useState(false)
+  const [reply, setReply] = useState('')
+  const actions = notification.actions ?? []
+  const replyField = `phone-reply-${notification.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
+  const submit = () => {
+    const text = reply.trim()
+    if (!text) return
+    sendPhoneCommand({ action: 'reply', id: notification.id, text })
+    setReply('')
+    setReplying(false)
+  }
   return (
     <li className="phone-note">
       <div className="phone-note-head">
@@ -666,11 +767,48 @@ function NoteRow({ notification, dismiss }: { notification: PhoneNotification; d
       </div>
       {notification.title && <p className="phone-note-title">{notification.title}</p>}
       {notification.text && <p className="phone-note-text">{notification.text}</p>}
+      {actions.length > 0 && (
+        <div className="phone-note-actions">
+          {actions.map((action, index) => (
+            <button
+              key={`${action.label}-${index}`}
+              type="button"
+              className="phone-note-action"
+              onClick={() => {
+                if (action.reply) setReplying((open) => !open)
+                else sendPhoneCommand({ action: 'action', id: notification.id, index })
+              }}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {replying && (
+        <div className="phone-note-reply">
+          <TextField id={replyField} value={reply} onChange={setReply} hint={send} label={send} />
+          <div className="phone-note-reply-buttons">
+            <button type="button" className="phone-note-send" disabled={!reply.trim()} onClick={submit}>
+              {send}
+            </button>
+            <button
+              type="button"
+              className="phone-note-cancel"
+              onClick={() => {
+                setReply('')
+                setReplying(false)
+              }}
+            >
+              {cancel}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="phone-note-foot">
-        {notification.actions && notification.actions.length > 0 && (
-          <span className="phone-note-actions">{notification.actions.join(' · ')}</span>
-        )}
-        {!notification.ongoing && (
+        <button type="button" className="phone-note-mute" onClick={() => onMute(notification.package)}>
+          {muted ? unmute : mute}
+        </button>
+        {notification.clearable !== false && !notification.ongoing && (
           <button
             type="button"
             className="phone-note-dismiss"

@@ -66,6 +66,18 @@ pub struct Device {
     pub battery: Option<u8>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub charging: Option<bool>,
+    /// The Bridge app's version, when the phone says (older ones don't).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
+}
+
+/// One of a notification's buttons: its label, and whether it takes typed text (a reply).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Action {
+    pub label: String,
+    #[serde(default)]
+    pub reply: bool,
 }
 
 /// One notification, as Android's listener gives it.
@@ -86,9 +98,26 @@ pub struct Notification {
     pub time: Option<u64>,
     #[serde(default)]
     pub ongoing: bool,
-    /// The notification's action labels ("Reply", "Mark as read", …).
+    /// Whether Android lets the player dismiss it (an ongoing one usually doesn't).
+    #[serde(default = "clearable")]
+    pub clearable: bool,
+    /// Android's group key, when the app groups this notification with others.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Android's category (`msg`, `call`, `alarm`, …), when it gives one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    /// Android's priority, from -2 (low) to 2 (high).
+    #[serde(default)]
+    pub priority: i32,
+    /// The notification's buttons ("Reply", "Mark as read", …).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub actions: Vec<String>,
+    pub actions: Vec<Action>,
+}
+
+/// A notification without its actions is still clearable: older senders didn't say.
+fn clearable() -> bool {
+    true
 }
 
 /// One contact, as the phone's address book gives it.
@@ -225,6 +254,11 @@ pub enum Command {
     Sync,
     Dismiss {
         id: String,
+    },
+    /// Press one of a notification's buttons, by its place in the notification's `actions`.
+    Action {
+        id: String,
+        index: usize,
     },
     Dial {
         number: String,
@@ -602,6 +636,10 @@ mod tests {
     fn commands_keep_their_action_for_the_phone() {
         let dismiss = Command::Dismiss { id: "app|1|2".into() };
         assert_eq!(serde_json::to_string(&dismiss).unwrap(), r#"{"action":"dismiss","id":"app|1|2"}"#);
+        assert_eq!(
+            serde_json::to_string(&Command::Action { id: "app|1|2".into(), index: 1 }).unwrap(),
+            r#"{"action":"action","id":"app|1|2","index":1}"#
+        );
         assert_eq!(serde_json::to_string(&Command::Answer).unwrap(), r#"{"action":"answer"}"#);
         assert_eq!(
             serde_json::from_str::<Command>(r#"{"action":"dial","number":"+441234567890"}"#).unwrap(),
@@ -611,11 +649,11 @@ mod tests {
 
     #[test]
     fn messages_from_the_phone_are_read_as_the_host_wants_them() {
-        let text = r#"{"type":"notification","notification":{"id":"a|1|2","package":"com.app","app":"App","title":"Hi","text":"There","ongoing":false,"actions":["Reply"]}}"#;
+        let text = r#"{"type":"notification","notification":{"id":"a|1|2","package":"com.app","app":"App","title":"Hi","text":"There","ongoing":false,"actions":[{"label":"Reply","reply":true}]}}"#;
         let message: ClientMessage = serde_json::from_str(text).unwrap();
         let update = update_of(message).unwrap();
         assert!(
-            matches!(update, super::Update::Notification { notification } if notification.title.as_deref() == Some("Hi"))
+            matches!(update, super::Update::Notification { notification } if notification.title.as_deref() == Some("Hi") && notification.actions[0].reply)
         );
 
         let text =
@@ -674,7 +712,13 @@ mod tests {
             ClientMessage::Hello {
                 protocol: 1,
                 token: "t".into(),
-                device: Device { name: "Pixel 8".into(), model: None, battery: Some(87), charging: Some(true) }
+                device: Device {
+                    name: "Pixel 8".into(),
+                    model: None,
+                    battery: Some(87),
+                    charging: Some(true),
+                    app_version: None,
+                }
             }
         );
         assert!(update_of(message).is_none());
@@ -704,6 +748,7 @@ mod tests {
         let notification: Notification = serde_json::from_str(r#"{"id":"1","package":"p","app":"A"}"#).unwrap();
         assert_eq!(notification.title, None);
         assert!(!notification.ongoing);
+        assert!(notification.clearable, "an older notification is still dismissible");
         assert!(notification.actions.is_empty());
     }
 

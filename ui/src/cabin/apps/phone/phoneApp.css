@@ -519,48 +519,13 @@
   height: calc(20px * var(--text-scale, 1));
 }
 
-/* --- The app's pages, one at a time: their tabs on a bar under the head ----------------------------- */
+/* --- The app's pages: their tab bar under the head ----------------------------------------------------- */
 
+/* The bar itself is the shared one (shell/appTabs.css): each page an icon over its name, its count beside it, on
+   the page's full width so no name is ever cut short at a large text size. */
 .phone-tabs {
-  display: flex;
   flex: none;
-  align-self: flex-start;
-  gap: calc(4px * var(--text-scale, 1));
-  padding: calc(4px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill-tertiary);
-}
-
-.phone-tab {
-  display: flex;
-  align-items: center;
-  gap: calc(8px * var(--text-scale, 1));
-  padding: calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  border-radius: 999px;
-  color: var(--apple-label-secondary);
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 650;
-  transition:
-    background-color 160ms var(--motion-ease),
-    color 160ms var(--motion-ease);
-}
-
-.phone-tab:hover {
-  color: var(--apple-label);
-}
-
-.phone-tab.current {
-  background: var(--apple-card-raised);
-  color: var(--apple-label);
-}
-
-.phone-tab-count {
-  padding: 0 calc(8px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill);
-  color: var(--apple-label-secondary);
-  font-size: calc(14px * var(--text-scale, 1));
-  font-weight: 600;
+  width: 100%;
 }
 
 /* The panel takes no room of its own: the page's own gap spaces its sections. */
@@ -949,4 +914,113 @@
   to {
     transform: rotate(1turn);
   }
+}
+
+/* A notification's own buttons, and the reply composer they can open. */
+.phone-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.phone-note-action {
+  border: 1px solid color-mix(in srgb, var(--apple-blue) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+  color: var(--apple-blue);
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.phone-note-action:hover {
+  background: color-mix(in srgb, var(--apple-blue) 24%, transparent);
+}
+
+.phone-note-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.phone-note-reply-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.phone-note-send,
+.phone-note-cancel {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 15px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.phone-note-send {
+  background: var(--apple-blue);
+  color: #fff;
+}
+
+.phone-note-send:disabled {
+  opacity: 0.45;
+}
+
+.phone-note-cancel {
+  background: color-mix(in srgb, var(--apple-gray) 18%, transparent);
+  color: var(--apple-gray);
+}
+
+.phone-note-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* A contact's star, kept on the PC: favourites sort first. */
+.phone-contact {
+  position: relative;
+}
+
+.phone-contact-row {
+  padding-right: calc(42px * var(--text-scale, 1));
+}
+
+.phone-contact-star {
+  position: absolute;
+  top: 50%;
+  right: calc(10px * var(--text-scale, 1));
+  transform: translateY(-50%);
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--apple-label-secondary);
+  font-size: calc(19px * var(--text-scale, 1));
+  line-height: 1;
+}
+
+.phone-contact-star.on {
+  color: #ffb340;
+}
+
+/* A notification's app can be muted from its row; the cab then hides that app's notifications and toasts. */
+.phone-note-mute {
+  margin-right: auto;
+  border: 0;
+  background: transparent;
+  color: var(--apple-label-secondary);
+  font: inherit;
+  font-size: calc(12px * var(--text-scale, 1));
+  padding: 4px 0;
+}
+
+.phone-note-mute:hover {
+  color: var(--apple-blue);
 }

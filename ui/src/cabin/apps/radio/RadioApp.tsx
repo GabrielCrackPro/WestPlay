@@ -4,6 +4,7 @@ import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
 import { pauseHere, play, requestStations, resumeHere, setVolume, stopRadio, useRadio, type RadioStatus } from './radio'
 import { favouritesOf, genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
+import '../../shell/appTabs.css'
 import './radioApp.css'
 
 /** The search field's id (one on screen: the keyboard types into it). */
@@ -189,17 +190,17 @@ export function RadioApp() {
                     icon={<SearchGlyph />}
                   />
                 </div>
-                <div className="radio-chips" role="tablist" aria-label={text.apps.radio}>
+                <div className="radio-chips app-tabs pills" role="tablist" aria-label={text.apps.radio}>
                   {chips.map(([id, name]) => (
                     <button
                       key={id || 'other'}
                       type="button"
                       role="tab"
                       aria-selected={genre === id}
-                      className={genre === id ? 'radio-chip on' : 'radio-chip'}
+                      className={genre === id ? 'radio-chip app-tab on' : 'radio-chip app-tab'}
                       onClick={() => setGenre(id)}
                     >
-                      {name}
+                      <span className="app-tab-label">{name}</span>
                     </button>
                   ))}
                 </div>

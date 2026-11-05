@@ -773,10 +773,23 @@
   overscroll-behavior: contain;
 }
 
-/* A widget's place in the Dashboard's own order (Settings › Dashboard, Auto order off): its name, and the two
-   buttons that move it, each as large a target as the row. */
-.shell .settings-row.settings-order {
-  cursor: default;
+/* A row that can be moved (the Dashboard's widgets with Auto order off, Home's apps): the name and the switch are
+   one target, and the two buttons that move it sit beside them, each as large as the row. */
+.settings-manage {
+  gap: 8px;
+  padding-right: 14px;
+}
+
+.shell .settings-manage-toggle {
+  flex: 1;
+  min-width: 0;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .settings-order-buttons {
@@ -791,7 +804,6 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: calc(15px * var(--text-scale, 1));
   color: var(--apple-blue);
   background: var(--apple-fill-quaternary);
   transition: background-color 160ms var(--motion-ease);
@@ -804,6 +816,51 @@
 .shell .settings-order-buttons button:disabled {
   color: var(--apple-label-tertiary);
   cursor: default;
+}
+
+/* The app's chevron, turned to point the way its row goes. */
+.settings-move {
+  display: flex;
+  rotate: -90deg;
+}
+
+.settings-move.down {
+  rotate: 90deg;
+}
+
+/* The sidebar's pin on an app's row: a compact toggle, blue and filled while the app is pinned, dim at the
+   sidebar's limit (the row's switch and arrows keep their own targets). */
+.shell .settings-pin {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--apple-label-secondary);
+  background: var(--apple-fill-quaternary);
+  transition:
+    background-color 160ms var(--motion-ease),
+    color 160ms var(--motion-ease);
+}
+
+.shell .settings-pin:hover:not(:disabled) {
+  background: var(--apple-fill-tertiary);
+}
+
+.shell .settings-pin[aria-pressed='true'] {
+  color: var(--apple-blue);
+  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+}
+
+.shell .settings-pin:disabled {
+  color: var(--apple-label-tertiary);
+  cursor: default;
+}
+
+.settings-pin svg {
+  width: 24px;
+  height: 24px;
 }
 
 /* More under the page's foot than shows (SettingsApp.tsx `useMoreBelow`): a small glass chevron at the bottom,

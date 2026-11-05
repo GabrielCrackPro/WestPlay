@@ -364,47 +364,12 @@
   height: calc(26px * var(--text-scale, 1));
 }
 
-/* The genres: CarPlay’s tabs, one line the player scrolls, the one shown filled. */
+/* The genres: the shared pill tab bar (shell/appTabs.css), one line the player scrolls when they don’t all fit.
+   Each genre is one pill of one word, so the rail is what gives way, never the name. */
 .radio-chips {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: calc(10px * var(--text-scale, 1));
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: calc(2px * var(--text-scale, 1)) calc(2px * var(--text-scale, 1)) calc(4px * var(--text-scale, 1));
-  scrollbar-width: none;
-}
-
-.radio-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.radio-chip {
   flex: none;
-  min-height: calc(52px * var(--text-scale, 1));
-  padding: 0 calc(22px * var(--text-scale, 1));
-  border: 0;
-  border-radius: 999px;
-  background: var(--apple-fill-secondary);
-  box-shadow: inset 0 0 0 1px var(--apple-separator);
-  color: var(--apple-label);
-  font: inherit;
-  font-size: calc(21px * var(--text-scale, 1));
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 140ms ease;
-}
-
-.radio-chip:hover {
-  background: var(--apple-fill);
-}
-
-/* The one shown: the label’s own colour on the background’s, so it reads at a glance in either appearance. */
-.radio-chip.on {
-  background: var(--apple-label);
-  box-shadow: none;
-  color: var(--apple-background);
+  width: fit-content;
+  max-width: 100%;
 }
 
 /* Nothing in the list has what was typed. */

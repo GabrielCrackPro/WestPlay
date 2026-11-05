@@ -89,77 +89,23 @@
   color: var(--apple-red);
 }
 
-/* --- The pages, as a segmented control ---------------------------------------------------------------- */
+/* --- The pages, as the cab's tab bar ------------------------------------------------------------------ */
 
+/* The bar itself is the shared one (shell/appTabs.css): a column of icon over name per page, across the page's
+   width, so a name is never cut short at a large text size. */
 .diag-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(4px * var(--text-scale, 1));
-  width: fit-content;
-  max-width: 100%;
-  padding: calc(5px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: var(--apple-fill-tertiary);
-}
-
-.diag-tab {
-  display: flex;
-  align-items: center;
-  gap: calc(9px * var(--text-scale, 1));
-  min-height: calc(46px * var(--text-scale, 1));
-  padding: calc(8px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
-  border-radius: 999px;
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 550;
-  color: var(--apple-label-secondary);
-  white-space: nowrap;
-  transition:
-    background-color 180ms var(--motion-ease),
-    color 180ms var(--motion-ease),
-    box-shadow 220ms var(--motion-ease),
-    scale 150ms var(--motion-ease);
-}
-
-.diag-tab:active {
-  scale: 0.97;
-}
-
-.diag-tab.on {
-  background: var(--apple-card);
-  color: var(--apple-label);
-  font-weight: 650;
-  box-shadow: var(--shadow-raised);
-}
-
-.diag-tab-icon {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: calc(23px * var(--text-scale, 1));
-  height: calc(23px * var(--text-scale, 1));
-  opacity: 0.7;
-  transition: opacity 180ms var(--motion-ease);
+  width: 100%;
 }
 
-.diag-tab.on .diag-tab-icon {
-  opacity: 1;
-}
-
-/* A page with a reading worth watching tints its icon: the tabs carry the tone, not a dot beside them. */
-.diag-tab.warn .diag-tab-icon {
+/* A page with a reading worth watching carries the tone on its icon: the tabs say where to look without a dot
+   beside them, and the tone holds whether the tab is the one shown or not. */
+.diag-tab.warn .app-tab-icon {
   color: var(--apple-orange);
-  opacity: 1;
 }
 
-.diag-tab.alarm .diag-tab-icon {
+.diag-tab.alarm .app-tab-icon {
   color: var(--apple-red);
-  opacity: 1;
-}
-
-.diag-tab-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* --- The cards ---------------------------------------------------------------------------------------- */

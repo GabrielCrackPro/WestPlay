@@ -14,9 +14,20 @@ export type SettingsPage =
   | 'sound'
   | 'equalizer'
   | 'map'
+  | 'mapDisplay'
+  | 'mapTraffic'
+  | 'mapRoute'
+  | 'mapMarkers'
 
 /** The page a page is within, where its back button goes (the list, but for the pages within a page). */
-export const PARENT: Partial<Record<SettingsPage, SettingsPage>> = { textSize: 'appearance', equalizer: 'sound' }
+export const PARENT: Partial<Record<SettingsPage, SettingsPage>> = {
+  textSize: 'appearance',
+  equalizer: 'sound',
+  mapDisplay: 'map',
+  mapTraffic: 'map',
+  mapRoute: 'map',
+  mapMarkers: 'map',
+}
 
 interface SettingsState {
   /** The page shown; kept while the app is closed, as iOS's Settings comes back where it was. */

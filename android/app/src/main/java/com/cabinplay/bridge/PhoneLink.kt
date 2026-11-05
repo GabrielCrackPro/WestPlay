@@ -30,7 +30,8 @@ class PhoneLink(context: Context, private val pairing: Pairing, private val even
     private val context = context.applicationContext
 
     interface Events {
-        fun onOpen()
+        /** The PC accepted this phone (its welcome), not merely the socket opening. */
+        fun onReady()
         fun onClosed(reason: String)
     }
 
@@ -38,6 +39,7 @@ class PhoneLink(context: Context, private val pairing: Pairing, private val even
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
     private val closed = AtomicBoolean(false)
+    private val ready = AtomicBoolean(false)
     @Volatile private var socket: WebSocket? = null
 
     fun connect() {
@@ -115,28 +117,37 @@ class PhoneLink(context: Context, private val pairing: Pairing, private val even
                 put("device", JSONObject().apply {
                     put("name", Build.MODEL)
                     put("model", "${Build.MANUFACTURER} ${Build.MODEL}".trim())
+                    put("appVersion", BuildConfig.VERSION_NAME)
                     put("battery", level)
                     put("charging", charging)
                 })
             })
-            sendNotifications()
-            sendContacts()
-            sendRecents()
-            events.onOpen()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             val message = runCatching { JSONObject(text) }.getOrNull() ?: return
-            if (message.optString("type") != "command") return
-            command(message)
+            when (message.optString("type")) {
+                "welcome" -> if (ready.compareAndSet(false, true)) {
+                    sendBattery()
+                    sendNotifications()
+                    sendContacts()
+                    sendRecents()
+                    events.onReady()
+                }
+                "command" -> command(message)
+            }
         }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            if (!closed.get()) events.onClosed("The PC closed the link ($code)")
+            if (!closed.get()) events.onClosed(context.getString(R.string.pc_closed_link, code))
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            if (!closed.get()) events.onClosed("Can’t reach the PC: ${t.message ?: "no answer"}")
+            if (!closed.get()) {
+                events.onClosed(
+                    context.getString(R.string.cant_reach_pc, t.message ?: context.getString(R.string.no_answer)),
+                )
+            }
         }
     }
 
@@ -153,6 +164,8 @@ class PhoneLink(context: Context, private val pairing: Pairing, private val even
                 ack(id, true, if (contacts || !Contacts.allowed(context)) null else "Contact access isn’t granted")
             }
             "dismiss" -> ack(id, PhoneHub.dismiss(command.optString("id")))
+            "action" -> ack(id, PhoneHub.action(context, command.optString("id"), command.optInt("index", -1)))
+            "reply" -> ack(id, PhoneHub.reply(context, command.optString("id"), command.optString("text")))
             "dial" -> dial(id, command.optString("number"))
             "answer" -> ack(id, answer())
             "end" -> ack(id, end())

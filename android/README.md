@@ -45,17 +45,24 @@ The token is kept in the app's private preferences. The PC's host keeps the same
 
 - **No call audio.** Android does not let third-party apps capture or inject cellular call audio. The cab can
   answer, decline and end, but the voice stays on the phone (or a Bluetooth hands-free link).
-- No caller ID, SMS, replies or media control yet. Caller ID on the banner needs a `CallScreeningService`
-  role or another mechanism; the call log's names are whatever Android has cached for the number.
-- Dialing opens the phone's own dialer; recent Android may refuse that from a background service.
+- No caller ID, SMS or media control yet. Caller ID on the banner needs a `CallScreeningService` role or
+  another mechanism; the call log's names are whatever Android has cached for the number. Notification
+  replies are supported.- Dialing opens the phone's own dialer; recent Android may refuse that from a background service.
 - The link is token-gated and private-network-only, not encrypted. Use it on a trusted home network; TLS with
-  certificate pinning is a later step.
-- Notification text is sensitive. A "hide content while driving" switch belongs beside this app before it
-  ships.
+  certificate pinning is a later step. If the phone can't reach the PC, allow Cabin Play through **Windows
+  Firewall** on **private** networks and check both are on the same Wi-Fi (a VPN or guest network can isolate
+  clients).
+ - Notification text is sensitive. **Hide notification content** keeps titles and text on the phone; the cab
+   sees only the app name and the notification's buttons.
+
+ When the system status bar shows the keep-alive service, the phone link hub carries that invite; with this on, the host also forwards passive notifications for other phones’ turn so they can start pairing.
+
+Bluetooth audio, SMS and call logging are not supported.
 
 ## Files
 
-- `app/src/main/java/com/cabinplay/bridge/MainActivity.kt` — pairing and permission screens.
+- `app/src/main/java/com/cabinplay/bridge/MainActivity.kt` — hosts the screen and owns pairing/permission state.
+- `.../BridgeScreen.kt` — the Compose screen: AMOLED theme, status hero, pairing and access cards.
 - `.../LinkService.kt` — foreground service, reconnection and the battery updates.
 - `.../PhoneLink.kt` — the WebSocket, the JSON protocol and the commands.
 - `.../PhoneHub.kt` — what the notification listener collects, and what the link sends.

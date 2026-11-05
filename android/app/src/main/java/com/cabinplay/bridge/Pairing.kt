@@ -5,7 +5,7 @@ import android.net.Uri
 import java.net.URLEncoder
 
 /**
- * How this phone finds the PC and proves it may connect. The cabin's Phone app shows the same address and
+ * How this phone finds the PC and proves it may connect. The Cabin Play companion shows the same address and
  * token while no phone is connected (`Pairing` in crates/link); `cabinplay://pair?host=…&port=…&token=…` is
  * the whole of it in one line.
  *
@@ -43,7 +43,7 @@ data class Pairing(val host: String, val port: Int, val token: String) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
         }
 
-        /** A `cabinplay://pair?...` line, as the cabin's Phone app shows it. */
+        /** A `cabinplay://pair?...` line, as the Cabin Play companion shows it. */
         fun parse(raw: String): Pairing? {
             val uri = runCatching { Uri.parse(raw.trim()) }.getOrNull() ?: return null
             if (uri.scheme != "cabinplay" || uri.host != "pair") return null

@@ -4,13 +4,13 @@ import { isReleasedApp, RELEASED_APP_IDS } from './apps'
 describe('the apps this release has', () => {
   it('leaves Podcasts and Messages for a later release, keeping Home’s order', () => {
     expect(RELEASED_APP_IDS).toEqual([
+      'phone',
       'maps',
       'music',
       'radio',
       'spotify',
       'youtube',
       'youtubeMusic',
-      'phone',
       'weather',
       'settings',
       'diagnostics',

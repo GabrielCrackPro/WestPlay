@@ -30,15 +30,7 @@ import {
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import {
-  DASHBOARD_WIDGETS,
-  type DashboardWidget,
-  MAP_DETAILS,
-  MAP_RECENTRES,
-  type MapDetail,
-  useCabin,
-  useLive,
-} from '../../state/store'
+import { type DashboardWidget, MAP_DETAILS, MAP_RECENTRES, type MapDetail, useCabin, useLive } from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
 import { useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
@@ -49,7 +41,12 @@ import {
   DashboardGlyph,
   HomeGlyph,
   IconsGlyph,
+  MapDisplayGlyph,
+  MapPinsGlyph,
+  MapRouteGlyph,
+  MapTrafficGlyph,
   NowPlayingGlyph,
+  PinGlyph,
   SoundGlyph,
   WallpaperGlyph,
 } from './glyphs'
@@ -104,7 +101,15 @@ function PageContent({ page }: { page: SettingsPage }) {
     case 'home':
       return <HomeScreenPage />
     case 'map':
-      return <MapPage />
+      return <MapsPage />
+    case 'mapDisplay':
+      return <MapDisplayPage />
+    case 'mapTraffic':
+      return <MapTrafficPage />
+    case 'mapRoute':
+      return <MapRoutePage />
+    case 'mapMarkers':
+      return <MapMarkersPage />
     case 'nowPlaying':
       return <NowPlayingPage />
     case 'sound':
@@ -413,6 +418,13 @@ function WallpaperThumbnail({ src }: { src: string }) {
 /** Twice a thumbnail's width on the screen, so it stays sharp. */
 const THUMBNAIL_WIDTH = 600
 
+/** Each icon style, and the words the list calls it by. */
+const ICON_STYLES = [
+  { id: 'auto', word: 'automatic' },
+  { id: 'light', word: 'light' },
+  { id: 'dark', word: 'dark' },
+] as const
+
 /** The apps an icon set's row shows: enough of them to tell one set's look from another's. */
 const ICON_STRIP: readonly AppIconRole[] = ['maps', 'music', 'spotify', 'youtube', 'youtubeMusic']
 
@@ -438,22 +450,13 @@ function IconsPage() {
   }
   return (
     <Page title={text.settings.icons}>
-      <Group header={text.settings.iconStyle} radio={text.settings.iconStyle}>
-        {(
-          [
-            { id: 'auto', label: text.settings.automatic },
-            { id: 'light', label: text.settings.light },
-            { id: 'dark', label: text.settings.dark },
-          ] as const
-        ).map((style) => (
-          <CheckRow
-            key={style.id}
-            label={style.label}
-            on={!android && iconStyle === style.id}
-            onPick={() => choose({ iconSet, iconStyle: style.id })}
-          />
-        ))}
-      </Group>
+      <ChoiceRows<IconStyle>
+        header={text.settings.iconStyle}
+        radio={text.settings.iconStyle}
+        value={android ? null : iconStyle}
+        onPick={(id) => choose({ iconSet, iconStyle: id })}
+        options={ICON_STYLES.map((style) => ({ id: style.id, label: text.settings[style.word] }))}
+      />
       <Group radio={text.settings.icons}>
         <IconSetRow
           name="Cabin Play"
@@ -523,8 +526,8 @@ function IconSetRow({
   )
 }
 
-/** Which widgets the Dashboard shows (turn-by-turn always does while there's a route), and which clock the
- * sidebar keeps: the player's own time or the game's. */
+/** Which widgets the Dashboard shows and the order they come in (Auto order: the drive's own), and which clock
+ * the sidebar keeps: the player's own time or the game's. */
 function DashboardPage() {
   const text = useText()
   const widgets = useCabin((state) => state.dashboardWidgets)
@@ -546,38 +549,25 @@ function DashboardPage() {
   }
   return (
     <Page title={text.settings.dashboard}>
+      {/* One list per widget: what it shows and, while Auto order is off, where it stands. A widget's arrows are
+          hidden while the cab orders the column itself, so the list is just its switches as it was. */}
       <Group header={text.settings.widgets}>
-        {DASHBOARD_WIDGETS.map((widget) => (
-          <SwitchRow key={widget} label={names[widget]} on={widgets[widget]} onToggle={(on) => setWidget(widget, on)} />
+        {order.map((widget, index) => (
+          <SwitchOrderRow
+            key={widget}
+            label={names[widget]}
+            on={widgets[widget]}
+            onToggle={(on) => setWidget(widget, on)}
+            place={
+              autoOrder
+                ? undefined
+                : { first: index === 0, last: index === order.length - 1, onMove: (by) => moveWidget(widget, by) }
+            }
+          />
         ))}
       </Group>
       <Group footer={text.settings.autoOrderFooter}>
         <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
-        {/* The player's own order, top to bottom, while Auto order leaves it alone. */}
-        {!autoOrder &&
-          order.map((widget, index) => (
-            <div key={widget} className="settings-row settings-order">
-              <span className="settings-label">{names[widget]}</span>
-              <span className="settings-order-buttons">
-                <button
-                  type="button"
-                  aria-label={`${text.settings.moveUp} ${names[widget]}`}
-                  disabled={index === 0}
-                  onClick={() => moveWidget(widget, -1)}
-                >
-                  <span aria-hidden>▲</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${text.settings.moveDown} ${names[widget]}`}
-                  disabled={index === order.length - 1}
-                  onClick={() => moveWidget(widget, 1)}
-                >
-                  <span aria-hidden>▼</span>
-                </button>
-              </span>
-            </div>
-          ))}
       </Group>
       <Group footer={text.settings.clockFooter}>
         <SwitchRow
@@ -591,9 +581,9 @@ function DashboardPage() {
 }
 
 /**
- * Home Screen (Settings › Home Screen): the apps Home shows, one switch each, and the order they appear in, moved
- * up or down as the Dashboard's widgets are. An app hidden here keeps its place in the order, so showing it again
- * puts it back where it was.
+ * Home Screen (Settings › Home Screen): one list of the apps, each with its switch (shown on Home or not), a pin
+ * toggle (the sidebar's few), and — in the order they appear — the arrows that move it, as the Dashboard's widgets
+ * are moved. An app hidden here keeps its place in the order, so showing it again puts it back where it was.
  */
 function HomeScreenPage() {
   const text = useText()
@@ -607,47 +597,23 @@ function HomeScreenPage() {
   const names = text.apps
   return (
     <Page title={text.settings.homeScreen}>
-      <Group header={text.settings.showOnHome} footer={text.settings.homeScreenFooter}>
-        {order.map((app) => (
-          <SwitchRow key={app} label={names[app]} on={!hidden.includes(app)} onToggle={(on) => setHidden(app, !on)} />
-        ))}
-      </Group>
-      {/* The apps that stay put in the sidebar, in the order they were pinned: at its limit, the rest are off. */}
-      <Group header={text.settings.pinToSidebar} footer={text.settings.pinnedFooter}>
-        {order.map((app) => (
-          <SwitchRow
+      {/* One list per app: shown on Home or not, pinned to the sidebar or not (at its limit the rest are off), and
+          where it stands — the pin toggle and the arrows beside its switch. */}
+      <Group header={text.settings.showOnHome} footer={[text.settings.homeScreenFooter, text.settings.pinnedFooter]}>
+        {order.map((app, index) => (
+          <SwitchOrderRow
             key={app}
             label={names[app]}
-            on={pinned.includes(app)}
-            disabled={!pinned.includes(app) && pinned.length >= PINNED_LIMIT}
-            onToggle={(on) => setPinned(app, on)}
+            on={!hidden.includes(app)}
+            onToggle={(on) => setHidden(app, !on)}
+            place={{ first: index === 0, last: index === order.length - 1, onMove: (by) => move(app, by) }}
+            pin={{
+              pinned: pinned.includes(app),
+              disabled: !pinned.includes(app) && pinned.length >= PINNED_LIMIT,
+              label: pinned.includes(app) ? text.settings.unpinFromSidebar : text.settings.pinToSidebar,
+              onToggle: () => setPinned(app, !pinned.includes(app)),
+            }}
           />
-        ))}
-      </Group>
-      {/* The order the apps show in, top to bottom. Hidden apps keep their place here. */}
-      <Group header={text.settings.homeOrder}>
-        {order.map((app, index) => (
-          <div key={app} className="settings-row settings-order">
-            <span className="settings-label">{names[app]}</span>
-            <span className="settings-order-buttons">
-              <button
-                type="button"
-                aria-label={`${text.settings.moveUp} ${names[app]}`}
-                disabled={index === 0}
-                onClick={() => move(app, -1)}
-              >
-                <span aria-hidden>▲</span>
-              </button>
-              <button
-                type="button"
-                aria-label={`${text.settings.moveDown} ${names[app]}`}
-                disabled={index === order.length - 1}
-                onClick={() => move(app, 1)}
-              >
-                <span aria-hidden>▼</span>
-              </button>
-            </span>
-          </div>
         ))}
       </Group>
       <Group>
@@ -659,38 +625,105 @@ function HomeScreenPage() {
   )
 }
 
+/** The words the map's settings read from (the text store's). */
+type Words = ReturnType<typeof useText>
+
+/** The map's words for each choice: they live across the app's own words and the destinations'. */
+function detailNames(text: Words): Record<MapDetail, string> {
+  return { high: text.settings.high, balanced: text.destinations.mapBalanced, low: text.settings.low }
+}
+
+function routeColourNames(text: Words): Record<MapRouteColour, string> {
+  const words = text.destinations
+  return { blue: words.routeBlue, teal: words.routeTeal, purple: words.routePurple, amber: words.routeAmber }
+}
+
+function routeWeightNames(text: Words): Record<MapRouteWeight, string> {
+  const words = text.destinations
+  return { thin: words.weightThin, standard: words.weightStandard, bold: words.weightBold }
+}
+
+function markerShapeNames(text: Words): Record<MapMarker, string> {
+  const words = text.destinations
+  return { arrow: words.markerArrow, dot: words.markerDot, truck: words.markerTruck }
+}
+
+function markerSizeNames(text: Words): Record<MapMarkerSize, string> {
+  const words = text.destinations
+  return { small: words.sizeSmall, medium: words.sizeMedium, large: words.sizeLarge }
+}
+
+function pinStyleNames(text: Words): Record<MapPinStyle, string> {
+  const words = text.destinations
+  return { filled: words.pinFilled, outlined: words.pinOutlined }
+}
+
 /**
- * The live map's own settings (Settings › Maps): how much it draws (the 3D buildings and the frames a second),
- * whether it dims for the game's night, eases out at junctions, shows the other drivers and the traffic, and
- * how long a map the player moved stays put before it comes back to the truck.
+ * Maps: the live map's settings, in four pages of their own — what it draws and how it comes back to the truck,
+ * the traffic and the camera on the road, the route's line, and the markers and pins. This page is the way in,
+ * each row saying what it is set to now, as the Settings list says its own rows.
  */
-function MapPage() {
+function MapsPage() {
+  const text = useText()
+  const words = text.destinations
+  const open = useSettings((state) => state.open)
+  const detail = useCabin((state) => state.mapDetail)
+  const traffic = useCabin((state) => state.mapTraffic)
+  const route = useCabin((state) => state.mapRoute)
+  const weight = useCabin((state) => state.mapWeight)
+  const pins = useCabin((state) => state.mapPins)
+  return (
+    <Page title={text.apps.maps}>
+      <Group>
+        {' '}
+        <NavRow
+          tile="var(--apple-blue)"
+          icon={<MapDisplayGlyph />}
+          label={text.settings.mapsDisplay}
+          value={detailNames(text)[detail]}
+          onOpen={() => open('mapDisplay')}
+        />
+        <NavRow
+          tile="var(--apple-orange)"
+          icon={<MapTrafficGlyph />}
+          label={words.mapTraffic}
+          value={traffic ? text.diagnostics.on : text.diagnostics.off}
+          onOpen={() => open('mapTraffic')}
+        />
+        <NavRow
+          tile="var(--apple-purple)"
+          icon={<MapRouteGlyph />}
+          label={text.settings.mapsRoute}
+          value={`${routeWeightNames(text)[weight]} · ${routeColourNames(text)[route]}`}
+          onOpen={() => open('mapRoute')}
+        />
+        <NavRow
+          tile="var(--apple-red)"
+          icon={<MapPinsGlyph />}
+          label={text.settings.mapsMarkers}
+          value={pinStyleNames(text)[pins]}
+          onOpen={() => open('mapMarkers')}
+        />
+      </Group>
+    </Page>
+  )
+}
+
+/**
+ * Display: how much map there is to see (the detail it draws and the game's night), the controls on the map's own
+ * face, and how long a map the player moved stays put before it comes back to the truck.
+ */
+function MapDisplayPage() {
   const text = useText()
   const words = text.destinations
   const detail = useCabin((state) => state.mapDetail)
   const setDetail = useCabin((state) => state.setMapDetail)
   const night = useCabin((state) => state.mapNight)
   const setNight = useCabin((state) => state.setMapNight)
-  const junction = useCabin((state) => state.mapJunction)
-  const setJunction = useCabin((state) => state.setMapJunction)
-  const trucks = useCabin((state) => state.mapTrucks)
-  const setTrucks = useCabin((state) => state.setMapTrucks)
-  const traffic = useCabin((state) => state.mapTraffic)
-  const setTraffic = useCabin((state) => state.setMapTraffic)
-  const around = useCabin((state) => state.mapTrafficAround)
-  const setAround = useCabin((state) => state.setMapTrafficAround)
-  const recentre = useCabin((state) => state.mapRecentre)
-  const setRecentre = useCabin((state) => state.setMapRecentre)
-  const route = useCabin((state) => state.mapRoute)
-  const setRoute = useCabin((state) => state.setMapRoute)
-  const weight = useCabin((state) => state.mapWeight)
-  const setWeight = useCabin((state) => state.setMapWeight)
+  const nightStart = useCabin((state) => state.mapNightStart)
+  const setNightStart = useCabin((state) => state.setMapNightStart)
   const north = useCabin((state) => state.mapNorth)
   const setNorth = useCabin((state) => state.setMapNorth)
-  const marker = useCabin((state) => state.mapMarker)
-  const setMarker = useCabin((state) => state.setMapMarker)
-  const markerSize = useCabin((state) => state.mapMarkerSize)
-  const setMarkerSize = useCabin((state) => state.setMapMarkerSize)
   const limit = useCabin((state) => state.mapLimit)
   const setLimit = useCabin((state) => state.setMapLimit)
   const over = useCabin((state) => state.mapOver)
@@ -699,8 +732,128 @@ function MapPage() {
   const setCompass = useCabin((state) => state.setMapCompass)
   const scale = useCabin((state) => state.mapScale)
   const setScale = useCabin((state) => state.setMapScale)
-  const nightStart = useCabin((state) => state.mapNightStart)
-  const setNightStart = useCabin((state) => state.setMapNightStart)
+  const recentre = useCabin((state) => state.mapRecentre)
+  const setRecentre = useCabin((state) => state.setMapRecentre)
+  const details = detailNames(text)
+  return (
+    <Page title={text.settings.mapsDisplay}>
+      <ChoiceRows
+        header={words.mapDetail}
+        radio={words.mapDetail}
+        options={MAP_DETAILS.map((each) => ({ id: each, label: details[each] }))}
+        value={detail}
+        onPick={setDetail}
+      />
+      <Group>
+        <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
+      </Group>
+      {/* When the night's dimming starts, with the night it belongs to. */}
+      <ChoiceRows
+        header={words.mapNightFrom}
+        radio={words.mapNightFrom}
+        options={MAP_NIGHT_STARTS.map((hour) => ({
+          id: hour,
+          label: `${String(hour).padStart(2, '0')}:00`,
+        }))}
+        value={nightStart}
+        onPick={setNightStart}
+      />
+      <Group>
+        <SwitchRow label={words.mapNorth} on={north} onToggle={setNorth} />
+        <SwitchRow label={words.mapLimit} on={limit} onToggle={setLimit} />
+        <SwitchRow label={words.mapOver} on={over} onToggle={setOver} />
+        <SwitchRow label={words.mapCompass} on={compass} onToggle={setCompass} />
+        <SwitchRow label={words.mapScale} on={scale} onToggle={setScale} />
+      </Group>
+      <ChoiceRows
+        header={words.mapRecentre}
+        radio={words.mapRecentre}
+        options={MAP_RECENTRES.map((seconds) => ({
+          id: seconds,
+          label: seconds === 0 ? words.mapNever : `${seconds} s`,
+        }))}
+        value={recentre}
+        onPick={setRecentre}
+      />
+    </Page>
+  )
+}
+
+/**
+ * Traffic: what the map draws of the road around the truck — the camera easing out at junctions, other players'
+ * trucks, and the traffic — and how far around the traffic is drawn when no route is driven (in single player it's
+ * estimated, as the game tells nothing of its AI traffic).
+ */
+function MapTrafficPage() {
+  const text = useText()
+  const words = text.destinations
+  const junction = useCabin((state) => state.mapJunction)
+  const setJunction = useCabin((state) => state.setMapJunction)
+  const trucks = useCabin((state) => state.mapTrucks)
+  const setTrucks = useCabin((state) => state.setMapTrucks)
+  const traffic = useCabin((state) => state.mapTraffic)
+  const setTraffic = useCabin((state) => state.setMapTraffic)
+  const around = useCabin((state) => state.mapTrafficAround)
+  const setAround = useCabin((state) => state.setMapTrafficAround)
+  return (
+    <Page title={words.mapTraffic}>
+      <Group>
+        <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
+        <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
+        <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
+      </Group>
+      <ChoiceRows
+        header={words.mapTraffic}
+        radio={words.mapTraffic}
+        options={MAP_TRAFFIC_AROUND.map((metres) => ({
+          id: metres,
+          label: metres === 0 ? words.mapNever : `${metres / 1000} km`,
+        }))}
+        value={around}
+        onPick={setAround}
+      />
+    </Page>
+  )
+}
+
+/** Route: the line the map draws to the destination, in its colour and its weight. */
+function MapRoutePage() {
+  const text = useText()
+  const words = text.destinations
+  const route = useCabin((state) => state.mapRoute)
+  const setRoute = useCabin((state) => state.setMapRoute)
+  const weight = useCabin((state) => state.mapWeight)
+  const setWeight = useCabin((state) => state.setMapWeight)
+  const colours = routeColourNames(text)
+  const weights = routeWeightNames(text)
+  return (
+    <Page title={text.settings.mapsRoute}>
+      <ChoiceRows
+        header={words.routeColour}
+        radio={words.routeColour}
+        options={MAP_ROUTE_COLOURS.map((each) => ({ id: each, label: colours[each] }))}
+        value={route}
+        onPick={setRoute}
+      />
+      <ChoiceRows
+        header={words.routeWeight}
+        radio={words.routeWeight}
+        options={MAP_ROUTE_WEIGHTS.map((each) => ({ id: each, label: weights[each] }))}
+        value={weight}
+        onPick={setWeight}
+      />
+    </Page>
+  )
+}
+
+/** Markers and Pins: the truck's own mark on the map, and the places it draws of its own. */
+function MapMarkersPage() {
+  const text = useText()
+  const words = text.destinations
+  const marker = useCabin((state) => state.mapMarker)
+  const setMarker = useCabin((state) => state.setMapMarker)
+  const markerSize = useCabin((state) => state.mapMarkerSize)
+  const setMarkerSize = useCabin((state) => state.setMapMarkerSize)
   const pins = useCabin((state) => state.mapPins)
   const setPins = useCabin((state) => state.setMapPins)
   const pinFuel = useCabin((state) => state.mapPinFuel)
@@ -709,121 +862,36 @@ function MapPage() {
   const setPinParking = useCabin((state) => state.setMapPinParking)
   const pinService = useCabin((state) => state.mapPinService)
   const setPinService = useCabin((state) => state.setMapPinService)
-  const colourNames: Record<MapRouteColour, string> = {
-    blue: words.routeBlue,
-    teal: words.routeTeal,
-    purple: words.routePurple,
-    amber: words.routeAmber,
-  }
-  const weightNames: Record<MapRouteWeight, string> = {
-    thin: words.weightThin,
-    standard: words.weightStandard,
-    bold: words.weightBold,
-  }
-  const markerNames: Record<MapMarker, string> = {
-    arrow: words.markerArrow,
-    dot: words.markerDot,
-    truck: words.markerTruck,
-  }
-  const sizeNames: Record<MapMarkerSize, string> = {
-    small: words.sizeSmall,
-    medium: words.sizeMedium,
-    large: words.sizeLarge,
-  }
-  const pinNames: Record<MapPinStyle, string> = { filled: words.pinFilled, outlined: words.pinOutlined }
-  // High and Low are the Equalizer's words already (the map draws the same two ends of a scale).
-  const details: Record<MapDetail, string> = {
-    high: text.settings.high,
-    balanced: words.mapBalanced,
-    low: text.settings.low,
-  }
+  const shapes = markerShapeNames(text)
+  const sizes = markerSizeNames(text)
+  const pinNames = pinStyleNames(text)
   return (
-    <Page title={text.apps.maps}>
-      <Group header={words.mapDetail} radio={words.mapDetail}>
-        {MAP_DETAILS.map((each) => (
-          <CheckRow key={each} label={details[each]} on={detail === each} onPick={() => setDetail(each)} />
-        ))}
-      </Group>
-      <Group>
-        <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
-      </Group>
-      {/* When the night's dimming starts, with the night it belongs to. */}
-      <Group header={words.mapNightFrom} radio={words.mapNightFrom}>
-        {MAP_NIGHT_STARTS.map((hour) => (
-          <CheckRow
-            key={hour}
-            label={`${String(hour).padStart(2, '0')}:00`}
-            on={nightStart === hour}
-            onPick={() => setNightStart(hour)}
-          />
-        ))}
-      </Group>
-      {/* On the road: the camera easing out at junctions, and what else is out there — other players' trucks and
-          the traffic. */}
-      <Group>
-        <SwitchRow label={words.mapJunction} on={junction} onToggle={setJunction} />
-        <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
-        <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
-      </Group>
-      {/* How far around the truck the traffic is drawn when no route is driven (in single player it's estimated, as
-          the game tells nothing of its AI traffic). Digits and kilometres need no words of their own. */}
-      <Group header={words.mapTraffic} radio={words.mapTraffic}>
-        {MAP_TRAFFIC_AROUND.map((metres) => (
-          <CheckRow
-            key={metres}
-            label={metres === 0 ? words.mapNever : `${metres / 1000} km`}
-            on={around === metres}
-            onPick={() => setAround(metres)}
-          />
-        ))}
-      </Group>
-      <Group header={words.routeColour} radio={words.routeColour}>
-        {MAP_ROUTE_COLOURS.map((each) => (
-          <CheckRow key={each} label={colourNames[each]} on={route === each} onPick={() => setRoute(each)} />
-        ))}
-      </Group>
-      <Group header={words.routeWeight} radio={words.routeWeight}>
-        {MAP_ROUTE_WEIGHTS.map((each) => (
-          <CheckRow key={each} label={weightNames[each]} on={weight === each} onPick={() => setWeight(each)} />
-        ))}
-      </Group>
-      {/* How long a map the player moved stays put, after the route it's about. */}
-      <Group header={words.mapRecentre} radio={words.mapRecentre}>
-        {MAP_RECENTRES.map((seconds) => (
-          <CheckRow
-            key={seconds}
-            label={seconds === 0 ? words.mapNever : `${seconds} s`}
-            on={recentre === seconds}
-            onPick={() => setRecentre(seconds)}
-          />
-        ))}
-      </Group>
-      <Group header={words.marker} radio={words.marker}>
-        {MAP_MARKERS.map((each) => (
-          <CheckRow key={each} label={markerNames[each]} on={marker === each} onPick={() => setMarker(each)} />
-        ))}
-      </Group>
-      <Group header={words.markerSize} radio={words.markerSize}>
-        {MAP_MARKER_SIZES.map((each) => (
-          <CheckRow key={each} label={sizeNames[each]} on={markerSize === each} onPick={() => setMarkerSize(each)} />
-        ))}
-      </Group>
-      <Group header={words.pinStyle} radio={words.pinStyle}>
-        {MAP_PIN_STYLES.map((each) => (
-          <CheckRow key={each} label={pinNames[each]} on={pins === each} onPick={() => setPins(each)} />
-        ))}
-      </Group>
+    <Page title={text.settings.mapsMarkers}>
+      <ChoiceRows
+        header={words.marker}
+        radio={words.marker}
+        options={MAP_MARKERS.map((each) => ({ id: each, label: shapes[each] }))}
+        value={marker}
+        onPick={setMarker}
+      />
+      <ChoiceRows
+        header={words.markerSize}
+        radio={words.markerSize}
+        options={MAP_MARKER_SIZES.map((each) => ({ id: each, label: sizes[each] }))}
+        value={markerSize}
+        onPick={setMarkerSize}
+      />
+      <ChoiceRows
+        header={words.pinStyle}
+        radio={words.pinStyle}
+        options={MAP_PIN_STYLES.map((each) => ({ id: each, label: pinNames[each] }))}
+        value={pins}
+        onPick={setPins}
+      />
       <Group>
         <SwitchRow label={words.pinsFuel} on={pinFuel} onToggle={setPinFuel} />
         <SwitchRow label={words.pinsParking} on={pinParking} onToggle={setPinParking} />
         <SwitchRow label={words.pinsService} on={pinService} onToggle={setPinService} />
-      </Group>
-      <Group>
-        <SwitchRow label={words.mapNorth} on={north} onToggle={setNorth} />
-        <SwitchRow label={words.mapLimit} on={limit} onToggle={setLimit} />
-        <SwitchRow label={words.mapOver} on={over} onToggle={setOver} />
-        <SwitchRow label={words.mapCompass} on={compass} onToggle={setCompass} />
-        <SwitchRow label={words.mapScale} on={scale} onToggle={setScale} />
       </Group>
     </Page>
   )
@@ -929,10 +997,16 @@ function EqualizerPage() {
   }, [])
   return (
     <Page title={text.settings.equalizer}>
-      <Group footer={text.settings.equalizerFooter} radio={text.settings.equalizer}>
-        <CheckRow label={text.settings.recommended} on={!custom} onPick={() => choose(false)} />
-        <CheckRow label={text.settings.custom} on={custom} onPick={() => choose(true)} />
-      </Group>
+      <ChoiceRows
+        footer={text.settings.equalizerFooter}
+        radio={text.settings.equalizer}
+        value={custom ? 'custom' : 'recommended'}
+        onPick={(id) => choose(id === 'custom')}
+        options={[
+          { id: 'recommended', label: text.settings.recommended },
+          { id: 'custom', label: text.settings.custom },
+        ]}
+      />
       <Group>
         <TrackRow />
         {/* In a box of its own: the card's separator lines are drawn before its rows, which an svg can't take. */}
@@ -960,6 +1034,36 @@ function CheckRow({ label, on, onPick }: { label: string; on: boolean; onPick: (
         </span>
       )}
     </button>
+  )
+}
+
+/**
+ * A card of choices: one row each, the one in force ticked. Every choice list in the app is drawn here — the
+ * Maps page's ten, the icon styles, the Equalizer's two — so they read, tone and tick alike rather than each
+ * spelling the rows out again.
+ */
+function ChoiceRows<T extends string | number>({
+  header,
+  footer,
+  radio,
+  options,
+  value,
+  onPick,
+}: {
+  header?: string
+  footer?: string
+  radio: string
+  options: readonly { id: T; label: string }[]
+  /** The one in force (`null`: none — the icon style while Android Auto's tiles are chosen). */
+  value: T | null
+  onPick(id: T): void
+}) {
+  return (
+    <Group header={header} footer={footer} radio={radio}>
+      {options.map((option) => (
+        <CheckRow key={option.id} label={option.label} on={value === option.id} onPick={() => onPick(option.id)} />
+      ))}
+    </Group>
   )
 }
 
@@ -1224,7 +1328,8 @@ function Group({
   children,
 }: {
   header?: string
-  footer?: string
+  /** A note under the card, or one per line where the card answers more than one thing (Home's rows). */
+  footer?: string | readonly string[]
   /** The rows are one choice between them (a tick on the one picked): the card is a radio group, named by this. */
   radio?: string
   children: ReactNode
@@ -1235,7 +1340,11 @@ function Group({
       <div className="settings-card" role={radio ? 'radiogroup' : undefined} aria-label={radio}>
         {children}
       </div>
-      {footer && <p className="settings-group-footer">{footer}</p>}
+      {(typeof footer === 'string' ? [footer] : (footer ?? [])).map((line) => (
+        <p key={line} className="settings-group-footer">
+          {line}
+        </p>
+      ))}
     </div>
   )
 }
@@ -1299,5 +1408,87 @@ function SwitchRow({
         <span className="apple-switch-thumb" />
       </span>
     </button>
+  )
+}
+
+/**
+ * A switch's row with the two buttons that move it, where its list can be reordered: the Dashboard's widgets
+ * (only while Auto order is off) and Home's apps. Without a place the row is the plain switch row it always was;
+ * with one, the name and switch stay a single target and the arrows sit beside it, at the row's end.
+ */
+function SwitchOrderRow({
+  label,
+  on,
+  onToggle,
+  place,
+  pin,
+}: {
+  label: string
+  on: boolean
+  onToggle(on: boolean): void
+  /** Where the row stands in its list: the ends can't be moved further. */
+  place?: { first: boolean; last: boolean; onMove(by: number): void }
+  /** The sidebar's pin, where the row has one (Home's apps): a compact toggle beside the switch. */
+  pin?: { pinned: boolean; disabled: boolean; label: string; onToggle(): void }
+}) {
+  if (!place && !pin) return <SwitchRow label={label} on={on} onToggle={onToggle} />
+  return (
+    <div className="settings-row settings-manage">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        className="settings-manage-toggle"
+        onClick={() => onToggle(!on)}
+      >
+        <span className="settings-label">{label}</span>
+        <span className={on ? 'apple-switch on' : 'apple-switch'} aria-hidden>
+          <span className="apple-switch-thumb" />
+        </span>
+      </button>
+      {pin && (
+        <button
+          type="button"
+          aria-pressed={pin.pinned}
+          aria-label={`${pin.label} ${label}`}
+          title={`${pin.label} ${label}`}
+          className="settings-pin"
+          disabled={pin.disabled}
+          onClick={pin.onToggle}
+        >
+          <PinGlyph pinned={pin.pinned} />
+        </button>
+      )}
+      {place && <OrderButtons label={label} first={place.first} last={place.last} onMove={place.onMove} />}
+    </div>
+  )
+}
+
+/** The two buttons that move a row up or down its list: the app's own chevron, turned to point that way. */
+function OrderButtons({
+  label,
+  first,
+  last,
+  onMove,
+}: {
+  label: string
+  first: boolean
+  last: boolean
+  onMove(by: number): void
+}) {
+  const text = useText()
+  return (
+    <span className="settings-order-buttons">
+      <button type="button" aria-label={`${text.settings.moveUp} ${label}`} disabled={first} onClick={() => onMove(-1)}>
+        <span className="settings-move up" aria-hidden>
+          <ChevronGlyph />
+        </span>
+      </button>
+      <button type="button" aria-label={`${text.settings.moveDown} ${label}`} disabled={last} onClick={() => onMove(1)}>
+        <span className="settings-move down" aria-hidden>
+          <ChevronGlyph />
+        </span>
+      </button>
+    </span>
   )
 }

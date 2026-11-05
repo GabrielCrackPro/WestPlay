@@ -60,6 +60,7 @@ import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
+import { PhoneGlyph } from './PhoneGlyph'
 import { JobGlyph } from './JobGlyph'
 import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
 import { HoursTabIcon } from '../apps/diagnostics/tabIcons'
@@ -522,6 +523,9 @@ function Extra({ label, value, state }: { label: string; value: string; state: S
 /** The fuel card's glyph, the weather symbol's size. */
 const GLYPH = 72
 
+/** The phone card's glyph, the driver-hours glyph's size. */
+const PHONE_GLYPH = 56
+
 /**
  * The paired phone, at a glance: whether it is there at all (a dot and its own name), its battery, a call ringing
  * or answered, and the newest notification it posted. On the column even while it is away, since "the phone is not
@@ -543,6 +547,13 @@ export function PhoneWidget() {
   const who = call ? (call.name ?? caller.name ?? call.number ?? caller.number ?? words.unknownCaller) : null
   const callLine = who ? `${call?.state === 'ringing' ? words.ringing : words.inCall} · ${who}` : null
   const news = newest ? [newest.app, newest.title ?? newest.text].filter(Boolean).join(': ') : null
+  // Under the call or the phone's name: the phone it's on, and its battery (only one of them while a call runs).
+  const detail = callLine ? [name, meta].filter(Boolean).join(' · ') : meta
+  // The charge the ring around the status dot shows: only while the phone is on the other end, and only when it
+  // has a level to give — an absent ring says "not known", where an empty one would say "empty".
+  const charge = phone.connected ? device?.battery : undefined
+  // On the charger: a bolt on the dot, so the card says it without a word (its meta says "Charging" too).
+  const charging = phone.connected && device?.charging === true
   return (
     <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-phone' }}>
       {shown && (
@@ -554,14 +565,20 @@ export function PhoneWidget() {
         >
           <div className="phone-widget-text">
             <div className="kicker">{text.apps.phone}</div>
-            <div className="phone-widget-name">
-              <span className={phone.connected ? 'phone-widget-dot on' : 'phone-widget-dot'} aria-hidden="true" />
-              {name}
+            <div className={callLine ? 'phone-widget-primary call' : 'phone-widget-primary'}>
+              <span
+                className={phone.connected ? 'phone-widget-dot on' : 'phone-widget-dot'}
+                data-battery={charge}
+                data-charging={charging ? 'true' : undefined}
+                style={charge === undefined ? undefined : ({ '--battery': String(charge) } as CSSProperties)}
+                aria-hidden="true"
+              />
+              <span className="phone-widget-line">{callLine ?? name}</span>
             </div>
-            {callLine && <div className="phone-widget-call">{callLine}</div>}
-            {meta && <div className="phone-widget-meta">{meta}</div>}
+            {detail && <div className="phone-widget-meta">{detail}</div>}
             {phone.connected && <div className="phone-widget-note">{news ?? words.empty}</div>}
           </div>
+          <PhoneGlyph size={PHONE_GLYPH} />
         </button>
       )}
     </div>
