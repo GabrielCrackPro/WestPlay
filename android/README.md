@@ -4,8 +4,9 @@ The phone side of Cabin Play's Phone app: it keeps a WebSocket to the PC's host 
 notifications, contacts, battery and call state, so the cab can show and dismiss them and dial a contact.
 See `../phone_plan.md` for the whole plan and the protocol.
 
-This is the first slice plus contacts, call state and the call log. It connects, pairs, forwards the phone's
-state, and answers `sync`, `dismiss`, `dial`, `answer` and `end`. SMS and call audio are later phases.
+It connects, pairs, forwards the phone's state, and answers `sync`, `dismiss`, `action`, `dial`, `answer`,
+`end` and `reply`. The cabin side matches a ringing call to the dialer's own notification for the caller's
+name, and can press a notification's buttons or type a reply. SMS and call audio are later phases.
 
 ## Build
 
@@ -45,25 +46,30 @@ The token is kept in the app's private preferences. The PC's host keeps the same
 
 - **No call audio.** Android does not let third-party apps capture or inject cellular call audio. The cab can
   answer, decline and end, but the voice stays on the phone (or a Bluetooth hands-free link).
-- No caller ID, SMS or media control yet. Caller ID on the banner needs a `CallScreeningService` role or
-  another mechanism; the call log's names are whatever Android has cached for the number. Notification
-  replies are supported.
+- No SMS, media control or Bluetooth audio from the cab. Notification replies are supported.
+- **Caller ID depends on the dialer's notification.** The banner takes the name and number from it, matched to
+  the address book, because the link's own call message carries neither on Android 12+. Without that
+  notification there is no name to show, and the call log's names are whatever Android has cached.
 - Dialing opens the phone's own dialer; recent Android may refuse that from a background service.
 - The link is token-gated and private-network-only, not encrypted. Use it on a trusted home network; TLS with
   certificate pinning is a later step. If the phone can't reach the PC, allow Cabin Play through **Windows
   Firewall** on **private** networks and check both are on the same Wi-Fi (a VPN or guest network can isolate
   clients).
-- Notification text is sensitive. **Hide notification content** keeps titles and text on the phone; the cab
-  sees only the app name and the notification's buttons.
-- When the system status bar shows the keep-alive service, the phone link hub carries that invite; the host
-  also forwards passive notifications to other phones so they can start pairing.
-- Bluetooth audio, SMS and call logging are not supported.
+- Notification text is sensitive. **Hide notification content** keeps titles and text on the phone, so the cab
+  sees only the app name and the notification's buttons — and loses the dialer's name for a caller too.
+- The keep-alive notification in the status bar shows the link's state and carries **Reconnect** and
+  **Disconnect**; it stays silent. The Quick Settings tile connects or disconnects in one tap, and a paired
+  phone reconnects by itself after a reboot or a network change.
+- The link reads the call log but never writes to it.
 
 ## Files
 
 - `app/src/main/java/com/cabinplay/bridge/MainActivity.kt` — hosts the screen and owns pairing/permission state.
 - `.../BridgeScreen.kt` — the Compose screen: AMOLED theme, status hero, pairing and access cards.
+- `.../QrScanActivity.kt` — the pairing card's QR scanner (the barcode library's capture screen).
 - `.../LinkService.kt` — foreground service, reconnection and the battery updates.
+- `.../BootReceiver.kt` — starts a paired link again after a reboot.
+- `.../LinkTileService.kt` — the Quick Settings tile that connects or disconnects the link.
 - `.../PhoneLink.kt` — the WebSocket, the JSON protocol and the commands.
 - `.../PhoneHub.kt` — what the notification listener collects, and what the link sends.
 - `.../NotificationListener.kt` — Android's notification listener.

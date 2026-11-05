@@ -9,7 +9,8 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 
-/** A call as Android's telephony state reports it. Android gives no caller number here; caller ID is a later step. */
+/** A call as Android's telephony state reports it. This carries no caller number; the cab names the caller from
+ * the dialer's own notification instead. */
 data class PhoneCall(val id: String, val state: String, val startedAt: Long?)
 
 /**
