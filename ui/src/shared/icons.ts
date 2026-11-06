@@ -19,6 +19,7 @@ export type AppIconRole =
   | 'podcasts'
   | 'messages'
   | 'phone'
+  | 'whatsapp'
   | 'settings'
   | 'weather'
   | 'youtube'
@@ -36,6 +37,7 @@ const FILES: Record<AppIconRole, string> = {
   podcasts: 'podcasts',
   messages: 'messages',
   phone: 'phone',
+  whatsapp: 'whatsapp',
   settings: 'settings',
   weather: 'weather',
   youtube: 'youtube',

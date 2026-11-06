@@ -36,6 +36,7 @@ pub mod startup;
 mod typing;
 mod weather;
 mod webview;
+mod whatsapp;
 mod youtube;
 mod youtube_music;
 
@@ -438,6 +439,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut apple_music_state: Option<apple_music::State> = None;
     let (mut apple_music_window_open, mut apple_music_confirming) = (false, false);
     let mut apple_music_playback: Option<String> = None;
+    // WhatsApp's web app, the same way (on a WebView2 profile of its own: the link is the driver's, in the cab's
+    // window, and signing out forgets it alone).
+    let mut whatsapp: Option<whatsapp::WhatsApp> = None;
     // YouTube Music's web player, the same way (on the cabin page's profile, sharing YouTube's sign-in).
     let mut youtube_music: Option<youtube_music::YouTubeMusic> = None;
     let mut youtube_music_state: Option<youtube_music::State> = None;
@@ -653,6 +657,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 if let Some(apple_music) = &apple_music {
                     profiles.push((performance::Profile::AppleMusic, apple_music.view().environment()));
                 }
+                if let Some(whatsapp) = &whatsapp {
+                    profiles.push((performance::Profile::WhatsApp, whatsapp.view().environment()));
+                }
                 let sample = status.game_connected.then(|| performance::Sample {
                     game_frames: plugin.heartbeat.load(Ordering::Relaxed),
                     in_view: status.screen_drawing,
@@ -698,7 +705,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             let _ = webview.post_json(&settings_message(&config.settings.get()));
         }
-        let mouse = pointer.update(&bridge.bridge().plugin.pointer, &webview);
+        // Over WhatsApp's window, the pointer is its page's (under the cabin page's own, where the app cuts it open).
+        let under = whatsapp.as_ref().and_then(whatsapp::WhatsApp::target);
+        let mouse = pointer.update(&bridge.bridge().plugin.pointer, &webview, under);
         cursor.follow(mouse, Instant::now());
         // The player's keybinds pressed in the game: the page acts on each.
         for keybind in Keybind::ALL {
@@ -961,6 +970,11 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         {
                             let _ = youtube.reload();
                         }
+                    }
+                }
+                Some(PageMessage::Whatsapp { command }) => {
+                    if let Some(app) = start_whatsapp(&mut whatsapp, &stage, &config) {
+                        let _ = app.command(&command);
                     }
                 }
                 Some(PageMessage::Phone { command }) => {
@@ -1403,6 +1417,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
         }
 
+        // WhatsApp's page runs on while the game does: closed with it, as the players are.
+        if players_closing && let Some(open) = whatsapp.take() {
+            log!("[whatsapp] closed with the game");
+            open.close(&stage);
+        }
+
         // What YouTube Music's page says, and its sign-in window, for the page; its WebView failing closes it.
         if let Some(player) = &youtube_music {
             if player.failed() || players_closing {
@@ -1485,7 +1505,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         let typing_block = &bridge.bridge().typing;
         let typed: Vec<u32> = std::iter::from_fn(|| typing_block.keys.pop()).collect();
         if let Some(message) = typing::typed_message(&typed, typing::clipboard_text) {
-            let _ = webview.post_json(&message);
+            // WhatsApp open: its page takes the keys (its message box is where the cursor was put), as a browser's
+            // would. Closed, they're the cabin page's own fields.
+            match whatsapp.as_ref().filter(|whatsapp| whatsapp.target().is_some()) {
+                Some(open) => {
+                    if let Err(e) = open.type_message(&message) {
+                        log!("[whatsapp] typing didn't reach the page: {e}");
+                    }
+                }
+                None => {
+                    let _ = webview.post_json(&message);
+                }
+            }
         }
         let state = westplay_shared::TypingState::from_code(typing_block.state.load(Ordering::Acquire));
         if typing_state != Some(state) {
@@ -2030,6 +2061,26 @@ fn start_youtube_music<'a>(
     youtube_music.as_ref()
 }
 
+/// WhatsApp's web app, started as the page first shows it (on a WebView2 profile of its own: the link is the
+/// driver's, and signing out forgets nothing else), or `None` if it couldn't start.
+fn start_whatsapp<'a>(
+    whatsapp: &'a mut Option<whatsapp::WhatsApp>,
+    stage: &Stage,
+    config: &Config,
+) -> Option<&'a whatsapp::WhatsApp> {
+    if whatsapp.is_none() {
+        let user_data = config.data_dir.join("webview2-whatsapp");
+        match whatsapp::WhatsApp::start(stage, config.width, config.height, &user_data) {
+            Ok(started) => {
+                log!("[whatsapp] opened");
+                *whatsapp = Some(started)
+            }
+            Err(e) => startup::mark(&format!("host: WhatsApp couldn't start: {e}")),
+        }
+    }
+    whatsapp.as_ref()
+}
+
 /// Spotify's web player, started as the page first shows it (on a WebView2 profile of its own: signing out
 /// of Spotify forgets nothing else), or `None` if it couldn't start.
 fn start_spotify<'a>(
@@ -2152,6 +2203,9 @@ enum PageMessage {
     AppleMusic { command: apple_music::Command },
     /// A command for YouTube Music's web player (`youtubeMusic`): its sign-in, a question, its controls.
     YoutubeMusic { command: youtube_music::Command },
+    /// A command for WhatsApp's web app (`whatsapp`): show it where the app cuts its window open, hide it, load
+    /// it again, or forget the link.
+    Whatsapp { command: whatsapp::Command },
     /// A command for the paired phone (`phone`): dismiss a notification, dial, answer or end a call.
     Phone { command: westplay_link::Command },
     /// The text field selected on the page, a number that changes with every selection (0: none), for the

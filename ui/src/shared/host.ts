@@ -559,6 +559,8 @@ export type PageMessage =
   | { type: 'appleMusic'; command: AppleMusicCommand }
   /** A command for YouTube Music's web player (`westplay_host::youtube_music::Command`). */
   | { type: 'youtubeMusic'; command: YouTubeMusicCommand }
+  /** A command for WhatsApp's web app (`westplay_host::whatsapp::Command`). */
+  | { type: 'whatsapp'; command: WhatsAppCommand }
   /** A command for the paired phone (`westplay_link::Command`): sync, dismiss a notification, dial, answer or
    * end a call. */
   | { type: 'phone'; command: PhoneCommand }
@@ -917,6 +919,20 @@ export type YouTubeMusicCommand =
   /** The music video's picture placed at this rectangle of the frame (pixels), under the page; or none. */
   | { action: 'show'; x: number; y: number; width: number; height: number }
   | { action: 'hide' }
+
+/**
+ * What the WhatsApp app asks of WhatsApp's web app (`westplay_host::whatsapp::Command`): the page is WhatsApp's
+ * own, so the app places it where its window is cut open, hides it, loads it again, or forgets the link. Text and
+ * keys typed while it's open are the host's (`typing`), sent to the page as a browser's own.
+ */
+export type WhatsAppCommand =
+  | { action: 'start' }
+  /** The page at this rectangle of the frame (pixels), under the app's window. */
+  | { action: 'show'; x: number; y: number; width: number; height: number }
+  | { action: 'hide' }
+  | { action: 'reload' }
+  /** Forget the link (the page's profile and its storage): a QR to scan again. */
+  | { action: 'signOut' }
 
 export type YouTubeMusicRepeat = 'off' | 'all' | 'one'
 export type YouTubeMusicRating = 'like' | 'dislike' | 'none'

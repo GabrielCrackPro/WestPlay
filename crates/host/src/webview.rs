@@ -384,6 +384,31 @@ impl OffscreenWebView {
         unsafe { self.controller.SetBounds(RECT { left: 0, top: 0, right: width as i32, bottom: height as i32 }) }
     }
 
+    /// Gives the keyboard to the page: what's focused in it (a message box) takes the keys sent after (a click
+    /// on the page does it too; a page under the cabin page is never the window's focus by itself).
+    pub fn focus(&self) -> windows::core::Result<()> {
+        use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC;
+        // SAFETY: the controller is alive as long as `self`; the reason is a plain value.
+        unsafe { self.controller.MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC) }
+    }
+
+    /// A DevTools protocol method in the page (`Input.insertText`, `Input.dispatchKeyEvent`): the browser's own
+    /// input, for a page whose fields WestPlay doesn't write itself.
+    pub fn call_devtools(&self, method: &str, params: &serde_json::Value) -> Result<(), Error> {
+        use webview2_com::CallDevToolsProtocolMethodCompletedHandler;
+        let webview = self.webview.clone();
+        let (method, params) = (HSTRING::from(method), HSTRING::from(params.to_string()));
+        Ok(CallDevToolsProtocolMethodCompletedHandler::wait_for_async_operation(
+            // SAFETY: the strings live through the call; the handler is kept alive until WebView2 calls it.
+            Box::new(move |handler| unsafe {
+                webview
+                    .CallDevToolsProtocolMethod(&method, &params, &handler)
+                    .map_err(webview2_com::Error::WindowsError)
+            }),
+            Box::new(|error, _json| error),
+        )?)
+    }
+
     /// The page laid out large, in the shape of the rectangle `x, y, width, height` of the stage and as big
     /// as fits in `room` (width, height), its picture shrunk evenly into the rectangle: a small view of a
     /// page that stays large (a video there keeps its quality, and its shape: it's contained in the page).

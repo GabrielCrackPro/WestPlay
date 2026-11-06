@@ -8,6 +8,7 @@ import { textScale } from '../state/textSize'
 import { Player } from '../apps/youtube/Player'
 import { type Hole, useYouTube } from '../apps/youtube/youtube'
 import { useYouTubeMusic } from '../apps/youtubeMusic/youtubeMusic'
+import { useWhatsApp } from '../apps/whatsapp/whatsapp'
 import { Keyboard } from '../keyboard/Keyboard'
 import { useCabin, useLive } from '../state/store'
 import { Sidebar } from './Sidebar'
@@ -78,7 +79,9 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
   // YouTube Music's music video in its Now Playing, the same way.
   const youtubeHole = useYouTube((state) => state.hole)
   const musicHole = useYouTubeMusic((state) => state.hole)
-  const hole = youtubeHole ?? musicHole
+  // WhatsApp's own page, filling its window (apps/whatsapp): the whole window is the hole.
+  const whatsappHole = useWhatsApp((state) => state.hole)
+  const hole = youtubeHole ?? musicHole ?? whatsappHole
   // Over a video full screen, pointing at the left edge brings the sidebar back (shell/sidebarPeek.ts).
   const carplay = useRef<HTMLDivElement>(null)
   const peek = useSidebarPeek(watching, carplay)

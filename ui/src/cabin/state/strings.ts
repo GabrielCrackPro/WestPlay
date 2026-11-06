@@ -771,6 +771,11 @@ export interface Strings {
     delete: string
     deleteHold: string
   }
+  /** The WhatsApp app: WhatsApp's own page in the cab's window. */
+  whatsappApp: {
+    /** In a plain browser, where the page can't show. */
+    preview: string
+  }
   /** The Radio app: the stations of the game's own radio list, by genre, and what plays. */
   radioApp: {
     /** How many stations the list has. */
@@ -1563,6 +1568,9 @@ const ENGLISH_STRINGS: Strings = {
     addFavourite: 'Add to favourites',
     removeFavourite: 'Remove from favourites',
   },
+  whatsappApp: {
+    preview: 'This window shows WhatsApp’s own page, inside the game.',
+  },
   apps: {
     maps: 'Maps',
     music: 'Music',
@@ -1572,6 +1580,7 @@ const ENGLISH_STRINGS: Strings = {
     youtubeMusic: 'YouTube Music',
     podcasts: 'Podcasts',
     phone: 'Phone',
+    whatsapp: 'WhatsApp',
     messages: 'Messages',
     weather: 'Weather',
     settings: 'Settings',
@@ -2336,6 +2345,9 @@ const TURKISH_STRINGS: Strings = {
     addFavourite: 'Favorilere ekle',
     removeFavourite: 'Favorilerden çıkar',
   },
+  whatsappApp: {
+    preview: 'Bu pencere WhatsApp’ın kendi sayfasını oyunun içinde gösterir.',
+  },
   apps: {
     maps: 'Haritalar',
     music: 'Müzik',
@@ -2345,6 +2357,7 @@ const TURKISH_STRINGS: Strings = {
     youtubeMusic: 'YouTube Music',
     podcasts: 'Podcast’ler',
     phone: 'Telefon',
+    whatsapp: 'WhatsApp',
     messages: 'Mesajlar',
     weather: 'Hava Durumu',
     settings: 'Ayarlar',
@@ -3121,6 +3134,9 @@ const SPANISH_STRINGS: Strings = {
     addFavourite: 'Añadir a favoritas',
     removeFavourite: 'Quitar de favoritas',
   },
+  whatsappApp: {
+    preview: 'Esta ventana muestra la página de WhatsApp dentro del juego.',
+  },
   apps: {
     maps: 'Mapas',
     music: 'Música',
@@ -3130,6 +3146,7 @@ const SPANISH_STRINGS: Strings = {
     youtubeMusic: 'YouTube Music',
     podcasts: 'Pódcasts',
     phone: 'Teléfono',
+    whatsapp: 'WhatsApp',
     messages: 'Mensajes',
     weather: 'Tiempo',
     settings: 'Ajustes',

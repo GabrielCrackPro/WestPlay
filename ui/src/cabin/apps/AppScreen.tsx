@@ -15,6 +15,7 @@ import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
 import { YouTubeMusicApp } from './youtubeMusic/YouTubeMusicApp'
 import { WeatherApp } from './weather/WeatherApp'
+import { WhatsAppApp } from './whatsapp/WhatsAppApp'
 import { YouTubeApp } from './youtube/YouTubeApp'
 import './apps.css'
 
@@ -102,6 +103,8 @@ function AppContent({ app }: { app: AppId }) {
       return <NotificationsApp />
     case 'phone':
       return <PhoneApp />
+    case 'whatsapp':
+      return <WhatsAppApp />
     default:
       return <NotBuiltYet app={app} />
   }

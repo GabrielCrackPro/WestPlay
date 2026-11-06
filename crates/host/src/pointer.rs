@@ -26,6 +26,7 @@ use windows::Win32::Foundation::POINT;
 
 use crate::cursor::Mouse;
 use crate::webview::OffscreenWebView;
+use crate::whatsapp::Rect;
 
 /// Page pixels per mouse count at rest, at sensitivity 1 (the player's sensitivity scales the whole curve).
 const BASE_GAIN: f32 = 1.3;
@@ -64,6 +65,8 @@ pub struct Pointer {
     last_movement: Option<Instant>,
     /// While a button is held and the mouse hasn't dragged yet: how far it has travelled.
     slop_travel: Option<f32>,
+    /// Whether the page under the cabin page had the pointer last (see `update`'s `under`).
+    over: bool,
 }
 
 impl Pointer {
@@ -80,6 +83,7 @@ impl Pointer {
             buttons: 0,
             last_movement: None,
             slop_travel: None,
+            over: false,
         }
     }
 
@@ -99,7 +103,16 @@ impl Pointer {
 
     /// Takes the pointer input the plugin collected since the last call and sends it to the page. Returns the
     /// mouse as it is now, for the cursor drawn.
-    pub fn update(&mut self, block: &PointerBlock, webview: &OffscreenWebView) -> Mouse {
+    ///
+    /// `under` is a page shown under the cabin page at a rectangle of it (WhatsApp): the pointer over that
+    /// rectangle is that page's, at its own pixels, so the driver clicks and scrolls in it as in any page. Each
+    /// page is told when the pointer leaves it for the other.
+    pub fn update(
+        &mut self,
+        block: &PointerBlock,
+        webview: &OffscreenWebView,
+        under: Option<(&OffscreenWebView, Rect)>,
+    ) -> Mouse {
         let active = block.active.load(Ordering::Acquire) == 1;
         let input = Input {
             active,
@@ -111,7 +124,41 @@ impl Pointer {
         let buttons = self.buttons;
         for (kind, data) in self.step(input, Instant::now()) {
             let point = POINT { x: self.x as i32, y: self.y as i32 };
-            let _ = webview.send_mouse(kind, self.virtual_keys(), data, point);
+            let inside = under.is_some_and(|(_, rect)| rect.holds((self.x, self.y)));
+            // The pointer crossed from one page to the other: the one it left is told, so nothing of it stays
+            // hovered or pressed (a button held across the edge is let go above, in `step`).
+            if inside != self.over {
+                let leave = COREWEBVIEW2_MOUSE_EVENT_KIND_LEAVE;
+                match (inside, under) {
+                    (true, Some((page, rect))) => {
+                        let _ = webview.send_mouse(leave, self.virtual_keys(), 0, point);
+                        self.over = true;
+                        let _ = page.send_mouse(kind, self.virtual_keys(), data, rect.local((self.x, self.y)));
+                        if is_press(kind) {
+                            let _ = page.focus();
+                        }
+                    }
+                    (false, Some((page, rect))) => {
+                        let _ = page.send_mouse(leave, self.virtual_keys(), 0, rect.local((self.x, self.y)));
+                        self.over = false;
+                        let _ = webview.send_mouse(kind, self.virtual_keys(), data, point);
+                    }
+                    _ => self.over = false,
+                }
+                continue;
+            }
+            match under {
+                Some((page, rect)) if inside => {
+                    let _ = page.send_mouse(kind, self.virtual_keys(), data, rect.local((self.x, self.y)));
+                    // A press is the page's: what's under it there takes the keyboard (its message box).
+                    if is_press(kind) {
+                        let _ = page.focus();
+                    }
+                }
+                _ => {
+                    let _ = webview.send_mouse(kind, self.virtual_keys(), data, point);
+                }
+            }
         }
         Mouse {
             active: self.active,
@@ -216,6 +263,11 @@ impl Pointer {
 
 const LEFT_DOWN: COREWEBVIEW2_MOUSE_EVENT_KIND = COREWEBVIEW2_MOUSE_EVENT_KIND_LEFT_BUTTON_DOWN;
 const RIGHT_DOWN: COREWEBVIEW2_MOUSE_EVENT_KIND = COREWEBVIEW2_MOUSE_EVENT_KIND_RIGHT_BUTTON_DOWN;
+
+/// Whether `kind` presses a button (the page under the pointer takes the keyboard then).
+fn is_press(kind: COREWEBVIEW2_MOUSE_EVENT_KIND) -> bool {
+    kind == LEFT_DOWN || kind == RIGHT_DOWN
+}
 
 #[cfg(test)]
 mod tests {

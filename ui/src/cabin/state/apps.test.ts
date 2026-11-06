@@ -5,6 +5,7 @@ describe('the apps this release has', () => {
   it('leaves Podcasts and Messages for a later release, keeping Home’s order', () => {
     expect(RELEASED_APP_IDS).toEqual([
       'phone',
+      'whatsapp',
       'maps',
       'music',
       'radio',
@@ -24,6 +25,7 @@ describe('the apps this release has', () => {
     expect(isReleasedApp('phone')).toBe(true)
     expect(isReleasedApp('messages')).toBe(false)
     expect(isReleasedApp('youtubeMusic')).toBe(true)
+    expect(isReleasedApp('whatsapp')).toBe(true)
     expect(isReleasedApp('nonsense')).toBe(false)
   })
 })

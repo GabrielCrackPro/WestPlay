@@ -44,6 +44,7 @@ pub enum Profile {
     Cab,
     Spotify,
     AppleMusic,
+    WhatsApp,
 }
 
 /// What the host knows each second while the game runs.
@@ -244,6 +245,7 @@ fn parts_of(
             let part = match profile {
                 Profile::Spotify => "Spotify",
                 Profile::AppleMusic => "Apple Music",
+                Profile::WhatsApp => "WhatsApp",
                 Profile::Cab => match kind {
                     COREWEBVIEW2_PROCESS_KIND_BROWSER => "browser",
                     COREWEBVIEW2_PROCESS_KIND_GPU => "GPU",

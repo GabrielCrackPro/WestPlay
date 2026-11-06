@@ -92,6 +92,21 @@ export function launchingNow(): boolean {
   return useLaunch.getState().launch !== null
 }
 
+/**
+ * Calls `run` as a launch of `app` starts animating (`open` or `close`), before the screen is snapshotted: what
+ * isn't part of the page (a picture, a page under it) is taken away first, since it can't grow or shrink with
+ * the window. Returns the function that stops it.
+ */
+export function onLaunchStart(app: AppId, direction: 'open' | 'close', run: () => void): () => void {
+  return useLaunch.subscribe((state, before) => {
+    const { launch } = state
+    if (!launch || launch.app !== app || launch.direction !== direction) return
+    // Its phase changing (`from` to `to`) isn't a new launch.
+    if (before?.launch === launch) return
+    run()
+  })
+}
+
 /** Whether this element is the morphing one in the snapshot being prepared (see `carriesLaunch`). */
 export function useCarriesLaunch(app: AppId, role: LaunchRole): boolean {
   return useLaunch((state) => carriesLaunch(state, app, role))

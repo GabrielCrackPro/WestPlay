@@ -1,0 +1,21 @@
+/* WhatsApp's window (WhatsAppApp.tsx): WhatsApp's own page, which the host places at this rectangle and the shell
+   cuts the window open over. Nothing of WestPlay's is drawn over the page. */
+
+/* Where the page shows: the shell's mask cuts exactly this rectangle open, so what's drawn here is never seen. */
+.whatsapp-page {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--panel-radius);
+  background: var(--app-background);
+}
+
+/* In a plain browser there's no page under the window: the room says what it is, and stands empty. */
+.whatsapp-preview {
+  position: absolute;
+  inset: auto 0 40% 0;
+  margin: 0;
+  padding: 0 calc(40px * var(--text-scale, 1));
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  text-align: center;
+}
