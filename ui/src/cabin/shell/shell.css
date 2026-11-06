@@ -388,6 +388,321 @@ body,
   color: var(--text-dim);
 }
 
+/* The paired phone under the clock (Sidebar.tsx), as a head unit keeps its phone beside the time: a receiver with
+   its charge, or the call on it. A status line, not a card (owner 2026-11-06: the chip read as one more panel among
+   the apps, and a phone's model name was cut to nothing at the sidebar's width): no surface of its own, so the
+   clock's corner stays the clock's, and the press that opens the Phone app tints only under the pointer. */
+.shell .sidebar-phone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(7px * var(--sidebar-scale));
+  width: 100%;
+  margin-top: calc(11px * var(--sidebar-scale));
+}
+
+/* Its status, or its call: the way into the Phone app. A pill of the sidebar's own grey, so the line reads at a
+   glance under the clock rather than as a caption in its shadow (owner 2026-11-06: the line was too faint to make
+   out), and the press still tints only the pill. */
+.shell .sidebar-phone-open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--sidebar-scale));
+  max-width: 100%;
+  /* Slim at the sides: the sidebar is a clock's width, and the caller's name is what the pill is for. */
+  padding: calc(7px * var(--sidebar-scale)) calc(8px * var(--sidebar-scale));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.shell .sidebar-phone-open:hover {
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+/* The phone's own name, which the line has no room for: resting the pointer on it (or holding it on a touch screen)
+   names the phone beside the sidebar, as an app's menu does, with the model and the Bridge version under it. It takes
+   no presses of its own. */
+.sidebar-phone-name {
+  position: absolute;
+  left: calc(100% + calc(18px * var(--sidebar-scale)));
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--sidebar-scale));
+  max-width: min(340px, 55vw);
+  padding: calc(7px * var(--sidebar-scale)) calc(12px * var(--sidebar-scale));
+  border-radius: calc(12px * var(--sidebar-scale));
+  color: var(--text);
+  font-size: calc(13px * var(--sidebar-scale));
+  font-weight: 600;
+  line-height: 1.25;
+  translate: 0 -50%;
+  animation: sidebar-phone-name-in 160ms var(--motion-ease) both;
+  pointer-events: none;
+}
+
+/* A line of it, cut with an ellipsis rather than widening the label past the screen's edge. */
+.sidebar-phone-name-title,
+.sidebar-phone-name-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-phone-name-meta {
+  color: var(--text-dim);
+  font-size: calc(11px * var(--sidebar-scale));
+  font-weight: 500;
+}
+
+@keyframes sidebar-phone-name-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+/* The phone itself: a receiver, and its charge beside it, or the word for a phone with no level to give (and for
+   one that isn't there), under it. Sized to be read across the cab, not to be discovered. */
+.sidebar-phone-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2px * var(--sidebar-scale));
+  max-width: 100%;
+  min-width: 0;
+}
+
+.sidebar-phone-signal {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+}
+
+/* Green while the phone is on the other end, the sidebar's own grey while it isn't. */
+.sidebar-phone-mark {
+  flex: none;
+  width: calc(18px * var(--sidebar-scale));
+  height: calc(18px * var(--sidebar-scale));
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  /* A little heavier than the app's own glyph: at this size a hairline stroke disappears. */
+  stroke-width: 2.6;
+}
+
+.sidebar-phone-mark.on {
+  color: var(--apple-green);
+}
+
+.sidebar-phone-state {
+  max-width: 100%;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The charge, as a phone's own status bar draws it: a battery filled to the level, and the percentage beside it. */
+.sidebar-phone-level {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+  color: color-mix(in srgb, var(--text) 92%, transparent);
+  font-size: calc(15px * var(--sidebar-scale));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sidebar-phone-battery {
+  position: relative;
+  flex: none;
+  width: calc(25px * var(--sidebar-scale));
+  height: calc(13px * var(--sidebar-scale));
+  padding: calc(1.4px * var(--sidebar-scale));
+  border: calc(1.4px * var(--sidebar-scale)) solid color-mix(in srgb, var(--text) 62%, transparent);
+  border-radius: calc(4px * var(--sidebar-scale));
+}
+
+/* Its terminal, as a battery has one. */
+.sidebar-phone-battery::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(100% + calc(1.8px * var(--sidebar-scale)));
+  width: calc(2px * var(--sidebar-scale));
+  height: calc(5px * var(--sidebar-scale));
+  translate: 0 -50%;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.sidebar-phone-battery-fill {
+  display: block;
+  width: calc(var(--battery, 0) * 1%);
+  height: 100%;
+  border-radius: calc(1.8px * var(--sidebar-scale));
+  background: var(--text);
+  transition: width 420ms var(--motion-ease);
+}
+
+/* Under a fifth: red, as a phone's own is, the one time the level is worth a colour. */
+.sidebar-phone-battery[data-low] .sidebar-phone-battery-fill {
+  background: var(--apple-red);
+}
+
+/* On the charger: green, with the bolt a phone's own battery shows. */
+.sidebar-phone-battery[data-charging] .sidebar-phone-battery-fill {
+  background: var(--apple-green);
+}
+
+.sidebar-phone-battery[data-charging]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: calc(5px * var(--sidebar-scale));
+  height: calc(7px * var(--sidebar-scale));
+  margin: auto;
+  background: var(--text);
+  clip-path: polygon(58% 0, 10% 58%, 44% 58%, 36% 100%, 90% 42%, 54% 42%);
+}
+
+/* A call takes the status line over: who is on it, and under the name its length, in green (the dot and the words
+   are the state, not a decoration). */
+.sidebar-phone-call {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+  max-width: 100%;
+  min-width: 0;
+  color: var(--apple-green);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sidebar-phone-what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-phone-pulse {
+  position: relative;
+  flex: none;
+  width: calc(7px * var(--sidebar-scale));
+  height: calc(7px * var(--sidebar-scale));
+  border-radius: 50%;
+  background: var(--apple-green);
+}
+
+/* A call ringing is marked on the button that takes it: its halo breathes until the call is answered or dropped,
+   as a phone's own answer key does. The caller's name above it keeps the line's whole width. */
+.shell .sidebar-phone-answer {
+  position: relative;
+}
+
+.shell .sidebar-phone-answer::after {
+  content: '';
+  position: absolute;
+  inset: calc(-2px * var(--sidebar-scale));
+  border: calc(1.5px * var(--sidebar-scale)) solid var(--apple-green);
+  border-radius: 50%;
+  animation: sidebar-phone-ring 1600ms var(--motion-ease) infinite;
+}
+
+@keyframes sidebar-phone-ring {
+  0% {
+    opacity: 0.8;
+    scale: 1;
+  }
+
+  70%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+
+/* Reduce Motion: the ring stays lit at rest rather than spreading, though the call is still marked. */
+html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
+  animation: none;
+  opacity: 0.45;
+  scale: 1.12;
+}
+
+/* While it rings: answer or decline from here, the two buttons a phone's own call shows. */
+.sidebar-phone-buttons {
+  display: flex;
+  gap: calc(9px * var(--sidebar-scale));
+}
+
+.shell .sidebar-phone-answer,
+.shell .sidebar-phone-decline {
+  display: grid;
+  width: calc(32px * var(--sidebar-scale));
+  height: calc(32px * var(--sidebar-scale));
+  border-radius: 50%;
+  color: #fff;
+  place-items: center;
+  transition: filter 140ms var(--motion-ease);
+}
+
+.shell .sidebar-phone-answer {
+  background: var(--apple-green);
+}
+
+.shell .sidebar-phone-decline {
+  background: var(--apple-red);
+}
+
+.shell .sidebar-phone-answer:hover,
+.shell .sidebar-phone-decline:hover {
+  filter: brightness(1.12);
+}
+
+.shell .sidebar-phone-answer:active,
+.shell .sidebar-phone-decline:active {
+  scale: 0.96;
+}
+
+.sidebar-phone-answer .sidebar-phone-glyph,
+.sidebar-phone-decline .sidebar-phone-glyph {
+  width: 56%;
+  height: 56%;
+}
+
+/* The decline's handset, turned down as a phone's own is. */
+.sidebar-phone-decline .sidebar-phone-glyph {
+  rotate: 135deg;
+}
+
+/* Who is on it: the name leads, as a phone's own call screen does, and the length sits under it (the line is too
+   narrow for both without cutting one of them). */
+/* Who is calling: two lines at most, so a longer name wraps instead of being cut to "Mia Fis…" in a rail this
+   narrow. */
+.sidebar-phone-who {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .recent {
   display: flex;
   flex-direction: column;
@@ -642,6 +957,18 @@ body,
 
   .recent {
     gap: 10px;
+  }
+
+  /* A short screen: the phone keeps its line, smaller, so a call's answer and decline still fit under it. */
+  .shell .sidebar-phone {
+    margin-top: 6px;
+    gap: calc(4px * var(--sidebar-scale));
+  }
+
+  .shell .sidebar-phone-answer,
+  .shell .sidebar-phone-decline {
+    width: calc(28px * var(--sidebar-scale));
+    height: calc(28px * var(--sidebar-scale));
   }
 
   .recent img {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { formatTripDistance, formatTripTime } from '../../shared/format'
 import { useLive } from '../state/store'
@@ -8,6 +8,7 @@ import { placesAhead } from './alongRoute'
 import { PlaceRow } from './Destinations'
 import { liveRouteProgress, showNearbyPins } from './liveMap'
 import { usePlacePick } from './placePick'
+import { useMapPanel } from './mapPanel'
 import { usePlaces } from './places'
 import { figuresOf, headroomOf, hoursState, stopsOf, type Headroom } from './stopsPlan'
 import './maps.css'
@@ -22,7 +23,9 @@ import './maps.css'
  */
 export function StopsPage() {
   const text = useText()
-  const [open, setOpen] = useState(false)
+  // One panel over the map at a time: the search opening puts this page away (MapSearch.tsx, mapPanel.ts).
+  const open = useMapPanel((state) => state.open === 'stops')
+  const show = useMapPanel((state) => state.show)
   const places = usePlaces()
   const onRoute = useLive((state) => state.route !== null)
   // The figures the page shows, redrawn as the truck moves a step or the clocks turn rather than every frame.
@@ -42,13 +45,20 @@ export function StopsPage() {
   useEffect(() => {
     if (!open) return
     const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') show(null)
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
-  }, [open])
+  }, [open, show])
+  // Leaving the app with the page open: the map has no panel (and its button comes back).
+  useEffect(
+    () => () => {
+      if (useMapPanel.getState().open === 'stops') useMapPanel.getState().show(null)
+    },
+    [],
+  )
 
-  const toggle = () => setOpen((shown) => !shown)
+  const toggle = () => show(open ? null : 'stops')
   return (
     <>
       <button
@@ -64,7 +74,7 @@ export function StopsPage() {
         <div className="map-search map-stops-page glass" role="dialog" aria-label={text.destinations.stops}>
           <div className="map-search-top">
             <h2 className="map-stops-title">{text.destinations.stops}</h2>
-            <button type="button" className="map-search-close" aria-label={text.close} onClick={() => setOpen(false)}>
+            <button type="button" className="map-search-close" aria-label={text.close} onClick={() => show(null)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m7 7 10 10M17 7 7 17" />
               </svg>
@@ -87,7 +97,7 @@ export function StopsPage() {
                       along={along}
                       onChoose={(chosen) => {
                         usePlacePick.getState().pick(chosen)
-                        setOpen(false)
+                        show(null)
                       }}
                     />
                   ))}

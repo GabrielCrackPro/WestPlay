@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
 import { type PhoneCall, type PhoneContact, type PhoneNotification, type PhoneRecent } from '../../../shared/host'
 import { formatRealTime } from '../../../shared/format'
 import { SearchGlyph } from '../../keyboard/glyphs'
@@ -9,16 +9,18 @@ import {
   contactsMatching,
   favouritesFirst,
   initialsOf,
+  type PhoneTab,
   recentsMatching,
   recentWho,
   sendPhoneCommand,
+  takeWantedPhoneTab,
   useCaller,
   usePhone,
   usePhoneFailure,
   usePhonePrefs,
   visibleNotifications,
 } from './phone'
-import { ContactsTabIcon, KeypadTabIcon, NotificationsTabIcon, RecentsTabIcon } from './tabIcons'
+import { ContactsTabIcon, KeypadTabIcon, NotificationsTabIcon, OverviewTabIcon, RecentsTabIcon } from './tabIcons'
 import '../../shell/appTabs.css'
 import './phoneApp.css'
 
@@ -27,20 +29,24 @@ const CONTACT_FIELD = 'phone-contact-search'
 /** The call-log search's id, apart from the contact search's. */
 const RECENT_FIELD = 'phone-recent-search'
 
-/** The app's pages: the phone's call log, its address book, a keypad, and its notifications. */
-const TABS = ['recents', 'contacts', 'keypad', 'notifications'] as const
-type Tab = (typeof TABS)[number]
+/** The app's pages: what the phone has waiting, its call log, its address book, a keypad, and its notifications. */
+const TABS: readonly PhoneTab[] = ['overview', 'recents', 'contacts', 'keypad', 'notifications']
 
 /** Each page's tab icon (tabIcons.tsx). */
 const TAB_ICONS = {
+  overview: <OverviewTabIcon />,
   recents: <RecentsTabIcon />,
   contacts: <ContactsTabIcon />,
   keypad: <KeypadTabIcon />,
   notifications: <NotificationsTabIcon />,
-} satisfies Record<Tab, ReactNode>
+} satisfies Record<PhoneTab, ReactNode>
 
 /** The keypad's keys, in the phone's own order. */
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
+
+/** How many notifications and calls the overview lists before sending the driver to the page with them all. */
+const OVERVIEW_NOTES = 2
+const OVERVIEW_CALLS = 3
 
 /** How long the keypad's Delete has to be held before it clears the whole number. */
 const LONG_PRESS = 550
@@ -88,7 +94,9 @@ export function PhoneApp() {
   const favouriteContacts = usePhonePrefs((state) => state.favourites)
   const toggleMute = usePhonePrefs((state) => state.toggleMute)
   const toggleFavourite = usePhonePrefs((state) => state.toggleFavourite)
-  const [tab, setTab] = useState<Tab>('recents')
+  // A notification's button opens the app on its list (shell/Notifications.tsx asks for it): the first page is
+  // that, when one was asked for, and the overview otherwise.
+  const [tab, setTab] = useState<PhoneTab>(() => takeWantedPhoneTab() ?? 'overview')
   const [query, setQuery] = useState('')
   const [recentQuery, setRecentQuery] = useState('')
   // The keypad's number, as typed: the phone's own dialer takes it when the dial sheet is confirmed.
@@ -221,10 +229,27 @@ export function PhoneApp() {
   }
   const shown = favouritesFirst(contactsMatching(contacts, query), favouriteContacts)
   const shownRecents = recentsMatching(recents, recentQuery)
-  const visible = visibleNotifications(notifications, muted)
+  const missed = recents.filter((recent) => recent.kind === 'missed')
+  // Dismissed here, and the phone hasn't said so yet: the row goes at once, as it would on the phone, rather than
+  // waiting for the link's round trip. The phone's list is the truth — its next snapshot is what the list is drawn
+  // from — and a dismissal it can't do is the host's failure to say (`phoneError`, shown over the page).
+  const [dismissed, setDismissed] = useState<string[]>([])
+  const dismissNote = (id: string) => {
+    sendPhoneCommand({ action: 'dismiss', id })
+    // The ids are kept only as long as the list is (a phone's notification id doesn't come back once it has gone).
+    setDismissed((kept) => (kept.includes(id) ? kept : [...kept.slice(-49), id]))
+  }
+  const visible = visibleNotifications(notifications, muted).filter(
+    (notification) => !dismissed.includes(notification.id),
+  )
+  // The page's own cards: one per app that has something waiting, its notifications inside, each group where its
+  // newest one was. A card's own state is whether it's folded to that newest one.
+  const groups = groupNotes(visible)
+  const [openGroups, setOpenGroups] = useState<string[]>([])
   // The lists are on their way as the app opens: empty before the phone's first snapshot is "not here yet".
   const syncing = phone.connected && !phone.ready
-  const tabs: Record<Tab, { label: string; count: number }> = {
+  const tabs: Record<PhoneTab, { label: string; count: number }> = {
+    overview: { label: words.overview, count: 0 },
     recents: { label: words.recents, count: recents.length },
     contacts: { label: words.contacts, count: contacts.length },
     keypad: { label: words.keypad, count: 0 },
@@ -310,6 +335,100 @@ export function PhoneApp() {
           </div>
 
           <div className="phone-panel" role="tabpanel" id={`phone-panel-${tab}`} aria-labelledby={`phone-tab-${tab}`}>
+            {tab === 'overview' && (
+              <section className="phone-overview" aria-label={words.overview}>
+                {syncing ? (
+                  <Syncing text={words.syncing} />
+                ) : (
+                  <>
+                    <div className="phone-figures">
+                      <button type="button" className="phone-figure" onClick={() => setTab('notifications')}>
+                        <span className="phone-figure-icon" aria-hidden>
+                          <NotificationsTabIcon />
+                        </span>
+                        <span className="phone-figure-value">{visible.length}</span>
+                        <span className="phone-figure-label">{words.notifications}</span>
+                      </button>
+                      <button type="button" className="phone-figure" onClick={() => setTab('recents')}>
+                        <span className="phone-figure-icon" aria-hidden>
+                          <Receiver />
+                        </span>
+                        <span className="phone-figure-value">{missed.length}</span>
+                        <span className="phone-figure-label">{words.missedCalls}</span>
+                      </button>
+                      <button type="button" className="phone-figure" onClick={() => setTab('contacts')}>
+                        <span className="phone-figure-icon" aria-hidden>
+                          <ContactsTabIcon />
+                        </span>
+                        <span className="phone-figure-value">{contacts.length}</span>
+                        <span className="phone-figure-label">{words.contacts}</span>
+                      </button>
+                    </div>
+
+                    <section className="phone-block" aria-label={words.latestNotifications}>
+                      <header className="phone-block-head">
+                        <h2>{words.latestNotifications}</h2>
+                        {visible.length > OVERVIEW_NOTES && (
+                          <button type="button" className="phone-block-more" onClick={() => setTab('notifications')}>
+                            {words.seeAll}
+                            <span aria-hidden>›</span>
+                          </button>
+                        )}
+                      </header>
+                      {visible.length === 0 ? (
+                        <p className="phone-block-empty">{words.nothingNew}</p>
+                      ) : (
+                        <ul className="phone-block-list">
+                          {visible.slice(0, OVERVIEW_NOTES).map((notification) => (
+                            <li key={notification.id}>
+                              <button type="button" className="phone-block-row" onClick={() => setTab('notifications')}>
+                                <span className="phone-note-app">{notification.app}</span>
+                                <span className="phone-block-title">
+                                  {notification.title ?? notification.text ?? notification.app}
+                                </span>
+                                {notification.title && notification.text && (
+                                  <span className="phone-block-text">{notification.text}</span>
+                                )}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+
+                    {recents.length > 0 && (
+                      <section className="phone-block" aria-label={words.recentCalls}>
+                        <header className="phone-block-head">
+                          <h2>{words.recentCalls}</h2>
+                          {recents.length > OVERVIEW_CALLS && (
+                            <button type="button" className="phone-block-more" onClick={() => setTab('recents')}>
+                              {words.seeAll}
+                              <span aria-hidden>›</span>
+                            </button>
+                          )}
+                        </header>
+                        <ol className="phone-contact-list">
+                          {recents.slice(0, OVERVIEW_CALLS).map((recent) => (
+                            <RecentRow
+                              key={recent.id}
+                              recent={recent}
+                              kind={words[recent.kind === 'other' ? 'otherCall' : recent.kind]}
+                              callBack={words.callBack}
+                              unknownCaller={words.unknownCaller}
+                              duration={words.duration}
+                              connected={phone.connected}
+                              contact={contactFor(contacts, recent.number)}
+                              onDial={askDial}
+                            />
+                          ))}
+                        </ol>
+                      </section>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
             {tab === 'recents' && (
               <section className="phone-recents" aria-label={words.recents}>
                 <header className="phone-recents-head">
@@ -338,19 +457,19 @@ export function PhoneApp() {
                     </div>
                     {shownRecents.length === 0 && <p className="phone-no-match">{words.noMatches}</p>}
                     <ol className="phone-contact-list">
-                    {shownRecents.map((recent) => (
-                      <RecentRow
-                        key={recent.id}
-                        recent={recent}
-                        kind={words[recent.kind === 'other' ? 'otherCall' : recent.kind]}
-                        callBack={words.callBack}
-                        unknownCaller={words.unknownCaller}
-                        duration={words.duration}
-                        connected={phone.connected}
-                        contact={contactFor(contacts, recent.number)}
-                        onDial={askDial}
-                      />
-                    ))}
+                      {shownRecents.map((recent) => (
+                        <RecentRow
+                          key={recent.id}
+                          recent={recent}
+                          kind={words[recent.kind === 'other' ? 'otherCall' : recent.kind]}
+                          callBack={words.callBack}
+                          unknownCaller={words.unknownCaller}
+                          duration={words.duration}
+                          connected={phone.connected}
+                          contact={contactFor(contacts, recent.number)}
+                          onDial={askDial}
+                        />
+                      ))}
                     </ol>
                   </>
                 )}
@@ -409,64 +528,66 @@ export function PhoneApp() {
 
             {tab === 'keypad' && (
               <section className="phone-keypad" aria-label={words.keypad}>
-                <div className="phone-keypad-display">
-                  <output
-                    className={number ? 'phone-keypad-number' : 'phone-keypad-number empty'}
-                    aria-live="polite"
-                    aria-label={words.keypad}
-                  >
-                    {number || words.keypadHint}
-                  </output>
-                </div>
-                <div className="phone-keypad-keys">
-                  {KEYS.map((key) => (
+                <div className="phone-keypad-card">
+                  <div className="phone-keypad-side">
+                    <div className="phone-keypad-display">
+                      <output
+                        className={number ? 'phone-keypad-number' : 'phone-keypad-number empty'}
+                        aria-live="polite"
+                        aria-label={words.keypad}
+                      >
+                        {number || words.keypadHint}
+                      </output>
+                      <button
+                        type="button"
+                        className="phone-keypad-delete"
+                        aria-label={words.deleteHold}
+                        title={words.deleteHold}
+                        disabled={!number}
+                        onClick={() => setNumber((typed) => typed.slice(0, -1))}
+                        onPointerDown={startHold}
+                        onPointerUp={endHold}
+                        onPointerLeave={endHold}
+                        onPointerCancel={endHold}
+                      >
+                        <Backspace />
+                      </button>
+                    </div>
                     <button
-                      key={key}
                       type="button"
-                      className="phone-keypad-key"
-                      aria-label={key === '0' ? words.holdPlus : undefined}
-                      title={key === '0' ? words.holdPlus : undefined}
-                      onClick={() => {
-                        // The hold already typed its +: the click that follows it types nothing.
-                        if (key === '0' && typedPlus.current) {
-                          typedPlus.current = false
-                          return
-                        }
-                        setNumber((typed) => typed + key)
-                      }}
-                      onPointerDown={key === '0' ? startPlus : undefined}
-                      onPointerUp={key === '0' ? endPlus : undefined}
-                      onPointerLeave={key === '0' ? endPlus : undefined}
-                      onPointerCancel={key === '0' ? endPlus : undefined}
+                      className="phone-keypad-call"
+                      disabled={!phone.connected || !number}
+                      onClick={() => askDial(number, [number])}
                     >
-                      {key}
+                      <Receiver />
+                      {words.call}
                     </button>
-                  ))}
-                </div>
-                <div className="phone-keypad-actions">
-                  <button
-                    type="button"
-                    className="phone-keypad-delete"
-                    aria-label={words.deleteHold}
-                    title={words.deleteHold}
-                    disabled={!number}
-                    onClick={() => setNumber((typed) => typed.slice(0, -1))}
-                    onPointerDown={startHold}
-                    onPointerUp={endHold}
-                    onPointerLeave={endHold}
-                    onPointerCancel={endHold}
-                  >
-                    <Backspace />
-                  </button>
-                  <button
-                    type="button"
-                    className="phone-keypad-call"
-                    disabled={!phone.connected || !number}
-                    onClick={() => askDial(number, [number])}
-                  >
-                    <Receiver />
-                    {words.call}
-                  </button>
+                  </div>
+                  <div className="phone-keypad-keys">
+                    {KEYS.map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className="phone-keypad-key"
+                        aria-label={key === '0' ? words.holdPlus : undefined}
+                        title={key === '0' ? words.holdPlus : undefined}
+                        onClick={() => {
+                          // The hold already typed its +: the click that follows it types nothing.
+                          if (key === '0' && typedPlus.current) {
+                            typedPlus.current = false
+                            return
+                          }
+                          setNumber((typed) => typed + key)
+                        }}
+                        onPointerDown={key === '0' ? startPlus : undefined}
+                        onPointerUp={key === '0' ? endPlus : undefined}
+                        onPointerLeave={key === '0' ? endPlus : undefined}
+                        onPointerCancel={key === '0' ? endPlus : undefined}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </section>
             )}
@@ -475,7 +596,17 @@ export function PhoneApp() {
               <section className="phone-notes" aria-label={words.notifications}>
                 <header className="phone-notes-head">
                   <h2>{words.notifications}</h2>
-                  <span className="phone-notes-count">{words.summary(visible.length)}</span>
+                  <span className="phone-notes-right">
+                    <span className="phone-notes-count">{words.summary(visible.length)}</span>
+                    <button
+                      type="button"
+                      className="phone-notes-clear"
+                      onClick={() => visible.forEach((notification) => dismissNote(notification.id))}
+                    >
+                      <Cross />
+                      {words.clearAll}
+                    </button>
+                  </span>
                 </header>
                 {syncing ? (
                   <Syncing text={words.syncing} />
@@ -487,19 +618,67 @@ export function PhoneApp() {
                   </div>
                 ) : (
                   <ol className="phone-list">
-                    {visible.map((notification) => (
-                      <NoteRow
-                        key={notification.id}
-                        notification={notification}
-                        dismiss={words.dismiss}
-                        send={words.send}
-                        cancel={words.cancel}
-                        muted={muted.includes(notification.package)}
-                        mute={words.muteApp}
-                        unmute={words.unmuteApp}
-                        onMute={toggleMute}
-                      />
-                    ))}
+                    {groups.map((group) => {
+                      // An app with more than one waiting shows its newest alone: the rest are a press away.
+                      const open = openGroups.includes(group.package)
+                      return (
+                        <li key={group.package} className="phone-note-group">
+                          <header className="phone-note-group-head">
+                            {/* The phone sends no icon with a notification, so the app's own letter stands in it: a
+                                tile of its own colour, the name beside it. */}
+                            <span
+                              className="phone-note-group-icon"
+                              style={{ '--app-hue': `${hueOf(group.package)}deg` } as CSSProperties}
+                              aria-hidden="true"
+                            >
+                              {group.app.trim().charAt(0).toUpperCase()}
+                            </span>
+                            <span className="phone-note-app">{group.app}</span>
+                            {group.notes.length > 1 && (
+                              <span className="phone-note-group-count" aria-label={words.summary(group.notes.length)}>
+                                {group.notes.length}
+                              </span>
+                            )}
+                            <button type="button" className="phone-note-mute" onClick={() => toggleMute(group.package)}>
+                              {muted.includes(group.package) ? words.unmuteApp : words.muteApp}
+                            </button>
+                            <button
+                              type="button"
+                              className="phone-note-dismiss"
+                              aria-label={`${words.dismiss} ${group.app}`}
+                              onClick={() => group.notes.forEach((notification) => dismissNote(notification.id))}
+                            >
+                              <Cross />
+                              {words.dismiss}
+                            </button>
+                          </header>
+                          {(open ? group.notes : group.notes.slice(0, 1)).map((notification) => (
+                            <NoteRow
+                              key={notification.id}
+                              notification={notification}
+                              dismiss={words.dismiss}
+                              send={words.send}
+                              cancel={words.cancel}
+                              onDismiss={dismissNote}
+                            />
+                          ))}
+                          {group.notes.length > 1 && (
+                            <button
+                              type="button"
+                              className="phone-note-group-toggle"
+                              aria-expanded={open}
+                              onClick={() =>
+                                setOpenGroups((each) =>
+                                  open ? each.filter((id) => id !== group.package) : [...each, group.package],
+                                )
+                              }
+                            >
+                              {open ? words.showFewer : words.showAll(group.notes.length)}
+                            </button>
+                          )}
+                        </li>
+                      )
+                    })}
                   </ol>
                 )}
               </section>
@@ -727,25 +906,48 @@ function ContactRow({
   )
 }
 
-/** One notification: its app and time, its words, its buttons, and its dismissal or reply. */
+/**
+ * An app's tile hue, from its package: the same one every visit, and one that differs between apps rather than being
+ * one of a handful a pair of them could share.
+ */
+function hueOf(packageName: string): number {
+  let sum = 0
+  for (let index = 0; index < packageName.length; index += 1) {
+    sum = (sum + packageName.charCodeAt(index) * (index + 1)) % 10007
+  }
+  return sum % 360
+}
+
+/**
+ * The notifications as the phone's own shade groups them: one card per app, its notifications together, each group
+ * where its newest notification was. A single notification is a group of one, drawn as it always was.
+ */
+function groupNotes(notes: PhoneNotification[]): { package: string; app: string; notes: PhoneNotification[] }[] {
+  const groups: { package: string; app: string; notes: PhoneNotification[] }[] = []
+  for (const note of notes) {
+    const group = groups.find((each) => each.package === note.package)
+    if (group) group.notes.push(note)
+    else groups.push({ package: note.package, app: note.app, notes: [note] })
+  }
+  return groups
+}
+
+/**
+ * One notification inside its app's card: its time, its words, its buttons, and its dismissal or reply. The app's own
+ * name and mute are the card's, not each notification's, since they are the same for all of them.
+ */
 function NoteRow({
   notification,
   dismiss,
   send,
   cancel,
-  muted,
-  mute,
-  unmute,
-  onMute,
+  onDismiss,
 }: {
   notification: PhoneNotification
   dismiss: string
   send: string
   cancel: string
-  muted: boolean
-  mute: string
-  unmute: string
-  onMute(packageName: string): void
+  onDismiss(id: string): void
 }) {
   const time = notification.time !== undefined ? formatRealTime(notification.time * 1000) : null
   const [replying, setReplying] = useState(false)
@@ -760,12 +962,13 @@ function NoteRow({
     setReplying(false)
   }
   return (
-    <li className="phone-note">
-      <div className="phone-note-head">
-        <span className="phone-note-app">{notification.app}</span>
-        {time && <span className="phone-note-time">{time}</span>}
-      </div>
-      {notification.title && <p className="phone-note-title">{notification.title}</p>}
+    <div className="phone-note">
+      {(notification.title || time) && (
+        <div className="phone-note-head">
+          {notification.title && <p className="phone-note-title">{notification.title}</p>}
+          {time && <span className="phone-note-time">{time}</span>}
+        </div>
+      )}
       {notification.text && <p className="phone-note-text">{notification.text}</p>}
       {actions.length > 0 && (
         <div className="phone-note-actions">
@@ -805,21 +1008,17 @@ function NoteRow({
         </div>
       )}
       <div className="phone-note-foot">
-        <button type="button" className="phone-note-mute" onClick={() => onMute(notification.package)}>
-          {muted ? unmute : mute}
+        <button
+          type="button"
+          className="phone-note-dismiss"
+          aria-label={`${dismiss}: ${notification.title ?? notification.app}`}
+          onClick={() => onDismiss(notification.id)}
+        >
+          <Cross />
+          <span>{dismiss}</span>
         </button>
-        {notification.clearable !== false && !notification.ongoing && (
-          <button
-            type="button"
-            className="phone-note-dismiss"
-            aria-label={`${dismiss}: ${notification.title ?? notification.app}`}
-            onClick={() => sendPhoneCommand({ action: 'dismiss', id: notification.id })}
-          >
-            <Cross />
-          </button>
-        )}
       </div>
-    </li>
+    </div>
   )
 }
 

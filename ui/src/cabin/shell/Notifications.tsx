@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { cabClock } from '../../shared/host'
-import { formatGameTime } from '../../shared/format'
+import { cabClock, type PhoneNotification } from '../../shared/host'
+import { formatGameTime, formatRealTime } from '../../shared/format'
+import { sendPhoneCommand, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
+import { NotificationsTabIcon } from '../apps/phone/tabIcons'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { type Note, type NoteAction, useNotes } from './notesShown'
@@ -8,28 +10,61 @@ import { playCue } from '../state/sound'
 import './notifications.css'
 
 /**
- * The game's own warnings and rest clocks, as notes over the app: the volume HUD's shape (a glass pill that
- * comes and goes, nothing to press), stacked under where the volume shows. Each is raised once as it comes on,
- * with the reading it's about, so the cab says what the truck's dash is saying without the driver opening
- * Diagnostics to find out.
+ * The cab's notifications, in one stack at the top of the screen: the game's own warnings and rest clocks (raised
+ * by `useGameAlerts` below), and the paired phone's notifications as they come (`apps/phone/phone.ts` announces
+ * them). Each is a glass card of the same shape — a mark, what it is, what it says, and what it can open — so a
+ * warning and a message are read the same way at the wheel. The phone's list is the Phone app's own drawing, so
+ * nothing repeats over it.
  */
 export function Notifications() {
   const notes = useNotes((state) => state.notes)
   const latest = useNotes((state) => state.history[0])
-  const leaving = useLeaving(notes)
+  const leavingNotes = useLeaving(notes, noteKey)
+  const route = useCabin((state) => state.navigation.route)
+  const handedOver = useCabin((state) => state.truckScreen)
+  const toasts = usePhoneToasts((state) => state.toasts)
+  const dropToast = usePhoneToasts((state) => state.drop)
+  const inPhoneApp = route.kind === 'app' && route.app === 'phone'
+  const phoneNotes = inPhoneApp || handedOver ? NO_TOASTS : toasts
+  const leavingPhone = useLeaving(phoneNotes, toastKey)
   useNoteCue(latest)
   useGameAlerts()
+  const shown = notes.length + leavingNotes.length + phoneNotes.length + leavingPhone.length > 0
   return (
-    <div className={notes.length + leaving.length > 0 ? 'notifications shown' : 'notifications'} aria-live="polite">
+    <div className={shown ? 'notifications shown' : 'notifications'} aria-live="polite">
       {notes.map((note) => (
         <NotePill key={note.key} note={note} />
       ))}
       {/* The ones just taken down, still there to fade out (a note that vanished mid-read is a note missed). */}
-      {leaving.map((note) => (
+      {leavingNotes.map((note) => (
         <NotePill key={`${note.key}:out`} note={note} leaving />
       ))}
+      {/* The phone's: oldest first, so the newest message is the last of them, nearest the app underneath. */}
+      {phoneNotes
+        .slice()
+        .reverse()
+        .map((notification) => (
+          <PhoneCard key={notification.id} notification={notification} onDrop={dropToast} />
+        ))}
+      {leavingPhone
+        .slice()
+        .reverse()
+        .map((notification) => (
+          <PhoneCard key={`${notification.id}:out`} notification={notification} leaving onDrop={dropToast} />
+        ))}
     </div>
   )
+}
+
+const NO_TOASTS: PhoneNotification[] = []
+
+/** A note's key in the stack, and a phone notification's id (both stable for the item they belong to). */
+function noteKey(note: Note): string {
+  return note.key
+}
+
+function toastKey(notification: PhoneNotification): string {
+  return notification.id
 }
 
 /**
@@ -48,7 +83,7 @@ function useNoteCue(note: { id: number; tone: 'warn' | 'alarm' } | undefined): v
 /** How long a note that has gone stays up to fade out, ms (notifications.css' note-out). */
 const NOTE_OUT_MS = 220
 
-/** One note's pill. */
+/** One of the truck's notes: its warning, what it's about, the reading now, and where it can be read in full. */
 function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) {
   const text = useText()
   const words = text.notificationsApp
@@ -95,28 +130,129 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
           </button>
         )}
       </span>
+      {!leaving && (
+        <button
+          type="button"
+          className="notification-close"
+          aria-label={`${words.dismiss}: ${note.title}`}
+          onClick={() => dismiss(note.key)}
+        >
+          <Cross />
+        </button>
+      )}
     </div>
   )
 }
 
 /**
- * The notes that have just gone, kept for a moment so they can be seen out: the store drops one the instant it's
+ * One notification the phone posted: its app, its words, its time, and its own buttons ("Reply", "Mark as read"),
+ * with the way into the Phone app for the rest. A message Android rates high (or an alarm, a call) keeps the
+ * alarm's red; the rest the phone's blue.
+ */
+function PhoneCard({
+  notification,
+  leaving = false,
+  onDrop,
+}: {
+  notification: PhoneNotification
+  leaving?: boolean
+  onDrop(id: string): void
+}) {
+  const text = useText()
+  const words = text.phoneApp
+  // The app opens on its notifications list, where the whole message and its reply are.
+  const open = () => {
+    wantPhoneTab('notifications')
+    go({ type: 'openApp', app: 'phone' })
+  }
+  const time = notification.time !== undefined ? formatRealTime(notification.time * 1000) : null
+  const actions = notification.actions ?? []
+  const urgent =
+    (notification.priority ?? 0) >= 2 || notification.category === 'alarm' || notification.category === 'call'
+  const title = notification.title ?? notification.text ?? notification.app
+  // A title with a line under it: the notification's own two parts. Just one of them is the title.
+  const body = notification.title ? notification.text : undefined
+  return (
+    <div
+      className={`notification phone${urgent ? ' alarm' : ''}${leaving ? ' leaving' : ''}`}
+      aria-hidden={leaving || undefined}
+    >
+      <span className="notification-icon" aria-hidden>
+        <NotificationsTabIcon />
+      </span>
+      <span className="notification-copy">
+        <span className="notification-level">{notification.app}</span>
+        <span className="notification-title">{title}</span>
+        {body && <span className="notification-text">{body}</span>}
+      </span>
+      <span className="notification-side">
+        {time && <span className="notification-detail">{time}</span>}
+        {!leaving && (
+          <button type="button" className="notification-action" onClick={open}>
+            {text.apps.phone}
+            <span aria-hidden>›</span>
+          </button>
+        )}
+      </span>
+      {/* The phone's own buttons. A reply needs words the cab's small card can't take, so it opens the app. */}
+      {!leaving && actions.length > 0 && (
+        <span className="notification-actions">
+          {actions.map((action, index) => (
+            <button
+              key={`${action.label}-${index}`}
+              type="button"
+              className="notification-chip"
+              onClick={() => {
+                if (action.reply) open()
+                else sendPhoneCommand({ action: 'action', id: notification.id, index })
+              }}
+            >
+              {action.label}
+            </button>
+          ))}
+        </span>
+      )}
+      {!leaving && (
+        <button
+          type="button"
+          className="notification-close"
+          aria-label={`${words.dismiss}: ${title}`}
+          onClick={() => onDrop(notification.id)}
+        >
+          <Cross />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** A card's cross. */
+function Cross() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="m6.5 6.5 11 11M17.5 6.5l-11 11" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/**
+ * The items that have just gone, kept for a moment so they can be seen out: the store drops one the instant it's
  * taken down (its timer, a new one pushing it off the stack), and an element that leaves the page can't animate.
  */
-function useLeaving(notes: Note[]): Note[] {
-  const [leaving, setLeaving] = useState<Note[]>([])
-  const shown = useRef<Note[]>(notes)
+function useLeaving<T>(items: T[], keyOf: (item: T) => string): T[] {
+  const [leaving, setLeaving] = useState<T[]>([])
+  const shown = useRef<T[]>(items)
   useEffect(() => {
     const before = shown.current
-    shown.current = notes
-    const gone = before.filter((note) => !notes.some((each) => each.key === note.key))
+    shown.current = items
+    const gone = before.filter((item) => !items.some((each) => keyOf(each) === keyOf(item)))
     if (gone.length === 0) return
-    setLeaving((kept) => [...kept.filter((note) => !gone.some((each) => each.key === note.key)), ...gone])
+    setLeaving((kept) => [...kept.filter((item) => !gone.some((each) => keyOf(each) === keyOf(item))), ...gone])
     const timer = setTimeout(() => {
-      setLeaving((kept) => kept.filter((note) => !gone.some((each) => each.key === note.key)))
+      setLeaving((kept) => kept.filter((item) => !gone.some((each) => keyOf(each) === keyOf(item))))
     }, NOTE_OUT_MS)
     return () => clearTimeout(timer)
-  }, [notes])
+  }, [items, keyOf])
   return leaving
 }
 

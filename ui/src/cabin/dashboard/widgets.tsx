@@ -60,13 +60,11 @@ import { weatherView } from './weather'
 import { WeatherGlyph } from './WeatherGlyph'
 import type { State } from '../apps/diagnostics/readings'
 import { DiagnosticsGlyph } from './DiagnosticsGlyph'
-import { PhoneGlyph } from './PhoneGlyph'
 import { JobGlyph } from './JobGlyph'
 import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
 import { HoursTabIcon } from '../apps/diagnostics/tabIcons'
 import { cabClock } from '../../shared/host'
 import { DriverPortrait } from '../apps/driver/DriverPortrait'
-import { useCaller, usePhone } from '../apps/phone/phone'
 
 /**
  * Now Playing: what plays, the video YouTube plays first (VideoWidget), then the Spotify app's music, then
@@ -523,68 +521,6 @@ function Extra({ label, value, state }: { label: string; value: string; state: S
 /** The fuel card's glyph, the weather symbol's size. */
 const GLYPH = 72
 
-/** The phone card's glyph, the driver-hours glyph's size. */
-const PHONE_GLYPH = 56
-
-/**
- * The paired phone, at a glance: whether it is there at all (a dot and its own name), its battery, a call ringing
- * or answered, and the newest notification it posted. On the column even while it is away, since "the phone is not
- * connected" is itself what a driver wants to see; opening it is the Phone app, where the rest of it is.
- */
-export function PhoneWidget() {
-  const text = useText()
-  const words = text.phoneApp
-  const phone = usePhone()
-  const call = phone.call
-  // Who is on it: the phone's own word for the call, or the name the dialer's notification gave.
-  const caller = useCaller(call?.id)
-  const device = phone.device
-  const newest = phone.notifications[0]
-  const shown = useCabin((state) => state.dashboardWidgets.phone)
-  const name = phone.connected ? (device?.name ?? words.connected) : words.disconnected
-  const battery = device?.battery !== undefined ? words.battery(device.battery) : null
-  const meta = [battery, device?.charging ? words.charging : null].filter(Boolean).join(' · ')
-  const who = call ? (call.name ?? caller.name ?? call.number ?? caller.number ?? words.unknownCaller) : null
-  const callLine = who ? `${call?.state === 'ringing' ? words.ringing : words.inCall} · ${who}` : null
-  const news = newest ? [newest.app, newest.title ?? newest.text].filter(Boolean).join(': ') : null
-  // Under the call or the phone's name: the phone it's on, and its battery (only one of them while a call runs).
-  const detail = callLine ? [name, meta].filter(Boolean).join(' · ') : meta
-  // The charge the ring around the status dot shows: only while the phone is on the other end, and only when it
-  // has a level to give — an absent ring says "not known", where an empty one would say "empty".
-  const charge = phone.connected ? device?.battery : undefined
-  // On the charger: a bolt on the dot, so the card says it without a word (its meta says "Charging" too).
-  const charging = phone.connected && device?.charging === true
-  return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-phone' }}>
-      {shown && (
-        <button
-          type="button"
-          className={`widget glass phone-widget${call?.state === 'ringing' ? ' ringing' : ''}`}
-          aria-label={[text.apps.phone, name, callLine, news].filter(Boolean).join(', ')}
-          onClick={() => go({ type: 'openApp', app: 'phone' })}
-        >
-          <div className="phone-widget-text">
-            <div className="kicker">{text.apps.phone}</div>
-            <div className={callLine ? 'phone-widget-primary call' : 'phone-widget-primary'}>
-              <span
-                className={phone.connected ? 'phone-widget-dot on' : 'phone-widget-dot'}
-                data-battery={charge}
-                data-charging={charging ? 'true' : undefined}
-                style={charge === undefined ? undefined : ({ '--battery': String(charge) } as CSSProperties)}
-                aria-hidden="true"
-              />
-              <span className="phone-widget-line">{callLine ?? name}</span>
-            </div>
-            {detail && <div className="phone-widget-meta">{detail}</div>}
-            {phone.connected && <div className="phone-widget-note">{news ?? words.empty}</div>}
-          </div>
-          <PhoneGlyph size={PHONE_GLYPH} />
-        </button>
-      )}
-    </div>
-  )
-}
-
 /**
  * The weather where the truck is, as CarPlay's weather widget (weather.ts): the nearest city, the weather
  * and its symbol. It comes in only where there's room (widgetState.ts): three widgets fill the column — so the
@@ -606,9 +542,6 @@ export function WeatherWidget() {
     widgets.destination && destination !== EMPTY,
     widgets.driverHours && driverHours !== null,
     widgets.diagnostics && diagnostics !== null,
-    // The phone card is on while the phone is: it says the phone is away rather than folding away, so it fills
-    // a place in the column as the others do.
-    widgets.phone,
   ].filter(Boolean).length
   // Weather is never dropped when the column is full: it comes in tight instead (a smaller card), so a widget the
   // player turned on doesn't disappear without saying why.

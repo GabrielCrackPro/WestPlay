@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 
 /**
- * The Phone app's tab icons, our own drawings: a call log's clock, a contact, the keypad's keys, and a bell for the
- * phone's notifications. Drawn in the tab's colour (shell/appTabs.css), at whatever size the tab's mark is.
+ * The Phone app's tab icons, our own drawings: what the phone has waiting, a call log's clock, a contact, the
+ * keypad's keys, and a bell for the phone's notifications. Drawn in the tab's colour (shell/appTabs.css), at
+ * whatever size the tab's mark is.
  */
 function TabIcon({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +20,18 @@ function TabIcon({ children }: { children: ReactNode }) {
     >
       {children}
     </svg>
+  )
+}
+
+/** Overview: four cards, what the phone has waiting gathered in one place. */
+export function OverviewTabIcon() {
+  return (
+    <TabIcon>
+      <rect x="3.4" y="3.4" width="7.4" height="7.4" rx="2.2" />
+      <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.2" />
+      <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.2" />
+      <rect x="13.2" y="13.2" width="7.4" height="7.4" rx="2.2" />
+    </TabIcon>
   )
 }
 

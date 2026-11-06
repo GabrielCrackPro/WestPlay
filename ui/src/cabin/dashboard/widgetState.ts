@@ -3,7 +3,6 @@ import { useShallow } from 'zustand/react/shallow'
 import type { DashboardWidget } from '../state/store'
 import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } from '../apps/diagnostics/readings'
 import { useMapData } from '../maps/mapData'
-import { usePhone } from '../apps/phone/phone'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { destinationView } from './destination'
@@ -36,13 +35,10 @@ export function useAnyWidget(): boolean {
   const diagnostics = useDiagnosticsView() !== null
   const driverHours = useDriverHoursView() !== null
   const weather = useLive((state) => state.weather !== null)
-  // The phone card shows whether the phone is there at all, so it has something to say either way.
-  const phone = usePhone((state) => state.connected || state.device !== null)
   return (
     (widgets.nowPlaying && loaded) ||
     (widgets.destination && destination) ||
     (widgets.driverHours && driverHours) ||
-    (widgets.phone && phone) ||
     (widgets.diagnostics && diagnostics) ||
     (widgets.weather && weather)
   )
@@ -88,9 +84,6 @@ export function useWidgetOrder(): DashboardWidget[] {
       // A rest or a break within the hour is the next thing the drive needs after a closing deadline.
       driverHours: restDue ? 85 : 15,
       driver: 35,
-      // Between the drive's deadlines and what plays: a call ringing (widgets.tsx) is the one thing worth looking
-      // at over everything else, and that card lifts itself.
-      phone: 30,
       nowPlaying: 10,
       weather: 0,
     }

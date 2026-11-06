@@ -666,6 +666,8 @@ export interface Strings {
     /** The filters above the list: all of it, only the alerts, or only the warnings. */
     all: string
     clear: string
+    /** Taking a note off the screen's stack. */
+    dismiss: string
     /** A filter with none of its tone in the list. */
     none: string
     /** Above the list: how many the list holds (it's kept on this PC, so past drives are in it too). */
@@ -684,9 +686,14 @@ export interface Strings {
     refresh: string
     connected: string
     disconnected: string
+    /** The same, in the sidebar's chip, where a status line has room for a couple of words ("Not connected" is
+     * cut to nothing there). */
+    noPhone: string
     /** While no phone is connected: keep the bridge running on the phone, and where it's paired (the companion
      * window's Setup, never the cab). */
     pairingHint: string
+    /** The Bridge app's own name and its version, under the phone's in the sidebar. */
+    bridge: (version: string) => string
     battery: (level: number) => string
     charging: string
     dismiss: string
@@ -715,10 +722,24 @@ export interface Strings {
     /** A notification's app: hide its future notifications, or show them again. */
     muteApp: string
     unmuteApp: string
+    /** The notifications page's take them all down, for the ones the phone lets it dismiss. */
+    clearAll: string
+    /** An app's card holds its newest notification alone: the one that opens the rest, and the one that closes them. */
+    showAll: (count: number) => string
+    showFewer: string
     /** A contact's star, unpressed and pressed. */
     addFavourite: string
     removeFavourite: string
-    /** The app's first tab: the calls the phone made and took, and how many there are. */
+    /** The app's first tab: what the phone has waiting — its notifications, its missed calls, its address book. */
+    overview: string
+    /** The overview's figures, and its sections: the newest notifications and the last calls. */
+    missedCalls: string
+    latestNotifications: string
+    recentCalls: string
+    seeAll: string
+    /** The overview with nothing from the phone to show. */
+    nothingNew: string
+    /** The calls the phone made and took, and how many there are. */
     recents: string
     recentCount: (count: number) => string
     recentsEmpty: string
@@ -1446,6 +1467,7 @@ const ENGLISH_STRINGS: Strings = {
     warning: 'Warning',
     all: 'All',
     clear: 'Clear',
+    dismiss: 'Dismiss',
     none: 'Nothing here.',
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
     openMaps: 'Open Maps',
@@ -1453,18 +1475,23 @@ const ENGLISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => (count === 1 ? '1 notification' : `${count} notifications`),
-    notifications: 'Phone notifications',
+    notifications: 'Notifications',
     send: 'Send',
     searchRecents: 'Search calls',
     muteApp: 'Mute app',
     unmuteApp: 'Unmute app',
+    clearAll: 'Clear all',
+    showAll: (count) => `Show all ${count}`,
+    showFewer: 'Show fewer',
     addFavourite: 'Add to favourites',
     removeFavourite: 'Remove from favourites',
     empty: 'No notifications from the phone',
+    bridge: (version) => `Bridge ${version}`,
     hint: 'Run Cabin Play Bridge on your Android phone, and turn on its Notification access — a switch of its own in Android’s settings, apart from the app’s permissions. The notifications it posts after that show here.',
     refresh: 'Sync',
     connected: 'Connected',
     disconnected: 'Not connected',
+    noPhone: 'No phone',
     pairingHint:
       'No phone is connected. Keep Cabin Play Bridge running on your Android phone, on the same Wi-Fi; if it has never been paired, Cabin Play’s Setup › Phone shows the code.',
     battery: (level) => `${level}%`,
@@ -1478,6 +1505,12 @@ const ENGLISH_STRINGS: Strings = {
     unknownCaller: 'Unknown caller',
     contacts: 'Contacts',
     contactsHint: 'Allow contact access in Cabin Play Bridge on your phone to see the address book here.',
+    overview: 'Overview',
+    missedCalls: 'Missed calls',
+    latestNotifications: 'Latest',
+    recentCalls: 'Recent calls',
+    seeAll: 'See all',
+    nothingNew: 'Nothing new from the phone',
     recents: 'Recents',
     recentCount: (count) => (count === 1 ? '1 call' : `${count} calls`),
     recentsEmpty: 'No calls yet',
@@ -1543,7 +1576,8 @@ const ENGLISH_STRINGS: Strings = {
     weather: 'Weather',
     settings: 'Settings',
     diagnostics: 'Diagnostics',
-    driver: 'Driver',    notifications: 'Alerts',
+    driver: 'Driver',
+    notifications: 'Alerts',
   },
 
   notBuiltYet: 'Not built yet',
@@ -2207,6 +2241,7 @@ const TURKISH_STRINGS: Strings = {
     warning: 'Uyarı',
     all: 'Tümü',
     clear: 'Temizle',
+    dismiss: 'Kapat',
     none: 'Burada bir şey yok.',
     summary: (count) => `${count} bildirim`,
     openMaps: 'Haritalar’ı Aç',
@@ -2214,18 +2249,23 @@ const TURKISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => `${count} bildirim`,
-    notifications: 'Telefon bildirimleri',
+    notifications: 'Bildirimler',
     send: 'Gönder',
     searchRecents: 'Aramalarda ara',
     muteApp: 'Uygulamayı sessize al',
     unmuteApp: 'Uygulamanın sesini aç',
+    clearAll: 'Tümünü temizle',
+    showAll: (count) => `Tümünü göster (${count})`,
+    showFewer: 'Daha az göster',
     addFavourite: 'Favorilere ekle',
     removeFavourite: 'Favorilerden çıkar',
     empty: 'Telefondan bildirim yok',
+    bridge: (version) => `Bridge ${version}`,
     hint: 'Android telefonunuzda Cabin Play Köprüsü’nü çalıştırın ve Bildirim erişimini açın — uygulamanın izinlerinden ayrı, Android ayarlarındaki kendi anahtarıdır. Bundan sonra gelen bildirimler burada görünür.',
     refresh: 'Eşitle',
     connected: 'Bağlı',
     disconnected: 'Bağlı değil',
+    noPhone: 'Telefon yok',
     pairingHint:
       'Bağlı telefon yok. Cabin Play Köprüsü’nü Android telefonunuzda, aynı Wi-Fi ağında açık tutun; hiç eşleştirmediyseniz Cabin Play’in Kurulum › Telefon bölümü kodu gösterir.',
     battery: (level) => `%${level}`,
@@ -2239,6 +2279,12 @@ const TURKISH_STRINGS: Strings = {
     unknownCaller: 'Bilinmeyen arayan',
     contacts: 'Kişiler',
     contactsHint: 'Telefonunuzdaki Cabin Play Köprüsü’nde kişi erişimine izin verin; adres defteri burada görünsün.',
+    overview: 'Genel bakış',
+    missedCalls: 'Cevapsız aramalar',
+    latestNotifications: 'Son gelenler',
+    recentCalls: 'Son aramalar',
+    seeAll: 'Tümünü gör',
+    nothingNew: 'Telefondan yeni bir şey yok',
     recents: 'Son aramalar',
     recentCount: (count) => `${count} arama`,
     recentsEmpty: 'Henüz arama yok',
@@ -2979,6 +3025,7 @@ const SPANISH_STRINGS: Strings = {
     warning: 'Aviso',
     all: 'Todo',
     clear: 'Borrar',
+    dismiss: 'Descartar',
     none: 'Aquí no hay nada.',
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
     openMaps: 'Abrir Mapas',
@@ -2986,18 +3033,23 @@ const SPANISH_STRINGS: Strings = {
   },
   phoneApp: {
     summary: (count) => (count === 1 ? '1 notificación' : `${count} notificaciones`),
-    notifications: 'Notificaciones del teléfono',
+    notifications: 'Notificaciones',
     send: 'Enviar',
     searchRecents: 'Buscar llamadas',
     muteApp: 'Silenciar app',
     unmuteApp: 'Activar sonido de la app',
+    clearAll: 'Borrar todo',
+    showAll: (count) => `Mostrar todas (${count})`,
+    showFewer: 'Mostrar menos',
     addFavourite: 'Añadir a favoritos',
     removeFavourite: 'Quitar de favoritos',
     empty: 'No hay notificaciones del teléfono',
+    bridge: (version) => `Bridge ${version}`,
     hint: 'Ejecuta Cabin Play Bridge en tu teléfono Android y activa su acceso a notificaciones: es un interruptor aparte en los ajustes de Android, independiente de los permisos de la app. Las notificaciones que publique desde entonces aparecerán aquí.',
     refresh: 'Sincronizar',
     connected: 'Conectado',
     disconnected: 'Sin conexión',
+    noPhone: 'Sin teléfono',
     pairingHint:
       'No hay ningún teléfono conectado. Mantén Cabin Play Bridge abierto en tu teléfono Android, en la misma Wi-Fi; si nunca se ha emparejado, Configuración › Teléfono en Cabin Play tiene el código.',
     battery: (level) => `${level} %`,
@@ -3011,6 +3063,12 @@ const SPANISH_STRINGS: Strings = {
     unknownCaller: 'Llamante desconocido',
     contacts: 'Contactos',
     contactsHint: 'Permite el acceso a contactos en Cabin Play Bridge en tu teléfono para ver la agenda aquí.',
+    overview: 'Resumen',
+    missedCalls: 'Llamadas perdidas',
+    latestNotifications: 'Últimas',
+    recentCalls: 'Llamadas recientes',
+    seeAll: 'Ver todo',
+    nothingNew: 'Nada nuevo del teléfono',
     recents: 'Recientes',
     recentCount: (count) => (count === 1 ? '1 llamada' : `${count} llamadas`),
     recentsEmpty: 'Aún no hay llamadas',

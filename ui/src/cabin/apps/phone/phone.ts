@@ -42,7 +42,9 @@ function storedPrefs(): { muted: string[]; favourites: string[] } {
       favourites: string[]
     }>
     return {
-      muted: Array.isArray(saved.muted) ? saved.muted.filter((value): value is string => typeof value === 'string') : [],
+      muted: Array.isArray(saved.muted)
+        ? saved.muted.filter((value): value is string => typeof value === 'string')
+        : [],
       favourites: Array.isArray(saved.favourites)
         ? saved.favourites.filter((value): value is string => typeof value === 'string')
         : [],
@@ -331,6 +333,34 @@ export function recentsMatching(recents: PhoneRecent[], query: string): PhoneRec
 /** The notifications the driver hasn't muted, in the phone's order. */
 export function visibleNotifications(notifications: PhoneNotification[], muted: string[]): PhoneNotification[] {
   return notifications.filter((notification) => !muted.includes(notification.package))
+}
+
+/**
+ * The phone's notifications that are news, as the count beside its app: the ones it isn't holding ongoing (a player,
+ * a call in progress, which stay until the phone stops them) and none from the apps the driver muted here. A missed
+ * call's notification is news, and stays news until the phone clears it.
+ */
+export function newsCount(notifications: PhoneNotification[], muted: string[]): number {
+  return visibleNotifications(notifications, muted).filter((notification) => !notification.ongoing).length
+}
+
+/** The Phone app's pages: what the phone has waiting, its call log, its address book, a keypad, and its
+ * notifications. */
+export type PhoneTab = 'overview' | 'recents' | 'contacts' | 'keypad' | 'notifications'
+
+/** The page the Phone app was asked to open on (a notification card's button wants its list): kept until it mounts. */
+let wantedTab: PhoneTab | null = null
+
+/** Asks the Phone app to open on `tab` (the notification stack does, before opening it). */
+export function wantPhoneTab(tab: PhoneTab): void {
+  wantedTab = tab
+}
+
+/** The page asked for, taken once: the app reads it as it mounts, and its own tabs go from there. */
+export function takeWantedPhoneTab(): PhoneTab | null {
+  const tab = wantedTab
+  wantedTab = null
+  return tab
 }
 
 /** The contacts with the favourites first, each group keeping the phone's own order. */

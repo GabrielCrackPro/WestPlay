@@ -472,11 +472,36 @@
   scale: 0.88;
 }
 
-/* The page itself: the search panel's own glass, under the buttons so they stay at hand. */
-.map-tile .map-stops-page {
+/* A panel over the map has the top it sits in (MapSearch.tsx, StopsPage.tsx): the Stops button gives way while the
+   search panel is there, on either side, instead of standing over its field. */
+.map-tile:has(.map-search:not(.map-stops-page)) .map-stops-button {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* While the turn-by-turn banner has the map's top left, the button moves beside the search button on the right, as
+   that one does (MapSearch's `guided`). */
+.map-tile:has(.guidance-banner) .map-stops-button {
+  left: auto;
+  right: 100px;
+}
+
+/* The page itself: the search panel's own glass, under the buttons so they stay at hand, and never over the
+   search button beside them. It names both classes because the search panel's own `top` rule is of the same
+   weight, further down this file, and would otherwise win: the page sat over both buttons. */
+.map-tile .map-search.map-stops-page {
   top: 96px;
+  left: 16px;
   width: min(460px, calc(100% - 32px));
   max-height: calc(100% - 112px);
+}
+
+/* While the turn-by-turn banner has the map's top left, the page opens on the right, under the buttons there, as
+   the search panel does (MapSearch's `right` side): on the left it covered the step being driven to. */
+.map-tile:has(.guidance-banner) .map-search.map-stops-page {
+  left: auto;
+  right: 16px;
+  transform-origin: top right;
 }
 
 .map-stops-title {

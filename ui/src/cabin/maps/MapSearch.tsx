@@ -7,6 +7,7 @@ import { useText } from '../state/text'
 import { Destinations } from './Destinations'
 import { guidanceOf } from './guidance'
 import { setPlaceTap } from './liveMap'
+import { useMapPanel } from './mapPanel'
 import { usePlacePick } from './placePick'
 import { usePlaces } from './places'
 import { nearestPlace } from './tapPick'
@@ -27,6 +28,10 @@ const FIELD = 'map-search'
 export function MapSearch() {
   const text = useText()
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed')
+  // Grows from where its button is: the map's top left, or top right beside the turn-by-turn banner. Open, it
+  // stays on that side: Go hands the route to the game, whose route comes, goes and comes back as it takes it
+  // (the hand-over), and the panel jumped from side to side with it (owner 2026-10-21).
+  const [openedRight, setOpenedRight] = useState(false)
   const [query, setQuery] = useState('')
   const [confirmation, setConfirmation] = useState<{ text: string; id: number } | null>(null)
   const typing = useKeyboard((state) => state.field?.id === FIELD)
@@ -51,8 +56,13 @@ export function MapSearch() {
     return () => setPlaceTap(null)
   }, [places])
   useEffect(() => {
-    if (picked) setPhase('open')
-  }, [picked])
+    if (!picked) return
+    // On the side the search button has, away from the turn-by-turn banner; and the Stops page gives way, since one
+    // panel stands over the map at a time (StopsPage.tsx).
+    setOpenedRight(guided)
+    setPhase('open')
+    useMapPanel.getState().show('search')
+  }, [picked, guided])
 
   useEffect(() => {
     if (!confirmation) return
@@ -65,18 +75,25 @@ export function MapSearch() {
     const timer = setTimeout(() => {
       setPhase('closed')
       setQuery('')
+      // Gone from the map only now that it has shrunk away: the Stops button comes back with it (maps.css) rather
+      // than appearing over the panel as it closes.
+      if (useMapPanel.getState().open === 'search') useMapPanel.getState().show(null)
     }, CLOSING_MS)
     return () => clearTimeout(timer)
   }, [phase])
+
+  // Leaving the app with the panel open: the map has no panel (and its Stops button comes back).
+  useEffect(
+    () => () => {
+      if (useMapPanel.getState().open === 'search') useMapPanel.getState().show(null)
+    },
+    [],
+  )
 
   const close = () => {
     useKeyboard.getState().detach(FIELD)
     setPhase('closing')
   }
-  // Grows from where its button is: the map's top left, or top right beside the turn-by-turn banner. Open, it
-  // stays on that side: Go hands the route to the game, whose route comes, goes and comes back as it takes it
-  // (the hand-over), and the panel jumped from side to side with it (owner 2026-10-21).
-  const [openedRight, setOpenedRight] = useState(false)
   const side = openedRight ? ' right' : ''
 
   return (
@@ -119,6 +136,8 @@ export function MapSearch() {
           onClick={() => {
             setOpenedRight(guided)
             setPhase('open')
+            // One panel over the map at a time: the Stops page puts itself away when the search opens (StopsPage.tsx).
+            useMapPanel.getState().show('search')
           }}
         >
           <SearchGlyph />

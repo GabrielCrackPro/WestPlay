@@ -1,37 +1,26 @@
 import { useEffect, useState } from 'react'
 import type { PhoneCall } from '../../shared/host'
-import { sendPhoneCommand, useCaller, usePhone, usePhoneToasts } from '../apps/phone/phone'
+import { sendPhoneCommand, useCaller, usePhone } from '../apps/phone/phone'
 import { go, useCabin } from '../state/store'
 import { useText } from '../state/text'
 import './phoneAlerts.css'
 
 /**
- * The phone over whatever the cab is showing: its call — ringing, and answered or declined from here — and the
- * notifications it posts as they come (apps/phone/phone.ts announces them, each on its own timer). The call and
- * the whole list are the Phone app's own drawing, so nothing is repeated while it's open, or while the truck's own
- * screen is up.
+ * A ringing or answered call over whatever the cab is showing — answered, declined or ended from here, from any
+ * app. The phone's notifications are the notification stack's (shell/Notifications.tsx), and its whole list is the
+ * Phone app's own drawing, so nothing is repeated while that app is open, or while the truck's own screen is up.
  */
 export function PhoneAlerts() {
   const phone = usePhone()
-  const toasts = usePhoneToasts((state) => state.toasts)
-  const drop = usePhoneToasts((state) => state.drop)
   const route = useCabin((state) => state.navigation.route)
   const handedOver = useCabin((state) => state.truckScreen)
-  const words = useText().phoneApp
   const call = phone.call
   const seconds = useCallSeconds(call)
   const inPhoneApp = route.kind === 'app' && route.app === 'phone'
-  if (inPhoneApp || handedOver) return null
+  if (inPhoneApp || handedOver || !call) return null
   return (
     <div className="phone-alerts">
-      {call && <CallAlert call={call} seconds={seconds} />}
-      {toasts.length > 0 && (
-        <div className="phone-toasts" aria-live="polite">
-          {toasts.map((notification) => (
-            <Toast key={notification.id} notification={notification} dismiss={words.dismiss} onDrop={drop} />
-          ))}
-        </div>
-      )}
+      <CallAlert call={call} seconds={seconds} />
     </div>
   )
 }
@@ -71,34 +60,6 @@ function CallAlert({ call, seconds }: { call: PhoneCall; seconds: number | null 
   )
 }
 
-/** One notification the phone just posted: its app and its words, and the way to the Phone app's list. */
-function Toast({
-  notification,
-  dismiss,
-  onDrop,
-}: {
-  notification: { id: string; app: string; title?: string; text?: string }
-  dismiss: string
-  onDrop(id: string): void
-}) {
-  return (
-    <div className="phone-toast">
-      <span className="phone-toast-app">{notification.app}</span>
-      <button
-        type="button"
-        className="phone-toast-open"
-        onClick={() => go({ type: 'openApp', app: 'phone' })}
-      >
-        <span className="phone-toast-title">{notification.title ?? notification.text ?? notification.app}</span>
-        {notification.title && notification.text && <span className="phone-toast-text">{notification.text}</span>}
-      </button>
-      <button type="button" className="phone-toast-close" aria-label={dismiss} onClick={() => onDrop(notification.id)}>
-        <Cross />
-      </button>
-    </div>
-  )
-}
-
 /** The seconds a call has lasted, from the moment the phone says it began, once a second. */
 function useCallSeconds(call: PhoneCall | null): number | null {
   const id = call?.id ?? null
@@ -122,15 +83,6 @@ function Receiver() {
         d="M6.2 3.6h2.9l1.4 4.1-2 1.5a12.5 12.5 0 0 0 6.3 6.3l1.5-2 4.1 1.4v2.9a2.2 2.2 0 0 1-2.4 2.2A17.6 17.6 0 0 1 4 6a2.2 2.2 0 0 1 2.2-2.4Z"
         strokeLinejoin="round"
       />
-    </svg>
-  )
-}
-
-/** A toast's cross. */
-function Cross() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="m6.5 6.5 11 11M17.5 6.5l-11 11" strokeLinecap="round" />
     </svg>
   )
 }

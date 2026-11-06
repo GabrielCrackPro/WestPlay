@@ -10,7 +10,6 @@ import {
   DriverHoursWidget,
   DriverWidget,
   NowPlayingWidget,
-  PhoneWidget,
   WeatherWidget,
 } from './widgets'
 import './dashboard.css'
@@ -20,7 +19,6 @@ const WIDGETS: Record<DashboardWidget, ComponentType> = {
   nowPlaying: NowPlayingWidget,
   destination: DestinationWidget,
   driverHours: DriverHoursWidget,
-  phone: PhoneWidget,
   driver: DriverWidget,
   diagnostics: DiagnosticsWidget,
   weather: WeatherWidget,

@@ -83,14 +83,12 @@ import { isScreenLayoutId, type ScreenLayoutId } from './screen'
 import { DEFAULT_TEXT_SIZE, STEPS_ADDED_BELOW, toTextSize } from './textSize'
 
 /** The Dashboard's widgets the player can turn off (turn-by-turn always shows while there's a route). */
-export type DashboardWidget =
-  'nowPlaying' | 'destination' | 'driverHours' | 'phone' | 'driver' | 'weather' | 'diagnostics'
+export type DashboardWidget = 'nowPlaying' | 'destination' | 'driverHours' | 'driver' | 'weather' | 'diagnostics'
 
 export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'nowPlaying',
   'destination',
   'driverHours',
-  'phone',
   'driver',
   'weather',
   'diagnostics',
@@ -311,7 +309,6 @@ const DEFAULT_WIDGET_ORDER: DashboardWidget[] = [
   'nowPlaying',
   'destination',
   'driverHours',
-  'phone',
   'diagnostics',
   'driver',
   'weather',
@@ -327,16 +324,15 @@ function orderOf(saved: unknown): DashboardWidget[] {
 }
 
 /**
- * The widgets a new player starts with: what plays, where it's going, the rest clocks, the paired phone (whether
- * it is there, its battery, its newest notification) and the engine's readings. The Driver card's lifetime totals
- * and the weather are turned on in Settings › Dashboard when wanted: a column of six cards was more than could be
- * read on the move (owner 2026-11-04).
+ * The widgets a new player starts with: what plays, where it's going, the rest clocks and the engine's readings.
+ * The Driver card's lifetime totals and the weather are turned on in Settings › Dashboard when wanted: a column of
+ * six cards was more than could be read on the move (owner 2026-11-04). The paired phone isn't one of them: its
+ * state, battery, call and newest notification live in the sidebar (shell/Sidebar.tsx).
  */
 const STARTER_WIDGETS: Record<DashboardWidget, boolean> = {
   nowPlaying: true,
   destination: true,
   driverHours: true,
-  phone: true,
   diagnostics: true,
   driver: false,
   weather: false,

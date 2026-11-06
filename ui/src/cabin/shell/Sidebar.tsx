@@ -1,4 +1,4 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
 import { formatGameTime, formatRealTime } from '../../shared/format'
 import { logoSources } from '../boot/brand'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
@@ -8,13 +8,16 @@ import { LAUNCH_STYLE, useCarriesLaunch } from '../state/launch'
 import { homeButtonTarget, type Route } from '../state/navigation'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
-import { cabClock } from '../../shared/host'
+import { cabClock, type PhoneCall } from '../../shared/host'
+import { newsCount, sendPhoneCommand, useCaller, usePhone, usePhonePrefs } from '../apps/phone/phone'
 import { unreadCount, useNotes } from './notesShown'
 
 /** How long an icon is held before its menu opens, ms: a press is a tap, which opens the app. */
 const HOLD_MS = 450
 /** How far the pointer may stray during a hold before it's a drag rather than a long press, px. */
 const HOLD_SLOP = 10
+/** How long the pointer rests on the phone's status before it names the phone, ms: not a label for the way past. */
+const NAME_HOVER_MS = 220
 
 /**
  * The CarPlay sidebar: the truck's brand and clock, the apps (the pinned ones at the top, in the order they were
@@ -35,6 +38,10 @@ export function Sidebar() {
   // What the Notifications app has that the driver hasn't looked at: its recent carries the count, as Home's icon
   // does, so a note raised while driving is still found from any screen.
   const unread = useNotes((state) => unreadCount(state.history, state.seen))
+  // The phone's notifications waiting on it, on its icon as the notes' count is on the Notifications app's.
+  const muted = usePhonePrefs((state) => state.muted)
+  const phoneNews = usePhone((state) => newsCount(state.notifications, muted))
+  const badgeOf = (app: AppId) => (app === 'notifications' ? unread : app === 'phone' ? phoneNews : 0)
   const time = clock === 'real' ? formatRealTime(realTime) : gameTime === null ? null : formatGameTime(gameTime)
   // The pinned apps where the player put them, then the recents filling the room the screen's sidebar has left (an
   // app that's pinned isn't drawn twice).
@@ -79,6 +86,7 @@ export function Sidebar() {
         <div className="time" key={time ?? '--:--'}>
           {time ?? '--:--'}
         </div>
+        <SidebarPhone />
       </div>
       <nav className="recent" aria-label="Apps">
         {pinnedShown.map((app) => (
@@ -86,7 +94,7 @@ export function Sidebar() {
             key={app}
             app={app}
             current={route.kind === 'app' && route.app === app}
-            badge={app === 'notifications' ? unread : 0}
+            badge={badgeOf(app)}
             menuOpen={menuFor === app}
             onMenu={(open) => setMenu(open ? { app, route } : null)}
           />
@@ -97,7 +105,7 @@ export function Sidebar() {
             key={app}
             app={app}
             current={route.kind === 'app' && route.app === app}
-            badge={app === 'notifications' ? unread : 0}
+            badge={badgeOf(app)}
             menuOpen={menuFor === app}
             onMenu={(open) => setMenu(open ? { app, route } : null)}
           />
@@ -116,6 +124,231 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  )
+}
+
+/**
+ * The paired phone under the clock, where a head unit keeps its phone's status beside the time: a receiver, its
+ * charge (a battery filled to the level, and the percentage) or, while a call is on, the call. Pressing it opens the
+ * Phone app, where the rest of it is. This is the Dashboard's old phone card, off the column and beside the clock
+ * (owner 2026-11-06).
+ *
+ * Drawn as a status line rather than a card of its own (owner 2026-11-06: the chip under the clock read as one more
+ * panel among the apps, and its words — a phone's model among them — were cut to nothing at the sidebar's width).
+ * What a driver needs at a glance stays: is the phone there, how much charge has it, and who is calling, with the
+ * answer and decline buttons under it while it rings, so a call is taken here without reaching across the screen.
+ */
+function SidebarPhone() {
+  const text = useText()
+  const words = text.phoneApp
+  const phone = usePhone()
+  const device = phone.device
+  const call = phone.call
+  // Who is on it: the phone's own word for the call, or the name the dialer's notification gave.
+  const caller = useCaller(call?.id)
+  const deviceName = phone.connected ? (device?.name ?? null) : null
+  const name = phone.connected ? (device?.name ?? words.connected) : words.disconnected
+  // The charge, only while the phone is on the other end and only when it has a level to give: an absent battery
+  // says "not known", as an empty one would say "empty".
+  const level = phone.connected ? device?.battery : undefined
+  const charging = phone.connected && device?.charging === true
+  const battery = level !== undefined ? words.battery(level) : null
+  // How long an answered call has lasted, counted from the moment the phone says it began: ringing has no length yet.
+  const seconds = useCallSeconds(call)
+  const lasted = call?.state === 'offHook' && seconds !== null ? words.duration(seconds) : null
+  const ringing = call?.state === 'ringing'
+  const who = call ? (call.name ?? caller.name ?? call.number ?? caller.number ?? words.unknownCaller) : null
+  const state = ringing ? words.ringing : (lasted ?? words.inCall)
+  const label = [text.apps.phone, call ? `${state} · ${who}` : name, battery, charging ? words.charging : null]
+    .filter(Boolean)
+    .join(', ')
+  // The phone's own particulars under its name in the label: the model it is (when that isn't its name) and the
+  // Bridge version on it, which is what pairing questions turn out to be about.
+  const detail =
+    deviceName === null
+      ? null
+      : [
+          device?.model && device.model !== deviceName ? device.model : null,
+          device?.appVersion ? words.bridge(device.appVersion) : null,
+        ]
+          .filter((line): line is string => line !== null)
+          .join(' · ')
+  // The phone's own name, which the line has no room for: a hover (once the pointer rests) or a hold names it beside
+  // the sidebar. The press that shows it isn't also the press that opens the app.
+  const [named, setNamed] = useState(false)
+  const hover = useRef(0)
+  const hold = useRef(0)
+  const from = useRef<{ x: number; y: number } | null>(null)
+  const heldName = useRef(false)
+  useEffect(
+    () => () => {
+      window.clearTimeout(hover.current)
+      window.clearTimeout(hold.current)
+    },
+    [],
+  )
+  const stopHold = () => window.clearTimeout(hold.current)
+  const enter = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    // A touch has no hover: its hold (below) is what names the phone.
+    if (event.pointerType !== 'mouse') return
+    window.clearTimeout(hover.current)
+    hover.current = window.setTimeout(() => setNamed(true), NAME_HOVER_MS)
+  }
+  const leave = () => {
+    window.clearTimeout(hover.current)
+    stopHold()
+    setNamed(false)
+  }
+  const down = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return
+    from.current = { x: event.clientX, y: event.clientY }
+    heldName.current = false
+    stopHold()
+    hold.current = window.setTimeout(() => {
+      // Nothing to name: the press is still a press, which opens the app.
+      if (deviceName === null) return
+      heldName.current = true
+      setNamed(true)
+    }, HOLD_MS)
+  }
+  const move = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = from.current
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > HOLD_SLOP) stopHold()
+  }
+  const up = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    from.current = null
+    stopHold()
+    // A touch's hold ends with the finger; a mouse keeps the name while it stays over the line.
+    if (event.pointerType !== 'mouse') setNamed(false)
+  }
+  return (
+    <div className="sidebar-phone">
+      <button
+        type="button"
+        className="sidebar-phone-open"
+        aria-label={label}
+        onPointerEnter={enter}
+        onPointerLeave={leave}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onContextMenu={(event) => {
+          // The cab isn't a web page: a hold on a touch screen brings the phone's name, never the browser's menu.
+          event.preventDefault()
+        }}
+        onClick={() => {
+          if (heldName.current) {
+            heldName.current = false
+            return
+          }
+          go({ type: 'openApp', app: 'phone' })
+        }}
+      >
+        {call ? (
+          <>
+            <span className="sidebar-phone-who">{who}</span>
+            {!ringing && (
+              <span className="sidebar-phone-call">
+                <span className="sidebar-phone-pulse" aria-hidden="true" />
+                <span className="sidebar-phone-what">{state}</span>
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="sidebar-phone-status">
+            <span className="sidebar-phone-signal">
+              <Receiver className={phone.connected ? 'sidebar-phone-mark on' : 'sidebar-phone-mark'} />
+              {level !== undefined && (
+                <span className="sidebar-phone-level">
+                  <span
+                    className="sidebar-phone-battery"
+                    data-charging={charging ? 'true' : undefined}
+                    data-low={level <= 20 && !charging ? 'true' : undefined}
+                    aria-hidden="true"
+                  >
+                    <span
+                      className="sidebar-phone-battery-fill"
+                      style={{ '--battery': String(level) } as CSSProperties}
+                    />
+                  </span>
+                  {words.battery(level)}
+                </span>
+              )}
+            </span>
+            {level === undefined && (
+              // Short words, since the chip is a couple of them wide: the long "not connected" is the page's, and
+              // was cut to "Not con…" here.
+              <span className="sidebar-phone-state">
+                {phone.connected ? (charging ? words.charging : words.connected) : words.noPhone}
+              </span>
+            )}
+          </span>
+        )}
+      </button>
+      {named && !call && deviceName !== null && (
+        <span className="sidebar-phone-name glass" aria-hidden="true">
+          <span className="sidebar-phone-name-title">{deviceName}</span>
+          {detail && <span className="sidebar-phone-name-meta">{detail}</span>}
+        </span>
+      )}
+      {ringing && (
+        <span className="sidebar-phone-buttons">
+          <button
+            type="button"
+            className="sidebar-phone-answer"
+            aria-label={words.answer}
+            title={words.answer}
+            onClick={() => sendPhoneCommand({ action: 'answer' })}
+          >
+            <Receiver className="sidebar-phone-glyph" />
+          </button>
+          <button
+            type="button"
+            className="sidebar-phone-decline"
+            aria-label={words.decline}
+            title={words.decline}
+            onClick={() => sendPhoneCommand({ action: 'end' })}
+          >
+            <Receiver className="sidebar-phone-glyph" />
+          </button>
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** The seconds a call has lasted, from the moment the phone says it began, once a second (`null`: not said). */
+function useCallSeconds(call: PhoneCall | null): number | null {
+  const id = call?.id ?? null
+  const began = call?.startedAt ?? null
+  const [counted, setCounted] = useState<{ id: string; seconds: number } | null>(null)
+  useEffect(() => {
+    if (id === null || began === null) return
+    const timer = window.setInterval(() => {
+      setCounted({ id, seconds: Math.max(0, Math.floor(Date.now() / 1000) - began) })
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [id, began])
+  return id !== null && counted?.id === id ? counted.seconds : null
+}
+
+/** A telephone receiver, as the Phone app draws it (the decline's is turned down, as a phone's own is). */
+function Receiver({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      aria-hidden="true"
+    >
+      <path
+        d="M6.2 3.6h2.9l1.4 4.1-2 1.5a12.5 12.5 0 0 0 6.3 6.3l1.5-2 4.1 1.4v2.9a2.2 2.2 0 0 1-2.4 2.2A17.6 17.6 0 0 1 4 6a2.2 2.2 0 0 1 2.2-2.4Z"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
