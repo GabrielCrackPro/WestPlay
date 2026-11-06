@@ -7,8 +7,12 @@ import android.app.RemoteInput
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -24,6 +28,9 @@ enum class LinkPhase { Idle, Connecting, Live }
 
 object PhoneHub {
     private const val MOST = 100
+
+    /** An app icon's edge, in pixels: the cab draws it at 32 dp, even at the larger text sizes. */
+    private const val ICON_PIXELS = 64
 
     private data class ActionSlot(
         val label: String,
@@ -41,6 +48,9 @@ object PhoneHub {
     )
 
     private val notifications = LinkedHashMap<String, Entry>()
+
+    /** Each app's icon as a `data:` URL, worked out once: a package's icon never changes while the link is up. */
+    private val icons = HashMap<String, String?>()
 
     // The service owns the link and clears it in onDestroy; the context inside is the application's.
     @SuppressLint("StaticFieldLeak")
@@ -222,6 +232,7 @@ object PhoneHub {
             put("id", id)
             put("package", posted.packageName)
             put("app", appName(context, posted.packageName))
+            iconOf(context, posted.packageName)?.let { put("icon", it) }
             title?.let { put("title", it) }
             text?.let { put("text", it) }
             put("time", posted.postTime / 1000)
@@ -249,4 +260,24 @@ object PhoneHub {
         val info = context.packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
         context.packageManager.getApplicationLabel(info).toString()
     }.getOrDefault(packageName)
+
+    /**
+     * The app's own icon, as a `data:` URL the cab can draw: its launcher icon at [ICON_PIXELS] square, PNG, so a
+     * message says which app it came from without the cab keeping a table of every app on the phone. Too big to
+     * send at the phone's own size, and no bigger than the card ever draws it.
+     */
+    private fun iconOf(context: Context, packageName: String): String? = synchronized(icons) {
+        if (icons.containsKey(packageName)) return@synchronized icons[packageName]
+        val url = runCatching {
+            val drawable = context.packageManager.getApplicationIcon(packageName)
+            val bitmap = Bitmap.createBitmap(ICON_PIXELS, ICON_PIXELS, Bitmap.Config.ARGB_8888)
+            drawable.setBounds(0, 0, ICON_PIXELS, ICON_PIXELS)
+            drawable.draw(Canvas(bitmap))
+            val png = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, png)
+            "data:image/png;base64," + Base64.encodeToString(png.toByteArray(), Base64.NO_WRAP)
+        }.getOrNull()
+        icons[packageName] = url
+        url
+    }
 }

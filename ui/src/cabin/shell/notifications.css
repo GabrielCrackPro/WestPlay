@@ -102,6 +102,43 @@
   height: 62%;
 }
 
+/* The cab's own notes, as the phone's cards mark their apps: the tone as the tile's own ground, the glyph white
+   on it, rather than a colour on a wash of itself. */
+.notification-icon.note {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--notification-tone) 88%, #fff),
+    color-mix(in srgb, var(--notification-tone) 74%, #000)
+  );
+  color: #fff;
+}
+
+/* The phone app's own icon, in the tile's place: it brings its own colour, so the tile's fill goes. */
+.notification-icon.app {
+  background: none;
+}
+
+.notification-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+/* Without an icon from the phone: the app's letter on a tile of its colour, as the Phone app draws its cards. */
+.notification-app-mark {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(155deg, hsl(var(--app-hue) 62% 56%), hsl(var(--app-hue) 62% 38%));
+  color: #fff;
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  place-items: center;
+}
+
 .notification-copy {
   display: flex;
   flex-direction: column;

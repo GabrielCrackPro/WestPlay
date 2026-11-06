@@ -5,6 +5,7 @@ import { SearchGlyph } from '../../keyboard/glyphs'
 import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
 import {
+  appHue,
   contactFor,
   contactsMatching,
   favouritesFirst,
@@ -624,15 +625,20 @@ export function PhoneApp() {
                       return (
                         <li key={group.package} className="phone-note-group">
                           <header className="phone-note-group-head">
-                            {/* The phone sends no icon with a notification, so the app's own letter stands in it: a
-                                tile of its own colour, the name beside it. */}
-                            <span
-                              className="phone-note-group-icon"
-                              style={{ '--app-hue': `${hueOf(group.package)}deg` } as CSSProperties}
-                              aria-hidden="true"
-                            >
-                              {group.app.trim().charAt(0).toUpperCase()}
-                            </span>
+                            {/* The app's own icon when the phone sends one (PhoneHub.kt draws it), else its first
+                                letter on a tile of its own colour: an app older than the icons, or a message from
+                                one that gave none. */}
+                            {group.icon ? (
+                              <img className="phone-note-group-icon" src={group.icon} alt="" />
+                            ) : (
+                              <span
+                                className="phone-note-group-icon"
+                                style={{ '--app-hue': `${appHue(group.package)}deg` } as CSSProperties}
+                                aria-hidden="true"
+                              >
+                                {group.app.trim().charAt(0).toUpperCase()}
+                              </span>
+                            )}
                             <span className="phone-note-app">{group.app}</span>
                             {group.notes.length > 1 && (
                               <span className="phone-note-group-count" aria-label={words.summary(group.notes.length)}>
@@ -907,27 +913,20 @@ function ContactRow({
 }
 
 /**
- * An app's tile hue, from its package: the same one every visit, and one that differs between apps rather than being
- * one of a handful a pair of them could share.
- */
-function hueOf(packageName: string): number {
-  let sum = 0
-  for (let index = 0; index < packageName.length; index += 1) {
-    sum = (sum + packageName.charCodeAt(index) * (index + 1)) % 10007
-  }
-  return sum % 360
-}
-
-/**
  * The notifications as the phone's own shade groups them: one card per app, its notifications together, each group
  * where its newest notification was. A single notification is a group of one, drawn as it always was.
  */
-function groupNotes(notes: PhoneNotification[]): { package: string; app: string; notes: PhoneNotification[] }[] {
-  const groups: { package: string; app: string; notes: PhoneNotification[] }[] = []
+function groupNotes(
+  notes: PhoneNotification[],
+): { package: string; app: string; icon?: string; notes: PhoneNotification[] }[] {
+  const groups: { package: string; app: string; icon?: string; notes: PhoneNotification[] }[] = []
   for (const note of notes) {
     const group = groups.find((each) => each.package === note.package)
-    if (group) group.notes.push(note)
-    else groups.push({ package: note.package, app: note.app, notes: [note] })
+    if (group) {
+      group.notes.push(note)
+      // Any of the app's own notifications can carry the icon; the first that has one gives it to the card.
+      group.icon ??= note.icon
+    } else groups.push({ package: note.package, app: note.app, icon: note.icon, notes: [note] })
   }
   return groups
 }

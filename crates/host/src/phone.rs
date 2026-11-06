@@ -232,6 +232,7 @@ mod tests {
             id: id.into(),
             package: "com.app".into(),
             app: "App".into(),
+            icon: None,
             title: Some("Title".into()),
             text: Some("Text".into()),
             time: Some(time),

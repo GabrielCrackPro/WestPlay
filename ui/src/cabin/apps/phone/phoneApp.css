@@ -1081,6 +1081,12 @@
   place-items: center;
 }
 
+/* The phone's own icon of the app: it carries its own ground, so the fallback tile's colour goes. */
+img.phone-note-group-icon {
+  background: none;
+  object-fit: contain;
+}
+
 /* The card's own actions follow its name and count: mute, then the dismissal of everything it holds. The rule is
    the row's, so it takes the sidebar's own specificity to sit beside the mute rather than across the card from it. */
 .shell .phone-note-group-head .phone-note-dismiss {

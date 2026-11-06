@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { cabClock, type PhoneNotification } from '../../shared/host'
 import { formatGameTime, formatRealTime } from '../../shared/format'
-import { sendPhoneCommand, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
-import { NotificationsTabIcon } from '../apps/phone/tabIcons'
+import { appHue, sendPhoneCommand, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { type Note, type NoteAction, useNotes } from './notesShown'
@@ -102,7 +101,8 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
       className={`notification ${note.tone}${leaving ? ' leaving' : ''}${action ? ' actionable' : ''}`}
       aria-hidden={leaving || undefined}
     >
-      <span className="notification-icon" aria-hidden>
+      {/* The note's own mark, in the phone cards' style: the tone as the tile's ground, the glyph white on it. */}
+      <span className="notification-icon note" aria-hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           {note.tone === 'alarm' ? (
             <>
@@ -177,8 +177,19 @@ function PhoneCard({
       className={`notification phone${urgent ? ' alarm' : ''}${leaving ? ' leaving' : ''}`}
       aria-hidden={leaving || undefined}
     >
-      <span className="notification-icon" aria-hidden>
-        <NotificationsTabIcon />
+      {/* The app that posted it: its own icon when the phone sends one, else its first letter on a tile of its
+          colour — the same mark the Phone app's cards carry. */}
+      <span className={notification.icon ? 'notification-icon app' : 'notification-icon'} aria-hidden>
+        {notification.icon ? (
+          <img src={notification.icon} alt="" />
+        ) : (
+          <span
+            className="notification-app-mark"
+            style={{ '--app-hue': `${appHue(notification.package)}deg` } as CSSProperties}
+          >
+            {notification.app.trim().charAt(0).toUpperCase()}
+          </span>
+        )}
       </span>
       <span className="notification-copy">
         <span className="notification-level">{notification.app}</span>

@@ -330,6 +330,18 @@ export function recentsMatching(recents: PhoneRecent[], query: string): PhoneRec
   )
 }
 
+/**
+ * An app's mark hue, from its package: the same one every visit, and one that differs between apps rather than being
+ * one of a handful that a pair of them could share. Drawn where the phone sent no icon of its own.
+ */
+export function appHue(packageName: string): number {
+  let sum = 0
+  for (let index = 0; index < packageName.length; index += 1) {
+    sum = (sum + packageName.charCodeAt(index) * (index + 1)) % 10007
+  }
+  return sum % 360
+}
+
 /** The notifications the driver hasn't muted, in the phone's order. */
 export function visibleNotifications(notifications: PhoneNotification[], muted: string[]): PhoneNotification[] {
   return notifications.filter((notification) => !muted.includes(notification.package))

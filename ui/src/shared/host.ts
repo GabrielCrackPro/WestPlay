@@ -223,6 +223,8 @@ export interface PhoneNotification {
   package: string
   /** The app's own name, as the phone shows it. */
   app: string
+  /** The app's own icon, as a `data:` URL (PNG), when the phone sent one. */
+  icon?: string
   title?: string
   text?: string
   /** When it was posted (Unix seconds). */

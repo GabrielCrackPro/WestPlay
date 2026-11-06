@@ -89,6 +89,9 @@ pub struct Notification {
     pub package: String,
     /// The app's own name, as the phone shows it.
     pub app: String,
+    /// The app's own icon, as a `data:` URL (PNG), when the phone sent one: older senders don't.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
