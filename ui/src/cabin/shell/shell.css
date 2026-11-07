@@ -89,6 +89,12 @@ body,
   --glass: rgb(255 255 255 / 0.12);
   --glass-rim: rgb(255 255 255 / 0.32);
   --chip: rgb(0 0 0 / 0.22);
+  /* Sidebar popovers (the phone's name, an app's menu): opaque enough to read over any wallpaper or cover,
+     rather than the sidebar's own translucent glass. Their colours stay apart from --text, which follows a
+     light or dark album cover while they float over it. */
+  --popover-surface: rgb(22 22 24 / 0.94);
+  --popover-text: #fff;
+  --popover-text-dim: rgb(255 255 255 / 0.76);
   /* Behind an open app (CarPlay's system background). */
   --app-background: #0b0b0d;
   position: relative;
@@ -104,6 +110,9 @@ body,
   --glass: rgb(255 255 255 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.75);
   --chip: rgb(255 255 255 / 0.5);
+  --popover-surface: rgb(250 250 252 / 0.96);
+  --popover-text: #14161a;
+  --popover-text-dim: rgb(20 22 26 / 0.72);
   --app-background: #f2f2f6;
 }
 
@@ -435,9 +444,10 @@ body,
   max-width: min(340px, 55vw);
   padding: calc(7px * var(--sidebar-scale)) calc(12px * var(--sidebar-scale));
   border-radius: calc(12px * var(--sidebar-scale));
-  color: var(--text);
-  font-size: calc(13px * var(--sidebar-scale));
-  font-weight: 600;
+  background: var(--popover-surface);
+  color: var(--popover-text);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
   line-height: 1.25;
   translate: 0 -50%;
   animation: sidebar-phone-name-in 160ms var(--motion-ease) both;
@@ -453,8 +463,8 @@ body,
 }
 
 .sidebar-phone-name-meta {
-  color: var(--text-dim);
-  font-size: calc(11px * var(--sidebar-scale));
+  color: var(--popover-text-dim);
+  font-size: calc(12px * var(--sidebar-scale));
   font-weight: 500;
 }
 
@@ -724,6 +734,53 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
   display: block;
 }
 
+/* The icon's options button: a small three-dot control that opens the same pin/unpin menu as a right-click or
+   hold, so the menu is findable without knowing either gesture. It stays out of the way until the pointer is
+   over the app or the icon has keyboard focus; a touch screen has no hover, so it stays visible there. */
+.shell .recent .sidebar-app-options {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--popover-surface);
+  color: var(--popover-text);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--popover-text) 14%, transparent),
+    0 2px 8px rgb(0 0 0 / 0.3);
+  opacity: 0;
+  scale: 0.8;
+  pointer-events: none;
+  transition:
+    opacity 140ms var(--motion-ease),
+    scale 140ms var(--motion-ease),
+    background-color 140ms var(--motion-ease);
+}
+
+.shell .recent .sidebar-app:hover .sidebar-app-options,
+.shell .recent .sidebar-app:focus-within .sidebar-app-options,
+.shell .recent .sidebar-app[data-menu='true'] .sidebar-app-options {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+.shell .recent .sidebar-app-options:hover {
+  background: color-mix(in srgb, var(--popover-text) 14%, var(--popover-surface));
+}
+
+@media (hover: none) {
+  .shell .recent .sidebar-app-options {
+    opacity: 0.92;
+    scale: 1;
+    pointer-events: auto;
+  }
+}
+
 .sidebar-menu {
   position: absolute;
   left: calc(100% + 14px);
@@ -734,6 +791,8 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
   min-width: 268px;
   padding: 8px;
   border-radius: 24px;
+  background: var(--popover-surface);
+  color: var(--popover-text);
   animation: sidebar-menu-in 180ms var(--motion-ease) both;
 }
 
@@ -747,7 +806,7 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
 .sidebar-menu-title {
   overflow: hidden;
   padding: 10px 16px 8px;
-  color: var(--text-dim);
+  color: var(--popover-text-dim);
   font-size: calc(16px * var(--text-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
@@ -774,7 +833,7 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
 }
 
 .shell .sidebar-menu button:active {
-  background: color-mix(in srgb, var(--text) 18%, transparent);
+  background: color-mix(in srgb, var(--popover-text) 18%, transparent);
 }
 
 .shell .sidebar-menu button:disabled {
@@ -784,7 +843,7 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
 
 .sidebar-menu button svg {
   flex: none;
-  color: color-mix(in srgb, var(--text) 70%, transparent);
+  color: color-mix(in srgb, var(--popover-text) 70%, transparent);
 }
 
 /* Like CarPlay, the app on screen isn't boxed: it's simply the top one (navigation puts it there). Pressing an

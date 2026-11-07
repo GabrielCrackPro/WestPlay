@@ -118,6 +118,14 @@ function ConnectionPath({
       : steps.some((step) => step.tone === 'busy')
         ? 'busy'
         : 'idle'
+  const phone = status?.phone ?? null
+  const phoneConnected = phone?.connected === true
+  const device = phoneConnected ? (phone?.device ?? null) : null
+  const phoneName = device?.name ?? cw.phone.connected
+  const battery = device?.battery === undefined ? null : Math.max(0, Math.min(100, Math.round(device.battery)))
+  const phoneDetail = [device?.model, device?.appVersion && `Bridge ${device.appVersion}`].filter(Boolean).join(' · ')
+  const dropped = status?.droppedTotal ?? 0
+  const screenStep = steps[2]
   return (
     <section className="cp-link ob-in" data-tone={overall} style={n(place)} aria-live="polite">
       <header className="cp-link-head">
@@ -131,6 +139,28 @@ function ConnectionPath({
           ))}
         </span>
       </header>
+      {/* The live story first: a miniature of the truck's screen, the screen's state, and its frame health. */}
+      <div className="cp-link-hero">
+        <span className="cp-link-preview" data-tone={overall} aria-hidden>
+          <span className="cp-link-preview-route" />
+          <span className="cp-link-preview-puck" />
+        </span>
+        <span className="cp-link-hero-copy">
+          <b>{cw.state[state]}</b>
+          {state === 'live' ? (
+            <span className="cp-link-hero-stats">
+              <span>{w.screenLive.replace('{fps}', String(fps))}</span>
+              {dropped > 0 && (
+                <span>
+                  {dropped} {cw.about.dropped}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="cp-link-hero-detail">{screenStep.value}</span>
+          )}
+        </span>
+      </div>
       <ol className="cp-link-chain" aria-label={w.connection}>
         {steps.map((step, at) => {
           const next = steps[at + 1]
@@ -153,7 +183,47 @@ function ConnectionPath({
           )
         })}
       </ol>
+      {/* The phone is the other live device in the cab: its link, its name, and its charge, at a glance. */}
+      <div
+        className="cp-phone-strip"
+        data-connected={phoneConnected || undefined}
+        role="group"
+        aria-label={[
+          cw.phone.phone,
+          phoneConnected ? phoneName : cw.phone.waiting,
+          battery === null ? null : `${battery}%`,
+        ]
+          .filter(Boolean)
+          .join(', ')}
+      >
+        <span className="cp-phone-strip-icon">
+          <SectionGlyph id="phone" />
+        </span>
+        <span className="cp-phone-strip-copy">
+          <span className="cp-phone-strip-label">{cw.phone.phone}</span>
+          <b>{phoneConnected ? phoneName : cw.phone.waiting}</b>
+          {phoneConnected && phoneDetail && <span className="cp-phone-strip-model">{phoneDetail}</span>}
+        </span>
+        {phoneConnected && battery !== null && (
+          <span className="cp-phone-strip-battery" data-charging={device?.charging || undefined}>
+            {device?.charging && <BoltGlyph />}
+            <span className="cp-phone-strip-charge" data-low={battery <= 20 || undefined} aria-hidden>
+              <i style={{ width: `${battery}%` }} />
+            </span>
+            <b>{battery}%</b>
+          </span>
+        )}
+      </div>
     </section>
+  )
+}
+
+/** A bolt beside a phone's charge while it's on the charger. */
+function BoltGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M13.4 2 5.8 13.2h5L10.6 22 18.2 10.8h-5z" />
+    </svg>
   )
 }
 

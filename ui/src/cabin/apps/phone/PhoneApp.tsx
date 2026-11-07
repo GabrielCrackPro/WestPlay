@@ -648,15 +648,17 @@ export function PhoneApp() {
                             <button type="button" className="phone-note-mute" onClick={() => toggleMute(group.package)}>
                               {muted.includes(group.package) ? words.unmuteApp : words.muteApp}
                             </button>
-                            <button
-                              type="button"
-                              className="phone-note-dismiss"
-                              aria-label={`${words.dismiss} ${group.app}`}
-                              onClick={() => group.notes.forEach((notification) => dismissNote(notification.id))}
-                            >
-                              <Cross />
-                              {words.dismiss}
-                            </button>
+                            {group.notes.length > 1 && (
+                              <button
+                                type="button"
+                                className="phone-note-dismiss"
+                                aria-label={`${words.dismiss} ${group.app}`}
+                                onClick={() => group.notes.forEach((notification) => dismissNote(notification.id))}
+                              >
+                                <Cross />
+                                {words.dismiss}
+                              </button>
+                            )}
                           </header>
                           {(open ? group.notes : group.notes.slice(0, 1)).map((notification) => (
                             <NoteRow

@@ -479,6 +479,16 @@ function SidebarApp({
             <img className="launch-copy" src={icon} alt="" style={LAUNCH_STYLE} />
           ))}
       </button>
+      <button
+        type="button"
+        className="sidebar-app-options"
+        aria-label={text.appOptions(text.apps[app])}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => onMenu(!menuOpen)}
+      >
+        <OptionsGlyph />
+      </button>
       {menuOpen && (
         <div className="sidebar-menu glass" role="menu" aria-label={text.apps[app]}>
           <span className="sidebar-menu-title">{text.apps[app]}</span>
@@ -498,6 +508,17 @@ function SidebarApp({
         </div>
       )}
     </div>
+  )
+}
+
+/** The app icon's options: the three dots that open its pin/unpin menu. */
+function OptionsGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
   )
 }
 

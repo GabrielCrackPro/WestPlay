@@ -903,65 +903,462 @@
   height: 24px;
 }
 
-/* The Dashboard's layout editor: a live miniature of the map and widget column, whose cards are dragged into their
-   order, above the rows that choose each widget's size. */
+/* The Dashboard's layout editor: the same map and glass column the screen shows, in miniature, with three
+   ready-made columns above it. A card dragged here takes its place on the Dashboard too. */
 .dashboard-layout-editor {
   padding: 18px;
 }
 
-.dashboard-layout-preview {
-  display: flex;
-  gap: 14px;
-  min-height: 264px;
-  padding: 14px;
-  border-radius: 26px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 78% 10%, rgb(78 132 255 / 0.18), transparent 34%),
-    linear-gradient(145deg, #243349, #111722 58%, #080c12);
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.09),
-    inset 0 1px 0 rgb(255 255 255 / 0.08);
+/* Each preset is drawn as the screen will show it, so the column can be recognised before it is picked. */
+.dashboard-layout-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
-/* The map's half: a road grid, the route's line and the truck, so the preview reads as the Dashboard at a glance. */
-.dashboard-preview-map {
-  flex: 1;
+.dashboard-saved-layouts .dashboard-layout-presets {
+  margin-bottom: 14px;
+}
+
+.dashboard-preset-section-title {
+  margin: 0 4px 10px;
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+/* The player's own layouts, with a bin over each picture so one can be removed without opening it. */
+.dashboard-saved-preset {
   position: relative;
+  min-width: 0;
+}
+
+.dashboard-saved-preset .dashboard-layout-preset {
+  width: 100%;
+}
+
+.shell .dashboard-preset-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(8 12 18 / 0.62);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.18),
+    0 2px 8px rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(10px);
+}
+
+.shell .dashboard-preset-delete:hover {
+  background: var(--apple-red);
+}
+
+.dashboard-preset-delete svg {
+  width: 15px;
+  height: 15px;
+}
+
+.shell .dashboard-preset-save {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 0 16px;
+  border-radius: 16px;
+  color: var(--apple-blue);
+  background: color-mix(in srgb, var(--apple-blue) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-blue) 20%, transparent);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+  transition:
+    background-color 160ms var(--motion-ease),
+    box-shadow 160ms var(--motion-ease);
+}
+
+.shell .dashboard-preset-save:hover {
+  background: color-mix(in srgb, var(--apple-blue) 16%, transparent);
+}
+
+.shell .dashboard-preset-save[aria-expanded='true'] {
+  margin-bottom: 10px;
+  box-shadow: inset 0 0 0 2px var(--apple-blue);
+}
+
+.dashboard-preset-save-mark {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--apple-blue);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--apple-blue) 40%, transparent);
+}
+
+.dashboard-preset-save-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.dashboard-preset-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--apple-fill-quaternary);
+}
+
+.dashboard-preset-form .text-field {
+  height: 54px;
+  border-radius: 14px;
+  background: var(--apple-card);
+}
+
+.dashboard-preset-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.shell .dashboard-preset-form-button {
+  min-width: 96px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  color: var(--apple-label);
+  background: var(--apple-card);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 40%);
+}
+
+.shell .dashboard-preset-form-button:hover {
+  background: var(--apple-card-raised);
+}
+
+.shell .dashboard-preset-form-button.primary {
+  color: #fff;
+  background: var(--apple-blue);
+  box-shadow: none;
+}
+
+.shell .dashboard-preset-form-button:disabled {
+  color: var(--apple-label-tertiary);
+  background: var(--apple-fill-quaternary);
+  box-shadow: none;
+  cursor: default;
+}
+
+.shell .dashboard-layout-preset {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0;
+  border-radius: 20px;
+  color: var(--apple-label);
+  text-align: left;
+}
+
+.dashboard-preset-shot {
+  position: relative;
+  display: flex;
+  height: 102px;
+  gap: 6px;
+  padding: 8px;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 20px;
   background:
-    linear-gradient(112deg, transparent 0 45%, rgb(255 255 255 / 0.1) 45% 46%, transparent 46% 100%),
-    linear-gradient(24deg, transparent 0 52%, rgb(255 255 255 / 0.065) 52% 53%, transparent 53% 100%),
-    linear-gradient(160deg, #24354c, #0d1520);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+    radial-gradient(circle at 28% 0%, rgb(78 141 255 / 0.2), transparent 48%),
+    linear-gradient(148deg, #263a52, #101a26 66%, #090e15);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.12);
+  transition:
+    box-shadow 180ms var(--motion-ease),
+    transform 180ms var(--motion-ease);
+}
+
+.dashboard-preset-shot-map {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 13px;
+  background:
+    linear-gradient(112deg, transparent 0 44%, rgb(255 255 255 / 0.09) 44% 45%, transparent 45% 100%),
+    linear-gradient(22deg, transparent 0 55%, rgb(255 255 255 / 0.06) 55% 56%, transparent 56% 100%),
+    linear-gradient(150deg, #2c4058, #142131);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+
+.dashboard-preset-shot-map::before {
+  content: '';
+  position: absolute;
+  left: 14%;
+  top: 58%;
+  width: 62%;
+  height: 3px;
+  border-radius: 99px;
+  background: #4e8dff;
+  rotate: -14deg;
+  box-shadow: 0 0 9px rgb(78 141 255 / 0.5);
+}
+
+.dashboard-preset-shot-column {
+  width: 38%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-preset-shot-column i {
+  flex: 1 1 0;
+  min-height: 5px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.11));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.dashboard-preset-shot-column i[data-size='compact'] {
+  flex-grow: 0.55;
+}
+
+.dashboard-preset-shot-column i[data-size='expanded'] {
+  flex-grow: 1.9;
+}
+
+.appearance-light .dashboard-preset-shot {
+  background:
+    radial-gradient(circle at 28% 0%, rgb(120 196 255 / 0.34), transparent 48%),
+    linear-gradient(148deg, #eef6ff, #cddff0 66%, #b4c9dd);
+  box-shadow:
+    inset 0 0 0 1px rgb(24 52 78 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    0 2px 8px rgb(24 52 78 / 0.08);
+}
+
+.appearance-light .dashboard-preset-shot-map {
+  background:
+    linear-gradient(112deg, transparent 0 44%, rgb(24 52 78 / 0.08) 44% 45%, transparent 45% 100%),
+    linear-gradient(22deg, transparent 0 55%, rgb(24 52 78 / 0.05) 55% 56%, transparent 56% 100%),
+    linear-gradient(150deg, #f7fbfe, #dfeaf3);
+  box-shadow: inset 0 0 0 1px rgb(24 52 78 / 0.07);
+}
+
+.appearance-light .dashboard-preset-shot-map::before {
+  background: #0a84ff;
+}
+
+.appearance-light .dashboard-preset-shot-column i {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.68));
+  box-shadow: inset 0 0 0 1px rgb(24 52 78 / 0.08);
+}
+
+.shell .dashboard-layout-preset:hover .dashboard-preset-shot {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 6px 18px rgb(0 0 0 / 0.18);
+}
+
+.shell .dashboard-layout-preset[aria-pressed='true'] .dashboard-preset-shot {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+}
+
+.dashboard-preset-copy {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 4px;
+}
+
+.dashboard-preset-mark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--apple-blue);
+  background: color-mix(in srgb, var(--apple-blue) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-blue) 22%, transparent);
+}
+
+.dashboard-preset-mark.media {
+  color: var(--apple-purple);
+  background: color-mix(in srgb, var(--apple-purple) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-purple) 22%, transparent);
+}
+
+.dashboard-preset-mark.weather {
+  color: var(--apple-orange);
+  background: color-mix(in srgb, var(--apple-orange) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-orange) 22%, transparent);
+}
+
+.dashboard-preset-mark.saved {
+  color: var(--apple-teal);
+  background: color-mix(in srgb, var(--apple-teal) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-teal) 22%, transparent);
+}
+
+.dashboard-preset-mark svg {
+  width: 17px;
+  height: 17px;
+}
+
+.dashboard-preset-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-preset-check {
+  flex: none;
+  display: flex;
+  color: var(--apple-blue);
+}
+
+.dashboard-preset-check svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-layout-preview {
+  display: flex;
+  gap: 10px;
+  min-height: 300px;
+  padding: 12px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #0b1118;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 12px 30px rgb(0 0 0 / 0.12);
+}
+
+/* The map in the Dashboard's tilted driving view: the cabin's own map, the route's line, the truck and its
+   destination. The light appearance gets the daytime map. */
+.dashboard-preview-map {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 18px;
+  background: #182a3d;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
 }
 
 .dashboard-preview-map::before {
   content: '';
   position: absolute;
+  left: -18%;
+  right: -18%;
+  top: -30%;
+  bottom: -12%;
+  opacity: 0.82;
+  background: url('/mock/map-dark.svg') center 58% / cover no-repeat;
+  transform: perspective(700px) rotateX(35deg) scale(1.12);
+  transform-origin: 50% 72%;
+}
+
+.dashboard-preview-map::after {
+  content: '';
+  position: absolute;
   inset: 0;
-  opacity: 0.5;
-  background-image: radial-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px);
-  background-size: 22px 22px;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgb(7 13 21 / 0.08), transparent 35%, rgb(5 9 15 / 0.24)),
+    radial-gradient(circle at 26% 42%, transparent 0 34%, rgb(3 8 13 / 0.16) 100%);
+  pointer-events: none;
+}
+
+.appearance-light .dashboard-layout-preview {
+  background: #dce8f4;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    0 12px 30px rgb(0 0 0 / 0.08);
+}
+
+.appearance-light .dashboard-preview-map {
+  background: #e7eef4;
+}
+
+.appearance-light .dashboard-preview-map::before {
+  opacity: 1;
+  background-image: url('/mock/map-light.svg');
+}
+
+.appearance-light .dashboard-preview-map::after {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.18), transparent 35%, rgb(20 22 26 / 0.08)),
+    radial-gradient(circle at 26% 42%, transparent 0 34%, rgb(20 22 26 / 0.08) 100%);
 }
 
 .dashboard-preview-route {
   position: absolute;
-  left: 18%;
-  top: 53%;
+  z-index: 1;
+  left: 17%;
+  top: 56%;
   width: 56%;
-  height: 5px;
+  height: 4px;
   border-radius: 999px;
   background: #4e8dff;
-  rotate: -16deg;
+  rotate: -15deg;
   box-shadow: 0 0 16px rgb(78 141 255 / 0.55);
+}
+
+.dashboard-preview-destination {
+  position: absolute;
+  z-index: 2;
+  left: 70%;
+  top: 41%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50% 50% 50% 0;
+  background: #fff;
+  rotate: -45deg;
+  box-shadow:
+    0 0 0 4px rgb(78 141 255 / 0.28),
+    0 0 14px rgb(78 141 255 / 0.7);
+}
+
+.dashboard-preview-destination::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #4e8dff;
 }
 
 .dashboard-preview-puck {
   position: absolute;
-  left: 45%;
-  top: 49%;
+  z-index: 2;
+  left: calc(45% - 8px);
+  top: calc(56% - 8px);
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -981,53 +1378,81 @@
 
 .dashboard-preview-column {
   flex: none;
-  width: 34.5%;
-  min-width: 120px;
+  width: 35%;
+  min-width: 138px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dashboard-preview-widget {
   flex: 1 1 0;
-  min-height: 28px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 9px;
-  border-radius: 10px;
-  color: rgb(255 255 255 / 0.9);
-  background: rgb(255 255 255 / 0.13);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.11);
-  backdrop-filter: blur(12px);
+  padding: 0 10px;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.1));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 5px 14px rgb(0 0 0 / 0.14);
+  backdrop-filter: blur(18px) saturate(140%);
   font-size: calc(13px * var(--text-scale, 1));
   line-height: 1.1;
   cursor: grab;
+  touch-action: none;
   user-select: none;
   transition:
     flex-grow 220ms var(--motion-ease),
-    background-color 160ms var(--motion-ease),
+    filter 160ms var(--motion-ease),
     opacity 160ms var(--motion-ease),
     box-shadow 160ms var(--motion-ease);
 }
 
+.dashboard-preview-widget[data-widget='nowPlaying'] {
+  --widget-accent: var(--apple-pink);
+}
+
+.dashboard-preview-widget[data-widget='destination'] {
+  --widget-accent: var(--apple-blue);
+}
+
+.dashboard-preview-widget[data-widget='driverHours'] {
+  --widget-accent: var(--apple-orange);
+}
+
+.dashboard-preview-widget[data-widget='driver'] {
+  --widget-accent: var(--apple-green);
+}
+
+.dashboard-preview-widget[data-widget='weather'] {
+  --widget-accent: var(--apple-cyan);
+}
+
+.dashboard-preview-widget[data-widget='diagnostics'] {
+  --widget-accent: var(--apple-teal);
+}
+
 .dashboard-preview-widget[data-size='compact'] {
   flex-grow: 0.55;
-  min-height: 24px;
+  min-height: 30px;
 }
 
 .dashboard-preview-widget[data-size='standard'] {
   flex-grow: 1;
-  min-height: 30px;
+  min-height: 38px;
 }
 
 .dashboard-preview-widget[data-size='expanded'] {
   flex-grow: 1.9;
-  min-height: 40px;
+  min-height: 50px;
 }
 
 .dashboard-preview-widget:hover {
-  background: rgb(255 255 255 / 0.2);
+  filter: brightness(1.08);
 }
 
 .dashboard-preview-widget.dragging {
@@ -1037,21 +1462,40 @@
 
 .dashboard-preview-widget.drop-before {
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.18),
-    0 -3px 0 #4e8dff;
+    inset 0 0 0 1px rgb(255 255 255 / 0.2),
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 -3px 0 var(--apple-blue);
 }
 
 .dashboard-preview-widget.drop-after {
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.18),
-    0 3px 0 #4e8dff;
+    inset 0 0 0 1px rgb(255 255 255 / 0.2),
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 3px 0 var(--apple-blue);
+}
+
+.dashboard-preview-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--widget-accent);
+  background: color-mix(in srgb, var(--widget-accent) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--widget-accent) 28%, transparent);
+}
+
+.dashboard-preview-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .dashboard-preview-grip {
   flex: none;
-  width: 8px;
-  height: 16px;
-  opacity: 0.35;
+  width: 7px;
+  height: 14px;
+  opacity: 0.28;
   background-image: radial-gradient(currentColor 1px, transparent 1.5px);
   background-size: 4px 4px;
 }
@@ -1060,26 +1504,36 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.dashboard-preview-size {
-  flex: none;
-  color: rgb(255 255 255 / 0.45);
-  font-size: calc(10px * var(--text-scale, 1));
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .dashboard-preview-empty {
   margin: auto;
   padding: 12px;
-  color: rgb(255 255 255 / 0.5);
+  color: rgb(255 255 255 / 0.55);
   font-size: calc(15px * var(--text-scale, 1));
   line-height: 1.3;
   text-align: center;
+}
+
+.appearance-light .dashboard-preview-widget {
+  color: #14161a;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.64));
+  box-shadow:
+    inset 0 0 0 1px rgb(20 22 26 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 5px 14px rgb(20 22 26 / 0.1);
+}
+
+.appearance-light .dashboard-preview-icon {
+  background: color-mix(in srgb, var(--widget-accent) 20%, white);
+}
+
+.appearance-light .dashboard-preview-grip {
+  opacity: 0.38;
 }
 
 /* A widget's row in the editor: its switch and arrows, then the three sizes under them. */

@@ -101,6 +101,27 @@ export type DashboardWidgetSize = 'compact' | 'standard' | 'expanded'
 
 export const DASHBOARD_WIDGET_SIZES: readonly DashboardWidgetSize[] = ['compact', 'standard', 'expanded']
 
+/** A ready-made Dashboard column: its order, the widgets shown, and each one's size. */
+export interface DashboardLayout {
+  order: DashboardWidget[]
+  widgets: Record<DashboardWidget, boolean>
+  sizes: Record<DashboardWidget, DashboardWidgetSize>
+}
+
+/** The layouts offered in Settings › Dashboard's editor. */
+export type DashboardLayoutPreset = 'focus' | 'media' | 'weather'
+
+export const DASHBOARD_PRESETS: readonly DashboardLayoutPreset[] = ['focus', 'media', 'weather']
+
+/** A saved layout's name is cut here: enough for a label in its card, not a line across it. */
+export const DASHBOARD_LAYOUT_NAME_LENGTH = 32
+
+/** A Dashboard layout the player named and kept (Settings › Dashboard). */
+export interface SavedDashboardLayout {
+  name: string
+  layout: DashboardLayout
+}
+
 /** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
 export type Clock = 'game' | 'real'
 
@@ -135,15 +156,13 @@ interface CabinState {
   wallpaperId: string
   /** The Dashboard's widgets shown (Settings, Dashboard). */
   dashboardWidgets: Record<DashboardWidget, boolean>
-  /** How much room each Dashboard widget keeps in the column (Settings, Dashboard). */
+  /** How much room each Dashboard widget keeps in the column (Settings, Dashboard): Now Playing's compact size
+   * also gives it the one-line player. */
   dashboardWidgetSizes: Record<DashboardWidget, DashboardWidgetSize>
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
   albumArt: boolean
-  /** The Dashboard's Now Playing card on one line (Settings › Dashboard): the track beside its controls, without
-   * the cover, the times or the quieter shuffle and repeat. */
-  playerCompact: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
   textSize: number
   /** Screens change without sliding or zooming (Settings › Appearance): the shell's animations, and the view
@@ -159,6 +178,8 @@ interface CabinState {
    * them itself (Auto order): by what the drive needs (widgetState.ts's `useWidgetOrder`). */
   dashboardOrder: DashboardWidget[]
   autoOrder: boolean
+  /** The player's own named Dashboard layouts (Settings › Dashboard), newest last. */
+  savedDashboardLayouts: SavedDashboardLayout[]
   /** Home's apps in the player's order, and the ones hidden from it (Settings › Home Screen). */
   homeOrder: AppId[]
   homeHidden: AppId[]
@@ -223,7 +244,6 @@ interface CabinState {
   setDashboardWidgetSize(widget: DashboardWidget, size: DashboardWidgetSize): void
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
-  setPlayerCompact(on: boolean): void
   setTextSize(step: number): void
   setReduceMotion(on: boolean): void
   setDiagnosticsPage(page: DiagnosticsPage): void
@@ -232,6 +252,12 @@ interface CabinState {
   moveWidget(widget: DashboardWidget, by: number): void
   /** Drops a widget before another in the Dashboard's order, or after it (`after`): the layout editor's drag. */
   moveWidgetTo(widget: DashboardWidget, target: DashboardWidget, after: boolean): void
+  /** Applies a ready-made order, set of widgets and sizes, and keeps Auto Order from rearranging it. */
+  applyDashboardLayout(layout: DashboardLayout): void
+  /** Keeps the Dashboard's current order, widgets and sizes under `name`; a name already saved is replaced. */
+  saveDashboardLayout(name: string): void
+  /** Removes one of the player's saved Dashboard layouts. */
+  removeDashboardLayout(name: string): void
   /** Shows or hides an app on Home; the last one shown can't be hidden. */
   setHomeAppHidden(app: AppId, hidden: boolean): void
   /** Moves an app up (`by` -1) or down (+1) Home's order. */
@@ -294,12 +320,12 @@ type Persisted = Pick<
   | 'dashboardWidgetSizes'
   | 'clock'
   | 'albumArt'
-  | 'playerCompact'
   | 'textSize'
   | 'reduceMotion'
   | 'diagnosticsPage'
   | 'dashboardOrder'
   | 'autoOrder'
+  | 'savedDashboardLayouts'
   | 'homeOrder'
   | 'homeHidden'
   | 'pinnedApps'
@@ -379,6 +405,46 @@ const STANDARD_WIDGET_SIZES: Record<DashboardWidget, DashboardWidgetSize> = {
   diagnostics: 'standard',
 }
 
+/** A preset's layout, made whole: any widget its order leaves out follows it, and a size it doesn't name is
+ * standard. */
+function layoutOf(
+  order: DashboardWidget[],
+  shown: DashboardWidget[],
+  sizes: Partial<Record<DashboardWidget, DashboardWidgetSize>>,
+): DashboardLayout {
+  return {
+    order: [...order, ...DASHBOARD_WIDGETS.filter((widget) => !order.includes(widget))],
+    widgets: Object.fromEntries(DASHBOARD_WIDGETS.map((widget) => [widget, shown.includes(widget)])) as Record<
+      DashboardWidget,
+      boolean
+    >,
+    sizes: Object.fromEntries(DASHBOARD_WIDGETS.map((widget) => [widget, sizes[widget] ?? 'standard'])) as Record<
+      DashboardWidget,
+      DashboardWidgetSize
+    >,
+  }
+}
+
+/** The Dashboard presets: the drive's essentials (Focus), Now Playing and the weather (Media), and the weather
+ * first (Weather). The cards a preset leaves out keep their place after the shown ones, ready to come back. */
+export const DASHBOARD_LAYOUTS: Record<DashboardLayoutPreset, DashboardLayout> = {
+  focus: layoutOf(
+    ['destination', 'driverHours', 'diagnostics', 'nowPlaying', 'weather', 'driver'],
+    ['destination', 'driverHours', 'diagnostics', 'nowPlaying'],
+    { destination: 'expanded', nowPlaying: 'compact' },
+  ),
+  media: layoutOf(
+    ['nowPlaying', 'destination', 'driverHours', 'weather', 'diagnostics', 'driver'],
+    ['nowPlaying', 'destination', 'driverHours', 'weather'],
+    { nowPlaying: 'expanded', driverHours: 'compact', weather: 'compact' },
+  ),
+  weather: layoutOf(
+    ['weather', 'destination', 'driverHours', 'nowPlaying', 'diagnostics', 'driver'],
+    ['weather', 'destination', 'driverHours', 'nowPlaying'],
+    { weather: 'expanded', nowPlaying: 'compact' },
+  ),
+}
+
 /** Whether a saved column was the old default (every widget on): a player who never chose gets the leaner one. */
 function wasEveryWidgetOn(saved: unknown): boolean {
   if (typeof saved !== 'object' || saved === null) return false
@@ -395,12 +461,12 @@ export const useCabin = create<CabinState>()(
       dashboardWidgetSizes: { ...STANDARD_WIDGET_SIZES },
       clock: 'real',
       albumArt: true,
-      playerCompact: false,
       textSize: DEFAULT_TEXT_SIZE,
       reduceMotion: SYSTEM_REDUCES_MOTION,
       diagnosticsPage: 'overview',
       dashboardOrder: DEFAULT_WIDGET_ORDER,
       autoOrder: true,
+      savedDashboardLayouts: [],
       homeOrder: [...RELEASED_APP_IDS],
       homeHidden: [],
       pinnedApps: [],
@@ -448,7 +514,6 @@ export const useCabin = create<CabinState>()(
         set((state) => ({ dashboardWidgetSizes: { ...state.dashboardWidgetSizes, [widget]: size } })),
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
-      setPlayerCompact: (playerCompact) => set({ playerCompact }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setDiagnosticsPage: (diagnosticsPage) => set({ diagnosticsPage }),
@@ -473,6 +538,36 @@ export const useCabin = create<CabinState>()(
           if (dashboardOrder.every((each, at) => each === state.dashboardOrder[at])) return {}
           return { dashboardOrder }
         }),
+      applyDashboardLayout: (layout) =>
+        set({
+          dashboardOrder: [...layout.order],
+          dashboardWidgets: { ...layout.widgets },
+          dashboardWidgetSizes: { ...layout.sizes },
+          // The preset is a layout the player chose: the drive's own order would undo it.
+          autoOrder: false,
+        }),
+      saveDashboardLayout: (name) =>
+        set((state) => {
+          const kept = name.trim().slice(0, DASHBOARD_LAYOUT_NAME_LENGTH)
+          if (!kept) return {}
+          const saved = {
+            name: kept,
+            layout: {
+              order: [...state.dashboardOrder],
+              widgets: { ...state.dashboardWidgets },
+              sizes: { ...state.dashboardWidgetSizes },
+            },
+          }
+          const at = state.savedDashboardLayouts.findIndex((each) => each.name.toLowerCase() === kept.toLowerCase())
+          if (at < 0) return { savedDashboardLayouts: [...state.savedDashboardLayouts, saved] }
+          const savedDashboardLayouts = [...state.savedDashboardLayouts]
+          savedDashboardLayouts[at] = saved
+          return { savedDashboardLayouts }
+        }),
+      removeDashboardLayout: (name) =>
+        set((state) => ({
+          savedDashboardLayouts: state.savedDashboardLayouts.filter((each) => each.name !== name),
+        })),
       setHomeAppHidden: (app, hidden) =>
         set((state) => {
           if (!hidden) return { homeHidden: state.homeHidden.filter((each) => each !== app) }
@@ -607,12 +702,12 @@ export const useCabin = create<CabinState>()(
         dashboardWidgetSizes: state.dashboardWidgetSizes,
         clock: state.clock,
         albumArt: state.albumArt,
-        playerCompact: state.playerCompact,
         textSize: state.textSize,
         reduceMotion: state.reduceMotion,
         diagnosticsPage: state.diagnosticsPage,
         dashboardOrder: state.dashboardOrder,
         autoOrder: state.autoOrder,
+        savedDashboardLayouts: state.savedDashboardLayouts,
         homeOrder: state.homeOrder,
         homeHidden: state.homeHidden,
         pinnedApps: state.pinnedApps,
@@ -685,9 +780,15 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
       ]),
     ) as Record<DashboardWidget, DashboardWidgetSize>
   }
+  // Compact Player used to be a switch of its own: its choice is Now Playing's compact size now.
+  if ((stored as { playerCompact?: unknown }).playerCompact === true) {
+    result.dashboardWidgetSizes = {
+      ...(result.dashboardWidgetSizes ?? STANDARD_WIDGET_SIZES),
+      nowPlaying: 'compact',
+    }
+  }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
-  if (typeof stored.playerCompact === 'boolean') result.playerCompact = stored.playerCompact
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
   if (typeof stored.reduceMotion === 'boolean') result.reduceMotion = stored.reduceMotion
   if (DIAGNOSTICS_PAGES.includes(stored.diagnosticsPage as DiagnosticsPage)) {
@@ -695,6 +796,9 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   }
   if (stored.dashboardOrder !== undefined) result.dashboardOrder = orderOf(stored.dashboardOrder)
   if (typeof stored.autoOrder === 'boolean') result.autoOrder = stored.autoOrder
+  if (stored.savedDashboardLayouts !== undefined) {
+    result.savedDashboardLayouts = savedLayoutsOf(stored.savedDashboardLayouts)
+  }
   if (stored.homeOrder !== undefined) result.homeOrder = homeOrderOf(stored.homeOrder)
   if (stored.homeHidden !== undefined) result.homeHidden = hiddenHomeApps(stored.homeHidden)
   if (stored.pinnedApps !== undefined) result.pinnedApps = pinnedAppsOf(stored.pinnedApps)
@@ -737,6 +841,38 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))
   }
   return result
+}
+
+/** Saved layouts from storage, made whole: named, unique, and with every widget in its order and sizes that parse. */
+function savedLayoutsOf(saved: unknown): SavedDashboardLayout[] {
+  if (!Array.isArray(saved)) return []
+  const found: SavedDashboardLayout[] = []
+  for (const item of saved) {
+    if (typeof item !== 'object' || item === null) continue
+    const { name, layout } = item as { name?: unknown; layout?: unknown }
+    if (typeof name !== 'string' || typeof layout !== 'object' || layout === null) continue
+    const kept = name.trim().slice(0, DASHBOARD_LAYOUT_NAME_LENGTH)
+    if (!kept || found.some((each) => each.name.toLowerCase() === kept.toLowerCase())) continue
+    const { order, widgets, sizes } = layout as Partial<DashboardLayout>
+    const shown: Partial<Record<DashboardWidget, unknown>> =
+      typeof widgets === 'object' && widgets !== null ? widgets : {}
+    const chosen: Partial<Record<DashboardWidget, unknown>> = typeof sizes === 'object' && sizes !== null ? sizes : {}
+    const cleanSizes: Partial<Record<DashboardWidget, DashboardWidgetSize>> = {}
+    for (const widget of DASHBOARD_WIDGETS) {
+      if (DASHBOARD_WIDGET_SIZES.includes(chosen[widget] as DashboardWidgetSize)) {
+        cleanSizes[widget] = chosen[widget] as DashboardWidgetSize
+      }
+    }
+    found.push({
+      name: kept,
+      layout: layoutOf(
+        orderOf(order),
+        DASHBOARD_WIDGETS.filter((widget) => shown[widget] === true),
+        cleanSizes,
+      ),
+    })
+  }
+  return found
 }
 
 function isRoute(route: unknown): route is Route {

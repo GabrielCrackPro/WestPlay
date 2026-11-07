@@ -76,10 +76,10 @@ import { DriverPortrait } from '../apps/driver/DriverPortrait'
  */
 export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
-  const compact = useCabin((state) => state.playerCompact)
   const size = useWidgetSize('nowPlaying')
   const { showing, spotify, appleMusic, youtubeMusic, radio } = useNowPlaying()
   const open = shown && showing !== null
+  const compact = size === 'compact'
   // A video keeps its own card: the compact player is the music cards' (MusicWidget).
   const video = open && showing === 'video'
   const tight = open && compact && !video
@@ -228,7 +228,7 @@ function MusicWidget({
 }) {
   const transition = useTrackTransition(source, artwork)
   const albumArt = useCabin((state) => state.albumArt)
-  const compact = useCabin((state) => state.playerCompact)
+  const compact = useCabin((state) => state.dashboardWidgetSizes.nowPlaying === 'compact')
   const cover = albumArt ? (transition.shown?.artwork ?? null) : null
   const controls = source?.controls
   const playing = source?.status === 'playing'

@@ -524,11 +524,22 @@ export interface Strings {
     /** The Dashboard layout editor: the live column, dragging a card, and each widget's share of the room. */
     widgetLayout: string
     widgetLayoutFooter: string
+    widgetPresets: string
+    presetFocus: string
+    presetMedia: string
+    presetWeather: string
     widgetSize: string
     widgetCompact: string
     widgetStandard: string
     widgetExpanded: string
     noWidgets: string
+    /** The player's own Dashboard layouts: naming the current one, saving it, and removing it again. */
+    saveLayout: string
+    layoutName: string
+    yourLayouts: string
+    save: string
+    cancel: string
+    deleteLayout: string
     /** Home Screen: which apps show there, and their order. */
     homeScreen: string
     homeScreenFooter: string
@@ -546,8 +557,6 @@ export interface Strings {
     realClock: string
     clockFooter: string
     /** The Dashboard's player on one line, and what it leaves out. */
-    playerCompact: string
-    playerCompactFooter: string
     /** Settings search: its field, and what it says when nothing matches. */
     search: string
     noResults: string
@@ -836,6 +845,8 @@ export interface Strings {
     addFavourite: string
     removeFavourite: string
   }
+  /** The sidebar icon's options button, named after the app it belongs to. */
+  appOptions: (app: string) => string
   apps: Record<AppId, string>
   notBuiltYet: string
 }
@@ -1363,12 +1374,22 @@ const ENGLISH_STRINGS: Strings = {
     widgets: 'Widgets',
     widgetLayout: 'Layout',
     widgetLayoutFooter:
-      'Drag a card to reorder the column. Dragging turns Auto Order off so your layout stays as you set it.',
+      'Drag a card to reorder the column, or start from a preset. Either turns Auto Order off; a preset also sets sizes and which widgets show.',
+    widgetPresets: 'Presets',
+    presetFocus: 'Focus',
+    presetMedia: 'Media',
+    presetWeather: 'Weather',
     widgetSize: 'Size',
     widgetCompact: 'Compact',
     widgetStandard: 'Standard',
     widgetExpanded: 'Large',
     noWidgets: 'No widgets turned on',
+    saveLayout: 'Save Current Layout',
+    layoutName: 'Layout Name',
+    yourLayouts: 'Your Layouts',
+    save: 'Save',
+    cancel: 'Cancel',
+    deleteLayout: 'Delete Layout',
     homeScreen: 'Home Screen',
     homeScreenFooter:
       'Choose which apps appear on Home and the order they appear in. Hiding an app keeps it in Settings and the sidebar’s recents.',
@@ -1383,9 +1404,6 @@ const ENGLISH_STRINGS: Strings = {
       'Pinned apps stay at the top of the sidebar, in the order you pin them, while your recent apps fill the rest. Up to three.',
     realClock: 'Real Time',
     clockFooter: 'The sidebar’s clock: your own time, or the game’s.',
-    playerCompact: 'Compact Player',
-    playerCompactFooter:
-      'Music on the Dashboard’s Now Playing card shows on one line: the track beside its controls, without the cover, the times or shuffle and repeat.',
     search: 'Search',
     noResults: 'No Settings Found',
     showAlbumArt: 'Show Album Art',
@@ -1632,6 +1650,8 @@ const ENGLISH_STRINGS: Strings = {
     driver: 'Driver',
     notifications: 'Alerts',
   },
+  /** The sidebar icon's options button, named after the app it belongs to. */
+  appOptions: (app) => `${app} options`,
 
   notBuiltYet: 'Not built yet',
 }
@@ -2162,12 +2182,22 @@ const TURKISH_STRINGS: Strings = {
     widgets: 'Widget’lar',
     widgetLayout: 'Yerleşim',
     widgetLayoutFooter:
-      'Sütunu yeniden sıralamak için bir kartı sürükle. Sürüklemek Otomatik Sıralama’yı kapatır; böylece yerleşimin senin ayarladığın gibi kalır.',
+      'Sütunu yeniden sıralamak için bir kartı sürükle veya bir hazır yerleşim seç. İkisi de Otomatik Sıralama’yı kapatır; hazır yerleşim ayrıca boyutları ve hangi widget’ların görüneceğini ayarlar.',
+    widgetPresets: 'Hazır Yerleşimler',
+    presetFocus: 'Odak',
+    presetMedia: 'Medya',
+    presetWeather: 'Hava Durumu',
     widgetSize: 'Boyut',
     widgetCompact: 'Kompakt',
     widgetStandard: 'Standart',
     widgetExpanded: 'Geniş',
     noWidgets: 'Açık widget yok',
+    saveLayout: 'Mevcut Yerleşimi Kaydet',
+    layoutName: 'Yerleşim Adı',
+    yourLayouts: 'Yerleşimleriniz',
+    save: 'Kaydet',
+    cancel: 'Vazgeç',
+    deleteLayout: 'Yerleşimi Sil',
     homeScreen: 'Ana Ekran',
     homeScreenFooter:
       'Ana Ekran’da hangi uygulamaların görüneceğini ve sırasını seçin. Gizlenen uygulama Ayarlar’da ve kenar çubuğunun son kullanılanlarında kalır.',
@@ -2182,9 +2212,6 @@ const TURKISH_STRINGS: Strings = {
       'Sabitlenen uygulamalar kenar çubuğunun üstünde, sabitlediğin sırayla kalır; kalan yeri son kullanılan uygulamalar doldurur. En fazla üç.',
     realClock: 'Gerçek Saat',
     clockFooter: 'Kenar çubuğundaki saat: kendi saatiniz ya da oyunun saati.',
-    playerCompact: 'Kompakt Oynatıcı',
-    playerCompactFooter:
-      'Gösterge Paneli’ndeki Şimdi Çalıyor kartında müzik tek satırda görünür: parça, denetimlerinin yanında; kapak, süreler ile karıştır ve tekrar olmadan.',
     search: 'Ara',
     noResults: 'Ayar Bulunamadı',
     showAlbumArt: 'Albüm Kapağını Göster',
@@ -2430,6 +2457,7 @@ const TURKISH_STRINGS: Strings = {
     driver: 'Sürücü',
     notifications: 'Uyarılar',
   },
+  appOptions: (app) => `${app} seçenekleri`,
   notBuiltYet: 'Henüz hazır değil',
 }
 
@@ -2970,12 +2998,22 @@ const SPANISH_STRINGS: Strings = {
     widgets: 'Widgets',
     widgetLayout: 'Diseño',
     widgetLayoutFooter:
-      'Arrastra una tarjeta para reordenar la columna. Al arrastrar se desactiva el Orden automático para que tu diseño se quede como lo dejes.',
+      'Arrastra una tarjeta para reordenar la columna o empieza con un preajuste. Ambos desactivan el Orden automático; el preajuste también ajusta tamaños y qué widgets se muestran.',
+    widgetPresets: 'Preajustes',
+    presetFocus: 'Enfoque',
+    presetMedia: 'Multimedia',
+    presetWeather: 'Clima',
     widgetSize: 'Tamaño',
     widgetCompact: 'Compacto',
     widgetStandard: 'Estándar',
     widgetExpanded: 'Grande',
     noWidgets: 'No hay widgets activados',
+    saveLayout: 'Guardar diseño actual',
+    layoutName: 'Nombre del diseño',
+    yourLayouts: 'Tus diseños',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    deleteLayout: 'Eliminar diseño',
     homeScreen: 'Pantalla de inicio',
     homeScreenFooter:
       'Elige qué apps aparecen en Inicio y en qué orden. Una app oculta sigue en Ajustes y en los recientes de la barra lateral.',
@@ -2990,9 +3028,6 @@ const SPANISH_STRINGS: Strings = {
       'Las apps fijadas se quedan arriba en la barra lateral, en el orden en que las fijas, y las recientes ocupan el resto. Hasta tres.',
     realClock: 'Hora real',
     clockFooter: 'El reloj de la barra lateral: tu hora o la del juego.',
-    playerCompact: 'Reproductor compacto',
-    playerCompactFooter:
-      'La música de la tarjeta Reproduciendo ahora del Panel ocupa una línea: la pista junto a sus controles, sin carátula, tiempos ni aleatorio y repetición.',
     search: 'Buscar',
     noResults: 'No se encontraron ajustes',
     showAlbumArt: 'Mostrar carátula del álbum',
@@ -3240,6 +3275,7 @@ const SPANISH_STRINGS: Strings = {
     driver: 'Conductor',
     notifications: 'Avisos',
   },
+  appOptions: (app) => `Opciones de ${app}`,
   notBuiltYet: 'Aún no disponible',
 }
 
