@@ -48,6 +48,7 @@ let settings: Settings = {
     playPause: { key: 0x32, withInteractionKey: true },
     volumeUp: { key: 0x33, withInteractionKey: true },
   },
+  voice: { enabled: true, wake: false, hotkey: { key: 0x20, ctrl: true, shift: true, alt: false } },
   screen: { truckStrip: 'auto' },
   cabin: { resume: false },
   companion: { accent: 'ember' },

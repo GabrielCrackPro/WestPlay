@@ -37,6 +37,20 @@ export interface Strings {
   search: string
   searchPlaces: string
   close: string
+  /** The voice assistant's button and its short notes. */
+  voice: {
+    assistant: string
+    listening: string
+    processing: string
+    unavailable: string
+    noSpeech: string
+    notUnderstood: string
+    done: string
+    /** The Settings reference: what the player can say, by what it does. */
+    commands: string
+    commandsHint: string
+    groups: readonly { title: string; phrases: readonly string[] }[]
+  }
   /** Destinations (Maps' search): its sections, what places are (one, and the nearby lists'), the place
    * card's buttons, and how the game answered. */
   destinations: {
@@ -568,6 +582,16 @@ export interface Strings {
     uiSounds: string
     uiSoundVolume: string
     uiSoundsFooter: string
+    /** The voice assistant's switch, and the push-to-talk chord set in the companion. */
+    voiceAssistant: string
+    /** `{key}`: the chord. */
+    voiceAssistantFooter: string
+    voiceHotkey: string
+    /** The background phrase that starts the assistant without the chord. */
+    voiceWake: string
+    /** The short lead-in before the truck's derived phrase (`Say “Hey Scania”`). */
+    voiceWakePhrase: string
+    voiceWakeFooter: string
     equalizer: string
     recommended: string
     custom: string
@@ -884,6 +908,27 @@ const ENGLISH_STRINGS: Strings = {
   search: 'Search',
   searchPlaces: 'Search places and cities',
   close: 'Close',
+  voice: {
+    assistant: 'Voice assistant',
+    listening: 'Listening…',
+    processing: 'One moment…',
+    unavailable: 'Voice isn’t available on this PC.',
+    noSpeech: 'I didn’t hear anything.',
+    notUnderstood: 'I didn’t understand that.',
+    done: 'Done.',
+    commands: 'What you can say',
+    commandsHint: 'Tap the mic or press your push-to-talk key, then say one of these.',
+    groups: [
+      { title: 'Apps', phrases: ['Open Maps', 'Launch Spotify', 'Switch to YouTube Music'] },
+      {
+        title: 'Navigation',
+        phrases: ['Navigate to Berlin', 'Take me to Hamburg', 'Add a stop at Munich', 'End route'],
+      },
+      { title: 'Music', phrases: ['Play', 'Pause', 'Next song', 'Volume up', 'Louder'] },
+      { title: 'Calls', phrases: ['Call Ada', 'Answer', 'Hang up'] },
+      { title: 'Screens', phrases: ['Go home', 'Dashboard'] },
+    ],
+  },
   destinations: {
     favourites: 'Favourites',
     headquarters: 'Headquarters',
@@ -1411,6 +1456,14 @@ const ENGLISH_STRINGS: Strings = {
     uiSounds: 'Interface Sounds',
     uiSoundVolume: 'Interface Sound Volume',
     uiSoundsFooter: 'Set the cabin’s clicks and alerts independently. This does not change music or game volume.',
+    voiceAssistant: 'Voice Assistant',
+    voiceAssistantFooter:
+      'Talk from the mic button or press {key} anywhere. Recognition and speech stay on this PC and play through the truck’s own speakers.',
+    voiceHotkey: 'Push to talk',
+    voiceWake: 'Wake Phrase',
+    voiceWakePhrase: 'Say',
+    voiceWakeFooter:
+      'Start the assistant without the hotkey with this phrase. While this is on, the microphone stays open for it; recognition stays on this PC.',
     equalizer: 'Equalizer',
     recommended: 'Recommended',
     custom: 'Custom',
@@ -1687,6 +1740,24 @@ const TURKISH_STRINGS: Strings = {
   search: 'Ara',
   searchPlaces: 'Yer ve şehir arayın',
   close: 'Kapat',
+  voice: {
+    assistant: 'Sesli asistan',
+    listening: 'Dinliyorum…',
+    processing: 'Bir saniye…',
+    unavailable: 'Bu bilgisayarda ses tanıma kullanılamıyor.',
+    noSpeech: 'Bir şey duyamadım.',
+    notUnderstood: 'Bunu anlayamadım.',
+    done: 'Tamam.',
+    commands: 'Neler söyleyebilirsin',
+    commandsHint: 'Mikrofona dokun ya da konuşma tuşuna bas, sonra bunlardan birini söyle.',
+    groups: [
+      { title: 'Uygulamalar', phrases: ['Haritaları aç', 'Müziği aç', 'Telefonu aç'] },
+      { title: 'Navigasyon', phrases: ['Git Berlin', 'Ekle Hamburg', 'Rotayı bitir'] },
+      { title: 'Müzik', phrases: ['Oynat', 'Duraklat', 'Sonraki', 'Sesi aç', 'Sesi kıs'] },
+      { title: 'Aramalar', phrases: ['Ara Ada', 'Cevapla', 'Aramayı bitir'] },
+      { title: 'Ekranlar', phrases: ['Eve git', 'Gösterge paneli'] },
+    ],
+  },
   destinations: {
     favourites: 'Favoriler',
     headquarters: 'Merkez',
@@ -2219,6 +2290,14 @@ const TURKISH_STRINGS: Strings = {
     uiSounds: 'Arayüz Sesleri',
     uiSoundVolume: 'Arayüz Sesi Seviyesi',
     uiSoundsFooter: 'Kabin tıklarını ve uyarılarını ayrı ayarla. Müzik veya oyun ses seviyesini değiştirmez.',
+    voiceAssistant: 'Sesli Asistan',
+    voiceAssistantFooter:
+      'Mikrofon düğmesinden konuş veya her yerde {key} tuşlarına bas. Konuşma bu bilgisayarda kalır ve kamyonun kendi hoparlörlerinden çalar.',
+    voiceHotkey: 'Konuşmak için',
+    voiceWake: 'Uyandırma Sözü',
+    voiceWakePhrase: 'Söyle',
+    voiceWakeFooter:
+      'Asistanı konuşma tuşu olmadan bu sözle başlat. Bu açıkken mikrofon bu sözü dinler; tanıma bu bilgisayarda kalır.',
     equalizer: 'Ekolayzır',
     recommended: 'Önerilen',
     custom: 'Özel',
@@ -2496,6 +2575,27 @@ const SPANISH_STRINGS: Strings = {
   search: 'Buscar',
   searchPlaces: 'Busca lugares y ciudades',
   close: 'Cerrar',
+  voice: {
+    assistant: 'Asistente de voz',
+    listening: 'Escuchando…',
+    processing: 'Un momento…',
+    unavailable: 'El reconocimiento de voz no está disponible en este PC.',
+    noSpeech: 'No he oído nada.',
+    notUnderstood: 'No te he entendido.',
+    done: 'Hecho.',
+    commands: 'Lo que puedes decir',
+    commandsHint: 'Toca el micrófono o pulsa tu tecla de hablar y di una de estas frases.',
+    groups: [
+      { title: 'Apps', phrases: ['Abre Mapas', 'Abre YouTube', 'Abre Ajustes'] },
+      {
+        title: 'Navegación',
+        phrases: ['Navega a Madrid', 'Llévame a Barcelona', 'Añade una parada en Valencia', 'Terminar ruta'],
+      },
+      { title: 'Música', phrases: ['Reproducir', 'Pausar', 'Siguiente', 'Subir volumen', 'Bajar volumen'] },
+      { title: 'Llamadas', phrases: ['Llama a Ana', 'Contesta', 'Colgar'] },
+      { title: 'Pantallas', phrases: ['Ve al inicio', 'Panel'] },
+    ],
+  },
   destinations: {
     favourites: 'Favoritos',
     headquarters: 'Sede',
@@ -3036,6 +3136,14 @@ const SPANISH_STRINGS: Strings = {
     uiSoundVolume: 'Volumen de sonidos de la interfaz',
     uiSoundsFooter:
       'Ajusta por separado los clics y avisos de la cabina. No cambia el volumen de la música ni del juego.',
+    voiceAssistant: 'Asistente de voz',
+    voiceAssistantFooter:
+      'Habla desde el botón del micrófono o pulsa {key} en cualquier momento. El reconocimiento se queda en este PC y suena por los altavoces del camión.',
+    voiceHotkey: 'Pulsar para hablar',
+    voiceWake: 'Frase de activación',
+    voiceWakePhrase: 'Di',
+    voiceWakeFooter:
+      'Di esta frase para iniciar el asistente sin la tecla de hablar. Mientras esté activo, el micrófono la escucha; el reconocimiento se queda en este PC.',
     equalizer: 'Ecualizador',
     recommended: 'Recomendado',
     custom: 'Personalizado',

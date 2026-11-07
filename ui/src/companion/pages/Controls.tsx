@@ -4,6 +4,7 @@ import { Group, KeyChooser, Note, Panel, Row, Slider, Switch } from '../room/par
 import { n, useWords } from '../room/room'
 import { GLOW, openAndClose, useScreenAt, useTour } from '../room/screen'
 import { type Binding, DEFAULT_KEY, KEYBIND_IDS, type KeybindId, SENSITIVITY, type Settings } from '../useSettings'
+import { HotkeyButton } from './HotkeyButton'
 import { KeyButton } from './KeyButton'
 import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
@@ -74,13 +75,13 @@ function Keybinds({
   w: PageProps['cw']['controls']
 }) {
   const words = useWords()
-  const [listening, setListening] = useState<KeybindId | 'screen' | null>(null)
+  const [listening, setListening] = useState<KeybindId | 'screen' | 'voice' | null>(null)
   const [refused, setRefused] = useState<string | null>(null)
   const screenKey = settings.interaction.key
   const keyName = useKeyName(screenKey, words)
   const names: Record<KeybindId, string> = { volumeUp: w.volumeUp, volumeDown: w.volumeDown, playPause: w.playPause }
   const listen = useCallback(
-    (which: KeybindId | 'screen') => (on: boolean) => {
+    (which: KeybindId | 'screen' | 'voice') => (on: boolean) => {
       setListening(on ? which : null)
       if (on) setRefused(null)
     },
@@ -118,6 +119,20 @@ function Keybinds({
               listening={listening === 'screen'}
               listen={listen('screen')}
               choose={choose('screen')}
+              words={words}
+              pressKey={w.pressKey}
+            />
+          }
+        />
+        <Row
+          title={w.voiceHotkey ?? 'Voice assistant'}
+          accessory={
+            <HotkeyButton
+              hotkey={settings.voice.hotkey}
+              label={w.voiceHotkey ?? 'Voice assistant'}
+              listening={listening === 'voice'}
+              listen={listen('voice')}
+              choose={(hotkey) => update({ ...settings, voice: { ...settings.voice, hotkey } })}
               words={words}
               pressKey={w.pressKey}
             />

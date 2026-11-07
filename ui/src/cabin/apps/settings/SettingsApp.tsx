@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { SearchGlyph } from '../../keyboard/glyphs'
 import { useKeyboard } from '../../keyboard/store'
+import { wakePhrase } from '../../voice/wake'
 import { TextField } from '../../keyboard/TextField'
 import { NoteGlyph, PauseGlyph, PlayGlyph } from '../music/glyphs'
 import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
@@ -51,7 +52,7 @@ import {
   useLive,
 } from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
-import { useText } from '../../state/text'
+import { useLanguage, useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
 import {
   AppearanceGlyph,
@@ -67,6 +68,7 @@ import {
   NowPlayingGlyph,
   PinGlyph,
   SoundGlyph,
+  VoiceGlyph,
   WallpaperGlyph,
 } from './glyphs'
 import { type SettingsEntry, searchSettings, settingsEntries } from './search'
@@ -138,6 +140,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <SoundPage />
     case 'equalizer':
       return <EqualizerPage />
+    case 'voice':
+      return <VoicePage />
     case 'textSize':
       return <TextSizePage />
   }
@@ -254,6 +258,12 @@ function ListPage() {
               icon={<SoundGlyph />}
               label={text.settings.sound}
               onOpen={() => open('sound')}
+            />
+            <NavRow
+              tile="var(--apple-orange)"
+              icon={<VoiceGlyph />}
+              label={text.settings.voiceAssistant}
+              onOpen={() => open('voice')}
             />
           </Group>
         </>
@@ -1573,6 +1583,53 @@ function SoundPage() {
           value={custom ? text.settings.custom : text.settings.recommended}
           onOpen={() => open('equalizer')}
         />
+      </Group>
+    </Page>
+  )
+}
+
+/** The voice assistant: its switch, the push-to-talk chord the companion sets, and what the player can say. */
+function VoicePage() {
+  const text = useText()
+  const language = useLanguage()
+  const truck = useLive((state) => state.truck)
+  const phrase = wakePhrase(truck?.brand, language)
+  const enabled = useCabin((state) => state.voiceEnabled)
+  const setEnabled = useCabin((state) => state.setVoiceEnabled)
+  const hotkey = useCabin((state) => state.voiceKey)
+  const wake = useCabin((state) => state.voiceWake)
+  const setWake = useCabin((state) => state.setVoiceWake)
+  return (
+    <Page title={text.settings.voiceAssistant}>
+      <Group footer={text.settings.voiceAssistantFooter.replaceAll('{key}', hotkey)}>
+        <SwitchRow label={text.settings.voiceAssistant} on={enabled} onToggle={setEnabled} />
+        <div className="settings-row voice-hotkey-row">
+          <span className="settings-label">{text.settings.voiceHotkey}</span>
+          <kbd className="voice-hotkey">{hotkey}</kbd>
+        </div>
+      </Group>
+      <Group footer={text.settings.voiceWakeFooter}>
+        <SwitchRow label={text.settings.voiceWake} on={wake} onToggle={setWake} disabled={!enabled} />
+        <div className="settings-row voice-wake-row">
+          <span className="settings-label">{text.settings.voiceWakePhrase}</span>
+          <span className="voice-wake-phrase">“{phrase}”</span>
+        </div>
+      </Group>
+      <Group header={text.voice.commands} footer={text.voice.commandsHint}>
+        <div className="voice-command-groups">
+          {text.voice.groups.map((group) => (
+            <section key={group.title} className="voice-command-group">
+              <h3 className="voice-command-title">{group.title}</h3>
+              <div className="voice-command-chips">
+                {group.phrases.map((phrase) => (
+                  <span key={phrase} className="voice-command-chip">
+                    “{phrase}”
+                  </span>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </Group>
     </Page>
   )

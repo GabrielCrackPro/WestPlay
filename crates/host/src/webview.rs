@@ -13,7 +13,8 @@ use std::time::{Duration, Instant};
 
 use webview2_com::Microsoft::Web::WebView2::Win32::{
     COREWEBVIEW2_COLOR, COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW, COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
-    COREWEBVIEW2_MOUSE_EVENT_KIND, COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS, COREWEBVIEW2_PROCESS_FAILED_KIND,
+    COREWEBVIEW2_MOUSE_EVENT_KIND, COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS, COREWEBVIEW2_PERMISSION_KIND,
+    COREWEBVIEW2_PERMISSION_KIND_MICROPHONE, COREWEBVIEW2_PERMISSION_STATE_ALLOW, COREWEBVIEW2_PROCESS_FAILED_KIND,
     COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED, COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
     COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE, CreateCoreWebView2EnvironmentWithOptions,
     ICoreWebView2, ICoreWebView2_2, ICoreWebView2_3, ICoreWebView2CompositionController, ICoreWebView2Controller,
@@ -23,7 +24,7 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
 use webview2_com::{
     AddScriptToExecuteOnDocumentCreatedCompletedHandler, CoTaskMemPWSTR, CoreWebView2EnvironmentOptions,
     CreateCoreWebView2CompositionControllerCompletedHandler, CreateCoreWebView2EnvironmentCompletedHandler,
-    ProcessFailedEventHandler, WebMessageReceivedEventHandler,
+    PermissionRequestedEventHandler, ProcessFailedEventHandler, WebMessageReceivedEventHandler,
 };
 use windows::System::DispatcherQueueController;
 use windows::UI::Composition::{Compositor, ContainerVisual, Visual};
@@ -544,6 +545,34 @@ impl OffscreenWebView {
             Box::new(|error, _id| error),
         )?;
         Ok(())
+    }
+
+    /// Lets the page at `host` use the microphone: the voice assistant's level meter follows the same mic as
+    /// Windows' recogniser. Other pages, and every other permission, keep WebView2's own answer.
+    pub fn allow_microphone_from(&self, host: &str) -> windows::core::Result<()> {
+        let allowed = host.to_ascii_lowercase();
+        let handler = PermissionRequestedEventHandler::create(Box::new(move |_webview, args| {
+            let Some(args) = args else { return Ok(()) };
+            let mut kind = COREWEBVIEW2_PERMISSION_KIND::default();
+            let mut uri = PWSTR::null();
+            // SAFETY: `args` is the event's, alive through the callback; `kind` and `uri` are locals it writes.
+            unsafe {
+                args.PermissionKind(&mut kind)?;
+                if kind != COREWEBVIEW2_PERMISSION_KIND_MICROPHONE {
+                    return Ok(());
+                }
+                args.Uri(&mut uri)?;
+            }
+            let address = CoTaskMemPWSTR::from(uri).to_string();
+            if crate::performance::host_of(&address).is_some_and(|requested| requested == allowed) {
+                // SAFETY: as above; the request's state is the event's to set.
+                unsafe { args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)? };
+            }
+            Ok(())
+        }));
+        let mut token = 0;
+        // SAFETY: the handler and the token are locals for the call; WebView2 keeps its own reference to the handler.
+        unsafe { self.webview.add_PermissionRequested(&handler, &mut token) }
     }
 
     /// Tests: the page's picture, as WebView2 draws it, written to `path` as a PNG (to see what a page shows).

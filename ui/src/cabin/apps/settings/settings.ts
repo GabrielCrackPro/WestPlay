@@ -13,6 +13,7 @@ export type SettingsPage =
   | 'nowPlaying'
   | 'sound'
   | 'equalizer'
+  | 'voice'
   | 'map'
   | 'mapDisplay'
   | 'mapTraffic'

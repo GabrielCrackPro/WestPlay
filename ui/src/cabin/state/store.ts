@@ -78,6 +78,8 @@ import {
   routeKey,
 } from './navigation'
 import { isIconStyle, setIcons, useLooks } from './looks'
+import { playVoiceAudio } from '../voice/audio'
+import { receiveVoice, receiveVoiceHotkey } from '../voice/voice'
 import type { OemMode } from './oem'
 import { INITIAL_POWER, power, type PowerEvent, type PowerState } from './power'
 import { isScreenLayoutId, type ScreenLayoutId } from './screen'
@@ -172,6 +174,12 @@ interface CabinState {
   uiSounds: boolean
   /** The cabin's own sounds' level, independent of the music and game volume (Settings › Sound). */
   uiSoundVolume: number
+  /** The voice assistant's switch (Settings › Voice Assistant): its button and hotkey are off when false. */
+  voiceEnabled: boolean
+  /** The push-to-talk chord as the companion set it, for Settings to show. */
+  voiceKey: string
+  /** Whether the background wake phrase listens (Settings › Voice Assistant). */
+  voiceWake: boolean
   /** The Diagnostics app's page last opened, so its tabs come back where the player left them. */
   diagnosticsPage: DiagnosticsPage
   /** The Dashboard's widgets in the order the player put them (Settings › Dashboard), and whether the cab orders
@@ -287,6 +295,8 @@ interface CabinState {
   setMapStopCardRest(minutes: number): void
   setUiSounds(uiSounds: boolean): void
   setUiSoundVolume(uiSoundVolume: number): void
+  setVoiceEnabled(voiceEnabled: boolean): void
+  setVoiceWake(voiceWake: boolean): void
   setMapDetail(detail: MapDetail): void
   setMapNight(on: boolean): void
   setMapJunction(on: boolean): void
@@ -497,6 +507,9 @@ export const useCabin = create<CabinState>()(
       mapStopCardRest: 60,
       uiSounds: true,
       uiSoundVolume: 1,
+      voiceEnabled: true,
+      voiceKey: 'Ctrl + Shift + Space',
+      voiceWake: false,
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
@@ -629,6 +642,14 @@ export const useCabin = create<CabinState>()(
       setMapStopCardRest: (mapStopCardRest) => set({ mapStopCardRest }),
       setUiSounds: (uiSounds) => set({ uiSounds }),
       setUiSoundVolume: (uiSoundVolume) => set({ uiSoundVolume: Math.max(0, Math.min(1, uiSoundVolume)) }),
+      setVoiceEnabled: (voiceEnabled) => {
+        set({ voiceEnabled })
+        if (isInHost()) postToHost({ type: 'voiceEnabled', on: voiceEnabled })
+      },
+      setVoiceWake: (voiceWake) => {
+        set({ voiceWake })
+        if (isInHost()) postToHost({ type: 'voiceWake', on: voiceWake })
+      },
       setEqualizerBand: (band, db) => {
         const equalizer = toEqualizer({ ...useCabin.getState().equalizer, [band]: db })
         set({ equalizer, equalizerCustom: true })
@@ -1152,6 +1173,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         useCabin.setState({
           equalizer: toEqualizer(message.equalizer),
           equalizerCustom: message.equalizerCustom === true,
+          voiceEnabled: message.voiceEnabled !== false,
+          voiceKey: message.voiceKey ?? 'Ctrl + Shift + Space',
+          voiceWake: message.voiceWake === true,
         })
         setIcons({
           iconSet: message.iconSet ?? null,
@@ -1190,6 +1214,15 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'keybind':
         useLive.setState((live) => ({ keybind: { action: message.action, count: (live.keybind?.count ?? 0) + 1 } }))
+        break
+      case 'voice':
+        receiveVoice(message.state, message.transcript, message.error)
+        break
+      case 'voiceAudio':
+        void playVoiceAudio(message.audio)
+        break
+      case 'voiceHotkey':
+        receiveVoiceHotkey()
         break
       case 'truckersmp':
         useLive.setState({ truckersmp: message.on, ...(message.on ? {} : { nearby: null }) })

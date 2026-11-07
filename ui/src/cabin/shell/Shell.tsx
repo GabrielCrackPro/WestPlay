@@ -16,6 +16,7 @@ import { useSidebarPeek } from './sidebarPeek'
 import { VolumeHud } from './VolumeHud'
 import { Notifications } from './Notifications'
 import { PhoneAlerts } from './PhoneAlerts'
+import { VoiceAssistant } from '../voice/VoiceAssistant'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
 
@@ -26,6 +27,8 @@ interface ShellProps {
   overlay?: ReactNode
   /** The first moments after the boot sequence: the screen fades in. */
   entering?: boolean
+  /** Whether the voice assistant's button is on the screen: not while the cabin boots. */
+  voice?: boolean
 }
 
 /**
@@ -33,7 +36,7 @@ interface ShellProps {
  * Glass style, room for the truck's own OEM strip beside it. Everything outside the CarPlay area is
  * transparent: the game draws the truck's real strip there, underneath.
  */
-export function Shell({ children, overlay, entering = false }: ShellProps) {
+export function Shell({ children, overlay, entering = false, voice = true }: ShellProps) {
   useLookChanges()
   usePreparedIcons()
   const { appearance, wallpaperSrc } = useLook()
@@ -112,6 +115,7 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
           <Keyboard />
           <VolumeHud />
           <Notifications />
+          {voice && <VoiceAssistant />}
           {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
           {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>

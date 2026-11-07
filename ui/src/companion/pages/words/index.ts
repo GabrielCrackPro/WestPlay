@@ -107,6 +107,8 @@ export interface CompanionWords {
     volumeUp: string
     volumeDown: string
     playPause: string
+    /** The voice assistant's push-to-talk chord. */
+    voiceHotkey?: string
     /** A keybind listening for its new key. */
     pressKey: string
     /** `{key}`: the screen's key. */
@@ -280,9 +282,15 @@ const WORDS: Record<string, CompanionWords> = Object.fromEntries(
   ),
 )
 
-/** The companion's words in the game's language `code` (`tr_tr`), English for one without. */
+/** The companion's words in the game's language `code` (`tr_tr`), English for one without. A language that
+ * hasn't named the voice assistant yet borrows English's name for it, so every page has the label. */
 export function companionWords(code: string): CompanionWords {
-  return WORDS[code] ?? WORDS.en_us
+  const words = WORDS[code] ?? WORDS.en_us
+  if (words === WORDS.en_us || words.controls.voiceHotkey) return words
+  return {
+    ...words,
+    controls: { ...words.controls, voiceHotkey: WORDS.en_us.controls.voiceHotkey },
+  }
 }
 
 export function companionLanguages(): string[] {

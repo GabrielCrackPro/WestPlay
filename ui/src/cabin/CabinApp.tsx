@@ -83,6 +83,7 @@ export function CabinApp() {
   return (
     <Shell
       entering={entering}
+      voice={powered}
       overlay={
         <>
           {FOLLOW_POWER && phase !== 'on' && <BootScreen phase={phase} />}

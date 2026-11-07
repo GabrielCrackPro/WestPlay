@@ -8,6 +8,7 @@ import { LAUNCH_STYLE, useCarriesLaunch } from '../state/launch'
 import { homeButtonTarget, type Route } from '../state/navigation'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
+
 import { cabClock, type PhoneCall } from '../../shared/host'
 import { newsCount, sendPhoneCommand, useCaller, usePhone, usePhonePrefs } from '../apps/phone/phone'
 import { unreadCount, useNotes } from './notesShown'
@@ -575,7 +576,7 @@ function DashboardGlyph({ shown }: { shown: boolean }) {
   )
 }
 
-/** The truck's brand in the status area, keyed by the brand so a new truck tries its own logo afresh. */
+/** The truck's brand in the status area, keyed by the brand so a new one tries its own logo afresh. */
 function BrandMark() {
   const truck = useLive((state) => state.truck)
   if (!truck) return null

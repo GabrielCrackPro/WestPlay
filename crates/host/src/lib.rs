@@ -34,6 +34,7 @@ pub mod speakers;
 mod spotify;
 pub mod startup;
 mod typing;
+mod voice;
 mod weather;
 mod webview;
 mod whatsapp;
@@ -48,6 +49,7 @@ use std::time::{Duration, Instant};
 use westplay_shared::{BridgeMapping, JobInfo, Keybind, Telemetry, TruckInfo, screen_layouts};
 use windows::Win32::Foundation::LUID;
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+use windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
 use windows::Win32::UI::WindowsAndMessaging::{DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, TranslateMessage};
 
 use capture::Capture;
@@ -288,10 +290,20 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         log!("the radio's stations have no door on this PC: the page plays them itself");
     }
     match &config.content {
-        Content::Url(url) => webview.navigate(url)?,
+        Content::Url(url) => {
+            if let Some(host) = performance::host_of(url)
+                && let Err(error) = webview.allow_microphone_from(&host)
+            {
+                log!("the cabin page cannot use the microphone: {error}");
+            }
+            webview.navigate(url)?;
+        }
         Content::Html(html) => webview.navigate_to_string(html)?,
         Content::Folder { root, page } => {
             webview.map_folder("westplay.cabin", root)?;
+            if let Err(error) = webview.allow_microphone_from("westplay.cabin") {
+                log!("the cabin page cannot use the microphone: {error}");
+            }
             webview.navigate(&format!("https://westplay.cabin/{page}"))?;
         }
     }
@@ -449,9 +461,17 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut youtube_music_playback: Option<String> = None;
     // The settings generation last applied (`None`: apply them once at startup).
     let mut applied_settings = None;
+    // The voice assistant's switch, and whether its push-to-talk hotkey was held last turn.
+    let mut voice_enabled = config.settings.get().voice.enabled;
+    let mut voice_hotkey = config.settings.get().voice.hotkey;
+    let mut voice_wake = config.settings.get().voice.wake;
+    let mut voice_hotkey_down = false;
     // Each keybind's presses the page was told of (`PluginBlock::keybind_presses`).
     let mut keybind_presses =
         bridge.bridge().plugin.keybind_presses.each_ref().map(|count| count.load(Ordering::Acquire));
+    // The cabin's voice assistant (voice.rs), and what it has heard since the last turn.
+    let voice = voice::Voice::start();
+    voice.set_wake(voice_enabled && voice_wake);
     let mut last_frames = 0;
     // The startup stages still to log (`startup`), checked every turn until all are reached. The game's
     // screen frame counter as found: a session before this one may have left it counting.
@@ -463,6 +483,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut game_liveness = Liveness::default();
     while !stop.load(Ordering::Relaxed) {
         pump_messages();
+        // Push-to-talk from anywhere: the player's chord in the companion, which wheel software can send too.
+        let voice_hotkey_pressed = voice_enabled && push_to_talk_down(&voice_hotkey);
+        if voice_hotkey_pressed && !voice_hotkey_down {
+            let _ = webview.post_json(r#"{"type":"voiceHotkey"}"#);
+        }
+        voice_hotkey_down = voice_hotkey_pressed;
         host.heartbeat.fetch_add(1, Ordering::Release);
         // Set for this turn when the game has just closed: every web player closes, as its WebView failing
         // closes it (below), the page told so.
@@ -703,7 +729,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             for (slot, value) in host.keybinds.iter().zip(config.settings.get().keybinds.bridge_values()) {
                 slot.store(value, Ordering::Release);
             }
-            let _ = webview.post_json(&settings_message(&config.settings.get()));
+            let current = config.settings.get();
+            voice_enabled = current.voice.enabled;
+            voice_wake = current.voice.wake;
+            if voice_hotkey != current.voice.hotkey {
+                voice_hotkey = current.voice.hotkey;
+                voice_hotkey_down = false;
+            }
+            voice.set_wake(voice_enabled && voice_wake);
+            if !voice_enabled {
+                voice.cancel();
+            }
+            let _ = webview.post_json(&settings_message(&current));
         }
         // Over WhatsApp's window, the pointer is its page's (under the cabin page's own, where the app cuts it open).
         let under = whatsapp.as_ref().and_then(whatsapp::WhatsApp::target);
@@ -813,6 +850,21 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             let message = serde_json::json!({ "type": "phoneError", "error": error });
             let _ = webview.post_json(&message.to_string());
         }
+        // The voice assistant's progress and what it heard (voice.rs).
+        while let Some(event) = voice.poll() {
+            let message = match event {
+                voice::Event::State(state) => voice_state_message(state),
+                voice::Event::Result(transcript) => {
+                    serde_json::json!({ "type": "voice", "state": "result", "transcript": transcript }).to_string()
+                }
+                voice::Event::Error(error) => {
+                    serde_json::json!({ "type": "voice", "state": "error", "error": error }).to_string()
+                }
+                voice::Event::Wake => r#"{"type":"voiceHotkey"}"#.to_owned(),
+                voice::Event::Audio(audio) => serde_json::json!({ "type": "voiceAudio", "audio": audio }).to_string(),
+            };
+            let _ = webview.post_json(&message);
+        }
 
         for message in webview.take_page_messages() {
             match parse_page_message(&message) {
@@ -867,6 +919,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     cab_sound_told = None;
                     // The phone's whole state, for the Phone app (pairing is the companion's Setup).
                     let _ = webview.post_json(&phone.state_message());
+                    // Voice starts idle after a reload; an utterance still in flight is dropped with the page.
+                    let _ = webview.post_json(&voice_state_message("idle"));
                     if let Some(message) = &customize_message {
                         let _ = webview.post_json(message);
                     }
@@ -980,9 +1034,42 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 Some(PageMessage::Phone { command }) => {
                     if !phone.command(command.clone()) {
                         log!("[phone] no phone connected for {command:?}");
-                        let message = serde_json::json!({ "type": "phoneError", "error": "The phone isn’t connected." });
+                        let message =
+                            serde_json::json!({ "type": "phoneError", "error": "The phone isn’t connected." });
                         let _ = webview.post_json(&message.to_string());
                     }
+                }
+                Some(PageMessage::Voice { command, contacts, places, apps, language }) => match command {
+                    VoicePageCommand::Start => {
+                        if !voice.listen(voice::Vocabulary { contacts, places, apps, language }) {
+                            let message =
+                                serde_json::json!({ "type": "voice", "state": "error", "error": "unavailable" });
+                            let _ = webview.post_json(&message.to_string());
+                        }
+                    }
+                    VoicePageCommand::Cancel => voice.cancel(),
+                },
+                Some(PageMessage::VoiceSpeak { text, language }) => {
+                    voice.speak(text, language);
+                }
+                Some(PageMessage::VoiceEnabled { on }) => {
+                    let mut settings = config.settings.get();
+                    if settings.voice.enabled != on {
+                        settings.voice.enabled = on;
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
+                Some(PageMessage::VoiceWake { on }) => {
+                    let mut settings = config.settings.get();
+                    if settings.voice.wake != on {
+                        settings.voice.wake = on;
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
+                Some(PageMessage::VoiceWakePhrase { brand, language }) => {
+                    voice.set_wake_phrase(brand, language);
                 }
                 Some(PageMessage::Typing { selection }) => {
                     bridge.bridge().typing.selection.store(selection, Ordering::Release);
@@ -1976,6 +2063,10 @@ fn stops_message(id: Option<u32>, route: Option<&[u64]>, waypoints: &[u64], hidd
 const MOST_KEYBIND_PRESSES: u32 = 10;
 
 /// `{"type":"keybind","action":"volumeUp"|"volumeDown"|"playPause"}`: the player pressed a keybind in the game.
+fn voice_state_message(state: &str) -> String {
+    serde_json::json!({ "type": "voice", "state": state }).to_string()
+}
+
 fn keybind_message(keybind: Keybind) -> String {
     let action = match keybind {
         Keybind::VolumeUp => "volumeUp",
@@ -2145,6 +2236,9 @@ fn settings_message(settings: &settings::Settings) -> String {
         "iconStyle": settings.look.icon_style,
         "equalizer": settings.sound.equalizer.clamped(),
         "equalizerCustom": settings.sound.custom,
+        "voiceEnabled": settings.voice.enabled,
+        "voiceKey": settings.voice.hotkey.label(),
+        "voiceWake": settings.voice.wake,
         "resume": settings.cabin.resume,
     })
     .to_string()
@@ -2208,6 +2302,32 @@ enum PageMessage {
     Whatsapp { command: whatsapp::Command },
     /// A command for the paired phone (`phone`): dismiss a notification, dial, answer or end a call.
     Phone { command: westplay_link::Command },
+    /// The cabin's voice assistant (`voice`): listen for one utterance, with the names the page knows, or
+    /// stop waiting for it.
+    Voice {
+        command: VoicePageCommand,
+        #[serde(default)]
+        contacts: Vec<String>,
+        #[serde(default)]
+        places: Vec<String>,
+        #[serde(default)]
+        apps: Vec<String>,
+        #[serde(default)]
+        language: String,
+    },
+    /// A spoken confirmation for the host to synthesize and play through the cab's speakers.
+    VoiceSpeak { text: String, language: String },
+    /// The voice assistant's switch, kept with the player's settings.
+    VoiceEnabled { on: bool },
+    /// Whether the background wake phrase listens (`voice.wake`), kept with the player's settings.
+    VoiceWake { on: bool },
+    /// The truck's name and the cabin's language the wake phrase follows, sent as they change.
+    VoiceWakePhrase {
+        #[serde(default)]
+        brand: String,
+        #[serde(default)]
+        language: String,
+    },
     /// The text field selected on the page, a number that changes with every selection (0: none), for the
     /// player's own keyboard to type into (`typing`).
     Typing { selection: u32 },
@@ -2242,6 +2362,14 @@ const FOLLOWING: u32 = 1 << 31;
 /// player picked (`answer`: "ownWay" when it takes another way however held, else the game's answer).
 fn followed_message(id: u32, follows: bool, answer: &str) -> String {
     serde_json::json!({ "type": "followed", "id": id, "follows": follows, "answer": answer }).to_string()
+}
+
+/// What the page asks of the voice assistant.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum VoicePageCommand {
+    Start,
+    Cancel,
 }
 
 /// What the page asks of the game's route.
@@ -2348,6 +2476,20 @@ fn pump_messages() {
             DispatchMessageW(&msg);
         }
     }
+}
+
+/// Whether a key is held now.
+fn key_down(key: u32) -> bool {
+    // SAFETY: a plain query of the keyboard's state.
+    unsafe { GetAsyncKeyState(key as i32) < 0 }
+}
+
+/// The player's push-to-talk chord, with the modifiers they chose held too.
+fn push_to_talk_down(hotkey: &settings::VoiceHotkey) -> bool {
+    key_down(hotkey.key.virtual_key())
+        && (!hotkey.ctrl || key_down(0x11))
+        && (!hotkey.shift || key_down(0x10))
+        && (!hotkey.alt || key_down(0x12))
 }
 
 #[cfg(test)]
@@ -2508,6 +2650,41 @@ mod tests {
             parse_page_message(r#"{"type":"phone","command":{"action":"answer"}}"#),
             Some(PageMessage::Phone { command: westplay_link::Command::Answer })
         );
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"voice","command":"start","contacts":["Ada Lovelace"],"places":["Berlin"],"apps":["Haritalar"],"language":"tr"}"#
+            ),
+            Some(PageMessage::Voice {
+                command: super::VoicePageCommand::Start,
+                contacts: vec!["Ada Lovelace".into()],
+                places: vec!["Berlin".into()],
+                apps: vec!["Haritalar".into()],
+                language: "tr".into()
+            })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voice","command":"cancel"}"#),
+            Some(PageMessage::Voice {
+                command: super::VoicePageCommand::Cancel,
+                contacts: Vec::new(),
+                places: Vec::new(),
+                apps: Vec::new(),
+                language: String::new()
+            })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceSpeak","text":"Done.","language":"en"}"#),
+            Some(PageMessage::VoiceSpeak { text: "Done.".into(), language: "en".into() })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceEnabled","on":false}"#),
+            Some(PageMessage::VoiceEnabled { on: false })
+        );
+        assert_eq!(parse_page_message(r#"{"type":"voiceWake","on":true}"#), Some(PageMessage::VoiceWake { on: true }));
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceWakePhrase","brand":"Scania","language":"es"}"#),
+            Some(PageMessage::VoiceWakePhrase { brand: "Scania".into(), language: "es".into() })
+        );
         assert_eq!(parse_page_message(r#"{"type":"other"}"#), None);
         assert_eq!(parse_page_message("not json"), None);
     }
@@ -2634,11 +2811,22 @@ mod tests {
                 "iconStyle": "auto",
                 "equalizer": { "bass": 0, "mid": 0, "treble": 0 },
                 "equalizerCustom": false,
+                "voiceEnabled": true,
+                "voiceKey": settings.voice.hotkey.label(),
+                "voiceWake": false,
                 "resume": false,
             })
         );
         settings.screen.truck_strip = crate::settings::TruckStrip::Off;
         settings.cabin.resume = true;
+        settings.voice.enabled = false;
+        settings.voice.wake = true;
+        settings.voice.hotkey = crate::settings::VoiceHotkey {
+            key: crate::settings::KeyCode::new(0x42).unwrap(),
+            ctrl: false,
+            shift: false,
+            alt: true,
+        };
         settings.sound.equalizer = crate::speakers::Equalizer { bass: -9, mid: 2, treble: 6 };
         settings.look.wallpaper = Some("custom:Dusk".into());
         settings.look.icon_set = Some("Retro".into());
@@ -2646,6 +2834,9 @@ mod tests {
         assert_eq!(message["truckStrip"], "off");
         assert_eq!(message["wallpaper"], "custom:Dusk");
         assert_eq!(message["iconSet"], "Retro");
+        assert_eq!(message["voiceEnabled"], false);
+        assert_eq!(message["voiceKey"], settings.voice.hotkey.label());
+        assert_eq!(message["voiceWake"], true);
         assert_eq!(message["resume"], true);
         // Within the range, whatever the file says.
         assert_eq!(message["equalizer"], serde_json::json!({ "bass": -6, "mid": 2, "treble": 6 }));

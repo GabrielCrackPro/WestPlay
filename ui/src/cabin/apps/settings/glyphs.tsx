@@ -79,6 +79,22 @@ export function SoundGlyph() {
   )
 }
 
+/** Voice Assistant: a microphone, with its stand. */
+export function VoiceGlyph() {
+  return (
+    <TileGlyph>
+      <rect x="8.7" y="3.2" width="6.6" height="11.4" rx="3.3" />
+      <path
+        d="M5.4 11.5a6.6 6.6 0 0 0 13.2 0M12 18.1v2.7M8.3 20.8h7.4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </TileGlyph>
+  )
+}
+
 /** App Icons: four rounded squares, as an app grid. */
 export function IconsGlyph() {
   return (

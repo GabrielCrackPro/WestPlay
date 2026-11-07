@@ -220,7 +220,7 @@ fn sort_notifications(notifications: &mut [link::Notification]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_notes, Phone, State, MOST_NOTIFICATIONS, MOST_RECENTS};
+    use super::{MOST_NOTIFICATIONS, MOST_RECENTS, Phone, State, is_notes};
     use westplay_link as link;
 
     fn phone() -> Phone {

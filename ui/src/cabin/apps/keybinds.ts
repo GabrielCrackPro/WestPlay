@@ -19,6 +19,8 @@ export interface VolumeShown {
 /** The keybinds for `players` (the cab's music apps). `press` acts on one; `stop` stops following them. */
 export function keybinds(players: readonly MusicPlayer[]): {
   press(action: KeybindAction): VolumeShown | null
+  hasPlayer(): boolean
+  playing(): boolean
   stop(): void
 } {
   let last: MusicPlayer | null = null
@@ -48,6 +50,12 @@ export function keybinds(players: readonly MusicPlayer[]): {
       const next = stepped(volume, action === 'volumeUp' ? 1 : -1)
       player.setVolume(next)
       return { volume: next }
+    },
+    hasPlayer() {
+      return current() !== null
+    },
+    playing() {
+      return current()?.playingHere() ?? false
     },
     stop() {
       for (const stop of stops) stop()

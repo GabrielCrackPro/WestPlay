@@ -29,12 +29,7 @@ pub enum Command {
     /// Run it (hidden): the app is open.
     Start,
     /// Show the page at this rectangle of the frame (pixels), under the app's window: what the app cuts open.
-    Show {
-        x: f32,
-        y: f32,
-        width: u32,
-        height: u32,
-    },
+    Show { x: f32, y: f32, width: u32, height: u32 },
     /// Show nothing (the app closed, or the screen handed to the truck): the page runs on.
     Hide,
     /// Load the page again (a sign-in that didn't come up, a QR gone stale).
@@ -199,7 +194,8 @@ mod tests {
 
     #[test]
     fn the_commands_the_page_sends_read_as_written() {
-        let command: Command = serde_json::from_str(r#"{"action":"show","x":10.0,"y":20.0,"width":800,"height":600}"#).unwrap();
+        let command: Command =
+            serde_json::from_str(r#"{"action":"show","x":10.0,"y":20.0,"width":800,"height":600}"#).unwrap();
         assert_eq!(command, Command::Show { x: 10.0, y: 20.0, width: 800, height: 600 });
         assert_eq!(serde_json::from_str::<Command>(r#"{"action":"hide"}"#).unwrap(), Command::Hide);
         assert_eq!(serde_json::from_str::<Command>(r#"{"action":"signOut"}"#).unwrap(), Command::SignOut);
@@ -243,7 +239,8 @@ mod tests {
         // Where the app's window is cut open, the page lays itself out at (the coordinates the pointer uses).
         app.command(&Command::Show { x: 40.0, y: 80.0, width: 800, height: 600 }).unwrap();
         pump(0.5);
-        let placed = app.view.evaluate("({ width: innerWidth, height: innerHeight, hidden: document.hidden })").unwrap();
+        let placed =
+            app.view.evaluate("({ width: innerWidth, height: innerHeight, hidden: document.hidden })").unwrap();
         println!("whatsapp placed: {placed}");
         app.command(&Command::Hide).unwrap();
     }

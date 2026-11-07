@@ -34,6 +34,8 @@ pub struct Settings {
     #[serde(deserialize_with = "lenient")]
     pub sound: SoundSettings,
     #[serde(deserialize_with = "lenient")]
+    pub voice: VoiceSettings,
+    #[serde(deserialize_with = "lenient")]
     pub cabin: CabinSettings,
     #[serde(deserialize_with = "lenient")]
     pub companion: CompanionSettings,
@@ -90,6 +92,66 @@ impl SoundSettings {
     pub fn playing(&self) -> crate::speakers::Equalizer {
         if self.custom { self.equalizer.clamped() } else { crate::speakers::Equalizer::default() }
     }
+}
+
+/// The cabin's voice assistant: whether its button and push-to-talk hotkey are live, the chord that starts it,
+/// and whether the background wake phrase listens too.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct VoiceSettings {
+    #[serde(default = "on")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub hotkey: VoiceHotkey,
+    /// Whether "Hey Cabin" starts the assistant without the chord. Off by default: while it is on, the
+    /// microphone stays open for the phrase.
+    #[serde(default)]
+    pub wake: bool,
+}
+
+impl Default for VoiceSettings {
+    fn default() -> Self {
+        Self { enabled: true, hotkey: VoiceHotkey::default(), wake: false }
+    }
+}
+
+/// The chord that starts the cabin's voice assistant. Ctrl+Shift+Space by default, and any key with Ctrl,
+/// Shift or Alt held around it in the companion.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct VoiceHotkey {
+    pub key: KeyCode,
+    pub ctrl: bool,
+    pub shift: bool,
+    pub alt: bool,
+}
+
+impl Default for VoiceHotkey {
+    fn default() -> Self {
+        Self { key: KeyCode(0x20), ctrl: true, shift: true, alt: false }
+    }
+}
+
+impl VoiceHotkey {
+    /// The chord as the cab's Settings and the companion show it ("Ctrl + Shift + Space").
+    pub fn label(&self) -> String {
+        let mut keys = Vec::new();
+        if self.ctrl {
+            keys.push("Ctrl".to_owned());
+        }
+        if self.shift {
+            keys.push("Shift".to_owned());
+        }
+        if self.alt {
+            keys.push("Alt".to_owned());
+        }
+        keys.push(KeyCode::name(self.key.virtual_key()).unwrap_or_else(|| format!("0x{:02X}", self.key.virtual_key())));
+        keys.join(" + ")
+    }
+}
+
+fn on() -> bool {
+    true
 }
 
 /// Which GPU the cab is drawn on (the companion's Truck Screen): one the player chose, by its id
@@ -489,6 +551,7 @@ mod tests {
                 equalizer: crate::speakers::Equalizer { bass: -3, mid: 1, treble: 2 },
                 custom: true,
             },
+            voice: VoiceSettings { enabled: false, wake: true, ..VoiceSettings::default() },
             cabin: CabinSettings { resume: true },
             companion: CompanionSettings { accent: Accent::Gold },
         };
@@ -498,6 +561,7 @@ mod tests {
         assert!(json.contains("\"mode\": \"toggle\""), "{json}");
         assert!(json.contains("\"truckStrip\": \"off\""), "{json}");
         assert!(json.contains("\"resume\": true"), "{json}");
+        assert!(json.contains("\"wake\": true"), "{json}");
         assert!(json.contains("\"accent\": \"gold\""), "{json}");
         assert_eq!(parse(&json).unwrap(), settings);
     }
@@ -520,6 +584,14 @@ mod tests {
         assert_eq!(partial.screen.truck_strip, TruckStrip::Auto);
         // And from before the GPU was: WestPlay picks it.
         assert_eq!(partial.graphics.gpu, None);
+        // The voice assistant is on for a file from before it was a setting, listening for Ctrl+Shift+Space;
+        // the wake phrase, from before it existed, waits off.
+        assert!(partial.voice.enabled);
+        assert_eq!(partial.voice.hotkey, VoiceHotkey::default());
+        assert!(!partial.voice.wake);
+        // Windows names the key in the player's layout ("Space", "BARRA ESPACIADORA"): only the chord's
+        // modifiers are fixed.
+        assert!(partial.voice.hotkey.label().starts_with("Ctrl + Shift + "));
         // And from before the cabin's own session was a setting: the Dashboard, every launch.
         assert!(!partial.cabin.resume);
         // And from before the companion had an accent: the default signal orange.

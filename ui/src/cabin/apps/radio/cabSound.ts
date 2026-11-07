@@ -61,6 +61,11 @@ export function receiveCabSound(message: CabSoundMessage): void {
   if (cab) tell(message)
 }
 
+/** The cab as last told, for the voice assistant's own sound through the same speakers. */
+export function lastCabSound(): CabSoundMessage | null {
+  return last
+}
+
 function tell(message: CabSoundMessage): void {
   if (!cab) return
   cab.speakers(message.speakers)

@@ -99,6 +99,7 @@ export const words: CompanionWords = {
     volumeUp: 'Volume up',
     volumeDown: 'Volume down',
     playPause: 'Play/Pause',
+    voiceHotkey: 'Voice assistant',
     pressKey: 'Press a key…',
     keybindsNote:
       'Click a keybind, then press its new key. Hold {key} as you press it, and it works only while you use the screen. Esc cancels.',

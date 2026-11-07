@@ -177,6 +177,9 @@ export interface CareerStats {
 /** What a keybind does: the music's volume a step up or down, or it paused or played on. */
 export type KeybindAction = 'volumeUp' | 'volumeDown' | 'playPause'
 
+/** The cabin voice assistant's state (`westplay_host::voice`). */
+export type VoiceState = 'idle' | 'listening' | 'processing' | 'result' | 'error'
+
 /** A station of the game's own radio list (`live_streams.sii`): the game's words for it, and its stream. */
 export interface RadioStation {
   name: string
@@ -199,6 +202,8 @@ export interface Speaker {
   level: number
   /** ms. */
   delay: number
+  /** Which side of the stereo image it carries. */
+  channel?: 'left' | 'right' | 'both'
 }
 
 /** The phone paired with the PC (`westplay_link::Device`): its name, and the battery as it last said. */
@@ -324,6 +329,11 @@ export type HostMessage =
       /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or not (Recommended). */
       equalizer?: Equalizer
       equalizerCustom?: boolean
+      /** Whether the cabin voice assistant's button and hotkey are live, and the chord it listens for. */
+      voiceEnabled?: boolean
+      voiceKey?: string
+      /** Whether the background wake phrase listens (Settings › Voice Assistant). */
+      voiceWake?: boolean
       /** Whether the cab comes back where the last launch left it (the screen and app it was in), the companion's
        * switch. Off, Cabin Play opens on the Dashboard. */
       resume?: boolean
@@ -416,6 +426,12 @@ export type HostMessage =
   | { type: 'menuGone'; gone: boolean }
   /** A keybind of the player's (the companion's Controls), pressed in the game. */
   | { type: 'keybind'; action: KeybindAction }
+  /** The voice assistant: listening, what it heard, or why it couldn't. */
+  | { type: 'voice'; state: VoiceState; transcript?: string; error?: string }
+  /** A spoken confirmation as base64 WAV, made by the host for the cab's own speakers. */
+  | { type: 'voiceAudio'; audio: string }
+  /** The player's push-to-talk chord was pressed, or the wake phrase was heard. */
+  | { type: 'voiceHotkey' }
   /** Whether the game runs. As it closes, the host closes the web players; the page powers off and forgets
    * its last telemetry. */
   | { type: 'game'; running: boolean }
@@ -566,6 +582,26 @@ export type PageMessage =
   /** A command for the paired phone (`westplay_link::Command`): sync, dismiss a notification, dial, answer or
    * end a call. */
   | { type: 'phone'; command: PhoneCommand }
+  /** One utterance for the host's Windows speech recogniser, with the names the cab knows. */
+  | {
+      type: 'voice'
+      command: 'start'
+      contacts: string[]
+      places: string[]
+      apps: string[]
+      /** The cabin's language, so Windows listens in it when its speech pack is installed. */
+      language: 'en' | 'tr' | 'es'
+    }
+  /** Puts the voice panel away, and stops the recogniser waiting for speech. */
+  | { type: 'voice'; command: 'cancel' }
+  /** A confirmation for the host to speak through the cab's own speakers. */
+  | { type: 'voiceSpeak'; text: string; language: 'en' | 'tr' | 'es' }
+  /** The cabin's voice assistant switch, kept with the player's settings. */
+  | { type: 'voiceEnabled'; on: boolean }
+  /** Whether the background wake phrase listens, kept with the player's settings. */
+  | { type: 'voiceWake'; on: boolean }
+  /** The truck's name and the cabin's language the wake phrase follows, sent as they change. */
+  | { type: 'voiceWakePhrase'; brand: string; language: 'en' | 'tr' | 'es' }
 
 /** What the Spotify app asks of Spotify's web player (`westplay_host::spotify::Command`), run hidden by the
  * host: its sign-in, a question (answered with `spotifyAnswer` and the same `id`), and the player's controls

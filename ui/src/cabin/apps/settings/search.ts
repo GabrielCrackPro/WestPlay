@@ -89,6 +89,8 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
     { label: s.sound, page: 'sound', section: s.sound },
     { label: s.uiSounds, page: 'sound', section: s.sound },
     { label: s.uiSoundVolume, page: 'sound', section: s.sound },
+    { label: s.voiceAssistant, page: 'voice', section: s.voiceAssistant },
+    { label: s.voiceWake, page: 'voice', section: s.voiceAssistant },
     { label: s.equalizer, page: 'equalizer', section: s.sound },
     { label: s.recommended, page: 'equalizer', section: s.equalizer },
     { label: s.custom, page: 'equalizer', section: s.equalizer },

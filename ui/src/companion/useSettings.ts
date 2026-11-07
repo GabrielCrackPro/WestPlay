@@ -44,6 +44,13 @@ export interface Settings {
   }
   /** What Cabin Play does from the game, by the player's keys. */
   keybinds: Record<KeybindId, Binding>
+  /** The cabin's voice assistant, the chord that starts it, and whether the wake phrase listens. */
+  voice: {
+    enabled: boolean
+    hotkey: VoiceHotkey
+    /** Kept so a companion save doesn't turn the cabin's wake phrase off. */
+    wake: boolean
+  }
   screen: {
     truckStrip: TruckStrip
   }
@@ -105,6 +112,14 @@ export const KEYBIND_IDS: KeybindId[] = ['volumeDown', 'playPause', 'volumeUp']
 export interface Binding {
   key: KeyCode
   withInteractionKey: boolean
+}
+
+/** Mirrors `westplay_host::settings::VoiceHotkey`: a key, with Ctrl, Shift or Alt held around it. */
+export interface VoiceHotkey {
+  key: KeyCode
+  ctrl: boolean
+  shift: boolean
+  alt: boolean
 }
 
 /** Mirrors `westplay_host::settings::Sensitivity` (the app corrects anything outside it). */
