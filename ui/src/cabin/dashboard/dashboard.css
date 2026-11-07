@@ -82,6 +82,20 @@
   flex: 1 0 auto;
 }
 
+/* The player's own share of the column (Settings › Dashboard): a compact card leaves room for the ones under it,
+   an expanded one keeps more. The cards still refuse to squeeze their content, and the column scrolls if needed. */
+.widget-slot[data-size='compact'].open {
+  flex-grow: 0.55;
+}
+
+.widget-slot[data-size='standard'].open {
+  flex-grow: 1;
+}
+
+.widget-slot[data-size='expanded'].open {
+  flex-grow: 1.9;
+}
+
 /* A video's Now Playing is never squeezed into a strip: the card keeps at least its picture's 16:9 height,
    then grows into any room the column has left. The column scrolls for the other cards if it is short. */
 .widget-slot.video.open {

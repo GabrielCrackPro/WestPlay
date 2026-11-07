@@ -521,6 +521,14 @@ export interface Strings {
     moveDown: string
     dashboard: string
     widgets: string
+    /** The Dashboard layout editor: the live column, dragging a card, and each widget's share of the room. */
+    widgetLayout: string
+    widgetLayoutFooter: string
+    widgetSize: string
+    widgetCompact: string
+    widgetStandard: string
+    widgetExpanded: string
+    noWidgets: string
     /** Home Screen: which apps show there, and their order. */
     homeScreen: string
     homeScreenFooter: string
@@ -1353,6 +1361,14 @@ const ENGLISH_STRINGS: Strings = {
     moveDown: 'Move down',
     dashboard: 'Dashboard',
     widgets: 'Widgets',
+    widgetLayout: 'Layout',
+    widgetLayoutFooter:
+      'Drag a card to reorder the column. Dragging turns Auto Order off so your layout stays as you set it.',
+    widgetSize: 'Size',
+    widgetCompact: 'Compact',
+    widgetStandard: 'Standard',
+    widgetExpanded: 'Large',
+    noWidgets: 'No widgets turned on',
     homeScreen: 'Home Screen',
     homeScreenFooter:
       'Choose which apps appear on Home and the order they appear in. Hiding an app keeps it in Settings and the sidebar’s recents.',
@@ -2144,6 +2160,14 @@ const TURKISH_STRINGS: Strings = {
     moveDown: 'Aşağı taşı',
     dashboard: 'Gösterge Paneli',
     widgets: 'Widget’lar',
+    widgetLayout: 'Yerleşim',
+    widgetLayoutFooter:
+      'Sütunu yeniden sıralamak için bir kartı sürükle. Sürüklemek Otomatik Sıralama’yı kapatır; böylece yerleşimin senin ayarladığın gibi kalır.',
+    widgetSize: 'Boyut',
+    widgetCompact: 'Kompakt',
+    widgetStandard: 'Standart',
+    widgetExpanded: 'Geniş',
+    noWidgets: 'Açık widget yok',
     homeScreen: 'Ana Ekran',
     homeScreenFooter:
       'Ana Ekran’da hangi uygulamaların görüneceğini ve sırasını seçin. Gizlenen uygulama Ayarlar’da ve kenar çubuğunun son kullanılanlarında kalır.',
@@ -2944,6 +2968,14 @@ const SPANISH_STRINGS: Strings = {
     moveDown: 'Bajar',
     dashboard: 'Panel',
     widgets: 'Widgets',
+    widgetLayout: 'Diseño',
+    widgetLayoutFooter:
+      'Arrastra una tarjeta para reordenar la columna. Al arrastrar se desactiva el Orden automático para que tu diseño se quede como lo dejes.',
+    widgetSize: 'Tamaño',
+    widgetCompact: 'Compacto',
+    widgetStandard: 'Estándar',
+    widgetExpanded: 'Grande',
+    noWidgets: 'No hay widgets activados',
     homeScreen: 'Pantalla de inicio',
     homeScreenFooter:
       'Elige qué apps aparecen en Inicio y en qué orden. Una app oculta sigue en Ajustes y en los recientes de la barra lateral.',

@@ -116,6 +116,32 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().pinnedApps).toEqual(['music', 'spotify', 'settings'])
   })
 
+  it('keep each Dashboard widget’s size, a bad one back to standard', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({ dashboardWidgetSizes: { nowPlaying: 'expanded', weather: 'compact', driver: 'huge' } }),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().dashboardWidgetSizes).toEqual({
+      nowPlaying: 'expanded',
+      destination: 'standard',
+      driverHours: 'standard',
+      driver: 'standard',
+      diagnostics: 'standard',
+      weather: 'compact',
+    })
+  })
+
+  it('drop a Dashboard widget beside another in its order', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    useCabin.getState().moveWidgetTo('weather', 'nowPlaying', false)
+    expect(useCabin.getState().dashboardOrder.slice(0, 2)).toEqual(['weather', 'nowPlaying'])
+    const before = useCabin.getState().dashboardOrder.indexOf('diagnostics')
+    useCabin.getState().moveWidgetTo('weather', 'diagnostics', true)
+    expect(useCabin.getState().dashboardOrder.indexOf('weather')).toBe(before)
+  })
+
   it('keeps interface sound volume separate and within its range', async () => {
     const storage = savedStorage({ uiSounds: false, uiSoundVolume: 0.35 })
     vi.stubGlobal('localStorage', storage)

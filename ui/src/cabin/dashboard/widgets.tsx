@@ -50,7 +50,7 @@ import './radioCard.css'
 import type { MediaAction, MusicService, MediaSource } from '../../shared/media'
 import type { AppId } from '../state/apps'
 import { useLook } from '../state/hooks'
-import { go, useCabin } from '../state/store'
+import { type DashboardWidget, go, useCabin } from '../state/store'
 import { useMapData } from '../maps/mapData'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
@@ -77,6 +77,7 @@ import { DriverPortrait } from '../apps/driver/DriverPortrait'
 export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
   const compact = useCabin((state) => state.playerCompact)
+  const size = useWidgetSize('nowPlaying')
   const { showing, spotify, appleMusic, youtubeMusic, radio } = useNowPlaying()
   const open = shown && showing !== null
   // A video keeps its own card: the compact player is the music cards' (MusicWidget).
@@ -85,6 +86,7 @@ export function NowPlayingWidget() {
   return (
     <div
       className={`widget-slot${open ? ' open' : ''}${video ? ' video' : ''}${tight ? ' compact' : ''}`}
+      data-size={size}
       style={{ viewTransitionName: 'widget-nowPlaying' }}
     >
       {open && showing === 'video' && <VideoWidget />}
@@ -351,9 +353,14 @@ function MusicWidget({
  */
 export function DestinationWidget() {
   const view = useDestinationView()
+  const size = useWidgetSize('destination')
   const shown = useCabin((state) => state.dashboardWidgets.destination) && view !== EMPTY
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-destination' }}>
+    <div
+      className={`widget-slot${shown ? ' open' : ''}`}
+      data-size={size}
+      style={{ viewTransitionName: 'widget-destination' }}
+    >
       {shown && (
         <article className="widget glass job trip-card">
           <div className="kicker">{view.kicker}</div>
@@ -382,9 +389,14 @@ export function DriverHoursWidget() {
   const text = useText()
   const words = text.diagnostics
   const view = useDriverHoursView()
+  const size = useWidgetSize('driverHours')
   const shown = useCabin((state) => state.dashboardWidgets.driverHours) && view !== null
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-driverHours' }}>
+    <div
+      className={`widget-slot${shown ? ' open' : ''}`}
+      data-size={size}
+      style={{ viewTransitionName: 'widget-driverHours' }}
+    >
       {shown && view && (
         <button
           type="button"
@@ -439,10 +451,15 @@ export function DriverWidget() {
   const realTime = hours(career?.realTimeSeconds)
   const fuel = withUnit(career?.totalFuelLitres, text.diagnostics.litres)
   const cities = career?.visitedCities == null ? '—' : text.number(career.visitedCities)
+  const size = useWidgetSize('driver')
   const shown = useCabin((state) => state.dashboardWidgets.driver)
 
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-driver' }}>
+    <div
+      className={`widget-slot${shown ? ' open' : ''}`}
+      data-size={size}
+      style={{ viewTransitionName: 'widget-driver' }}
+    >
       {shown && (
         <button
           type="button"
@@ -491,9 +508,14 @@ export function DiagnosticsWidget() {
   const text = useText()
   const words = text.diagnostics
   const view = useDiagnosticsView()
+  const size = useWidgetSize('diagnostics')
   const shown = useCabin((state) => state.dashboardWidgets.diagnostics) && view !== null
   return (
-    <div className={`widget-slot${shown ? ' open' : ''}`} style={{ viewTransitionName: 'widget-diagnostics' }}>
+    <div
+      className={`widget-slot${shown ? ' open' : ''}`}
+      data-size={size}
+      style={{ viewTransitionName: 'widget-diagnostics' }}
+    >
       {shown && view && (
         <button
           type="button"
@@ -531,6 +553,11 @@ function Extra({ label, value, state }: { label: string; value: string; state: S
 /** The fuel card's glyph, the weather symbol's size. */
 const GLYPH = 72
 
+/** The size the player chose for a widget (Settings › Dashboard): the slot's share of the column. */
+function useWidgetSize(widget: DashboardWidget) {
+  return useCabin((state) => state.dashboardWidgetSizes[widget])
+}
+
 /**
  * The weather where the truck is, as CarPlay's weather widget (weather.ts): the nearest city, the weather
  * and its symbol. It comes in only where there's room (widgetState.ts): three widgets fill the column — so the
@@ -566,8 +593,13 @@ export function WeatherWidget() {
   // The wipers running say it rains now, before the game's own sky turns (weather.ts).
   const wipers = useLive((state) => state.telemetry?.wipers ?? false)
   const view = weather ? weatherView(weather, gameTime, place, text, wipers) : null
+  const size = useWidgetSize('weather')
   return (
-    <div className={`widget-slot${room && view ? ' open' : ''}`} style={{ viewTransitionName: 'widget-weather' }}>
+    <div
+      className={`widget-slot${room && view ? ' open' : ''}`}
+      data-size={size}
+      style={{ viewTransitionName: 'widget-weather' }}
+    >
       {room && view && (
         <article
           className={`widget glass weather${tight ? ' tight' : ''}`}

@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  type DragEvent,
   type PointerEvent,
   type ReactNode,
   type RefObject,
@@ -35,7 +36,16 @@ import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearby
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import { type DashboardWidget, MAP_DETAILS, MAP_RECENTRES, type MapDetail, useCabin, useLive } from '../../state/store'
+import {
+  DASHBOARD_WIDGET_SIZES,
+  type DashboardWidget,
+  type DashboardWidgetSize,
+  MAP_DETAILS,
+  MAP_RECENTRES,
+  type MapDetail,
+  useCabin,
+  useLive,
+} from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
 import { useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
@@ -586,20 +596,24 @@ function IconSetRow({
   )
 }
 
-/** Which widgets the Dashboard shows and the order they come in (Auto order: the drive's own), and which clock
- * the sidebar keeps: the player's own time or the game's. */
+/** Which widgets the Dashboard shows and the order and size they come in (Auto order: the drive's own), and which
+ * clock the sidebar keeps: the player's own time or the game's. */
 function DashboardPage() {
   const text = useText()
   const widgets = useCabin((state) => state.dashboardWidgets)
   const setWidget = useCabin((state) => state.setDashboardWidget)
+  const sizes = useCabin((state) => state.dashboardWidgetSizes)
+  const setSize = useCabin((state) => state.setDashboardWidgetSize)
   const clock = useCabin((state) => state.clock)
   const setClock = useCabin((state) => state.setClock)
   const autoOrder = useCabin((state) => state.autoOrder)
   const setAutoOrder = useCabin((state) => state.setAutoOrder)
   const order = useCabin((state) => state.dashboardOrder)
   const moveWidget = useCabin((state) => state.moveWidget)
+  const moveWidgetTo = useCabin((state) => state.moveWidgetTo)
   const compact = useCabin((state) => state.playerCompact)
   const setCompact = useCabin((state) => state.setPlayerCompact)
+  const [drag, setDrag] = useState<WidgetDrag | null>(null)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -608,17 +622,95 @@ function DashboardPage() {
     weather: text.apps.weather,
     diagnostics: text.apps.diagnostics,
   }
+  const sizeNames: Record<DashboardWidgetSize, string> = {
+    compact: text.settings.widgetCompact,
+    standard: text.settings.widgetStandard,
+    expanded: text.settings.widgetExpanded,
+  }
+  const shown = order.filter((widget) => widgets[widget])
+
+  const startDrag = (event: DragEvent<HTMLDivElement>, widget: DashboardWidget) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', widget)
+    // Taking a card in hand is editing the player's order: Auto Order would put it back by the drive's needs.
+    if (autoOrder) setAutoOrder(false)
+    setDrag({ widget, over: null, after: false })
+  }
+  const overWidget = (event: DragEvent<HTMLDivElement>, widget: DashboardWidget) => {
+    if (!drag || drag.widget === widget) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    const box = event.currentTarget.getBoundingClientRect()
+    const after = event.clientY > box.top + box.height / 2
+    setDrag((current) =>
+      current && (current.over !== widget || current.after !== after) ? { ...current, over: widget, after } : current,
+    )
+  }
+  const dropWidget = (event: DragEvent<HTMLDivElement>, target: DashboardWidget) => {
+    event.preventDefault()
+    const source = drag?.widget
+    setDrag(null)
+    if (!source || source === target) return
+    const box = event.currentTarget.getBoundingClientRect()
+    moveWidgetTo(source, target, event.clientY > box.top + box.height / 2)
+  }
+
   return (
     <Page title={text.settings.dashboard}>
-      {/* One list per widget: what it shows and, while Auto order is off, where it stands. A widget's arrows are
-          hidden while the cab orders the column itself, so the list is just its switches as it was. */}
+      {/* The column as the Dashboard draws it: drag a card to move it, and each row below chooses its share of the
+          room. The preview is the player's own order; dragging turns Auto Order off so that order is the one used. */}
+      <Group header={text.settings.widgetLayout} footer={text.settings.widgetLayoutFooter}>
+        <div className="dashboard-layout-editor">
+          <div className="dashboard-layout-preview" data-own-drag aria-label={text.settings.widgetLayout}>
+            <div className="dashboard-preview-map" aria-hidden>
+              <span className="dashboard-preview-route" />
+              <span className="dashboard-preview-puck" />
+            </div>
+            <div className={drag ? 'dashboard-preview-column dragging' : 'dashboard-preview-column'} role="list">
+              {shown.map((widget) => {
+                const dragging = drag?.widget === widget
+                const dropping = drag?.over === widget && drag.widget !== widget
+                return (
+                  <div
+                    key={widget}
+                    role="listitem"
+                    draggable
+                    data-size={sizes[widget]}
+                    aria-label={`${names[widget]}, ${sizeNames[sizes[widget]]}`}
+                    title={`${names[widget]} — ${sizeNames[sizes[widget]]}`}
+                    className={[
+                      'dashboard-preview-widget',
+                      dragging ? 'dragging' : '',
+                      dropping ? (drag?.after ? 'drop-after' : 'drop-before') : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onDragStart={(event) => startDrag(event, widget)}
+                    onDragOver={(event) => overWidget(event, widget)}
+                    onDrop={(event) => dropWidget(event, widget)}
+                    onDragEnd={() => setDrag(null)}
+                  >
+                    <span className="dashboard-preview-grip" aria-hidden />
+                    <span className="dashboard-preview-name">{names[widget]}</span>
+                    <span className="dashboard-preview-size">{sizeNames[sizes[widget]]}</span>
+                  </div>
+                )
+              })}
+              {!shown.length && <p className="dashboard-preview-empty">{text.settings.noWidgets}</p>}
+            </div>
+          </div>
+        </div>
+      </Group>
+      {/* One row per widget: its switch, its place in the player's order while Auto Order is off, and its size. */}
       <Group header={text.settings.widgets}>
         {order.map((widget, index) => (
-          <SwitchOrderRow
+          <WidgetLayoutRow
             key={widget}
             label={names[widget]}
             on={widgets[widget]}
             onToggle={(on) => setWidget(widget, on)}
+            size={sizes[widget]}
+            onSize={(size) => setSize(widget, size)}
             place={
               autoOrder
                 ? undefined
@@ -641,6 +733,73 @@ function DashboardPage() {
         />
       </Group>
     </Page>
+  )
+}
+
+/** A widget being dragged around the preview, and the card it would drop beside. */
+interface WidgetDrag {
+  widget: DashboardWidget
+  over: DashboardWidget | null
+  after: boolean
+}
+
+/**
+ * A widget's row in the layout editor: its switch and (while Auto Order is off) its arrows, with the three sizes
+ * under them. The size stays with a widget that's turned off, ready for when it comes back.
+ */
+function WidgetLayoutRow({
+  label,
+  on,
+  onToggle,
+  size,
+  onSize,
+  place,
+}: {
+  label: string
+  on: boolean
+  onToggle(on: boolean): void
+  size: DashboardWidgetSize
+  onSize(size: DashboardWidgetSize): void
+  place?: { first: boolean; last: boolean; onMove(by: number): void }
+}) {
+  const text = useText()
+  const sizeNames: Record<DashboardWidgetSize, string> = {
+    compact: text.settings.widgetCompact,
+    standard: text.settings.widgetStandard,
+    expanded: text.settings.widgetExpanded,
+  }
+  return (
+    <div className="settings-widget-row">
+      <div className="settings-widget-main">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          className="settings-manage-toggle"
+          onClick={() => onToggle(!on)}
+        >
+          <span className="settings-label">{label}</span>
+          <span className={on ? 'apple-switch on' : 'apple-switch'} aria-hidden>
+            <span className="apple-switch-thumb" />
+          </span>
+        </button>
+        {place && <OrderButtons label={label} first={place.first} last={place.last} onMove={place.onMove} />}
+      </div>
+      <div className="settings-widget-sizes">
+        <span className="settings-widget-size-label">{text.settings.widgetSize}</span>
+        <span
+          className="settings-widget-size-options"
+          role="group"
+          aria-label={`${text.settings.widgetSize}: ${label}`}
+        >
+          {DASHBOARD_WIDGET_SIZES.map((choice) => (
+            <button key={choice} type="button" aria-pressed={choice === size} onClick={() => onSize(choice)}>
+              {sizeNames[choice]}
+            </button>
+          ))}
+        </span>
+      </div>
+    </div>
   )
 }
 

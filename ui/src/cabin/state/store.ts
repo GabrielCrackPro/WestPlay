@@ -95,6 +95,12 @@ export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
   'diagnostics',
 ]
 
+/** How much of the Dashboard column a widget takes (Settings › Dashboard): compact gives room to its neighbours,
+ * expanded keeps more of it. */
+export type DashboardWidgetSize = 'compact' | 'standard' | 'expanded'
+
+export const DASHBOARD_WIDGET_SIZES: readonly DashboardWidgetSize[] = ['compact', 'standard', 'expanded']
+
 /** Which clock the sidebar shows: the game's own time, or the player's (their PC's). */
 export type Clock = 'game' | 'real'
 
@@ -129,6 +135,8 @@ interface CabinState {
   wallpaperId: string
   /** The Dashboard's widgets shown (Settings, Dashboard). */
   dashboardWidgets: Record<DashboardWidget, boolean>
+  /** How much room each Dashboard widget keeps in the column (Settings, Dashboard). */
+  dashboardWidgetSizes: Record<DashboardWidget, DashboardWidgetSize>
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
@@ -212,6 +220,7 @@ interface CabinState {
   setAppearanceMode(mode: AppearanceMode): void
   setWallpaper(id: string): void
   setDashboardWidget(widget: DashboardWidget, shown: boolean): void
+  setDashboardWidgetSize(widget: DashboardWidget, size: DashboardWidgetSize): void
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
   setPlayerCompact(on: boolean): void
@@ -221,6 +230,8 @@ interface CabinState {
   setAutoOrder(on: boolean): void
   /** Moves a widget up (`by` -1) or down (+1) the Dashboard's own order. */
   moveWidget(widget: DashboardWidget, by: number): void
+  /** Drops a widget before another in the Dashboard's order, or after it (`after`): the layout editor's drag. */
+  moveWidgetTo(widget: DashboardWidget, target: DashboardWidget, after: boolean): void
   /** Shows or hides an app on Home; the last one shown can't be hidden. */
   setHomeAppHidden(app: AppId, hidden: boolean): void
   /** Moves an app up (`by` -1) or down (+1) Home's order. */
@@ -280,6 +291,7 @@ type Persisted = Pick<
   | 'appearanceMode'
   | 'wallpaperId'
   | 'dashboardWidgets'
+  | 'dashboardWidgetSizes'
   | 'clock'
   | 'albumArt'
   | 'playerCompact'
@@ -357,6 +369,16 @@ const STARTER_WIDGETS: Record<DashboardWidget, boolean> = {
   weather: false,
 }
 
+/** Every widget at its designed size until the player chooses otherwise. */
+const STANDARD_WIDGET_SIZES: Record<DashboardWidget, DashboardWidgetSize> = {
+  nowPlaying: 'standard',
+  destination: 'standard',
+  driverHours: 'standard',
+  driver: 'standard',
+  weather: 'standard',
+  diagnostics: 'standard',
+}
+
 /** Whether a saved column was the old default (every widget on): a player who never chose gets the leaner one. */
 function wasEveryWidgetOn(saved: unknown): boolean {
   if (typeof saved !== 'object' || saved === null) return false
@@ -370,6 +392,7 @@ export const useCabin = create<CabinState>()(
       appearanceMode: 'auto',
       wallpaperId: DEFAULT_WALLPAPER_ID,
       dashboardWidgets: { ...STARTER_WIDGETS },
+      dashboardWidgetSizes: { ...STANDARD_WIDGET_SIZES },
       clock: 'real',
       albumArt: true,
       playerCompact: false,
@@ -421,6 +444,8 @@ export const useCabin = create<CabinState>()(
       },
       setDashboardWidget: (widget, shown) =>
         set((state) => ({ dashboardWidgets: { ...state.dashboardWidgets, [widget]: shown } })),
+      setDashboardWidgetSize: (widget, size) =>
+        set((state) => ({ dashboardWidgetSizes: { ...state.dashboardWidgetSizes, [widget]: size } })),
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
       setPlayerCompact: (playerCompact) => set({ playerCompact }),
@@ -436,6 +461,16 @@ export const useCabin = create<CabinState>()(
           const dashboardOrder = [...state.dashboardOrder]
           dashboardOrder.splice(from, 1)
           dashboardOrder.splice(to, 0, widget)
+          return { dashboardOrder }
+        }),
+      moveWidgetTo: (widget, target, after) =>
+        set((state) => {
+          if (widget === target) return {}
+          const from = state.dashboardOrder.indexOf(widget)
+          if (from < 0 || !state.dashboardOrder.includes(target)) return {}
+          const dashboardOrder = state.dashboardOrder.filter((each) => each !== widget)
+          dashboardOrder.splice(dashboardOrder.indexOf(target) + (after ? 1 : 0), 0, widget)
+          if (dashboardOrder.every((each, at) => each === state.dashboardOrder[at])) return {}
           return { dashboardOrder }
         }),
       setHomeAppHidden: (app, hidden) =>
@@ -569,6 +604,7 @@ export const useCabin = create<CabinState>()(
         appearanceMode: state.appearanceMode,
         wallpaperId: state.wallpaperId,
         dashboardWidgets: state.dashboardWidgets,
+        dashboardWidgetSizes: state.dashboardWidgetSizes,
         clock: state.clock,
         albumArt: state.albumArt,
         playerCompact: state.playerCompact,
@@ -637,6 +673,17 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     result.dashboardWidgets = Object.fromEntries(
       DASHBOARD_WIDGETS.map((widget) => [widget, widget === 'destination' ? destination : widgets[widget] !== false]),
     ) as Record<DashboardWidget, boolean>
+  }
+  if (typeof stored.dashboardWidgetSizes === 'object' && stored.dashboardWidgetSizes !== null) {
+    const sizes = stored.dashboardWidgetSizes as Partial<Record<DashboardWidget, unknown>>
+    result.dashboardWidgetSizes = Object.fromEntries(
+      DASHBOARD_WIDGETS.map((widget) => [
+        widget,
+        DASHBOARD_WIDGET_SIZES.includes(sizes[widget] as DashboardWidgetSize)
+          ? (sizes[widget] as DashboardWidgetSize)
+          : 'standard',
+      ]),
+    ) as Record<DashboardWidget, DashboardWidgetSize>
   }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
