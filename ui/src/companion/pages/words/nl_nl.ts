@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Pas aan',
     sub: 'Je eigen achtergronden en app-symbolen, voor Cabin Play op het scherm van je truck.',
+    accent: 'Accent',
     wallpapers: 'Achtergronden',
     add: 'Voeg toe',
     pair: 'Licht en donker',

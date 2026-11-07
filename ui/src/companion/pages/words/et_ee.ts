@@ -262,6 +262,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Kohanda',
     sub: 'Sinu enda taustapildid ja rakenduste ikoonid Cabin Play jaoks su veoki ekraanil.',
+    accent: 'Accent',
     wallpapers: 'Taustapildid',
     add: 'Lisa',
     pair: 'Hele ja tume',

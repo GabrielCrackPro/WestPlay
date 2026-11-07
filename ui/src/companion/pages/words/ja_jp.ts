@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'カスタマイズ',
     sub: 'トラックの画面の Cabin Play に、自分の壁紙とアプリアイコンを。',
+    accent: 'Accent',
     wallpapers: '壁紙',
     add: '追加',
     pair: 'ライトとダーク',

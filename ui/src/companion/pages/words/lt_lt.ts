@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Tinkinti',
     sub: 'Tavo paties fono paveikslėliai ir programėlių piktogramos Cabin Play tavo sunkvežimio ekrane.',
+    accent: 'Accent',
     wallpapers: 'Fonai',
     add: 'Pridėti',
     pair: 'Šviesus ir tamsus',

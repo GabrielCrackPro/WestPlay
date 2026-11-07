@@ -4,7 +4,10 @@ import { formatGameTime, formatTripDistance, formatTripTime, speedKmh } from '..
 import { hvtMapMessage } from '../maps/blockedMap'
 import { GuidanceCard } from '../maps/GuidanceCard'
 import { DashboardMapControls, MapControls } from '../maps/MapControls'
+import { DriveStatus } from '../maps/DriveStatus'
 import { MapSearch } from '../maps/MapSearch'
+import { NearbyStopCard } from '../maps/NearbyStopCard'
+import { ServicesStrip } from '../maps/ServicesStrip'
 import { nextStop } from '../maps/nextStop'
 import { StopsPage } from '../maps/StopsPage'
 import { StopsStrip } from '../maps/StopsStrip'
@@ -90,6 +93,7 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
       <StopsStrip compact={!interactive} />
       <ArrivalCard arrived={routeLeft > 0 ? null : arrived} />
       <div className="speed-stack">
+        <DriveStatus />
         {limit > 0 && showLimit && (
           <div className="speed-limit" aria-label={text.speedLimit(limit)}>
             {limit}
@@ -99,8 +103,13 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
           <div className={`speed-badge${limit > 0 && warnOver && speed > limit ? ' over' : ''}`}>{shownSpeed}</div>
         )}
       </div>
-      {/* Turn-by-turn, over the map on both screens (the Dashboard has no card of its own for it). */}
-      <GuidanceCard />
+      {/* Turn-by-turn, over the map on both screens, and under it the nearest stop in the Maps app (the Dashboard
+          has no card of its own for either). */}
+      <div className="map-guidance-stack">
+        <GuidanceCard />
+        {!interactive && <ServicesStrip />}
+        {interactive && <NearbyStopCard />}
+      </div>
       {data && interactive && <MapControls />}
       {data && !interactive && <DashboardMapControls />}
       {data && interactive && <MapSearch />}

@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Testreszabás',
     sub: 'Saját háttérképeid és alkalmazásikonjaid a Cabin Playhez a kamionod képernyőjén.',
+    accent: 'Accent',
     wallpapers: 'Háttérképek',
     add: 'Hozzáadás',
     pair: 'Világos és sötét',

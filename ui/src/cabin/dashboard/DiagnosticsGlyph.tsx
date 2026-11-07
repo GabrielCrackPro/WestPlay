@@ -8,7 +8,13 @@ export function DiagnosticsGlyph({ size }: { size: number }) {
       {/* The dial. */}
       <path d="M10 46a22 22 0 0 1 44 0" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
       {/* Its needle, and the hub it turns on. */}
-      <path d="M32 46 44 32" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+      <path
+        className="diagnostics-needle"
+        d="M32 46 44 32"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
       <circle cx="32" cy="46" r="4" fill="currentColor" />
     </svg>
   )

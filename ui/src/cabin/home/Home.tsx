@@ -466,7 +466,7 @@ function HomeApp({
         {/* The Driver app is the player's own truck's: its icon is the truck's brand, as on the boot screen. */}
         {app === 'driver' ? <BrandIcon style={launch} /> : <img src={icon} alt="" style={launch} />}
         {badge > 0 && (
-          <span className="app-badge" aria-label={text.notificationsApp.summary(badge)}>
+          <span className="app-badge" key={badge} aria-label={text.notificationsApp.summary(badge)}>
             {badge > 99 ? '99+' : badge}
           </span>
         )}

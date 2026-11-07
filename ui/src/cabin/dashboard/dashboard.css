@@ -82,6 +82,12 @@
   flex: 1 0 auto;
 }
 
+/* A video's Now Playing is never squeezed into a strip: the card keeps at least its picture's 16:9 height,
+   then grows into any room the column has left. The column scrolls for the other cards if it is short. */
+.widget-slot.video.open {
+  min-height: calc(100cqw * 0.5625);
+}
+
 /* A widget that opens its app (Diagnostics) is the card itself: the card's own type and glass, none of the
    button's (and the press shows, as an app icon's does on Home). */
 button.widget {
@@ -139,6 +145,20 @@ button.widget:active {
 .diagnostics-glyph {
   flex: none;
   color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+/* The needle sweeps to its reading as the card arrives, then stays at it: a gauge that has just been switched on,
+   not a decoration that keeps moving while the driver reads it. */
+.diagnostics-needle {
+  transform-box: view-box;
+  transform-origin: 32px 46px;
+  animation: diagnostics-needle-in 900ms var(--motion-ease) both;
+}
+
+@keyframes diagnostics-needle-in {
+  from {
+    transform: rotate(-58deg);
+  }
 }
 
 /* The card's other readings, on one muted line under the two big ones like the destination card's deadline: the
@@ -200,6 +220,21 @@ button.widget:active {
   width: calc(62px * var(--text-scale, 1));
   height: calc(62px * var(--text-scale, 1));
   color: var(--apple-blue);
+  transition: scale 240ms var(--motion-ease);
+  animation: driver-portrait-in 480ms var(--motion-ease);
+}
+
+@media (hover: hover) {
+  .driver-widget:hover .driver-widget-portrait {
+    scale: 1.045;
+  }
+}
+
+@keyframes driver-portrait-in {
+  from {
+    opacity: 0;
+    scale: 0.88;
+  }
 }
 
 .driver-widget-text {
@@ -359,6 +394,22 @@ button.widget:active {
   opacity: 0.55;
 }
 
+/* While it plays, the cover's blurred light drifts under the glass: the card breathes with the music instead of
+   sitting as a still poster. */
+.now-playing.is-playing .np-tint img {
+  animation: np-tint-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes np-tint-drift {
+  from {
+    transform: scale(1.02) translate3d(-1%, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(1.5%, -1.5%, 0);
+  }
+}
+
 .now-playing .np-top {
   display: flex;
   align-items: center;
@@ -504,6 +555,54 @@ button.widget:active {
   color: var(--apple-blue);
 }
 
+/* The compact player (Settings › Dashboard): the card on one line — the track beside the transport, without its
+   cover, its progress or the quieter shuffle and repeat. Its slot keeps the card's own height rather than a full
+   share of the column, giving the room back to the drive's cards. */
+.widget-slot.compact.open {
+  flex: 0 0 auto;
+}
+
+.now-playing.compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'track transport';
+  align-items: center;
+  gap: 0 calc(12px * var(--text-scale, 1));
+}
+
+.now-playing.compact .np-top {
+  grid-area: track;
+  min-width: 0;
+}
+
+.now-playing.compact .controls {
+  grid-area: transport;
+  gap: 2px;
+  padding: 0;
+}
+
+.now-playing.compact .art,
+.now-playing.compact .service,
+.now-playing.compact .np-progress,
+.now-playing.compact .np-dial,
+.now-playing.compact .controls button.side {
+  display: none;
+}
+
+.now-playing.compact .title {
+  font-size: calc(22px * var(--text-scale, 1));
+}
+
+.now-playing.compact .artist {
+  margin-top: 1px;
+  font-size: calc(18px * var(--text-scale, 1));
+}
+
+.now-playing.compact .controls button {
+  width: 46px;
+  height: 46px;
+}
+
 .job {
   flex-direction: column;
   align-items: flex-start;
@@ -530,6 +629,7 @@ button.widget:active {
 /* Past the delivery deadline. */
 .job .deadline.late {
   color: var(--apple-red);
+  animation: diag-alarm 900ms var(--motion-ease) 2;
 }
 
 /* The fuel card: its words on the left, its glyph beside them, as the weather card has its symbol. It's denser
@@ -617,6 +717,74 @@ button.widget:active {
 /* The weather: where, and the weather, beside its symbol. */
 .weather {
   justify-content: space-between;
+}
+
+/* The weather's own small weather: the sun's rays turn, the moon floats, the cloud drifts and the rain falls —
+   slow and low so it reads as live, not as a loading spinner. */
+.weather-glyph .weather-sun {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: weather-sun-turn 60s linear infinite;
+}
+
+.weather-glyph .weather-moon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-moon-float 8s ease-in-out infinite alternate;
+}
+
+.weather-glyph .weather-cloud {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-cloud-drift 6s ease-in-out infinite alternate;
+}
+
+.weather-glyph .weather-drops line {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-drop 1.2s linear infinite;
+}
+
+.weather-glyph .weather-drops line:nth-child(2) {
+  animation-delay: 0.28s;
+}
+
+.weather-glyph .weather-drops line:nth-child(3) {
+  animation-delay: 0.56s;
+}
+
+@keyframes weather-sun-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes weather-moon-float {
+  to {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes weather-cloud-drift {
+  to {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes weather-drop {
+  0% {
+    opacity: 0.2;
+    transform: translateY(-2px);
+  }
+
+  35% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.25;
+    transform: translateY(3px);
+  }
 }
 
 .weather .weather-text {
@@ -1008,16 +1176,36 @@ button.widget:active {
 }
 
 /* A widget that arrives (a job taken, the truck's readings back) rises into the column, as the column makes room
-   for it. */
+   for it. The cards follow one another in a short cascade rather than arriving as one slab. */
 .widget-slot.open {
-  animation: widget-in 320ms var(--motion-ease) both;
+  animation: widget-in 360ms var(--motion-ease) both;
 }
 
 @keyframes widget-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px) scale(0.985);
   }
+}
+
+.widgets .widget-slot.open:nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.widgets .widget-slot.open:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.widgets .widget-slot.open:nth-child(4) {
+  animation-delay: 135ms;
+}
+
+.widgets .widget-slot.open:nth-child(5) {
+  animation-delay: 180ms;
+}
+
+.widgets .widget-slot.open:nth-child(6) {
+  animation-delay: 225ms;
 }
 
 /* Mounting as an app closes: the column is the transition's, so its cards don't rise in (Dashboard.tsx). */
@@ -1044,12 +1232,37 @@ button.widget:active {
   animation: diag-alarm 900ms var(--motion-ease) 2;
 }
 
+/* Readings ease from one state to the next; the warning gives one quiet pulse as it turns. */
+.widget.driver-hours .hours-value,
+.widget.diagnostics .destination,
+.widget.diagnostics .place,
+.widget.diagnostics .diag-extra-value {
+  transition: color 350ms var(--motion-ease);
+}
+
+.widget.driver-hours .hours-value.warn {
+  animation: value-warn 1000ms var(--motion-ease) 1;
+}
+
 .widget.driver-hours .hours-value.alarm {
   animation: diag-alarm 900ms var(--motion-ease) 2;
+}
+
+@keyframes value-warn {
+  50% {
+    opacity: 0.55;
+  }
 }
 
 @keyframes diag-alarm {
   50% {
     opacity: 0.45;
   }
+}
+
+/* Ambient motion is the first thing to go when the cab asks for less of it. The global reduced-motion rule cuts
+   durations, but an infinite animation at 1 ms would still flicker: these are switched off whole. */
+html[data-motion='reduced'] .weather-glyph :is(.weather-sun, .weather-moon, .weather-cloud, .weather-drops line),
+html[data-motion='reduced'] .now-playing.is-playing .np-tint img {
+  animation: none;
 }

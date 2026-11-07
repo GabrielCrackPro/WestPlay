@@ -410,6 +410,7 @@ export function DiagnosticsApp() {
                     <Row label={words.retarder} value={retarder} />
                     <Row label={words.parkingBrake} value={t.parkingBrake ? words.applied : words.released} />
                     <Row label={words.lights} value={lights} />
+                    <Row label={words.hazardLights} value={t.hazard ? words.on : words.off} />
                     <Row label={words.wipers} value={t.wipers ? words.on : words.off} />
                   </div>
                 </Card>

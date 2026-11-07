@@ -40,6 +40,7 @@ import {
 } from '../apps/youtubeMusic/youtubeMusic'
 import { useKeyboard } from '../keyboard/store'
 import { receiveMapFolder } from '../maps/mapData'
+import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../maps/nearbyStop'
 import { receiveDetours, receiveFollowed, receiveRouteAnswer, receiveRoutes } from '../maps/routeChange'
 import type { Point, RouteNode } from '../maps/route'
 import { DEFAULT_WALLPAPER_ID } from '../wallpapers'
@@ -132,6 +133,9 @@ interface CabinState {
   clock: Clock
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
   albumArt: boolean
+  /** The Dashboard's Now Playing card on one line (Settings › Dashboard): the track beside its controls, without
+   * the cover, the times or the quieter shuffle and repeat. */
+  playerCompact: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
   textSize: number
   /** Screens change without sliding or zooming (Settings › Appearance): the shell's animations, and the view
@@ -180,6 +184,13 @@ interface CabinState {
   mapPinFuel: boolean
   mapPinParking: boolean
   mapPinService: boolean
+  /** The card under turn-by-turn (Settings › Maps): always on the map, or only as the tank or the driver's hours
+   * run low. */
+  mapStopCardAlways: boolean
+  /** Below this share of the tank, percent. */
+  mapStopCardFuel: number
+  /** When the next rest is this close, minutes. */
+  mapStopCardRest: number
   /** The truck's own strip: kept (`auto`) or not, as set in the companion window (the host sends it). */
   oemMode: OemMode
   /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or the speakers as tuned
@@ -203,6 +214,7 @@ interface CabinState {
   setDashboardWidget(widget: DashboardWidget, shown: boolean): void
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
+  setPlayerCompact(on: boolean): void
   setTextSize(step: number): void
   setReduceMotion(on: boolean): void
   setDiagnosticsPage(page: DiagnosticsPage): void
@@ -233,6 +245,9 @@ interface CabinState {
   setMapPinFuel(mapPinFuel: boolean): void
   setMapPinParking(mapPinParking: boolean): void
   setMapPinService(mapPinService: boolean): void
+  setMapStopCardAlways(on: boolean): void
+  setMapStopCardFuel(percent: number): void
+  setMapStopCardRest(minutes: number): void
   setUiSounds(uiSounds: boolean): void
   setUiSoundVolume(uiSoundVolume: number): void
   setMapDetail(detail: MapDetail): void
@@ -267,6 +282,7 @@ type Persisted = Pick<
   | 'dashboardWidgets'
   | 'clock'
   | 'albumArt'
+  | 'playerCompact'
   | 'textSize'
   | 'reduceMotion'
   | 'diagnosticsPage'
@@ -296,6 +312,9 @@ type Persisted = Pick<
   | 'mapPinFuel'
   | 'mapPinParking'
   | 'mapPinService'
+  | 'mapStopCardAlways'
+  | 'mapStopCardFuel'
+  | 'mapStopCardRest'
   | 'uiSounds'
   | 'uiSoundVolume'
 >
@@ -353,6 +372,7 @@ export const useCabin = create<CabinState>()(
       dashboardWidgets: { ...STARTER_WIDGETS },
       clock: 'real',
       albumArt: true,
+      playerCompact: false,
       textSize: DEFAULT_TEXT_SIZE,
       reduceMotion: SYSTEM_REDUCES_MOTION,
       diagnosticsPage: 'overview',
@@ -383,6 +403,9 @@ export const useCabin = create<CabinState>()(
       mapPinFuel: true,
       mapPinParking: true,
       mapPinService: true,
+      mapStopCardAlways: true,
+      mapStopCardFuel: 25,
+      mapStopCardRest: 60,
       uiSounds: true,
       uiSoundVolume: 1,
       oemMode: 'auto',
@@ -400,6 +423,7 @@ export const useCabin = create<CabinState>()(
         set((state) => ({ dashboardWidgets: { ...state.dashboardWidgets, [widget]: shown } })),
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
+      setPlayerCompact: (playerCompact) => set({ playerCompact }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
       setDiagnosticsPage: (diagnosticsPage) => set({ diagnosticsPage }),
@@ -470,6 +494,9 @@ export const useCabin = create<CabinState>()(
       setMapPinFuel: (mapPinFuel) => set({ mapPinFuel }),
       setMapPinParking: (mapPinParking) => set({ mapPinParking }),
       setMapPinService: (mapPinService) => set({ mapPinService }),
+      setMapStopCardAlways: (mapStopCardAlways) => set({ mapStopCardAlways }),
+      setMapStopCardFuel: (mapStopCardFuel) => set({ mapStopCardFuel }),
+      setMapStopCardRest: (mapStopCardRest) => set({ mapStopCardRest }),
       setUiSounds: (uiSounds) => set({ uiSounds }),
       setUiSoundVolume: (uiSoundVolume) => set({ uiSoundVolume: Math.max(0, Math.min(1, uiSoundVolume)) }),
       setEqualizerBand: (band, db) => {
@@ -544,6 +571,7 @@ export const useCabin = create<CabinState>()(
         dashboardWidgets: state.dashboardWidgets,
         clock: state.clock,
         albumArt: state.albumArt,
+        playerCompact: state.playerCompact,
         textSize: state.textSize,
         reduceMotion: state.reduceMotion,
         diagnosticsPage: state.diagnosticsPage,
@@ -573,6 +601,9 @@ export const useCabin = create<CabinState>()(
         mapPinFuel: state.mapPinFuel,
         mapPinParking: state.mapPinParking,
         mapPinService: state.mapPinService,
+        mapStopCardAlways: state.mapStopCardAlways,
+        mapStopCardFuel: state.mapStopCardFuel,
+        mapStopCardRest: state.mapStopCardRest,
         uiSounds: state.uiSounds,
         uiSoundVolume: state.uiSoundVolume,
       }),
@@ -609,6 +640,7 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
+  if (typeof stored.playerCompact === 'boolean') result.playerCompact = stored.playerCompact
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
   if (typeof stored.reduceMotion === 'boolean') result.reduceMotion = stored.reduceMotion
   if (DIAGNOSTICS_PAGES.includes(stored.diagnosticsPage as DiagnosticsPage)) {
@@ -646,6 +678,13 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.mapPinFuel === 'boolean') result.mapPinFuel = stored.mapPinFuel
   if (typeof stored.mapPinParking === 'boolean') result.mapPinParking = stored.mapPinParking
   if (typeof stored.mapPinService === 'boolean') result.mapPinService = stored.mapPinService
+  if (typeof stored.mapStopCardAlways === 'boolean') result.mapStopCardAlways = stored.mapStopCardAlways
+  if ((STOP_CARD_FUEL_LEVELS as readonly number[]).includes(stored.mapStopCardFuel as number)) {
+    result.mapStopCardFuel = stored.mapStopCardFuel as number
+  }
+  if ((STOP_CARD_REST_MINUTES as readonly number[]).includes(stored.mapStopCardRest as number)) {
+    result.mapStopCardRest = stored.mapStopCardRest as number
+  }
   if (typeof stored.uiSounds === 'boolean') result.uiSounds = stored.uiSounds
   if (typeof stored.uiSoundVolume === 'number' && Number.isFinite(stored.uiSoundVolume)) {
     result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))

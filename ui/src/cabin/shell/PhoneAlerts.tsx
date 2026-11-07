@@ -14,19 +14,19 @@ export function PhoneAlerts() {
   const phone = usePhone()
   const route = useCabin((state) => state.navigation.route)
   const handedOver = useCabin((state) => state.truckScreen)
-  const call = phone.call
-  const seconds = useCallSeconds(call)
+  const shown = useCallPresence(phone.call)
+  const seconds = useCallSeconds(shown.call)
   const inPhoneApp = route.kind === 'app' && route.app === 'phone'
-  if (inPhoneApp || handedOver || !call) return null
+  if (inPhoneApp || handedOver || !shown.call) return null
   return (
     <div className="phone-alerts">
-      <CallAlert call={call} seconds={seconds} />
+      <CallAlert call={shown.call} seconds={seconds} leaving={shown.leaving} />
     </div>
   )
 }
 
 /** A ringing or answered call: who it is, how long it has lasted, and the buttons that take it. */
-function CallAlert({ call, seconds }: { call: PhoneCall; seconds: number | null }) {
+function CallAlert({ call, seconds, leaving }: { call: PhoneCall; seconds: number | null; leaving: boolean }) {
   const words = useText().phoneApp
   // Who is calling: the phone's own word for the call, or the name the dialer's notification gave it.
   const caller = useCaller(call.id)
@@ -34,7 +34,11 @@ function CallAlert({ call, seconds }: { call: PhoneCall; seconds: number | null 
   const ringing = call.state === 'ringing'
   const lasted = !ringing && seconds !== null ? ` · ${words.duration(seconds)}` : ''
   return (
-    <div className={ringing ? 'phone-alert ringing' : 'phone-alert calling'} role={ringing ? 'alert' : undefined}>
+    <div
+      className={ringing ? 'phone-alert ringing' : 'phone-alert calling'}
+      role={ringing ? 'alert' : undefined}
+      aria-hidden={leaving || undefined}
+    >
       <span className="phone-alert-glyph" aria-hidden="true">
         <Receiver />
       </span>
@@ -52,12 +56,50 @@ function CallAlert({ call, seconds }: { call: PhoneCall; seconds: number | null 
             {words.answer}
           </button>
         )}
-        <button type="button" className="phone-alert-end" onClick={() => sendPhoneCommand({ action: 'end' })}>
+        <button
+          type="button"
+          className="phone-alert-end"
+          disabled={leaving}
+          onClick={() => sendPhoneCommand({ action: 'end' })}
+        >
           {ringing ? words.decline : words.end}
         </button>
       </span>
     </div>
   )
+}
+
+/** How long a call that has ended stays up to fade out, ms (phoneAlerts.css' phone-alert-out). */
+const CALL_OUT_MS = 220
+
+/**
+ * The call on screen, kept a moment after the phone hangs it up so its exit can be seen: an element that leaves the
+ * page can't animate. A new call arriving mid-exit takes its place at once.
+ */
+function useCallPresence(call: PhoneCall | null): { call: PhoneCall | null; leaving: boolean } {
+  const [lastCall, setLastCall] = useState(call)
+  const [shown, setShown] = useState(call)
+  const [leaving, setLeaving] = useState(false)
+  // A new call takes the card at once; one that has gone stays for its exit. Adjusted while rendering, as React
+  // asks for state derived from a prop, rather than in an effect (which would render the old call once more).
+  if (call !== lastCall) {
+    setLastCall(call)
+    if (call) {
+      setShown(call)
+      setLeaving(false)
+    } else if (shown) {
+      setLeaving(true)
+    }
+  }
+  useEffect(() => {
+    if (!leaving) return
+    const timer = window.setTimeout(() => {
+      setShown(null)
+      setLeaving(false)
+    }, CALL_OUT_MS)
+    return () => window.clearTimeout(timer)
+  }, [leaving])
+  return { call: shown, leaving: leaving && call === null }
 }
 
 /** The seconds a call has lasted, from the moment the phone says it began, once a second. */

@@ -29,8 +29,9 @@ pub fn bridge_name() -> String {
 pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
 /// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
 /// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
-/// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings.
-pub const BRIDGE_VERSION: u32 = 29;
+/// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings. 30: it grew the
+/// hazard warning.
+pub const BRIDGE_VERSION: u32 = 30;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -645,6 +646,8 @@ pub struct Telemetry {
     /// The trailer's body and chassis wear, 0 (new) to 1 (worn out), beside its wheels' (`trailer_wear_wheels`).
     pub trailer_wear_body: f32,
     pub trailer_wear_chassis: f32,
+    /// Whether the hazard warning lights are on (the SDK's `truck.hazard.warning`).
+    pub hazard: bool,
 }
 
 /// Identity of the current truck, from the SDK's "truck" configuration.

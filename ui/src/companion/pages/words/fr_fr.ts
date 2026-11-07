@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Personnaliser',
     sub: 'Vos propres fonds d’écran et icônes d’apps, pour Cabin Play sur l’écran de votre camion.',
+    accent: 'Accent',
     wallpapers: 'Fonds d’écran',
     add: 'Ajouter',
     pair: 'Clair et sombre',

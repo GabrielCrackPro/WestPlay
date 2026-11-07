@@ -263,6 +263,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Pielāgot',
     sub: 'Tavas pašas fona attēli un lietotņu ikonas Cabin Play tava kravas auto ekrānā.',
+    accent: 'Accent',
     wallpapers: 'Fona attēli',
     add: 'Pievienot',
     pair: 'Gaišs un tumšs',

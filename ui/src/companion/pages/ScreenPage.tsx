@@ -61,13 +61,15 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
   )
 }
 
-/** How a step of the connection is doing: as iOS's dots say it. */
+/** How a step of the connection is doing. */
 type Tone = 'good' | 'bad' | 'busy' | 'idle'
+/** The three stations in the chain, in the order the signal travels. */
+type Link = 'engine' | 'game' | 'screen'
 
 /**
- * The connection to the game's screen, as the three things it takes, in order: Cabin Play's engine, the game, and
- * the screen in the truck. Each lights when it's reached, and the line between two of them lights only where
- * both ends are talking, so where the line stops is where to look.
+ * The connection to the game's screen as a signal chain: three stations — Cabin Play's engine, the game, and the
+ * screen in the truck — on one dark board. A station lights when it is reached, and the rail between two stations
+ * only carries the moving signal while both ends are talking, so a quiet rail is where to look.
  */
 function ConnectionPath({
   status,
@@ -84,18 +86,21 @@ function ConnectionPath({
   fps: number
   place: number
 }) {
-  const steps: { label: string; value: string; tone: Tone }[] = [
+  const steps: { key: Link; label: string; value: string; tone: Tone }[] = [
     {
+      key: 'engine',
       label: w.engine,
       value: status?.error ? cw.values.failed : status ? w.engineRunning : w.engineStarting,
       tone: status?.error ? 'bad' : status ? 'good' : 'busy',
     },
     {
+      key: 'game',
       label: w.game,
       value: status?.gameConnected ? w.gameConnected : w.gameNotRunning,
       tone: status?.gameConnected ? 'good' : 'idle',
     },
     {
+      key: 'screen',
       label: w.truckScreen,
       value:
         state === 'unsupported'
@@ -106,28 +111,81 @@ function ConnectionPath({
       tone: state === 'unsupported' ? 'idle' : status?.screenDrawing ? 'good' : status?.gameConnected ? 'busy' : 'idle',
     },
   ]
+  const overall: Tone = steps.some((step) => step.tone === 'bad')
+    ? 'bad'
+    : steps.every((step) => step.tone === 'good')
+      ? 'good'
+      : steps.some((step) => step.tone === 'busy')
+        ? 'busy'
+        : 'idle'
   return (
-    <>
-      <p className="ob-group-title ob-in" style={n(place)}>
-        {w.connection}
-      </p>
-      <ol className="cp-path ob-in" style={n(place)}>
-        {steps.map((step) => (
-          <li
-            key={step.label}
-            className="cp-step"
-            data-tone={step.tone}
-            data-reached={step.tone === 'good' || undefined}
-          >
-            <i className="cp-step-dot" />
-            <span className="cp-step-text">
-              <b>{step.label}</b>
-              <span>{step.value}</span>
-            </span>
-          </li>
-        ))}
+    <section className="cp-link ob-in" data-tone={overall} style={n(place)} aria-live="polite">
+      <header className="cp-link-head">
+        <span className="cp-link-title">
+          <i aria-hidden />
+          {w.connection}
+        </span>
+        <span className="cp-link-meter" aria-hidden>
+          {steps.map((step) => (
+            <i key={step.key} data-on={step.tone === 'good' || step.tone === 'busy' || undefined} />
+          ))}
+        </span>
+      </header>
+      <ol className="cp-link-chain" aria-label={w.connection}>
+        {steps.map((step, at) => {
+          const next = steps[at + 1]
+          const flowing = step.tone === 'good' && next?.tone === 'good'
+          return (
+            <li key={step.key} className="cp-link-node" data-tone={step.tone}>
+              <span className="cp-link-port">
+                <LinkGlyph kind={step.key} />
+              </span>
+              <span className="cp-link-body">
+                <b>{step.label}</b>
+                <span>{step.value}</span>
+              </span>
+              {next && (
+                <span className="cp-link-wire" data-flow={flowing || undefined} aria-hidden>
+                  <i />
+                </span>
+              )}
+            </li>
+          )
+        })}
       </ol>
-    </>
+    </section>
+  )
+}
+
+/** A small line mark for each station in the connection chain. */
+function LinkGlyph({ kind }: { kind: Link }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {kind === 'engine' ? (
+        <>
+          <rect x="6" y="6" width="12" height="12" rx="2.5" />
+          <path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5" />
+        </>
+      ) : kind === 'game' ? (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none" />
+        </>
+      ) : (
+        <>
+          <rect x="3" y="4.5" width="18" height="13" rx="2.5" />
+          <path d="M8.5 21h7M12 17.5V21" />
+        </>
+      )}
+    </svg>
   )
 }
 

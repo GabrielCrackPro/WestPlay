@@ -263,6 +263,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Оформлення',
     sub: 'Ваші власні шпалери та значки застосунків для Cabin Play на екрані вашої вантажівки.',
+    accent: 'Accent',
     wallpapers: 'Шпалери',
     add: 'Додати',
     pair: 'Світлі й темні',

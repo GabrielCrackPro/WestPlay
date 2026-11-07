@@ -5,7 +5,7 @@ export function WeatherGlyph({ symbol, size }: { symbol: WeatherSymbol; size: nu
   return (
     <svg className={`weather-glyph ${symbol}`} width={size} height={size} viewBox="0 0 64 64" aria-hidden>
       {symbol === 'sun' && (
-        <g>
+        <g className="weather-sun">
           <circle cx="32" cy="32" r="12" fill="#ffcc00" />
           {Array.from({ length: 8 }, (_, i) => (
             <line
@@ -22,13 +22,22 @@ export function WeatherGlyph({ symbol, size }: { symbol: WeatherSymbol; size: nu
           ))}
         </g>
       )}
-      {symbol === 'moon' && <path d="M40 10a22 22 0 1 0 14 34A18 18 0 0 1 40 10z" fill="#f5f3e6" />}
+      {symbol === 'moon' && (
+        <path className="weather-moon" d="M40 10a22 22 0 1 0 14 34A18 18 0 0 1 40 10z" fill="#f5f3e6" />
+      )}
       {symbol === 'rain' && (
-        <g>
-          <path d="M20 40a10 10 0 0 1-1-20 14 14 0 0 1 27-3 10 10 0 0 1 1 23z" fill="currentColor" opacity="0.92" />
-          {[22, 32, 42].map((x) => (
-            <line key={x} x1={x} y1="46" x2={x - 3} y2="55" stroke="#4aa3ff" strokeWidth="4" strokeLinecap="round" />
-          ))}
+        <g className="weather-rain">
+          <path
+            className="weather-cloud"
+            d="M20 40a10 10 0 0 1-1-20 14 14 0 0 1 27-3 10 10 0 0 1 1 23z"
+            fill="currentColor"
+            opacity="0.92"
+          />
+          <g className="weather-drops">
+            {[22, 32, 42].map((x) => (
+              <line key={x} x1={x} y1="46" x2={x - 3} y2="55" stroke="#4aa3ff" strokeWidth="4" strokeLinecap="round" />
+            ))}
+          </g>
         </g>
       )}
     </svg>

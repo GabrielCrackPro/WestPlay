@@ -41,6 +41,8 @@ export interface Telemetry {
   parkingBrake: boolean
   lowBeam: boolean
   highBeam: boolean
+  /** Whether the hazard warning lights are on. */
+  hazard: boolean
   leftBlinker: boolean
   rightBlinker: boolean
   paused: boolean

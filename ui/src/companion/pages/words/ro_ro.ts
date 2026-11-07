@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Personalizare',
     sub: 'Propriile tale imagini de fundal și pictograme de aplicații pentru Cabin Play pe ecranul camionului tău.',
+    accent: 'Accent',
     wallpapers: 'Imagini de fundal',
     add: 'Adaugă',
     pair: 'Luminos și întunecat',

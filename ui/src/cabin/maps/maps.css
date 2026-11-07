@@ -393,17 +393,165 @@
   font-weight: 600;
 }
 
-/* In the Maps app: a banner over the map's top left. */
-.guidance-banner {
+/* The map's guidance stack: turn-by-turn and, under it, the nearest stop (NearbyStopCard.tsx). One column at the
+   map's top left, so the second card always sits below the first whatever its height. */
+.map-guidance-stack {
   position: absolute;
   left: 22px;
   top: 22px;
   max-width: min(520px, 56%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.map-guidance-stack > * {
+  pointer-events: auto;
+}
+
+/* Without turn-by-turn the stack starts under the map's round buttons, which keep their corner. */
+.map-tile:not(:has(.guidance-banner)) .map-guidance-stack {
+  top: 96px;
+}
+
+/* In the Maps app: a banner over the map's top left, in the stack. */
+.guidance-banner {
+  align-self: flex-start;
+  max-width: 100%;
   padding: 18px 26px;
   border-radius: 30px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+/* The nearest stop (NearbyStopCard.tsx): the guidance banner's blue and way in, a size down, with the stop's own
+   glyph — a filling station or a rest area — where the maneuver's would be. */
+.nearby-stop-card {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: calc(14px * var(--text-scale, 1));
+  padding: calc(13px * var(--text-scale, 1)) calc(19px * var(--text-scale, 1));
+  border-radius: calc(24px * var(--text-scale, 1));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.nearby-stop-glyph {
+  flex: none;
+  width: calc(50px * var(--text-scale, 1));
+  height: calc(50px * var(--text-scale, 1));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nearby-stop-text {
+  min-width: 0;
+}
+
+.nearby-stop-distance {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.nearby-stop-kind {
+  margin-top: 2px;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.nearby-stop-detail {
+  margin-top: 3px;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.82);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The next services along the route (ServicesStrip.tsx), under the Dashboard's turn-by-turn: the same blue as
+   the guidance above it, a size down, each a place's badge and how far along the route it is. */
+.services-ahead {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: calc(10px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  border-radius: calc(24px * var(--text-scale, 1));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.services-ahead-title {
+  padding: 0 4px 3px;
+  color: rgb(255 255 255 / 0.72);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.services-ahead-row {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+  padding: calc(5px * var(--text-scale, 1)) 4px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.services-ahead-row:active {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.services-ahead .place-badge {
+  flex: none;
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+}
+
+.services-ahead-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.services-ahead-name {
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.services-ahead-kind {
+  color: rgb(255 255 255 / 0.7);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 500;
+}
+
+.services-ahead-distance {
+  flex: none;
+  margin-left: auto;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Search (MapSearch.tsx): a round button over the map's top left, opening the search panel there. Dark glass
@@ -498,7 +646,8 @@
 
 /* While the turn-by-turn banner has the map's top left, the page opens on the right, under the buttons there, as
    the search panel does (MapSearch's `right` side): on the left it covered the step being driven to. */
-.map-tile:has(.guidance-banner) .map-search.map-stops-page {
+.map-tile:has(.guidance-banner) .map-search.map-stops-page,
+.map-tile:has(.nearby-stop-card) .map-search.map-stops-page {
   left: auto;
   right: 16px;
   transform-origin: top right;

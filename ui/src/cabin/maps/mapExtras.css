@@ -176,10 +176,13 @@
 /* The turn-by-turn banner on the Dashboard's map (MapView's tile is narrower than the Maps app's, and the widget
    column takes more of it): the same card, a size down, so it covers less of the road ahead. The glyph, the
    distance, the instruction and the "then" row each step down with it. */
-.map-tile.dashboard .guidance-banner {
+.map-tile.dashboard .map-guidance-stack {
   left: calc(14px * var(--text-scale, 1));
   top: calc(14px * var(--text-scale, 1));
   max-width: min(420px, 64%);
+}
+
+.map-tile.dashboard .guidance-banner {
   padding: calc(11px * var(--text-scale, 1)) calc(17px * var(--text-scale, 1));
   border-radius: calc(23px * var(--text-scale, 1));
 }

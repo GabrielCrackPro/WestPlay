@@ -30,7 +30,7 @@ import { defaultMapAddress, type GameCheck, type SetupState, setupState } from '
 import { FILES_BASE, useCustomizations } from './customize'
 import { type HostStatus, useHostStatus } from './useHostStatus'
 import { useKeyName } from './keys'
-import { DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
+import { accentOf, DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
 
 /**
  * The companion window: its onboarding on the first run (until it's gone through), then the room it ends in.
@@ -92,18 +92,6 @@ type Phase = 'lesson' | 'tour' | 'launch' | 'room'
 /** Where the screen stands in each. */
 const POSE: Record<Phase, Pose> = { lesson: 'full', tour: 'aside', launch: 'final', room: 'aside' }
 
-/** The light the screen casts while each section is up. */
-const SECTION_GLOW: Record<Section, string> = {
-  screen: GLOW.home,
-  controls: GLOW.home,
-  customize: GLOW.home,
-  accounts: GLOW.youtube,
-  map: GLOW.maps,
-  phone: GLOW.home,
-  setup: GLOW.scan,
-  about: GLOW.dashboard,
-}
-
 /** How long a page's words take to leave before the next one's arrive. */
 const LEAVE_MS = 220
 /** The screen coming out of the onboarding's dive into its place (companion.css `.cp .ts`). */
@@ -126,6 +114,8 @@ function Room({
   const [code] = useState(() => setup.language ?? languageOf(navigator.languages))
   const words = wordsFor(code)
   const cw = companionWords(code)
+  const accent = accentOf(settings.settings?.companion.accent)
+  const screenNow = screenState(status)
   const [section, setSection] = useState<Section>('screen')
   const [leaving, setLeaving] = useState(false)
   const [phase, setPhase] = useState<Phase>(tutorial ?? 'room')
@@ -266,7 +256,8 @@ function Room({
       data-power={powered || undefined}
       data-leaving-pc={leavingPc || undefined}
       data-phase={phase}
-      style={{ '--section-glow': SECTION_GLOW[section] } as CSSProperties}
+      data-accent={accent.id}
+      style={{ '--signal': accent.signal, '--signal-rgb': accent.rgb } as CSSProperties}
       onPointerMove={tilt}
     >
       {/* The light of the open section, on the stage the screen stands on (companion.css .cp-stage). */}
@@ -280,6 +271,15 @@ function Room({
         />
         {phase === 'lesson' && <TouchLayer active={held} press={(at) => send({ type: 'press', ...at })} />}
       </TruckScreen>
+      {phase === 'room' && (
+        <div className="cp-screen-status" data-state={screenNow} aria-hidden="true">
+          <span>Cabin Play</span>
+          <b>
+            <i />
+            {cw.state[screenNow]}
+          </b>
+        </div>
+      )}
       <WordsContext.Provider value={{ words, code }}>
         <RoomText.Provider value={{ locale: words.locale, back: words.back }}>
           <ScreenContext.Provider value={screen}>

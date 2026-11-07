@@ -46,6 +46,8 @@ export interface Strings {
     findNearby: string
     /** "Find nearby" on a route: the places offered are along it. */
     alongRoute: string
+    /** The Dashboard map's strip of the next services along the route. */
+    servicesAhead: string
     recents: string
     /** The Maps app's button: the whole route at once, from above. */
     wholeRoute: string
@@ -535,6 +537,12 @@ export interface Strings {
     /** The sidebar's clock: the player's own time, or the game's. */
     realClock: string
     clockFooter: string
+    /** The Dashboard's player on one line, and what it leaves out. */
+    playerCompact: string
+    playerCompactFooter: string
+    /** Settings search: its field, and what it says when nothing matches. */
+    search: string
+    noResults: string
     showAlbumArt: string
     /** Sound, and in it the Equalizer: the speakers as tuned (Recommended) or the player's own tone (Custom), what
      * it does, its three bands under the graph, and the curve set back. */
@@ -555,6 +563,12 @@ export interface Strings {
     mapsDisplay: string
     mapsRoute: string
     mapsMarkers: string
+    /** The card under turn-by-turn, and when it shows. */
+    stopCard: string
+    stopCardAlways: string
+    stopCardFuel: string
+    stopCardRest: string
+    stopCardFooter: string
     back: string
   }
   /** Apps. */
@@ -627,6 +641,7 @@ export interface Strings {
     controls: string
     cruiseControl: string
     lights: string
+    hazardLights: string
     wipers: string
     hours: string
     minutes: string
@@ -856,6 +871,7 @@ const ENGLISH_STRINGS: Strings = {
     yourGarage: 'Your garage',
     findNearby: 'Find nearby',
     alongRoute: 'Along the route',
+    servicesAhead: 'Services ahead',
     recents: 'Recents',
     wholeRoute: 'Whole route',
     mapDetail: 'Detail',
@@ -1351,6 +1367,11 @@ const ENGLISH_STRINGS: Strings = {
       'Pinned apps stay at the top of the sidebar, in the order you pin them, while your recent apps fill the rest. Up to three.',
     realClock: 'Real Time',
     clockFooter: 'The sidebar’s clock: your own time, or the game’s.',
+    playerCompact: 'Compact Player',
+    playerCompactFooter:
+      'Music on the Dashboard’s Now Playing card shows on one line: the track beside its controls, without the cover, the times or shuffle and repeat.',
+    search: 'Search',
+    noResults: 'No Settings Found',
     showAlbumArt: 'Show Album Art',
     sound: 'Sound',
     uiSounds: 'Interface Sounds',
@@ -1368,6 +1389,12 @@ const ENGLISH_STRINGS: Strings = {
     mapsDisplay: 'Display',
     mapsRoute: 'Route',
     mapsMarkers: 'Markers & Pins',
+    stopCard: 'Stop Card',
+    stopCardAlways: 'Always Show',
+    stopCardFuel: 'Show Below Fuel',
+    stopCardRest: 'Show Within Rest',
+    stopCardFooter:
+      'The card under turn-by-turn shows the nearest filling station or rest area. Turned off, it shows only as the tank or the driver’s hours run low.',
     back: 'Back',
   },
   diagnostics: {
@@ -1437,6 +1464,7 @@ const ENGLISH_STRINGS: Strings = {
     controls: 'Controls',
     cruiseControl: 'Cruise control',
     lights: 'Lights',
+    hazardLights: 'Hazard lights',
     wipers: 'Wipers',
     hours: 'h',
     minutes: 'min',
@@ -1629,6 +1657,7 @@ const TURKISH_STRINGS: Strings = {
     yourGarage: 'Garajınız',
     findNearby: 'Yakındakiler',
     alongRoute: 'Rota üzerinde',
+    servicesAhead: 'Yaklaşan hizmetler',
     recents: 'Son kullanılanlar',
     wholeRoute: 'Tüm rota',
     mapDetail: 'Detay',
@@ -2129,6 +2158,11 @@ const TURKISH_STRINGS: Strings = {
       'Sabitlenen uygulamalar kenar çubuğunun üstünde, sabitlediğin sırayla kalır; kalan yeri son kullanılan uygulamalar doldurur. En fazla üç.',
     realClock: 'Gerçek Saat',
     clockFooter: 'Kenar çubuğundaki saat: kendi saatiniz ya da oyunun saati.',
+    playerCompact: 'Kompakt Oynatıcı',
+    playerCompactFooter:
+      'Gösterge Paneli’ndeki Şimdi Çalıyor kartında müzik tek satırda görünür: parça, denetimlerinin yanında; kapak, süreler ile karıştır ve tekrar olmadan.',
+    search: 'Ara',
+    noResults: 'Ayar Bulunamadı',
     showAlbumArt: 'Albüm Kapağını Göster',
     sound: 'Ses',
     uiSounds: 'Arayüz Sesleri',
@@ -2146,6 +2180,12 @@ const TURKISH_STRINGS: Strings = {
     mapsDisplay: 'Görünüm',
     mapsRoute: 'Güzergâh',
     mapsMarkers: 'İşaretler ve İğneler',
+    stopCard: 'Mola Kartı',
+    stopCardAlways: 'Her Zaman Göster',
+    stopCardFuel: 'Yakıt Alt Sınırı',
+    stopCardRest: 'Mola Süresi',
+    stopCardFooter:
+      'Sıradaki yol tarifinin altındaki kart en yakın akaryakıt istasyonunu ya da mola yerini gösterir. Kapalıyken yalnızca depo ya da sürücünün saatleri azaldığında görünür.',
     back: 'Geri',
   },
   diagnostics: {
@@ -2215,6 +2255,7 @@ const TURKISH_STRINGS: Strings = {
     controls: 'Kontroller',
     cruiseControl: 'Hız sabitleyici',
     lights: 'Işıklar',
+    hazardLights: 'Dörtlü ikaz lambaları',
     wipers: 'Silecekler',
     hours: 'sa',
     minutes: 'dk',
@@ -2409,6 +2450,7 @@ const SPANISH_STRINGS: Strings = {
     yourGarage: 'Tu garaje',
     findNearby: 'Buscar cerca',
     alongRoute: 'En la ruta',
+    servicesAhead: 'Servicios próximos',
     recents: 'Recientes',
     wholeRoute: 'Ruta completa',
     mapDetail: 'Detalle',
@@ -2916,6 +2958,11 @@ const SPANISH_STRINGS: Strings = {
       'Las apps fijadas se quedan arriba en la barra lateral, en el orden en que las fijas, y las recientes ocupan el resto. Hasta tres.',
     realClock: 'Hora real',
     clockFooter: 'El reloj de la barra lateral: tu hora o la del juego.',
+    playerCompact: 'Reproductor compacto',
+    playerCompactFooter:
+      'La música de la tarjeta Reproduciendo ahora del Panel ocupa una línea: la pista junto a sus controles, sin carátula, tiempos ni aleatorio y repetición.',
+    search: 'Buscar',
+    noResults: 'No se encontraron ajustes',
     showAlbumArt: 'Mostrar carátula del álbum',
     sound: 'Sonido',
     uiSounds: 'Sonidos de la Interfaz',
@@ -2934,6 +2981,12 @@ const SPANISH_STRINGS: Strings = {
     mapsDisplay: 'Visualización',
     mapsRoute: 'Ruta',
     mapsMarkers: 'Marcadores y pines',
+    stopCard: 'Tarjeta de parada',
+    stopCardAlways: 'Mostrar siempre',
+    stopCardFuel: 'Mostrar con combustible bajo',
+    stopCardRest: 'Mostrar con descanso próximo',
+    stopCardFooter:
+      'La tarjeta bajo la guía muestra la gasolinera o el área de descanso más cercana. Desactivada, solo aparece cuando baja el combustible o se acercan las horas de descanso.',
     back: 'Atrás',
   },
   diagnostics: {
@@ -3003,6 +3056,7 @@ const SPANISH_STRINGS: Strings = {
     controls: 'Controles',
     cruiseControl: 'Control de crucero',
     lights: 'Luces',
+    hazardLights: 'Luces de emergencia',
     wipers: 'Limpiaparabrisas',
     hours: 'h',
     minutes: 'min',

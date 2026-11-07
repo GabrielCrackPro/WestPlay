@@ -50,6 +50,7 @@ let settings: Settings = {
   },
   screen: { truckStrip: 'auto' },
   cabin: { resume: false },
+  companion: { accent: 'ember' },
   look: { wallpaper: null, iconSet: null, iconStyle: 'auto' },
   graphics: { gpu: null },
 }

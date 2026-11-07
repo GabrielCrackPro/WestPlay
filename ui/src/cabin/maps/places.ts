@@ -10,6 +10,10 @@ import { metresBetween } from './projection'
  * DEVELOPMENT ONLY for now, like the map itself (mapData.ts).
  */
 
+/** The game's map scale between cities (its world is this much smaller than the distances it gives), for
+ * straight-line distances in the units its GPS uses (shared/format.ts). */
+export const MAP_SCALE = 19
+
 export type DestinationKind =
   | 'fuel'
   | 'service'

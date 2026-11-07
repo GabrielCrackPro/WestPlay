@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Pertsonalizatu',
     sub: 'Zure horma-paper eta aplikazio-ikono propioak, Cabin Play-rentzat zure kamioiaren pantailan.',
+    accent: 'Accent',
     wallpapers: 'Horma-paperak',
     add: 'Gehitu',
     pair: 'Argia eta iluna',

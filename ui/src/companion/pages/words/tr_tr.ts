@@ -258,6 +258,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Özelleştir',
     sub: 'Kamyonunun ekranındaki Cabin Play için kendi duvar kâğıtlarını ve uygulama simgelerini ekle.',
+    accent: 'Accent',
     wallpapers: 'Duvar Kâğıtları',
     add: 'Ekle',
     pair: 'Açık ve Koyu',

@@ -258,6 +258,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Customize',
     sub: 'Your own wallpapers and app icons, for Cabin Play on your truck’s screen.',
+    accent: 'Accent',
     wallpapers: 'Wallpapers',
     add: 'Add',
     pair: 'Light & Dark',

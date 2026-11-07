@@ -35,6 +35,8 @@ pub struct Settings {
     pub sound: SoundSettings,
     #[serde(deserialize_with = "lenient")]
     pub cabin: CabinSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub companion: CompanionSettings,
 }
 
 /// The cabin's own session between launches: whether it opens where the last game left it.
@@ -45,6 +47,28 @@ pub struct CabinSettings {
     /// Cabin Play opens on the Dashboard every time.
     #[serde(deserialize_with = "lenient")]
     pub resume: bool,
+}
+
+/// The companion window's own look: the color its chrome lights up with (the Customize picker).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CompanionSettings {
+    #[serde(deserialize_with = "lenient")]
+    pub accent: Accent,
+}
+
+/// The accent colors the companion's chrome can light up with. The names are the settings' values;
+/// the companion maps them to its palette.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Accent {
+    #[default]
+    Ember,
+    Mint,
+    Sky,
+    Rose,
+    Violet,
+    Gold,
 }
 
 /// The sound the players play: its tone (the cab's Settings › Equalizer), the same in every truck. As iOS's
@@ -466,6 +490,7 @@ mod tests {
                 custom: true,
             },
             cabin: CabinSettings { resume: true },
+            companion: CompanionSettings { accent: Accent::Gold },
         };
         let json = to_json(&settings);
         assert!(json.contains("\"version\": 2"), "{json}");
@@ -473,6 +498,7 @@ mod tests {
         assert!(json.contains("\"mode\": \"toggle\""), "{json}");
         assert!(json.contains("\"truckStrip\": \"off\""), "{json}");
         assert!(json.contains("\"resume\": true"), "{json}");
+        assert!(json.contains("\"accent\": \"gold\""), "{json}");
         assert_eq!(parse(&json).unwrap(), settings);
     }
 
@@ -496,6 +522,8 @@ mod tests {
         assert_eq!(partial.graphics.gpu, None);
         // And from before the cabin's own session was a setting: the Dashboard, every launch.
         assert!(!partial.cabin.resume);
+        // And from before the companion had an accent: the default signal orange.
+        assert_eq!(partial.companion.accent, Accent::Ember);
     }
 
     #[test]
@@ -528,6 +556,11 @@ mod tests {
         );
         // Not an object at all: every default.
         assert_eq!(parse(r#"{"version": 2, "keybinds": 4}"#).unwrap().keybinds, defaults);
+        // An accent from a newer build takes the default.
+        assert_eq!(
+            parse(r#"{"version": 2, "companion": {"accent": "ultraviolet"}}"#).unwrap().companion.accent,
+            Accent::Ember
+        );
     }
 
     #[test]

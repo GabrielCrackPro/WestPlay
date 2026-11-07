@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Tilpass',
     sub: 'Dine egne bakgrunner og appsymboler for Cabin Play på lastebilens skjerm.',
+    accent: 'Accent',
     wallpapers: 'Bakgrunner',
     add: 'Legg til',
     pair: 'Lys og mørk',

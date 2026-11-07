@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Anpassen',
     sub: 'Deine eigenen Hintergründe und App-Symbole für Cabin Play auf dem Bildschirm deines Lkw.',
+    accent: 'Accent',
     wallpapers: 'Hintergründe',
     add: 'Hinzufügen',
     pair: 'Hell & Dunkel',

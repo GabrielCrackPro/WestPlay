@@ -2,6 +2,36 @@ import type { IconStyle } from '../shared/customize'
 import { call, on } from './bridge'
 import { useCallback, useEffect, useState } from 'react'
 
+/** The accent colors the companion's chrome can light up with. */
+export type AccentId = 'ember' | 'mint' | 'sky' | 'rose' | 'violet' | 'gold'
+
+export interface Accent {
+  id: AccentId
+  /** The color's name, as the Customize picker shows it. */
+  name: string
+  /** The bright signal color. */
+  signal: string
+  /** Its channels for translucent glows, as CSS `rgb()` takes them. */
+  rgb: string
+}
+
+const ACCENT_BY_ID: Record<AccentId, Accent> = {
+  ember: { id: 'ember', name: 'Ember', signal: '#ff5a1f', rgb: '255 90 31' },
+  mint: { id: 'mint', name: 'Mint', signal: '#5ee0a0', rgb: '94 224 160' },
+  sky: { id: 'sky', name: 'Sky', signal: '#62b0ff', rgb: '98 176 255' },
+  rose: { id: 'rose', name: 'Rose', signal: '#ff6f9f', rgb: '255 111 159' },
+  violet: { id: 'violet', name: 'Violet', signal: '#b28cff', rgb: '178 140 255' },
+  gold: { id: 'gold', name: 'Gold', signal: '#ffc857', rgb: '255 200 87' },
+}
+
+export const ACCENTS = Object.values(ACCENT_BY_ID)
+export const DEFAULT_ACCENT: AccentId = 'ember'
+
+/** An accent by id, or the default for a setting from an older build. */
+export function accentOf(id: AccentId | undefined): Accent {
+  return (id ? ACCENT_BY_ID[id] : undefined) ?? ACCENT_BY_ID[DEFAULT_ACCENT]
+}
+
 /** The player's settings. Mirrors `westplay_host::settings::Settings`; the app owns and saves them. */
 export interface Settings {
   interaction: {
@@ -21,6 +51,10 @@ export interface Settings {
   cabin: {
     /** Whether the screen and app the player was in come back at the next launch; off, the Dashboard every time. */
     resume: boolean
+  }
+  /** The companion's own look: the color its chrome lights up with. */
+  companion: {
+    accent: AccentId
   }
   /** How the screen looks (Customize): a wallpaper's id and one of the player's icon sets, by name; `null`:
    * none chosen (the cab's default wallpaper, Cabin Play's own icons). */

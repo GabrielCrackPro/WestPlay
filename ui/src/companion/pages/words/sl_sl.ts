@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Prilagajanje',
     sub: 'Tvoja lastna ozadja in ikone aplikacij za Cabin Play na zaslonu tvojega tovornjaka.',
+    accent: 'Accent',
     wallpapers: 'Ozadja',
     add: 'Dodaj',
     pair: 'Svetlo in temno',

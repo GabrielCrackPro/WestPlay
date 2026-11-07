@@ -151,9 +151,12 @@ const NIGHT_TO = 6 * 60
 function useNightDim(): number {
   const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
   const lit = useLive((state) => Boolean(state.telemetry?.lowBeam || state.telemetry?.highBeam))
+  // The truck's own dash dimmer sets how far it dims: turned down, the screen dims further; turned up, less.
+  const backlight = useLive((state) => state.telemetry?.dashboardBacklight ?? 0)
   if (clock === null) return 0
   const minute = ((clock % 1440) + 1440) % 1440
-  return lit || minute >= NIGHT_FROM || minute < NIGHT_TO ? NIGHT_DIM : 0
+  if (!(lit || minute >= NIGHT_FROM || minute < NIGHT_TO)) return 0
+  return NIGHT_DIM * (1 - Math.min(1, Math.max(0, backlight)) * 0.5)
 }
 
 /** A mask showing everything but a rounded rectangle, through which what's under the page shows. */

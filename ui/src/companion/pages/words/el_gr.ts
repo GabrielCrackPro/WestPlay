@@ -266,6 +266,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Προσαρμογή',
     sub: 'Δικές σου ταπετσαρίες και εικονίδια εφαρμογών για το Cabin Play στην οθόνη του φορτηγού σου.',
+    accent: 'Accent',
     wallpapers: 'Ταπετσαρίες',
     add: 'Προσθήκη',
     pair: 'Φωτεινή και σκοτεινή',

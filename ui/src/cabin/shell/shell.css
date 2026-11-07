@@ -799,6 +799,48 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
   scale: 0.92;
 }
 
+/* Under the mouse, the sidebar's icon lifts a touch too. */
+@media (hover: hover) {
+  .recent button:hover {
+    scale: 1.05;
+  }
+}
+
+/* The app on screen is marked under its icon, as a tab is: a soft blue dot that breathes, never a second panel.
+   It sits in the gap under the icon, so the icon keeps its size. */
+.shell .recent button[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--apple-blue);
+  box-shadow: 0 0 9px rgb(10 132 255 / 0.8);
+  pointer-events: none;
+  animation: current-app-dot 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes current-app-dot {
+  from {
+    opacity: 0.55;
+    scale: 0.82;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+html[data-motion='reduced'] .shell .recent button[aria-current='page']::after {
+  animation: none;
+  opacity: 0.9;
+  scale: 1;
+}
+
 /* The copy of a sidebar icon its app grows out of (Sidebar.tsx), exactly over the icon. */
 .recent button {
   position: relative;
@@ -1003,6 +1045,18 @@ html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  animation: recent-badge-pop 300ms var(--motion-ease) both;
+}
+
+@keyframes recent-badge-pop {
+  from {
+    opacity: 0;
+    scale: 0.55;
+  }
+
+  60% {
+    scale: 1.08;
+  }
 }
 
 /* Reduced motion (Settings › Appearance's Reduce Motion, or the PC's own; CabinApp sets data-motion): screens

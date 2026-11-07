@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Prilagodba',
     sub: 'Vaše vlastite pozadine i ikone aplikacija za Cabin Play na zaslonu vašeg kamiona.',
+    accent: 'Accent',
     wallpapers: 'Pozadine',
     add: 'Dodaj',
     pair: 'Svijetla i tamna',

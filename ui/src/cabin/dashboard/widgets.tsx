@@ -76,10 +76,17 @@ import { DriverPortrait } from '../apps/driver/DriverPortrait'
  */
 export function NowPlayingWidget() {
   const shown = useCabin((state) => state.dashboardWidgets.nowPlaying)
+  const compact = useCabin((state) => state.playerCompact)
   const { showing, spotify, appleMusic, youtubeMusic, radio } = useNowPlaying()
   const open = shown && showing !== null
+  // A video keeps its own card: the compact player is the music cards' (MusicWidget).
+  const video = open && showing === 'video'
+  const tight = open && compact && !video
   return (
-    <div className={`widget-slot${open ? ' open' : ''}`} style={{ viewTransitionName: 'widget-nowPlaying' }}>
+    <div
+      className={`widget-slot${open ? ' open' : ''}${video ? ' video' : ''}${tight ? ' compact' : ''}`}
+      style={{ viewTransitionName: 'widget-nowPlaying' }}
+    >
       {open && showing === 'video' && <VideoWidget />}
       {open && showing === 'spotify' && spotify && <SpotifyWidget spotify={spotify} />}
       {open && showing === 'appleMusic' && appleMusic && <AppleMusicWidget appleMusic={appleMusic} />}
@@ -219,6 +226,7 @@ function MusicWidget({
 }) {
   const transition = useTrackTransition(source, artwork)
   const albumArt = useCabin((state) => state.albumArt)
+  const compact = useCabin((state) => state.playerCompact)
   const cover = albumArt ? (transition.shown?.artwork ?? null) : null
   const controls = source?.controls
   const playing = source?.status === 'playing'
@@ -228,7 +236,9 @@ function MusicWidget({
   const ink = useWordsOver(cover, useLook().appearance, WIDGET_BACKDROPS)
 
   return (
-    <article className={`widget glass now-playing ${wordsClass(ink)}`}>
+    <article
+      className={`widget glass now-playing ${wordsClass(ink)}${compact ? ' compact' : ''}${playing ? ' is-playing' : ''}`}
+    >
       <Crossfade value={cover} className="np-tint" render={(url) => url && <img src={url} alt="" aria-hidden />} />
       <button type="button" className="np-top" onClick={onOpen} disabled={!onOpen}>
         <Crossfade

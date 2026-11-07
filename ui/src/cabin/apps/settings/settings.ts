@@ -18,6 +18,7 @@ export type SettingsPage =
   | 'mapTraffic'
   | 'mapRoute'
   | 'mapMarkers'
+  | 'mapStopCard'
 
 /** The page a page is within, where its back button goes (the list, but for the pages within a page). */
 export const PARENT: Partial<Record<SettingsPage, SettingsPage>> = {
@@ -27,6 +28,7 @@ export const PARENT: Partial<Record<SettingsPage, SettingsPage>> = {
   mapTraffic: 'map',
   mapRoute: 'map',
   mapMarkers: 'map',
+  mapStopCard: 'map',
 }
 
 interface SettingsState {

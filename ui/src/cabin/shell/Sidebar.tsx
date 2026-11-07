@@ -468,7 +468,7 @@ function SidebarApp({
           <img src={icon} alt="" style={{ viewTransitionName: `recent-${app}`, viewTransitionClass: 'recent' }} />
         )}
         {badge > 0 && (
-          <span className="recent-badge" aria-label={text.notificationsApp.summary(badge)}>
+          <span className="recent-badge" key={badge} aria-label={text.notificationsApp.summary(badge)}>
             {badge > 99 ? '99+' : badge}
           </span>
         )}

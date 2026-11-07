@@ -94,6 +94,18 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+  animation: app-badge-pop 300ms var(--motion-ease) both;
+}
+
+@keyframes app-badge-pop {
+  from {
+    opacity: 0;
+    scale: 0.55;
+  }
+
+  60% {
+    scale: 1.08;
+  }
 }
 
 .label {
@@ -102,6 +114,7 @@
   background: var(--chip);
   backdrop-filter: blur(16px) saturate(150%);
   max-width: 100%;
+  transition: translate 180ms var(--motion-ease);
   /* Never squeezed by a short row (with overflow hidden, a flex item may shrink below its text): its lines are what
      Home measures to make its row as tall as they need. */
   flex-shrink: 0;
@@ -184,9 +197,13 @@
   overscroll-behavior-x: contain;
 }
 
-/* Under the mouse (the cab's cursor), an icon lifts a little: it's what the click opens. */
+/* Under the mouse (the cab's cursor), an icon and its name lift a little: it's what the click opens. */
 .app:hover .app-icon {
   scale: 1.035;
+}
+
+.app:hover .label {
+  translate: 0 -1px;
 }
 
 /* Reorder: held, an app is picked up and follows the pointer (Home.tsx). Its cell stays in place, dimmed, and the

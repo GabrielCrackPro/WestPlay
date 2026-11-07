@@ -262,6 +262,7 @@ export const words: CompanionWords = {
   customize: {
     title: '사용자화',
     sub: '트럭 화면의 Cabin Play에 쓸 나만의 배경화면과 앱 아이콘이에요.',
+    accent: 'Accent',
     wallpapers: '배경화면',
     add: '추가',
     pair: '라이트 및 다크',

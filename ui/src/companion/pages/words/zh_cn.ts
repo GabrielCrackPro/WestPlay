@@ -261,6 +261,7 @@ export const words: CompanionWords = {
   customize: {
     title: '自定义',
     sub: '你自己的壁纸和应用图标，用于卡车屏幕上的 Cabin Play。',
+    accent: 'Accent',
     wallpapers: '壁纸',
     add: '添加',
     pair: '浅色和深色',

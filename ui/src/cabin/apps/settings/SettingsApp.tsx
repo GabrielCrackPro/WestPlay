@@ -4,9 +4,13 @@ import {
   type ReactNode,
   type RefObject,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
+import { SearchGlyph } from '../../keyboard/glyphs'
+import { useKeyboard } from '../../keyboard/store'
+import { TextField } from '../../keyboard/TextField'
 import { NoteGlyph, PauseGlyph, PlayGlyph } from '../music/glyphs'
 import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
 import { smoothThrough } from './curve'
@@ -27,6 +31,7 @@ import {
   type MapRouteColour,
   type MapRouteWeight,
 } from '../../maps/routeLook'
+import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearbyStop'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
@@ -50,6 +55,7 @@ import {
   SoundGlyph,
   WallpaperGlyph,
 } from './glyphs'
+import { type SettingsEntry, searchSettings, settingsEntries } from './search'
 import { type SettingsPage, useSettings } from './settings'
 import './settings.css'
 import { cabClock, EQUALIZER_BANDS, EQUALIZER_MOST, type Equalizer, isInHost, postToHost } from '../../../shared/host'
@@ -110,6 +116,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <MapRoutePage />
     case 'mapMarkers':
       return <MapMarkersPage />
+    case 'mapStopCard':
+      return <MapStopCardPage />
     case 'nowPlaying':
       return <NowPlayingPage />
     case 'sound':
@@ -129,9 +137,20 @@ function useWantedAppearance(): Appearance {
   return resolveAppearance(mode, { gameTime, lowBeam })
 }
 
+/** The Settings search field's id (one on screen: the keyboard types into it). */
+const SEARCH_FIELD = 'settings-search'
+
 function ListPage() {
   const text = useText()
   const open = useSettings((state) => state.open)
+  const [query, setQuery] = useState('')
+  const entries = useMemo(() => settingsEntries(text), [text])
+  const results = useMemo(() => searchSettings(entries, query), [entries, query])
+  // A result opens its page, the keyboard going away with the results.
+  const openResult = (page: SettingsPage) => {
+    useKeyboard.getState().detach(SEARCH_FIELD)
+    open(page)
+  }
   const mode = useCabin((state) => state.appearanceMode)
   const wanted = useWantedAppearance()
   const wallpapers = useWallpapers()
@@ -150,65 +169,106 @@ function ListPage() {
   }
   return (
     <Page title={text.apps.settings} list>
-      {/* The screen's own look, in one card: how it looks, what's on it, how its apps are drawn. */}
-      <Group>
-        <NavRow
-          tile="var(--apple-blue)"
-          icon={<AppearanceGlyph />}
-          label={text.settings.appearance}
-          value={mode === 'auto' ? text.settings.automatic : text.settings[wanted]}
-          onOpen={() => open('appearance')}
+      <div className="settings-search">
+        <TextField
+          id={SEARCH_FIELD}
+          value={query}
+          onChange={setQuery}
+          returnKind="search"
+          hint={text.settings.search}
+          label={text.settings.search}
+          icon={<SearchGlyph />}
         />
-        <NavRow
-          tile="var(--apple-cyan)"
-          icon={<WallpaperGlyph />}
-          label={text.settings.wallpaper}
-          value={wallpaper?.name}
-          onOpen={() => open('wallpaper')}
-        />
-        <NavRow
-          tile="var(--apple-purple)"
-          icon={<IconsGlyph />}
-          label={text.settings.icons}
-          value={icons}
-          onOpen={() => open('icons')}
-        />
-      </Group>
-      {/* The apps' own settings, in the order they're met on the screen, the sound with the playing. */}
-      <Group>
-        <NavRow
-          tile="var(--apple-indigo)"
-          icon={<DashboardGlyph />}
-          label={text.settings.dashboard}
-          onOpen={() => open('dashboard')}
-        />
-        <NavRow
-          tile="var(--apple-blue)"
-          icon={<HomeGlyph />}
-          label={text.settings.homeScreen}
-          onOpen={() => open('home')}
-        />
-        <NavRow
-          tile="var(--apple-green)"
-          icon={<MapGlyph />}
-          label={text.apps.maps}
-          value={drawn[detail]}
-          onOpen={() => open('map')}
-        />
-        <NavRow
-          tile="var(--apple-pink)"
-          icon={<NowPlayingGlyph />}
-          label={text.nowPlaying}
-          onOpen={() => open('nowPlaying')}
-        />
-        <NavRow
-          tile="var(--apple-red)"
-          icon={<SoundGlyph />}
-          label={text.settings.sound}
-          onOpen={() => open('sound')}
-        />
-      </Group>
+      </div>
+      {query.trim() ? (
+        <SearchResults results={results} onOpen={openResult} />
+      ) : (
+        <>
+          {/* The screen's own look, in one card: how it looks, what's on it, how its apps are drawn. */}
+          <Group>
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<AppearanceGlyph />}
+              label={text.settings.appearance}
+              value={mode === 'auto' ? text.settings.automatic : text.settings[wanted]}
+              onOpen={() => open('appearance')}
+            />
+            <NavRow
+              tile="var(--apple-cyan)"
+              icon={<WallpaperGlyph />}
+              label={text.settings.wallpaper}
+              value={wallpaper?.name}
+              onOpen={() => open('wallpaper')}
+            />
+            <NavRow
+              tile="var(--apple-purple)"
+              icon={<IconsGlyph />}
+              label={text.settings.icons}
+              value={icons}
+              onOpen={() => open('icons')}
+            />
+          </Group>
+          {/* The apps' own settings, in the order they're met on the screen, the sound with the playing. */}
+          <Group>
+            <NavRow
+              tile="var(--apple-indigo)"
+              icon={<DashboardGlyph />}
+              label={text.settings.dashboard}
+              onOpen={() => open('dashboard')}
+            />
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<HomeGlyph />}
+              label={text.settings.homeScreen}
+              onOpen={() => open('home')}
+            />
+            <NavRow
+              tile="var(--apple-green)"
+              icon={<MapGlyph />}
+              label={text.apps.maps}
+              value={drawn[detail]}
+              onOpen={() => open('map')}
+            />
+            <NavRow
+              tile="var(--apple-pink)"
+              icon={<NowPlayingGlyph />}
+              label={text.nowPlaying}
+              onOpen={() => open('nowPlaying')}
+            />
+            <NavRow
+              tile="var(--apple-red)"
+              icon={<SoundGlyph />}
+              label={text.settings.sound}
+              onOpen={() => open('sound')}
+            />
+          </Group>
+        </>
+      )}
     </Page>
+  )
+}
+
+/** Settings search's results: each row's name and the page it's on; a press opens that page. */
+function SearchResults({ results, onOpen }: { results: SettingsEntry[]; onOpen(page: SettingsPage): void }) {
+  const text = useText()
+  if (results.length === 0) return <p className="settings-search-empty">{text.settings.noResults}</p>
+  return (
+    <Group>
+      {results.map((entry) => (
+        <button
+          key={`${entry.page}:${entry.label}`}
+          type="button"
+          className="settings-row settings-search-row"
+          onClick={() => onOpen(entry.page)}
+        >
+          <span className="settings-label">{entry.label}</span>
+          <span className="settings-value">{entry.section}</span>
+          <span className="settings-chevron">
+            <ChevronGlyph />
+          </span>
+        </button>
+      ))}
+    </Group>
   )
 }
 
@@ -538,6 +598,8 @@ function DashboardPage() {
   const setAutoOrder = useCabin((state) => state.setAutoOrder)
   const order = useCabin((state) => state.dashboardOrder)
   const moveWidget = useCabin((state) => state.moveWidget)
+  const compact = useCabin((state) => state.playerCompact)
+  const setCompact = useCabin((state) => state.setPlayerCompact)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -564,6 +626,9 @@ function DashboardPage() {
             }
           />
         ))}
+      </Group>
+      <Group footer={text.settings.playerCompactFooter}>
+        <SwitchRow label={text.settings.playerCompact} on={compact} onToggle={setCompact} />
       </Group>
       <Group footer={text.settings.autoOrderFooter}>
         <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
@@ -671,6 +736,9 @@ function MapsPage() {
   const route = useCabin((state) => state.mapRoute)
   const weight = useCabin((state) => state.mapWeight)
   const pins = useCabin((state) => state.mapPins)
+  const stopCardAlways = useCabin((state) => state.mapStopCardAlways)
+  const stopCardFuel = useCabin((state) => state.mapStopCardFuel)
+  const stopCardRest = useCabin((state) => state.mapStopCardRest)
   return (
     <Page title={text.apps.maps}>
       <Group>
@@ -702,6 +770,13 @@ function MapsPage() {
           label={text.settings.mapsMarkers}
           value={pinStyleNames(text)[pins]}
           onOpen={() => open('mapMarkers')}
+        />
+        <NavRow
+          tile="var(--apple-yellow)"
+          icon={<StopCardGlyph />}
+          label={text.settings.stopCard}
+          value={stopCardAlways ? text.diagnostics.on : `${stopCardFuel}% · ${text.minutes(stopCardRest)}`}
+          onOpen={() => open('mapStopCard')}
         />
       </Group>
     </Page>
@@ -893,6 +968,67 @@ function MapMarkersPage() {
         <SwitchRow label={words.pinsService} on={pinService} onToggle={setPinService} />
       </Group>
     </Page>
+  )
+}
+
+/**
+ * Stop Card: the card under turn-by-turn (NearbyStopCard.tsx) — always on the map, or only as the tank or the
+ * driver's hours run low, at the level or time chosen.
+ */
+function MapStopCardPage() {
+  const text = useText()
+  const always = useCabin((state) => state.mapStopCardAlways)
+  const setAlways = useCabin((state) => state.setMapStopCardAlways)
+  const fuel = useCabin((state) => state.mapStopCardFuel)
+  const setFuel = useCabin((state) => state.setMapStopCardFuel)
+  const rest = useCabin((state) => state.mapStopCardRest)
+  const setRest = useCabin((state) => state.setMapStopCardRest)
+  return (
+    <Page title={text.settings.stopCard}>
+      <Group footer={text.settings.stopCardFooter}>
+        <SwitchRow label={text.settings.stopCardAlways} on={always} onToggle={setAlways} />
+      </Group>
+      {!always && (
+        <>
+          <ChoiceRows
+            header={text.settings.stopCardFuel}
+            radio={text.settings.stopCardFuel}
+            options={STOP_CARD_FUEL_LEVELS.map((level) => ({ id: level, label: `${level}%` }))}
+            value={fuel}
+            onPick={setFuel}
+          />
+          <ChoiceRows
+            header={text.settings.stopCardRest}
+            radio={text.settings.stopCardRest}
+            options={STOP_CARD_REST_MINUTES.map((minutes) => ({ id: minutes, label: text.minutes(minutes) }))}
+            value={rest}
+            onPick={setRest}
+          />
+        </>
+      )}
+    </Page>
+  )
+}
+
+/** The Stop Card row's tile glyph: the filling station's pump, in white on the yellow tile. */
+function StopCardGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="25"
+      height="25"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5.5 21V5.5A2.5 2.5 0 0 1 8 3h4a2.5 2.5 0 0 1 2.5 2.5V21" />
+      <path d="M3 21h14" />
+      <path d="M7.8 6.4h4.4v3.9H7.8Z" />
+      <path d="M14.5 9.5h1.7a1.6 1.6 0 0 1 1.6 1.6v5.7a2 2 0 0 0 4 0v-7.2L18.2 5.8" />
+    </svg>
   )
 }
 

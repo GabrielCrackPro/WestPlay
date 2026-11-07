@@ -193,6 +193,8 @@ export interface CompanionWords {
   customize: {
     title: string
     sub: string
+    /** The accent picker's label; English where a language hasn't one yet. */
+    accent?: string
     wallpapers: string
     add: string
     pair: string

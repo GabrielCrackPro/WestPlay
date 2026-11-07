@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'მორგება',
     sub: 'თქვენი საკუთარი ფონები და აპების ხატულები Cabin Play-სთვის თქვენი სატვირთოს ეკრანზე.',
+    accent: 'Accent',
     wallpapers: 'ფონები',
     add: 'დამატება',
     pair: 'ღია და მუქი',

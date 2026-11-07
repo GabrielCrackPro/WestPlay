@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Prispôsobiť',
     sub: 'Vaše vlastné tapety a ikony aplikácií pre Cabin Play na obrazovke vášho kamióna.',
+    accent: 'Accent',
     wallpapers: 'Tapety',
     add: 'Pridať',
     pair: 'Svetlá a tmavá',

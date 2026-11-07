@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Tùy chỉnh',
     sub: 'Hình nền và biểu tượng ứng dụng của riêng bạn cho Cabin Play trên màn hình xe tải của bạn.',
+    accent: 'Accent',
     wallpapers: 'Hình nền',
     add: 'Thêm',
     pair: 'Sáng và tối',

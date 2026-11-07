@@ -16,7 +16,7 @@ import { Checking, Group, Note, Panel, Row, Tick } from '../room/parts'
 import { list } from '../onboarding/words'
 import { useWords } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
-import type { Settings } from '../useSettings'
+import { ACCENTS, accentOf, type Accent, type AccentId, type Settings } from '../useSettings'
 import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 import type { CompanionWords } from './words'
@@ -61,6 +61,12 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
     const current = settings.settings
     if (current) void settings.update({ ...current, look: { ...current.look, ...change } })
   }
+  const accent = accentOf(settings.settings?.companion.accent)
+  const chooseAccent = (next: AccentId) => {
+    const current = settings.settings
+    if (!current || current.companion.accent === next) return
+    void settings.update({ ...current, companion: { ...current.companion, accent: next } })
+  }
 
   const add = async (what: Adding, adding: () => Promise<Added | null>) => {
     if (working) return
@@ -103,6 +109,7 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
 
   return (
     <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="customize" />}>
+      <AccentPicker accent={accent} label={w.accent ?? 'Accent'} choose={chooseAccent} />
       <Group title={w.wallpapers} place={4}>
         <div className="cz-wallpapers">
           {wallpapers.map((wallpaper) => (
@@ -203,6 +210,37 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
         {w.iconsNote.replace('{names}', names)} {w.looksNote}
       </p>
     </Panel>
+  )
+}
+
+function AccentPicker({ accent, label, choose }: { accent: Accent; label: string; choose(accent: AccentId): void }) {
+  return (
+    <div className="cz-accent ob-in">
+      <div className="cz-accent-head">
+        <span>{label}</span>
+        <b>
+          <i style={{ background: accent.signal }} aria-hidden />
+          {accent.name}
+        </b>
+      </div>
+      <div className="cz-accent-swatches" role="radiogroup" aria-label={label}>
+        {ACCENTS.map((each) => (
+          <button
+            key={each.id}
+            type="button"
+            role="radio"
+            className="cz-accent-swatch"
+            aria-checked={each.id === accent.id}
+            aria-label={each.name}
+            title={each.name}
+            data-chosen={each.id === accent.id || undefined}
+            onClick={() => choose(each.id)}
+          >
+            <i style={{ background: each.signal }} aria-hidden />
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

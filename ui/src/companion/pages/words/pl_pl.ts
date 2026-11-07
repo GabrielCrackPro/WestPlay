@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Dostosuj',
     sub: 'Twoje własne tapety i ikony aplikacji dla Cabin Play na ekranie twojej ciężarówki.',
+    accent: 'Accent',
     wallpapers: 'Tapety',
     add: 'Dodaj',
     pair: 'Jasna i ciemna',

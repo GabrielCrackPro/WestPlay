@@ -14,6 +14,7 @@ import {
   type Destination,
   type DestinationKind,
   distanceTo,
+  MAP_SCALE,
   nameOf,
   nearestOfKind,
   ownGarages,
@@ -30,10 +31,6 @@ import { setRouteCorridor, useTruckersMp } from './truckersmp'
 
 /** The kinds Find nearby offers, in its order. */
 const NEARBY: DestinationKind[] = ['fuel', 'parking', 'service', 'hotel', 'company', 'dealer', 'ferry', 'city']
-
-/** The game's map scale between cities (its world is this much smaller than the distances it gives), for
- * straight-line distances in the units its GPS uses (shared/format.ts). */
-const MAP_SCALE = 19
 
 /** How far the truck may move before the lists' distances are worked out again, metres. */
 const WHERE_STEP = 250

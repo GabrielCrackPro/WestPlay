@@ -264,6 +264,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Mukauta',
     sub: 'Omat taustakuvasi ja sovelluskuvakkeesi Cabin Playhin rekkasi näytölle.',
+    accent: 'Accent',
     wallpapers: 'Taustakuvat',
     add: 'Lisää',
     pair: 'Vaalea ja tumma',

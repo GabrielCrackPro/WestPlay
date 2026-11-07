@@ -265,6 +265,7 @@ export const words: CompanionWords = {
   customize: {
     title: 'Personalitza',
     sub: 'Els teus propis fons de pantalla i icones d’apps, per al Cabin Play a la pantalla del teu camió.',
+    accent: 'Accent',
     wallpapers: 'Fons de pantalla',
     add: 'Afegeix',
     pair: 'Clar i fosc',

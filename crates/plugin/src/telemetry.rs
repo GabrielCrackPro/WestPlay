@@ -98,6 +98,7 @@ static SNAPSHOT: Mutex<Telemetry> = Mutex::new(Telemetry {
     wipers: false,
     trailer_wear_body: 0.0,
     trailer_wear_chassis: 0.0,
+    hazard: false,
 });
 
 /// Where the driver's head is by default in the truck's cab (the "truck" configuration's `head.position`).
@@ -162,6 +163,7 @@ enum Field {
     ParkingLight,
     Beacon,
     Wipers,
+    Hazard,
     TrailerWearBody,
     TrailerWearChassis,
 }
@@ -218,6 +220,7 @@ const CHANNELS: &[(&str, u32, Field)] = &[
     ("truck.light.parking", SCS_VALUE_TYPE_BOOL, Field::ParkingLight),
     ("truck.light.beacon", SCS_VALUE_TYPE_BOOL, Field::Beacon),
     ("truck.wipers", SCS_VALUE_TYPE_BOOL, Field::Wipers),
+    ("truck.hazard.warning", SCS_VALUE_TYPE_BOOL, Field::Hazard),
     ("trailer.wear.body", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearBody),
     ("trailer.wear.chassis", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearChassis),
 ];
@@ -545,6 +548,7 @@ unsafe fn on_channel_value(value: *const ScsValue, context: *mut c_void) {
             Field::ParkingLight => s.parking_light = value.bool(),
             Field::Beacon => s.beacon = value.bool(),
             Field::Wipers => s.wipers = value.bool(),
+            Field::Hazard => s.hazard = value.bool(),
             Field::TrailerWearBody => s.trailer_wear_body = value.float(),
             Field::TrailerWearChassis => s.trailer_wear_chassis = value.float(),
         }
@@ -611,6 +615,7 @@ fn reset(s: &mut Telemetry, field: Field) {
         Field::ParkingLight => s.parking_light = d.parking_light,
         Field::Beacon => s.beacon = d.beacon,
         Field::Wipers => s.wipers = d.wipers,
+        Field::Hazard => s.hazard = d.hazard,
         Field::TrailerWearBody => s.trailer_wear_body = d.trailer_wear_body,
         Field::TrailerWearChassis => s.trailer_wear_chassis = d.trailer_wear_chassis,
     }
