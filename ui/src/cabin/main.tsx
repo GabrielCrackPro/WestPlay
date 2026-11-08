@@ -1,7 +1,5 @@
-import '@fontsource-variable/instrument-sans'
-import '@fontsource-variable/inter'
-// The YouTube app's type, as YouTube's own.
-import '@fontsource-variable/roboto'
+// The cabin's type: Instrument Sans, Inter and Roboto (YouTube's own), subsets picked in fonts.css.
+import '../fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CabinApp } from './CabinApp'
