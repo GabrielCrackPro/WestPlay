@@ -132,6 +132,67 @@ describe('the saved Settings choices', () => {
     })
   })
 
+  it('come back with the Overview’s own choices, a card shown unless it was turned off', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({
+        overviewShown: false,
+        overviewDefault: true,
+        overviewCards: { media: false, weather: 'no' },
+      }),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().overviewShown).toBe(false)
+    expect(useCabin.getState().overviewDefault).toBe(true)
+    expect(useCabin.getState().overviewCards).toEqual({
+      trip: true,
+      truck: true,
+      hours: true,
+      media: false,
+      weather: true,
+    })
+  })
+
+  it('start with the Overview offered, the map first, and every card on', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().overviewShown).toBe(true)
+    expect(useCabin.getState().overviewDefault).toBe(false)
+    expect(useCabin.getState().overviewCards).toEqual({
+      trip: true,
+      truck: true,
+      hours: true,
+      media: true,
+      weather: true,
+    })
+  })
+
+  it('come back with the instrument cluster’s choices, a card shown unless it was turned off', async () => {
+    vi.stubGlobal('localStorage', savedStorage({ clusterShown: false, clusterCards: { fuel: false, hours: 'no' } }))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().clusterShown).toBe(false)
+    expect(useCabin.getState().clusterCards).toEqual({
+      trip: true,
+      fuel: false,
+      engine: true,
+      hours: true,
+      warnings: true,
+    })
+  })
+
+  it('start with the instrument cluster and all its cards on', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().clusterShown).toBe(true)
+    expect(useCabin.getState().clusterCards).toEqual({
+      trip: true,
+      fuel: true,
+      engine: true,
+      hours: true,
+      warnings: true,
+    })
+  })
+
   it('drop a Dashboard widget beside another in its order', async () => {
     vi.stubGlobal('localStorage', savedStorage({}))
     const { useCabin } = await import('./store')

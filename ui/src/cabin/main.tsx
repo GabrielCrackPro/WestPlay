@@ -3,6 +3,7 @@ import '../fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { CabinApp } from './CabinApp'
+import { ClusterScreen } from './cluster/ClusterScreen'
 import { installDemo } from './demo'
 import { Recovery } from './shell/Recovery'
 import { useCabin, useLive } from './state/store'
@@ -16,10 +17,17 @@ if (import.meta.env.DEV) {
 
 installDemo()
 
+// The cluster page in a plain browser preview (`?cluster=1`): the host's second WebView has its own page.
+const clusterPreview = new URLSearchParams(location.search).get('cluster') === '1'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Recovery>
-      <CabinApp />
-    </Recovery>
+    {clusterPreview ? (
+      <ClusterScreen />
+    ) : (
+      <Recovery>
+        <CabinApp />
+      </Recovery>
+    )}
   </StrictMode>,
 )

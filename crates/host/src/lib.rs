@@ -252,6 +252,8 @@ struct Pipeline {
     gpu: Gpu,
     /// Holds the shared frame texture (and its name) alive.
     capture: Capture,
+    /// The cluster's frame, into its own shared texture.
+    cluster_capture: Capture,
 }
 
 /// Runs until `stop` is set. Blocks the calling thread, which becomes the WebView2 UI thread.
@@ -277,6 +279,14 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     }
     let webview = OffscreenWebView::new(&stage, config.width, config.height, &config.data_dir.join("webview2"))?;
     stage.add(&webview, true)?;
+    // The cluster page, on the same profile and compositor, in a visual of its own (the game's second screen).
+    let cluster_view = OffscreenWebView::new_on(
+        &stage,
+        westplay_shared::CLUSTER_WIDTH,
+        westplay_shared::CLUSTER_HEIGHT,
+        webview.environment().clone(),
+    )?;
+    stage.add_cluster(&cluster_view)?;
     startup::mark("host: cabin browser (WebView2) ready");
     // The cab page's own sound through the truck's speakers (the Radio app): the script the players' pages get,
     // told the same speakers, head, tone and camera as they are.
@@ -306,6 +316,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             webview.navigate(&format!("https://westplay.cabin/{page}"))?;
         }
+    }
+    match &config.content {
+        Content::Folder { root, page } => {
+            cluster_view.map_folder("westplay.cabin", root)?;
+            let cluster = page.replace("cabin.html", "cluster.html");
+            cluster_view.navigate(&format!("https://westplay.cabin/{cluster}"))?;
+        }
+        Content::Url(url) => {
+            let separator = if url.contains('?') { '&' } else { '?' };
+            cluster_view.navigate(&format!("{url}{separator}cluster=1"))?;
+        }
+        Content::Html(html) => cluster_view.navigate_to_string(html)?,
     }
     startup::mark("host: cabin page requested");
     // What WestPlay costs while the game runs, in the log each minute (performance.rs).
@@ -448,6 +470,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut spotify_playback: Option<String> = None;
     // Apple Music's web player, the same way.
     let mut apple_music: Option<apple_music::AppleMusic> = None;
+    // What the cab's Now Playing last reported, for the cluster's one-line player: sent again when it reloads.
+    let mut now_playing_message: Option<String> = None;
     let mut apple_music_state: Option<apple_music::State> = None;
     let (mut apple_music_window_open, mut apple_music_confirming) = (false, false);
     let mut apple_music_playback: Option<String> = None;
@@ -498,6 +522,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         if let Some(pipeline) = &pipeline {
             let squeeze = config.height as f32 / page_height.max(1) as f32;
             pipeline.capture.flush(cursor.look(Instant::now()), squeeze);
+            // The cluster is read at a glance: no cursor, and its page already has the frame's shape.
+            pipeline.cluster_capture.flush(None, 1.0);
         }
         // The page told whether the host draws the cursor (it draws its own where the host can't).
         let drawn = pipeline.as_ref().is_some_and(|pipeline| pipeline.capture.draws_cursor());
@@ -622,10 +648,15 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             let needs_rebuild = match &pipeline {
                 None => true,
-                Some(p) => p.capture.broken() || wanted.is_some_and(|luid| !same_luid(luid, p.gpu.luid)),
+                Some(p) => {
+                    p.capture.broken()
+                        || p.cluster_capture.broken()
+                        || wanted.is_some_and(|luid| !same_luid(luid, p.gpu.luid))
+                }
             };
             if needs_rebuild {
                 host.frame_generation.store(0, Ordering::Release);
+                host.cluster_frame_generation.store(0, Ordering::Release);
                 pipeline = None;
                 generation_counter = generation_counter.wrapping_add(1);
                 let generation = ((std::process::id() & 0x00ff_ffff) << 8) | (generation_counter & 0xff);
@@ -639,6 +670,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         host.frame_width.store(config.width, Ordering::Relaxed);
                         host.frame_height.store(config.height, Ordering::Relaxed);
                         host.frame_generation.store(generation, Ordering::Release);
+                        host.cluster_frame_generation.store(generation, Ordering::Release);
                         status.adapter = Some(built.gpu.adapter_name.clone());
                         status.error = None;
                         pipeline = Some(built);
@@ -832,6 +864,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         if config.unpair.take() {
             if let Some(message) = phone.unpair() {
                 let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             let phone_status = phone.status();
             if status.phone != phone_status {
@@ -840,9 +873,11 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
         }
 
-        // The phone's changes since last turn: one snapshot for the cabin page, or its notifications alone.
+        // The phone's changes since last turn: one snapshot for the cabin page, or its notifications alone. The
+        // cluster reads the same changes for its notice line.
         if let Some(message) = phone.poll() {
             let _ = webview.post_json(&message);
+            let _ = cluster_view.post_json(&message);
         }
         // What the phone said it couldn't do (its dialer refused, the call wouldn't end): said on the cab's
         // screen, so a command that failed isn't silent.
@@ -864,6 +899,30 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 voice::Event::Audio(audio) => serde_json::json!({ "type": "voiceAudio", "audio": audio }).to_string(),
             };
             let _ = webview.post_json(&message);
+        }
+
+        // The cluster page loaded anew: the telemetry it missed is sent again next turn (it asks for nothing
+        // else: its cards read the same store the cab's does, and its settings are the cab's own).
+        if !cluster_view.take_page_messages().is_empty() {
+            last_telemetry = None;
+            last_truck = None;
+            last_job = None;
+            // The phone's current state, for the notice line (it was sent before this page loaded).
+            let _ = cluster_view.post_json(&phone.state_message());
+            if let Some(message) = &now_playing_message {
+                let _ = cluster_view.post_json(message);
+            }
+        }
+        match cluster_view.take_failure() {
+            Some(webview::Failure::Page) => {
+                log!("the cluster page's process failed; reloading it");
+                let _ = cluster_view.reload();
+            }
+            Some(webview::Failure::Browser) => {
+                browser_gone = true;
+                break;
+            }
+            None => {}
         }
 
         for message in webview.take_page_messages() {
@@ -944,6 +1003,11 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         config.settings.set(settings.clone());
                         (config.on_settings)(&settings);
                     }
+                }
+                Some(PageMessage::NowPlaying { playing }) => {
+                    let message = serde_json::json!({ "type": "nowPlaying", "data": playing }).to_string();
+                    now_playing_message = Some(message.clone());
+                    let _ = cluster_view.post_json(&message);
                 }
                 Some(PageMessage::Spectrum { on }) => spectrum = on,
                 Some(PageMessage::CursorLight { light }) => cursor.set_light(light, Instant::now()),
@@ -1705,7 +1769,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             {
                 last_telemetry = Some(telemetry);
                 let message = serde_json::json!({ "type": "telemetry", "data": telemetry });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             if let Some(truck) = plugin.truck.read()
                 && last_truck != Some(truck)
@@ -1716,14 +1782,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 last_truck = Some(truck);
                 player_watch.truck(truck);
                 let message = serde_json::json!({ "type": "truck", "data": truck });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             if let Some(job) = plugin.job.read()
                 && last_job != Some(job)
             {
                 last_job = Some(job);
                 let message = serde_json::json!({ "type": "job", "data": job });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             // The trailer under the truck, as the game describes it: to the page when it changes (none
             // hitched sends the empty one).
@@ -1759,6 +1829,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     }
 
     host.frame_generation.store(0, Ordering::Release);
+    host.cluster_frame_generation.store(0, Ordering::Release);
     host.screen_enabled.store(0, Ordering::Release);
     host.pid.store(0, Ordering::Release);
     drop(pipeline);
@@ -2200,9 +2271,14 @@ fn build_pipeline(
     generation: u32,
 ) -> Result<Pipeline, Error> {
     let gpu = Gpu::new(luid)?;
-    let shared = Arc::new(SharedFrame::new(&gpu, config.width, config.height, generation)?);
-    let capture = Capture::start(&gpu, &stage.visual()?, shared, bridge.clone())?;
-    Ok(Pipeline { gpu, capture })
+    let name = westplay_shared::frame_texture_name(generation);
+    let shared = Arc::new(SharedFrame::new(&gpu, config.width, config.height, &name)?);
+    let capture = Capture::start(&gpu, &stage.visual()?, shared, bridge.clone(), false)?;
+    let name = westplay_shared::cluster_frame_texture_name(generation);
+    let shared =
+        Arc::new(SharedFrame::new(&gpu, westplay_shared::CLUSTER_WIDTH, westplay_shared::CLUSTER_HEIGHT, &name)?);
+    let cluster_capture = Capture::start(&gpu, &stage.cluster_visual()?, shared, bridge.clone(), true)?;
+    Ok(Pipeline { gpu, capture, cluster_capture })
 }
 
 /// The GPU the game renders on, once the plugin has published it.
@@ -2252,6 +2328,17 @@ fn customize_list_message(customizations: &customize::Customizations) -> String 
     message.to_string()
 }
 
+/// The one line of what plays the cab reports, for the cluster's own line (`ui/src/shared/host.ts`).
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct NowPlayingPage {
+    title: String,
+    #[serde(default)]
+    artist: String,
+    #[serde(default)]
+    playing: bool,
+}
+
 /// Messages from the cabin page (`PageMessage` in ui/src/shared/host.ts).
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
@@ -2287,6 +2374,11 @@ enum PageMessage {
     /// The music's spectrum wanted (the cab's Equalizer open) or not: the players measure it, and it's passed
     /// on to the page as they say it.
     Spectrum { on: bool },
+    /// What the cab's Now Playing has, for the cluster's one-line player (`None`: nothing loaded).
+    NowPlaying {
+        #[serde(default)]
+        playing: Option<NowPlayingPage>,
+    },
     /// Whether what's under the cursor is light (it's drawn dark there: `cursor`).
     CursorLight { light: bool },
     /// A command for YouTube's player (`youtube`): what to play, where it shows, and so on.

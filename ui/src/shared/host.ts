@@ -272,6 +272,13 @@ export interface PhoneRecent {
   duration: number
 }
 
+/** What is playing, as the cabin's Now Playing sees it: one line for the cluster. */
+export interface NowPlayingInfo {
+  title: string
+  artist: string
+  playing: boolean
+}
+
 /** A call on the phone (`westplay_link::Call`). */
 export interface PhoneCall {
   id: string
@@ -492,6 +499,8 @@ export type HostMessage =
   /** A command the phone couldn't do, in its own words: its dialer refused, the call wouldn't end, or no phone is
    * connected at all. */
   | { type: 'phoneError'; error: string }
+  /** What the cab's Now Playing has, for the cluster's one-line player (`null`: nothing loaded). */
+  | { type: 'nowPlaying'; data: NowPlayingInfo | null }
 
 /** The game's weather: the one there is and the one it's turning to (the same once it has); in game minutes,
  * how long until the game changes it next; and how wet the roads are, percent. Each of the last two `null`
@@ -553,6 +562,8 @@ export type PageMessage =
   | { type: 'spectrum'; on: boolean }
   /** The game's radio list read again (the Radio app opened, or Refresh): the host answers `radio`. */
   | { type: 'radioStations' }
+  /** The cabin's Now Playing, for the cluster's one-line player: the host passes it on (`nowPlaying`). */
+  | { type: 'nowPlaying'; playing: NowPlayingInfo | null }
   /** Whether what's under the cursor is light: the host draws it dark there. */
   | { type: 'cursorLight'; light: boolean }
   /** A change to the game's GPS route (Maps' search), at a map node (its uid, hex) for going or adding a

@@ -121,6 +121,8 @@ pub struct Stage {
     /// frame where the page is taller ([`Stage::set_page_height`]).
     page: ContainerVisual,
     page_size: PageSize,
+    /// The cluster's own visual, off the frame: captured into its own texture (`westplay_shared::CLUSTER_WIDTH`).
+    cluster: ContainerVisual,
 }
 
 /// The page's size (width, height), as the stage has it now: the players keep their videos within it.
@@ -143,6 +145,9 @@ impl Stage {
         let page = compositor.CreateContainerVisual()?;
         page.SetSize(Vector2 { X: width as f32, Y: height as f32 })?;
         root.Children()?.InsertAtTop(&page)?;
+        let cluster = compositor.CreateContainerVisual()?;
+        cluster
+            .SetSize(Vector2 { X: westplay_shared::CLUSTER_WIDTH as f32, Y: westplay_shared::CLUSTER_HEIGHT as f32 })?;
         Ok(Self {
             _dispatcher: dispatcher,
             compositor,
@@ -150,12 +155,23 @@ impl Stage {
             frame: (width, height),
             page,
             page_size: Rc::new(Cell::new((width, height))),
+            cluster,
         })
     }
 
     /// The whole frame, for capture.
     pub fn visual(&self) -> windows::core::Result<Visual> {
         self.root.cast()
+    }
+
+    /// The cluster's visual, separate from the frame: captured for its own texture.
+    pub fn cluster_visual(&self) -> windows::core::Result<Visual> {
+        self.cluster.cast()
+    }
+
+    /// Puts the cluster page's WebView on the cluster's visual (it fills it: `CLUSTER_WIDTH` x `CLUSTER_HEIGHT`).
+    pub fn add_cluster(&self, view: &OffscreenWebView) -> windows::core::Result<()> {
+        self.cluster.Children()?.InsertAtTop(&view.root)
     }
 
     /// Puts a WebView's visual on the frame: over the rest, or under it.
@@ -206,6 +222,18 @@ pub struct OffscreenWebView {
 impl OffscreenWebView {
     /// A WebView of `width` x `height` on `stage`'s compositor (not on the frame until [`Stage::add`]).
     pub fn new(stage: &Stage, width: u32, height: u32, user_data: &Path) -> Result<Self, Error> {
+        let environment = create_environment(user_data)?;
+        Self::new_on(stage, width, height, environment)
+    }
+
+    /// A WebView of `width` x `height` on an environment already in use (the cluster page, beside the cabin
+    /// page, on the same profile: a second environment on a profile in use is refused).
+    pub fn new_on(
+        stage: &Stage,
+        width: u32,
+        height: u32,
+        environment: ICoreWebView2Environment,
+    ) -> Result<Self, Error> {
         let root = stage.compositor.CreateContainerVisual()?;
         root.SetSize(Vector2 { X: width as f32, Y: height as f32 })?;
 
@@ -240,7 +268,6 @@ impl OffscreenWebView {
             let _ = EnableWindow(host, false);
         }
 
-        let environment = create_environment(user_data)?;
         // SAFETY: WebView2 writes a CoTaskMem string into `version`, read before it's dropped.
         let version = unsafe {
             let mut version = PWSTR::null();

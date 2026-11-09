@@ -27,6 +27,7 @@ import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
 import {
+  CLUSTER_CARDS,
   DASHBOARD_LAYOUTS,
   DASHBOARD_LAYOUT_NAME_LENGTH,
   DASHBOARD_PRESETS,
@@ -37,7 +38,10 @@ import {
   type DashboardWidgetSize,
   MAP_DETAILS,
   MAP_RECENTRES,
+  OVERVIEW_CARDS,
+  type ClusterCard,
   type MapDetail,
+  type OverviewCard,
   useCabin,
   useLive,
 } from '../../state/store'
@@ -623,6 +627,16 @@ function DashboardPage() {
   const suppressClick = useRef(false)
   const [namingLayout, setNamingLayout] = useState(false)
   const [layoutName, setLayoutName] = useState('')
+  const overviewShown = useCabin((state) => state.overviewShown)
+  const setOverviewShown = useCabin((state) => state.setOverviewShown)
+  const overviewDefault = useCabin((state) => state.overviewDefault)
+  const setOverviewDefault = useCabin((state) => state.setOverviewDefault)
+  const overviewCards = useCabin((state) => state.overviewCards)
+  const setOverviewCard = useCabin((state) => state.setOverviewCard)
+  const clusterShown = useCabin((state) => state.clusterShown)
+  const setClusterShown = useCabin((state) => state.setClusterShown)
+  const clusterCards = useCabin((state) => state.clusterCards)
+  const setClusterCard = useCabin((state) => state.setClusterCard)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -630,6 +644,21 @@ function DashboardPage() {
     driver: text.apps.driver,
     weather: text.apps.weather,
     diagnostics: text.apps.diagnostics,
+  }
+  // The Overview's cards, by the names their pages use (the truck's readings are the Diagnostics page's).
+  const overviewNames: Record<OverviewCard, string> = {
+    trip: text.destination,
+    truck: text.apps.diagnostics,
+    hours: text.diagnostics.driverHours,
+    media: text.nowPlaying,
+    weather: text.apps.weather,
+  }
+  const clusterNames: Record<ClusterCard, string> = {
+    trip: text.diagnostics.trip,
+    fuel: text.diagnostics.fuel,
+    engine: text.diagnostics.engine,
+    hours: text.diagnostics.driverHours,
+    warnings: text.diagnostics.warnings,
   }
   const sizeNames: Record<DashboardWidgetSize, string> = {
     compact: text.settings.widgetCompact,
@@ -890,6 +919,41 @@ function DashboardPage() {
       <Group footer={text.settings.autoOrderFooter}>
         <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
       </Group>
+      {/* The Dashboard's Overview: offered or not, opened on, and which of its cards it shows. */}
+      <Group header={text.diagnostics.overview} footer={text.settings.overviewFooter}>
+        <SwitchRow label={text.settings.overviewScreen} on={overviewShown} onToggle={setOverviewShown} />
+        {overviewShown && (
+          <SwitchRow label={text.settings.openOverview} on={overviewDefault} onToggle={setOverviewDefault} />
+        )}
+      </Group>
+      {overviewShown && (
+        <Group header={text.settings.overviewCards}>
+          {OVERVIEW_CARDS.map((card) => (
+            <SwitchRow
+              key={card}
+              label={overviewNames[card]}
+              on={overviewCards[card]}
+              onToggle={(on) => setOverviewCard(card, on)}
+            />
+          ))}
+        </Group>
+      )}
+      {/* The instrument cluster WestPlay replaces on the trucks it is built for: offered or not, and its cards. */}
+      <Group header={text.settings.clusterScreen} footer={text.settings.clusterFooter}>
+        <SwitchRow label={text.settings.clusterSwitch} on={clusterShown} onToggle={setClusterShown} />
+      </Group>
+      {clusterShown && (
+        <Group header={text.settings.clusterCards}>
+          {CLUSTER_CARDS.map((card) => (
+            <SwitchRow
+              key={card}
+              label={clusterNames[card]}
+              on={clusterCards[card]}
+              onToggle={(on) => setClusterCard(card, on)}
+            />
+          ))}
+        </Group>
+      )}
       <Group footer={text.settings.clockFooter}>
         <SwitchRow
           label={text.settings.realClock}

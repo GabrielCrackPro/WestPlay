@@ -11,6 +11,7 @@ import {
   IS_DEMO,
   type KeybindAction,
   isInHost,
+  type NowPlayingInfo,
   postToHost,
   subscribeHostMessages,
   type Telemetry,
@@ -103,6 +104,33 @@ export type DashboardWidgetSize = 'compact' | 'standard' | 'expanded'
 
 export const DASHBOARD_WIDGET_SIZES: readonly DashboardWidgetSize[] = ['compact', 'standard', 'expanded']
 
+/** The Overview screen's cards the player can turn off (Settings › Dashboard); the speed is always there. */
+export type OverviewCard = 'trip' | 'truck' | 'hours' | 'media' | 'weather'
+
+export const OVERVIEW_CARDS: readonly OverviewCard[] = ['trip', 'truck', 'hours', 'media', 'weather']
+
+/** Every Overview card on until the player chooses otherwise. */
+const STARTER_OVERVIEW_CARDS: Record<OverviewCard, boolean> = {
+  trip: true,
+  truck: true,
+  hours: true,
+  media: true,
+  weather: true,
+}
+
+/** The instrument cluster's cards the player can turn off (Settings › Dashboard); the speed is always there. */
+export type ClusterCard = 'trip' | 'fuel' | 'engine' | 'hours' | 'warnings'
+
+export const CLUSTER_CARDS: readonly ClusterCard[] = ['trip', 'fuel', 'engine', 'hours', 'warnings']
+
+const STARTER_CLUSTER_CARDS: Record<ClusterCard, boolean> = {
+  trip: true,
+  fuel: true,
+  engine: true,
+  hours: true,
+  warnings: true,
+}
+
 /** A ready-made Dashboard column: its order, the widgets shown, and each one's size. */
 export interface DashboardLayout {
   order: DashboardWidget[]
@@ -161,6 +189,15 @@ interface CabinState {
   /** How much room each Dashboard widget keeps in the column (Settings, Dashboard): Now Playing's compact size
    * also gives it the one-line player. */
   dashboardWidgetSizes: Record<DashboardWidget, DashboardWidgetSize>
+  /** Whether the Dashboard offers its Overview screen, whether it opens on it, and which of its cards show
+   * (Settings › Dashboard). */
+  overviewShown: boolean
+  overviewDefault: boolean
+  overviewCards: Record<OverviewCard, boolean>
+  /** Whether WestPlay replaces the truck's instrument cluster, and which of its cards show (Settings ›
+   * Dashboard). Only the trucks it is built for show one. */
+  clusterShown: boolean
+  clusterCards: Record<ClusterCard, boolean>
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
@@ -250,6 +287,14 @@ interface CabinState {
   setWallpaper(id: string): void
   setDashboardWidget(widget: DashboardWidget, shown: boolean): void
   setDashboardWidgetSize(widget: DashboardWidget, size: DashboardWidgetSize): void
+  /** Turns the Overview screen on or off for the Dashboard, and whether the Dashboard opens on it. */
+  setOverviewShown(shown: boolean): void
+  setOverviewDefault(on: boolean): void
+  /** Shows or hides one of the Overview's cards. */
+  setOverviewCard(card: OverviewCard, shown: boolean): void
+  setClusterShown(shown: boolean): void
+  /** Shows or hides one of the instrument cluster's cards. */
+  setClusterCard(card: ClusterCard, shown: boolean): void
   setClock(clock: Clock): void
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
@@ -328,6 +373,11 @@ type Persisted = Pick<
   | 'wallpaperId'
   | 'dashboardWidgets'
   | 'dashboardWidgetSizes'
+  | 'overviewShown'
+  | 'overviewDefault'
+  | 'overviewCards'
+  | 'clusterShown'
+  | 'clusterCards'
   | 'clock'
   | 'albumArt'
   | 'textSize'
@@ -469,6 +519,11 @@ export const useCabin = create<CabinState>()(
       wallpaperId: DEFAULT_WALLPAPER_ID,
       dashboardWidgets: { ...STARTER_WIDGETS },
       dashboardWidgetSizes: { ...STANDARD_WIDGET_SIZES },
+      overviewShown: true,
+      overviewDefault: false,
+      overviewCards: { ...STARTER_OVERVIEW_CARDS },
+      clusterShown: true,
+      clusterCards: { ...STARTER_CLUSTER_CARDS },
       clock: 'real',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
@@ -525,6 +580,11 @@ export const useCabin = create<CabinState>()(
         set((state) => ({ dashboardWidgets: { ...state.dashboardWidgets, [widget]: shown } })),
       setDashboardWidgetSize: (widget, size) =>
         set((state) => ({ dashboardWidgetSizes: { ...state.dashboardWidgetSizes, [widget]: size } })),
+      setOverviewShown: (overviewShown) => set({ overviewShown }),
+      setOverviewDefault: (overviewDefault) => set({ overviewDefault }),
+      setOverviewCard: (card, shown) => set((state) => ({ overviewCards: { ...state.overviewCards, [card]: shown } })),
+      setClusterShown: (clusterShown) => set({ clusterShown }),
+      setClusterCard: (card, shown) => set((state) => ({ clusterCards: { ...state.clusterCards, [card]: shown } })),
       setClock: (clock) => set({ clock }),
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
@@ -689,8 +749,9 @@ export const useCabin = create<CabinState>()(
       // same size two steps further on. 4: the Dashboard opened with six cards, too many to read on the move, so its
       // default column is four now (the players who never chose their own get it). 5: the cab keeps the screen and app
       // it was in only when the companion's switch says to (2026-11-04). 6: Phone comes first on Home (2026-11-05), a
-      // saved order moved once to match.
-      version: 6,
+      // saved order moved once to match. 7: the Dashboard's Overview screen and its cards, on by default. 8: the
+      // instrument cluster's switch and cards, on by default.
+      version: 8,
       migrate: (stored, version) => {
         const kept = (stored ?? {}) as Partial<Persisted>
         let next = kept
@@ -721,6 +782,11 @@ export const useCabin = create<CabinState>()(
         wallpaperId: state.wallpaperId,
         dashboardWidgets: state.dashboardWidgets,
         dashboardWidgetSizes: state.dashboardWidgetSizes,
+        overviewShown: state.overviewShown,
+        overviewDefault: state.overviewDefault,
+        overviewCards: state.overviewCards,
+        clusterShown: state.clusterShown,
+        clusterCards: state.clusterCards,
         clock: state.clock,
         albumArt: state.albumArt,
         textSize: state.textSize,
@@ -807,6 +873,23 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
       ...(result.dashboardWidgetSizes ?? STANDARD_WIDGET_SIZES),
       nowPlaying: 'compact',
     }
+  }
+  if (typeof stored.overviewShown === 'boolean') result.overviewShown = stored.overviewShown
+  if (typeof stored.overviewDefault === 'boolean') result.overviewDefault = stored.overviewDefault
+  if (typeof stored.overviewCards === 'object' && stored.overviewCards !== null) {
+    const cards = stored.overviewCards as Partial<Record<OverviewCard, unknown>>
+    result.overviewCards = Object.fromEntries(OVERVIEW_CARDS.map((card) => [card, cards[card] !== false])) as Record<
+      OverviewCard,
+      boolean
+    >
+  }
+  if (typeof stored.clusterShown === 'boolean') result.clusterShown = stored.clusterShown
+  if (typeof stored.clusterCards === 'object' && stored.clusterCards !== null) {
+    const cards = stored.clusterCards as Partial<Record<ClusterCard, unknown>>
+    result.clusterCards = Object.fromEntries(CLUSTER_CARDS.map((card) => [card, cards[card] !== false])) as Record<
+      ClusterCard,
+      boolean
+    >
   }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
@@ -962,6 +1045,8 @@ export interface LiveState {
   cursorByHost: boolean
   /** Whether the game's camera is outside the cab: everything CabinPlay plays is the cab's, heard in it only. */
   outsideCab: boolean
+  /** What the cabin's Now Playing reports, for the cluster's one line (`null`: nothing loaded). */
+  nowPlaying: NowPlayingInfo | null
 }
 
 /** TruckersMP's players around the player, from its SDK: its game server's id, the player's own number on it,
@@ -998,6 +1083,7 @@ export const useLive = create<LiveState>()(() => ({
   spectrum: [],
   cursorByHost: false,
   outsideCab: false,
+  nowPlaying: null,
 }))
 
 /** Plain browser previews have no game to report the screen: `?layout=scania-2025` stands in for it. */
@@ -1292,6 +1378,9 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'phoneError':
         usePhoneFailure.getState().fail(message.error)
+        break
+      case 'nowPlaying':
+        useLive.setState({ nowPlaying: message.data })
         break
       case 'youtubeAnswer': {
         const { type: _, id, ...answer } = message

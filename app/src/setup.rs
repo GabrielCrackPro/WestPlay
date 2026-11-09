@@ -310,10 +310,22 @@ fn build_mod(game: &Game) -> Result<(Vec<u8>, game_mod::Built, Vec<u64>), String
     let files = GameFiles::install(&game.dir).map_err(|e| e.to_string())?;
     let mods = installed_mod_files(game);
     let (mod_trucks, apart) = tablet::mod_trucks_and_marks(&mods);
-    let marks = cab_mark::for_tablet(&files, &mods, &mod_trucks);
+    let active = active_profile(game);
+    let marks = cab_mark::for_tablet(&files, &mods, &mod_trucks, active.as_ref());
     let (bytes, built) =
         game_mod::build(&files, &mod_trucks, &game_mod::mod_screen_mods(&mods), &marks).map_err(|e| e.to_string())?;
     Ok((bytes, built, apart))
+}
+
+/// The profile the player plays: the one the game last selected, else the most recently saved. Its mods decide
+/// which copy of a dashboard script is the one the game draws (a dashboard mod's over the game's).
+fn active_profile(game: &Game) -> Option<profiles::Profile> {
+    let documents = places::game_documents()?;
+    let userdata = places::steam().map(|steam| steam.join("userdata"));
+    let found = profiles::find(&documents, userdata.as_deref(), Some(game));
+    profiles::selected(&documents)
+        .and_then(|name| found.iter().find(|profile| profile.name == name).cloned())
+        .or_else(|| found.into_iter().next())
 }
 
 /// The installed mods' files (active in a profile or not), for the tablet's trucks and the mod vehicles' screens.
@@ -326,9 +338,10 @@ fn installed_mod_files(game: &Game) -> Vec<PathBuf> {
 /// How often the installed mods are looked at for trucks the tablet isn't in yet, and mod vehicles' screens.
 const MODS_LOOK: Duration = Duration::from_secs(30);
 
-/// What WestPlay's mod was last worked out from: the game (its folder, version and DLCs) and each installed mod's
-/// files (their path, size and when they last changed).
-type ModsStamp = (PathBuf, Option<String>, usize, Vec<(PathBuf, u64, Option<SystemTime>)>);
+/// What WestPlay's mod was last worked out from: the game (its folder, version and DLCs), each installed mod's
+/// files (their path, size and when they last changed), and the profile the game last selected (which copy of a
+/// dashboard script a dashboard mod brings).
+type ModsStamp = (PathBuf, Option<String>, usize, Vec<(PathBuf, u64, Option<SystemTime>)>, Option<String>);
 
 /// Keeps WestPlay's mod as the installed mods want it: the tablet in every truck with its slots, the game's and its
 /// installed mods' (owner 2026-10-24: "any truck, of any mod"), the screens of the mod vehicles WestPlay draws
@@ -395,7 +408,8 @@ fn look_at_mods(inner: &Inner, looked: &mut Option<ModsStamp>, plugin_tried: &mu
         })
         .collect();
     stamps.sort();
-    let stamp = (game.dir.clone(), game.version.map(|version| version.to_string()), game.dlcs.len(), stamps);
+    let selected = places::game_documents().and_then(|documents| profiles::selected(&documents));
+    let stamp = (game.dir.clone(), game.version.map(|version| version.to_string()), game.dlcs.len(), stamps, selected);
     if looked.as_ref() == Some(&stamp) {
         return;
     }
@@ -421,7 +435,8 @@ fn look_at_mods(inner: &Inner, looked: &mut Option<ModsStamp>, plugin_tried: &mu
         .collect();
     let present = tablet::trucks_in_mod(&ours);
     let screens_current = game_mod::mod_screens_current(&screen_mods, &ours);
-    let marks = cab_mark::for_tablet(&files, &mods, &mod_trucks);
+    let active = active_profile(&game);
+    let marks = cab_mark::for_tablet(&files, &mods, &mod_trucks, active.as_ref());
     let marks_current = cab_mark::current(&marks, &ours);
     if wanted != present || !screens_current || !marks_current {
         let made = game_mod::build(&files, &mod_trucks, &screen_mods, &marks).map_err(|error| error.to_string());

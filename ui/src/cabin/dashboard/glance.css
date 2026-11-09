@@ -1,0 +1,574 @@
+/* The Dashboard's Overview: the drive's readings in one grid, the map's second screen (Glance.tsx). The cards
+   are the widgets' glass and radii, laid out by what a driver reads first: the speed, the trip, the weather;
+   under them the truck, the rest clocks and what plays. */
+
+.glance {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* Four columns: the speed, the trip and the weather over the truck, the hours and what plays. Cards turned
+     off in Settings (`.off`) leave the grid and the rest fill in after them. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: var(--tile-gap, 18px);
+  /* The switch's room: it sits in the Dashboard's top corner on both screens. */
+  padding-top: 54px;
+}
+
+.glance-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 18px 22px;
+  overflow: hidden;
+  border-radius: var(--panel-radius);
+  background: var(--glass);
+}
+
+/* The trip and Now Playing take two columns; the rest one. */
+.glance-trip,
+.glance-media {
+  grid-column: span 2;
+}
+
+.glance-card.off {
+  display: none;
+}
+
+.glance-kicker {
+  color: var(--text-dim);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+/* Speed: the number as the map's badge eases to it, the gear under it, and the limit beside the number. */
+.glance-speed-line {
+  display: flex;
+  align-items: baseline;
+  gap: calc(8px * var(--text-scale, 1));
+  margin-top: auto;
+}
+
+.glance-speed-value {
+  font-size: calc(82px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-speed-unit {
+  color: var(--text-dim);
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.glance-limit {
+  display: grid;
+  place-items: center;
+  width: calc(52px * var(--text-scale, 1));
+  height: calc(52px * var(--text-scale, 1));
+  margin-left: auto;
+  border: calc(5px * var(--text-scale, 1)) solid #fff;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.92);
+  color: #14161a;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-limit.over {
+  border-color: var(--apple-red, #ff453a);
+  color: var(--apple-red, #ff453a);
+}
+
+.glance-speed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(18px * var(--text-scale, 1));
+  margin-top: calc(12px * var(--text-scale, 1));
+  color: var(--text-dim);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 500;
+}
+
+.glance-speed-meta b {
+  color: var(--text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.glance-chip {
+  padding: 3px 10px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--fill);
+  color: var(--text-dim);
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-chip.alarm {
+  background: color-mix(in srgb, var(--apple-red, #ff453a) 22%, transparent);
+  color: var(--apple-red, #ff453a);
+}
+
+/* Trip: where it goes, the job, and the arrival, time and distance under it. */
+.glance-trip-title {
+  margin-top: calc(4px * var(--text-scale, 1));
+  overflow: hidden;
+  font-size: calc(34px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-trip-place {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-trip-detail {
+  margin-top: calc(4px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-trip-detail.late {
+  color: var(--apple-red, #ff453a);
+}
+
+.glance-trip-job {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: calc(8px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.glance-trip-job b {
+  flex: none;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.glance-trip-stats {
+  display: flex;
+  gap: calc(26px * var(--text-scale, 1));
+  margin-top: auto;
+  padding-top: calc(10px * var(--text-scale, 1));
+}
+
+.glance-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.glance-stat b {
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.glance-stat span {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-bar {
+  position: relative;
+  display: block;
+  flex: none;
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--fill-strong);
+}
+
+.glance-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #fff;
+  transition: width 600ms var(--motion-ease);
+}
+
+.glance-bar.fuel > span {
+  background: #f5f5f7;
+}
+
+/* Weather: the cab's clock over where the truck is and the sky, with its symbol. */
+.glance-clock {
+  margin-top: calc(6px * var(--text-scale, 1));
+  font-size: calc(40px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-weather-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.glance-weather-text {
+  min-width: 0;
+}
+
+.glance-weather-place {
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-weather-condition {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-weather-line .weather-glyph {
+  flex: none;
+  margin-left: auto;
+}
+
+/* The truck: the tank, its range, and the engine's readings under them. */
+.glance-fuel-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: calc(4px * var(--text-scale, 1));
+}
+
+.glance-fuel-value {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-fuel-value b {
+  color: var(--text);
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-fuel-room {
+  color: var(--text-dim);
+}
+
+.glance-fuel-range {
+  flex: none;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.glance-readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(2px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  margin-top: auto;
+  padding-top: calc(8px * var(--text-scale, 1));
+}
+
+.glance-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.glance-reading b {
+  color: var(--text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-reading.warn b {
+  color: var(--apple-orange, #ff9f0a);
+}
+
+.glance-reading.alarm b {
+  color: var(--apple-red, #ff453a);
+}
+
+/* Driver hours: the two clocks, as the widget draws them, and the trip still to drive. */
+.glance-hours-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: calc(8px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.glance-hours-line span:first-child {
+  flex: none;
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.glance-hours-line span:last-child {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-hours-line.small span:first-child {
+  font-size: calc(24px * var(--text-scale, 1));
+}
+
+.glance-hours-line .warn {
+  color: var(--apple-orange, #ff9f0a);
+}
+
+.glance-hours-line .alarm {
+  color: var(--apple-red, #ff453a);
+}
+
+.glance-hours-detail {
+  margin-top: auto;
+  padding-top: calc(8px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What plays: its cover, its words, and how far in it is. */
+.glance-media-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin-top: calc(8px * var(--text-scale, 1));
+}
+
+.glance-media-line img,
+.glance-art-placeholder {
+  flex: none;
+  width: calc(58px * var(--text-scale, 1));
+  height: calc(58px * var(--text-scale, 1));
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.glance-art-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  color: var(--text-dim);
+}
+
+.glance-media-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.glance-media-text b {
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-media-text span {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-media-state {
+  margin-top: auto;
+  padding-top: calc(8px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The Dashboard's screen switch, in the map's free top corner on both screens. */
+.dashboard-switch {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 99px;
+  color: var(--text);
+  font: inherit;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 220ms ease,
+    transform 180ms var(--motion-ease);
+}
+
+.dashboard-switch svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-switch:hover {
+  background: var(--fill-strong);
+}
+
+.dashboard-switch:active {
+  transform: scale(0.96);
+}
+
+/* The 7\" screen (the Scania's): the same readings, a size down, so the two rows fit its height. */
+@container carplay (max-height: 520px) {
+  .glance {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding-top: 44px;
+  }
+
+  .glance-card {
+    padding: 10px 14px;
+  }
+
+  .glance-kicker {
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .glance-speed-value {
+    font-size: calc(58px * var(--text-scale, 1));
+  }
+
+  .glance-speed-unit,
+  .glance-speed-meta {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .glance-limit {
+    width: 38px;
+    height: 38px;
+    border-width: 4px;
+    font-size: calc(17px * var(--text-scale, 1));
+  }
+
+  .glance-trip-title {
+    font-size: calc(24px * var(--text-scale, 1));
+  }
+
+  .glance-trip-stats {
+    gap: 16px;
+  }
+
+  .glance-stat b {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .glance-stat span,
+  .glance-reading,
+  .glance-hours-line span:last-child,
+  .glance-hours-detail,
+  .glance-media-text span {
+    font-size: calc(12px * var(--text-scale, 1));
+  }
+
+  .glance-clock {
+    font-size: calc(28px * var(--text-scale, 1));
+  }
+
+  .glance-fuel-value b {
+    font-size: calc(23px * var(--text-scale, 1));
+  }
+
+  .glance-hours-line span:first-child {
+    font-size: calc(23px * var(--text-scale, 1));
+  }
+
+  .glance-hours-line.small span:first-child {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .glance-media-line img,
+  .glance-art-placeholder {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .glance-media-text b {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+}

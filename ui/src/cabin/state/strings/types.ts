@@ -547,6 +547,16 @@ export interface Strings {
     widgetStandard: string
     widgetExpanded: string
     noWidgets: string
+    /** The Dashboard's Overview screen: turning it on, opening the Dashboard on it, and its cards. */
+    overviewScreen: string
+    openOverview: string
+    overviewCards: string
+    overviewFooter: string
+    /** The truck's instrument cluster, replaced by WestPlay on the trucks it is built for. */
+    clusterScreen: string
+    clusterSwitch: string
+    clusterCards: string
+    clusterFooter: string
     /** The player's own Dashboard layouts: naming the current one, saving it, and removing it again. */
     saveLayout: string
     layoutName: string
@@ -620,6 +630,7 @@ export interface Strings {
     brakes: string
     coolant: string
     oil: string
+    oilTemperature: string
     wear: string
     rpm: string
     airPressure: string

@@ -71,10 +71,18 @@ pub struct Capture {
     drawn: Cell<Option<Look>>,
     cursor_at: Cell<Instant>,
     draw_failed: Cell<bool>,
+    /// The cluster's frame: its own published sequence, and no cursor drawn into it.
+    cluster: bool,
 }
 
 impl Capture {
-    pub fn start(gpu: &Gpu, visual: &Visual, shared: Arc<SharedFrame>, bridge: Arc<BridgeMapping>) -> Result<Self> {
+    pub fn start(
+        gpu: &Gpu,
+        visual: &Visual,
+        shared: Arc<SharedFrame>,
+        bridge: Arc<BridgeMapping>,
+        cluster: bool,
+    ) -> Result<Self> {
         let item = GraphicsCaptureItem::CreateFromVisual(visual)?;
         let pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
             &gpu.winrt_device,
@@ -125,6 +133,7 @@ impl Capture {
             drawn: Cell::new(None),
             cursor_at: Cell::new(Instant::now()),
             draw_failed: Cell::new(false),
+            cluster,
         })
     }
 
@@ -188,7 +197,11 @@ impl Capture {
 
     /// A frame went out, with `cursor` on it.
     fn sent(&self, cursor: Option<Look>, now: Instant) {
-        self.bridge.bridge().host.frame_seq.fetch_add(1, Ordering::Release);
+        if self.cluster {
+            self.bridge.bridge().host.cluster_frame_seq.fetch_add(1, Ordering::Release);
+        } else {
+            self.bridge.bridge().host.frame_seq.fetch_add(1, Ordering::Release);
+        }
         self.frames.fetch_add(1, Ordering::Relaxed);
         self.drawn.set(cursor);
         self.cursor_at.set(now);

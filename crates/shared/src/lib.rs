@@ -30,8 +30,8 @@ pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
 /// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
 /// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
 /// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings. 30: it grew the
-/// hazard warning.
-pub const BRIDGE_VERSION: u32 = 30;
+/// hazard warning. 31: the host grew the cluster frame's generation and sequence.
+pub const BRIDGE_VERSION: u32 = 31;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -139,6 +139,29 @@ pub fn screen_layout_for_texture(width: u32, height: u32) -> Option<usize> {
 /// as the head turned in the interior). Its size, no screen layout's texture's.
 pub const CAB_MARK_WIDTH: u32 = SCREEN_WIDTH;
 pub const CAB_MARK_HEIGHT: u32 = 1;
+
+/// The instrument cluster's screen: a frame of its own, beyond the truck screens' (the cluster behind the wheel is
+/// drawn from a dashboard script, not a GPS script, and shows its own page).
+pub const CLUSTER_WIDTH: u32 = 1280;
+pub const CLUSTER_HEIGHT: u32 = 480;
+/// The cluster texture's height: one row past the frame's, as the screens' are, so its size alone tells it is
+/// WestPlay's (no game texture of its own has it).
+pub const CLUSTER_TEXTURE_HEIGHT: u32 = CLUSTER_HEIGHT + 1;
+
+/// The trucks whose instrument cluster WestPlay replaces (SDK model ids, without the `vehicle.` prefix): the
+/// Scania S and R's, whose dashboard script the mod patches (`westplay_setup::game_mod`).
+pub const CLUSTER_TRUCKS: &[&str] = &["scania.s_2016", "scania.r_2016"];
+
+/// Whether WestPlay replaces the instrument cluster in `truck_id` (the SDK's id, with or without its `vehicle.`
+/// prefix).
+pub fn cluster_supported(truck_id: &str) -> bool {
+    CLUSTER_TRUCKS.contains(&truck_id.strip_prefix("vehicle.").unwrap_or(truck_id))
+}
+
+/// Name of the cluster's shared frame texture (its own generation, apart from the screens').
+pub fn cluster_frame_texture_name(generation: u32) -> String {
+    format!("Local\\WestPlay.ClusterFrame.v1.{generation}")
+}
 
 /// [`PluginBlock::truck_supported`]: a screen of WestPlay's drawn in the player's truck.
 pub const TRUCK_SUPPORTED: u32 = 1;
@@ -349,10 +372,14 @@ pub struct HostBlock {
     pub heartbeat: AtomicU64,
     /// Generation of the shared frame texture ([`frame_texture_name`]); 0 when there is none.
     pub frame_generation: AtomicU32,
+    /// The cluster frame's own texture ([`cluster_frame_texture_name`]): its generation, 0 when there is none.
+    pub cluster_frame_generation: AtomicU32,
     pub frame_width: AtomicU32,
     pub frame_height: AtomicU32,
     /// Incremented after each frame written to the shared texture.
     pub frame_seq: AtomicU64,
+    /// Incremented for every cluster frame published.
+    pub cluster_frame_seq: AtomicU64,
     /// 1 while WestPlay should cover the truck's screen; 0 shows the game's original screen.
     pub screen_enabled: AtomicU32,
     /// The key the player holds to use the screen (a Windows virtual-key code, from the app's settings);
@@ -1096,6 +1123,17 @@ mod tests {
         assert!(screen_supported(layout("daf-2021"), "vehicle.daf.2021"));
         assert!(screen_supported(layout("iveco-sway"), "vehicle.iveco.sway"));
         assert!(!screen_supported(screen_layouts().len(), "vehicle.scania.s_2016"));
+    }
+
+    #[test]
+    fn the_cluster_is_the_scania_s_and_rs() {
+        assert!(cluster_supported("vehicle.scania.s_2016"));
+        assert!(cluster_supported("scania.r_2016"));
+        assert!(!cluster_supported("vehicle.scania.s_2024e"));
+        assert!(!cluster_supported("vehicle.mercedes.actros2014"));
+        // Its texture is no screen layout's, so the plugin can tell the two kinds apart by size.
+        assert_eq!(screen_layout_for_texture(CLUSTER_WIDTH, CLUSTER_TEXTURE_HEIGHT), None);
+        assert_ne!(cluster_frame_texture_name(1), frame_texture_name(1));
     }
 
     #[test]

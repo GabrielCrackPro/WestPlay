@@ -1,0 +1,1150 @@
+/* The cluster's page: transparent where it draws nothing, so the game's own cluster shows through. */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+/*
+ * The same motion curve the cabin's shell moves on (shell/shell.css): the boot is the cabin's own screen, so it
+ * has to settle at the same speed here as it does there. Kept in step by hand because this page doesn't load the
+ * shell's stylesheet.
+ */
+:root {
+  --motion-ease: linear(
+    0,
+    0.0575,
+    0.1803,
+    0.3208,
+    0.4551,
+    0.5729,
+    0.6711,
+    0.7501,
+    0.8122,
+    0.8601,
+    0.8966,
+    0.924,
+    0.9445,
+    0.9596,
+    0.9708,
+    0.9789,
+    0.9848,
+    0.9891,
+    0.9922,
+    0.9944,
+    0.996,
+    0.9972,
+    0.998,
+    0.9986,
+    1
+  );
+}
+
+/*
+ * The instrument cluster, laid out at 1280 x 480 as the Scania Smart Dash: telltales across the top with the
+ * route, the newest cab warning or a phone notification between them, the trip, engine and the driver's clocks
+ * on the left, the speed dial in the middle with one line of what plays under it, and the truck's gauges on
+ * the right.
+ *
+ * The readings sit directly on the panel rather than in cards: the dash is one surface, so the trip, the clocks
+ * and the gauges are separated by space and a hairline where they need it, not by boxes. The appearance follows
+ * the cabin's (Settings › Appearance): `auto` is dark at night or under the headlights, so the display dims with
+ * the cab instead of glaring out of it.
+ */
+.cluster {
+  --bg: #05090e;
+  --ink: #f1f6f9;
+  --dim: #8b9ba8;
+  --line: rgb(255 255 255 / 0.09);
+  --track: rgb(255 255 255 / 0.11);
+  --accent: #5ad7c6;
+  --accent-2: #5b9dff;
+  --ok: #66d69b;
+  --warn: #ffbe55;
+  --danger: #ff6a61;
+  --urea: #62a8ff;
+
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 10px 26px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(62% 100% at 50% 112%, rgb(40 92 112 / 0.27), transparent 62%),
+    radial-gradient(50% 70% at 50% 50%, rgb(90 215 198 / 0.055), transparent 70%),
+    linear-gradient(180deg, #080d13, var(--bg));
+  color: var(--ink);
+  font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.cluster[data-appearance='light'] {
+  --bg: #e9eef2;
+  --ink: #0e1921;
+  --dim: #5b6b77;
+  --line: rgb(14 25 33 / 0.1);
+  --track: rgb(14 25 33 / 0.12);
+  --accent: #067a6e;
+  --accent-2: #1d5fc0;
+  --ok: #167a48;
+  --warn: #9b5b00;
+  --danger: #b3251e;
+  --urea: #1a5fbf;
+  background:
+    radial-gradient(70% 110% at 50% 116%, rgb(255 255 255 / 0.95), transparent 60%),
+    linear-gradient(180deg, #f7fafb, var(--bg));
+}
+
+.cluster-shell {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: cluster-in 480ms var(--motion-ease) both;
+}
+
+@keyframes cluster-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* --- The top line: fixed telltale lights, the brand, the clock -------------------------------- */
+
+.cluster-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 44px;
+  animation: status-in 520ms var(--motion-ease) both;
+}
+
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+/* Every light has a slot whether it is lit or not, so the row never rearranges as the truck changes state. */
+.cluster-telltales {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 30px;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cluster-telltale {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--ok);
+  opacity: 0;
+  visibility: hidden;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, currentColor 48%, transparent));
+}
+
+.cluster-telltale[data-active] {
+  opacity: 1;
+  visibility: visible;
+  animation: telltale-in 260ms var(--motion-ease) both;
+}
+
+@keyframes telltale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cluster-telltale svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-telltale[data-tone='info'] {
+  color: var(--accent-2);
+}
+
+.cluster-telltale[data-tone='warn'] {
+  color: var(--warn);
+}
+
+.cluster-telltale[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.cluster-telltale[data-blink] svg {
+  animation: telltale-blink 1.05s steps(1, end) infinite;
+}
+
+@keyframes telltale-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/*
+ * The notice line: one of the cab's alerts, the phone's newest notification, or a call, in the route's place.
+ * The cabin keeps a stack; the cluster has one line, so what else is waiting is counted at its end.
+ */
+.cluster-notice {
+  --notice-tone: var(--accent-2);
+
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--dim);
+  font-size: 16px;
+  font-weight: 550;
+  animation: notice-in 280ms var(--motion-ease) both;
+}
+
+.cluster-notice[data-tone='warn'] {
+  --notice-tone: var(--warn);
+}
+
+.cluster-notice[data-tone='alarm'] {
+  --notice-tone: var(--danger);
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.cluster-notice-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--notice-tone);
+}
+
+.cluster-notice-mark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cluster-notice-app {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: cover;
+  opacity: 0.9;
+}
+
+.cluster-notice-label {
+  max-width: 120px;
+  overflow: hidden;
+  color: var(--notice-tone);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cluster-notice b {
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-notice-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-notice-count {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--notice-tone) 38%, transparent);
+  border-radius: 999px;
+  color: var(--notice-tone);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* The route's own line, centred in the space the fixed telltales and the clock leave. */
+.cluster-route {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--dim);
+  font-size: 16px;
+  font-weight: 550;
+  animation: route-in 520ms var(--motion-ease) 120ms both;
+}
+
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.cluster-route > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.cluster-route b {
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-route > span {
+  white-space: nowrap;
+}
+
+.cluster-route-eta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cluster-route-eta svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cluster-status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The truck's mark, at the size the dash gives its maker: a logo where there is one, its name where not. */
+.cluster-brand {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 32px;
+  animation: brand-in 700ms var(--motion-ease) 90ms both;
+}
+
+@keyframes brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.cluster-brand img {
+  max-width: 104px;
+  max-height: 30px;
+  object-fit: contain;
+  opacity: 0.86;
+  filter: brightness(0) invert(1);
+}
+
+.cluster[data-appearance='light'] .cluster-brand img {
+  opacity: 0.62;
+  filter: brightness(0);
+}
+
+.cluster-brand b {
+  max-width: 104px;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cluster-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 2px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cluster-pill svg {
+  width: 20px;
+  height: 20px;
+  color: var(--dim);
+}
+
+.cluster-cruise svg {
+  color: var(--accent);
+}
+
+/* Its slot is held when cruise is off, so the clock doesn't jump when it comes on. */
+.cluster-cruise b {
+  min-width: 2.4ch;
+  text-align: right;
+}
+
+.cluster-cruise {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 220ms var(--motion-ease),
+    transform 220ms var(--motion-ease);
+}
+
+.cluster-cruise[data-on] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+.cluster-clock time {
+  font-size: 21px;
+  letter-spacing: 0.02em;
+}
+
+/* One line of what plays, in the dial's open bottom: its title and who it's by. */
+.cluster-nowplaying {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 620px;
+  transform: translateX(-50%);
+  color: var(--dim);
+  font-size: 14px;
+  font-weight: 550;
+  pointer-events: none;
+  /* Not `both`: after the entrance the paused line's own opacity has to show through. */
+  animation: nowplaying-in 420ms var(--motion-ease) 120ms backwards;
+}
+
+@keyframes nowplaying-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 3px);
+  }
+}
+
+.cluster-nowplaying svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.cluster-nowplaying b {
+  max-width: 330px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-nowplaying span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-nowplaying[data-paused] {
+  opacity: 0.55;
+}
+
+/* --- The three columns ------------------------------------------------------------------------ */
+
+.cluster-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr) 292px;
+  gap: 24px;
+}
+
+.cluster-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px 4px 2px;
+}
+
+/*
+ * The readings are not cards: they are groups on the same glass, aligned to the column and separated by a
+ * hairline only where one group ends and the next begins.
+ */
+.cluster-panel {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+.cluster-side > * {
+  animation: cluster-rise 560ms var(--motion-ease) both;
+}
+
+.cluster-side > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+@keyframes cluster-rise {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+}
+
+/* A reading's mark, in the cluster's accent; a warning turns it red. */
+.cluster-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+}
+
+.cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-glyph[data-warn] {
+  color: var(--danger);
+  animation: glyph-warn 1.4s ease-in-out infinite;
+}
+
+@keyframes glyph-warn {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.cluster-pairs small,
+.cluster-odo small,
+.cluster-gauge-value small,
+.cluster-gauge-foot small,
+.cluster-mini small,
+.cluster-trip-value small {
+  color: var(--dim);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+/* --- The trip, left --------------------------------------------------------------------------- */
+
+.cluster-trip {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-top: 7px;
+}
+
+.cluster-trip-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.cluster-trip-top .cluster-glyph {
+  width: 28px;
+  height: 28px;
+}
+
+.cluster-trip-top .cluster-glyph svg {
+  width: 28px;
+  height: 28px;
+}
+
+.cluster-trip-value {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.cluster-pairs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-pair {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 18px auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 7px;
+}
+
+.cluster-pair svg {
+  grid-row: 1 / 3;
+  width: 18px;
+  height: 18px;
+  color: var(--dim);
+}
+
+.cluster-pair b {
+  font-size: 21px;
+  font-weight: 550;
+  line-height: 1.15;
+}
+
+.cluster-pair small {
+  line-height: 1.1;
+}
+
+.cluster-odo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.cluster-odo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.cluster-odo b {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 550;
+}
+
+/* --- The engine, left ------------------------------------------------------------------------- */
+
+.cluster-engine {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 26px;
+}
+
+.cluster-readout .cluster-glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--dim);
+}
+
+.cluster-readout .cluster-glyph svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cluster-readout b {
+  font-size: 20px;
+  font-weight: 550;
+  line-height: 1;
+}
+
+.cluster-readout small {
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.cluster-readout[data-warn] .cluster-glyph,
+.cluster-readout[data-warn] b {
+  color: var(--danger);
+}
+
+/* --- The driver's clocks, left ---------------------------------------------------------------- */
+
+.cluster-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: auto;
+  padding: 14px 0 1px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.cluster-hours-row + .cluster-hours-row {
+  border-top: 1px solid var(--line);
+}
+
+.cluster-hours-row strong {
+  font-size: 27px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Due within the hour: the clock takes the warning's colour, with a dot to catch the eye. */
+.cluster-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.cluster-hours-row[data-due] strong,
+.cluster-hours-row[data-due] .cluster-glyph {
+  color: var(--warn);
+}
+
+.cluster-hours-row[data-due] .cluster-dot {
+  background: var(--warn);
+  box-shadow: 0 0 10px var(--warn);
+}
+
+/* --- The speed dial, centre ------------------------------------------------------------------- */
+
+.cluster-dial {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cluster-dial-wrap {
+  position: relative;
+  height: 100%;
+  max-height: 384px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  animation: dial-in 680ms var(--motion-ease) 80ms both;
+}
+
+@keyframes dial-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.cluster-dial-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cluster-dial-track {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 3;
+}
+
+.cluster-dial-rpm {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dasharray 180ms linear;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
+.cluster-tick {
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.cluster-tick.major {
+  stroke: var(--dim);
+  stroke-width: 2;
+}
+
+/* The needle follows the speed round the same 270° the rpm arc holds, easing into each new reading. */
+.cluster-needle {
+  transform-box: view-box;
+  transition: transform 230ms linear;
+}
+
+.cluster-needle line {
+  stroke: var(--accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+.cluster-needle-cap {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.cluster[data-appearance='light'] .cluster-needle-cap {
+  fill: #f7fafb;
+}
+
+/* The figure, at the dial's centre, with its unit under it: the one number the dash always shows. */
+.cluster-speed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transform: translateY(-5px);
+}
+
+.cluster-speed strong {
+  display: block;
+  font-size: 104px;
+  font-weight: 450;
+  line-height: 0.86;
+  letter-spacing: -0.06em;
+}
+
+/* Each whole kilometre arrives with a small settle, so the number reads as live rather than redrawn. */
+.cluster-speed-value {
+  animation: speed-in 180ms var(--motion-ease) both;
+}
+
+@keyframes speed-in {
+  from {
+    opacity: 0.78;
+    transform: translateY(2px);
+  }
+}
+
+.cluster-speed span {
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* The gear sits under the dial as a mark of its own, not another badge. */
+.cluster-gear {
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 36px;
+  color: var(--accent);
+  font-size: 29px;
+  font-weight: 600;
+  animation: gear-in 460ms var(--motion-ease) 360ms both;
+}
+
+@keyframes gear-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}
+
+/* The speed limit sign the truck's navigation knows, as a road sign: white, ringed in red, red over the limit. */
+.cluster-limitsign {
+  position: absolute;
+  top: 4%;
+  right: 3%;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 6px solid #e0322a;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.28);
+  animation: limit-in 460ms var(--motion-ease) 240ms both;
+}
+
+@keyframes limit-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.cluster-limitsign.over b {
+  color: #c01d16;
+}
+
+/* --- The truck's gauges, right ---------------------------------------------------------------- */
+
+.cluster-side-right {
+  padding-top: 10px;
+}
+
+.cluster-fuel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 14px;
+  padding: 6px 0 20px;
+}
+
+.cluster-gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cluster-gauge-row .cluster-glyph {
+  width: 28px;
+  height: 28px;
+}
+
+.cluster-gauge-row .cluster-glyph svg {
+  width: 28px;
+  height: 28px;
+}
+
+.cluster-meter {
+  position: relative;
+  flex: 1;
+  height: 11px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.16);
+}
+
+.cluster-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform-origin: left;
+  animation: meter-grow 760ms var(--motion-ease) both;
+  transition: width 320ms var(--motion-ease);
+}
+
+@keyframes meter-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.cluster-meter[data-low] > span {
+  background: var(--danger);
+  animation:
+    meter-grow 760ms var(--motion-ease) both,
+    meter-low 1.4s ease-in-out 760ms infinite;
+}
+
+@keyframes meter-low {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.cluster-meter[data-hot] > span {
+  background: linear-gradient(90deg, var(--warn), var(--danger));
+}
+
+.cluster-gauge-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px;
+  min-width: 60px;
+  font-size: 30px;
+  font-weight: 550;
+  line-height: 1;
+}
+
+.cluster-gauge-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.cluster-foot-pair {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cluster-gauge-foot svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+
+.cluster-gauge-foot b {
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 550;
+}
+
+/* Brake heat fills the fuel column's gap: a disc, its meter and the reading. */
+.cluster-brakes {
+  flex: none;
+  padding: 14px 0 16px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-brake-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cluster-brake-head .cluster-glyph {
+  width: 26px;
+  height: 26px;
+}
+
+.cluster-brake-head .cluster-glyph svg {
+  width: 26px;
+  height: 26px;
+}
+
+.cluster-gauge-value[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-gauge-value[data-warn] {
+  color: var(--danger);
+}
+
+.cluster-pair-gauges {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.cluster-mini strong {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 28px;
+  font-weight: 550;
+  line-height: 1;
+}
+
+.cluster-mini .cluster-meter {
+  flex: none;
+  width: 100%;
+  height: 8px;
+}
+
+.cluster-mini .cluster-meter > span {
+  background: var(--urea);
+}
+
+.cluster-mini.cluster-coolant .cluster-meter > span {
+  background: var(--accent);
+}
+
+.cluster-mini:nth-child(2) .cluster-meter > span {
+  animation-delay: 90ms;
+}
+
+.cluster-mini .cluster-meter[data-low] > span {
+  background: var(--danger);
+}
+
+.cluster-mini .cluster-meter[data-hot] > span {
+  background: linear-gradient(90deg, var(--warn), var(--danger));
+}
+
+/* Reduced motion (Settings › Appearance, or the PC's own): the cluster's own movement is cut, and its boot's is
+   cut by boot.css. */
+html[data-motion='reduced'] .cluster *,
+html[data-motion='reduced'] .cluster *::before,
+html[data-motion='reduced'] .cluster *::after {
+  animation: none !important;
+  transition: none !important;
+}

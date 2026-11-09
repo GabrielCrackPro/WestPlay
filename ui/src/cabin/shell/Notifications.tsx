@@ -1,9 +1,11 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
-import { cabClock, type PhoneNotification } from '../../shared/host'
+import { cabClock, type PhoneNotification, postToHost } from '../../shared/host'
 import { formatGameTime, formatRealTime } from '../../shared/format'
 import { appHue, sendPhoneCommand, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
+import { useNowPlayingTrack } from '../dashboard/useNowPlaying'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
+import { gameAlerts } from './gameAlerts'
 import { type Note, type NoteAction, useNotes } from './notesShown'
 import { playCue } from '../state/sound'
 import './notifications.css'
@@ -28,6 +30,7 @@ export function Notifications() {
   const leavingPhone = useLeaving(phoneNotes, toastKey)
   useNoteCue(latest)
   useGameAlerts()
+  useNowPlayingReport()
   const shown = notes.length + leavingNotes.length + phoneNotes.length + leavingPhone.length > 0
   return (
     <div className={shown ? 'notifications shown' : 'notifications'} aria-live="polite">
@@ -267,6 +270,22 @@ function useLeaving<T>(items: T[], keyOf: (item: T) => string): T[] {
   return leaving
 }
 
+/**
+ * Tells the host what Now Playing has, once per track or play/pause change, so the cluster can show one line of
+ * it. The players live in this page (the radio's own state among them), so the cab is what knows the answer.
+ */
+function useNowPlayingReport() {
+  const track = useNowPlayingTrack()
+  const reported = useRef<string | null>(null)
+  useEffect(() => {
+    const playing = track ? { title: track.title, artist: track.by, playing: track.playing } : null
+    const key = playing ? `${playing.title}\u0000${playing.artist}\u0000${playing.playing}` : ''
+    if (key === reported.current) return
+    reported.current = key
+    postToHost({ type: 'nowPlaying', playing })
+  }, [track])
+}
+
 /** How long a reading must stay right before a warning on it may be raised again, ms. */
 const WARN_HOLD_MS = 3000
 
@@ -327,15 +346,6 @@ function useGameAlerts() {
     }
     // What the history keeps of each note: the player's clock, and the game's (the clock the rest is counted in).
     const when = { at: Date.now(), clock: cabClock(telemetry, clockShift) }
-    const words = text.diagnostics
-    const n = text.number
-    const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
-    const litres = (value: number) => `${n(Math.round(value))} ${words.litres}`
-    // Minutes as the cab writes them: "1 h 30", or "12 min".
-    const minutes = (value: number) =>
-      value >= 60
-        ? `${n(Math.floor(value / 60))} ${words.hours} ${String(Math.floor(value % 60)).padStart(2, '0')}`
-        : `${n(Math.round(value))} ${words.minutes}`
     const raise = (
       key: string,
       on: boolean,
@@ -365,42 +375,8 @@ function useGameAlerts() {
       useNotes.getState().push({ key, title, detail, tone, action }, when)
     }
 
-    raise(
-      'battery',
-      telemetry.batteryWarning,
-      words.battery,
-      `${n(Math.round(telemetry.batteryVoltage * 10) / 10)} ${words.volts}`,
-      'alarm',
-      'diagnostics',
-    )
-    raise(
-      'oilPressure',
-      telemetry.oilPressureWarning,
-      words.oilPressure,
-      psi(telemetry.oilPressure),
-      'alarm',
-      'diagnostics',
-    )
-    raise(
-      'brakeAir',
-      telemetry.brakeAirWarning,
-      words.brakeAir,
-      psi(telemetry.brakeAirPressure),
-      'alarm',
-      'diagnostics',
-    )
-    raise('fuel', telemetry.fuelWarning, words.fuel, litres(telemetry.fuel), 'alarm', 'maps')
-    raise('adblue', telemetry.adblueWarning, words.adblue, litres(telemetry.adblue), 'alarm', 'maps')
-    const rest = telemetry.restStop
-    const mandatoryBreak = telemetry.mandatoryBreak
-    raise('rest', rest >= 0 && rest <= 15, words.restStop, minutes(Math.max(0, rest)), 'warn', 'maps')
-    raise(
-      'mandatoryBreak',
-      mandatoryBreak >= 0 && mandatoryBreak <= 15,
-      words.mandatoryBreak,
-      minutes(Math.max(0, mandatoryBreak)),
-      'warn',
-      'maps',
-    )
+    for (const alert of gameAlerts(telemetry, text)) {
+      raise(alert.key, alert.on, alert.title, alert.detail, alert.tone, alert.action)
+    }
   }, [telemetry, text, clockShift])
 }

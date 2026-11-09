@@ -97,7 +97,7 @@ GPS's place, and its Vehicle Bar setting says whether the truck's bar stays besi
 
 ## Trucks
 
-WestPlay shows up in two ways: on the truck's own screen, or on the WestPlay tablet.
+WestPlay shows up in three ways: on the truck's own screen, on its instrument cluster, or on the WestPlay tablet.
 
 **On the truck's own screen.** In the trucks that have CarPlay in real life, WestPlay takes the GPS's place on
 the dashboard screen, shaped to it. There's nothing to buy or fit: get in and it's there.
@@ -112,16 +112,20 @@ the dashboard screen, shaped to it. There's nothing to buy or fit: get in and it
 - **Setra S 516 HD/2** (Oyuncuyusbis'): on the coach's own GPS screen, its "Gps" part, which you fit in the truck
   shop: the coach's own screen, as its players asked, but one you add
 
+**On the instrument cluster.** The Scania S and R (2016) can have WestPlay's digital cluster in place of the
+truck's own: speed and gear in the middle, trip, fuel and AdBlue, driver hours and warnings around them. Its cards
+are chosen in Settings › Dashboard, and the game's own cluster shows through where it is switched off.
+
 **On the WestPlay tablet.** Every other truck, the game's and mod trucks alike, gets WestPlay on a tablet you fit
 in the truck shop: under Accessories, in Hanging Items or as a dashboard set. The truck's own screen keeps the
 game's navigation. The tablet is in every truck with hanging items, including truck mods you install later (they
 get it the next time you start the game).
 
-|  | Truck's own screen | WestPlay tablet |
-|---|---|---|
-| Trucks | The ones above | Every other truck |
-| To get it | Nothing: it's there | Fit it in the truck shop |
-| The game's navigation | Replaced by WestPlay | Stays on the truck's screen |
+|  | Truck's own screen | Instrument cluster | WestPlay tablet |
+|---|---|---|---|
+| Trucks | The ones above | Scania S and R (2016) | Every other truck |
+| To get it | Nothing: it's there | Choose it in Settings | Fit it in the truck shop |
+| The game's navigation | Replaced by WestPlay | Replaced by WestPlay | Stays on the truck's screen |
 
 ### Sound
 
