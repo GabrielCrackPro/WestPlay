@@ -91,7 +91,7 @@ body,
    */
   zoom: var(--cluster-scale, 1);
   margin: 0;
-  padding: 5px 22px 7px;
+  padding: 5px 16px 7px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -756,7 +756,7 @@ body,
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr) 292px;
   grid-template-rows: minmax(0, 1fr);
-  gap: 24px;
+  gap: 16px;
 }
 
 .cluster-side {
@@ -764,7 +764,7 @@ body,
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  padding: 6px 4px 2px;
+  padding: 3px 3px 2px;
   /* A column that overflows (a long number in a long language) is cut here rather than drawn over the dial. */
   overflow: hidden;
 }
@@ -838,8 +838,8 @@ body,
 .cluster-trip {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 5px;
+  gap: 4px;
+  padding-top: 2px;
 }
 
 .cluster-trip-top {
@@ -849,13 +849,13 @@ body,
 }
 
 .cluster-trip-top .cluster-glyph {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .cluster-trip-top .cluster-glyph svg {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .cluster-trip-value {
@@ -871,50 +871,50 @@ body,
 .cluster-pairs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  padding-top: 10px;
+  gap: 11px;
+  padding-top: 5px;
   border-top: 1px solid var(--line);
 }
 
 .cluster-pair {
   min-width: 0;
   display: grid;
-  grid-template-columns: 18px auto;
+  grid-template-columns: 14px auto;
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 7px;
+  column-gap: 5px;
 }
 
 .cluster-pair svg {
   grid-row: 1 / 3;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   color: var(--dim);
 }
 
 .cluster-pair b {
   font-size: var(--type-md);
   font-weight: 550;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .cluster-pair small {
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .cluster-odo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-top: 8px;
+  gap: 5px;
+  padding-top: 3px;
   border-top: 1px solid var(--line);
   color: var(--dim);
   font-size: var(--type-unit);
 }
 
 .cluster-odo svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex: none;
 }
 
@@ -1018,7 +1018,7 @@ body,
 
 .cluster-hours-row[data-due] .cluster-dot {
   background: var(--warn);
-  box-shadow: 0 0 10px var(--warn);
+  box-shadow: 0 0 8px var(--warn);
 }
 
 /* --- The middle column: the message line, the dial, what plays --------------------------------- */
@@ -1336,7 +1336,7 @@ body,
    with a hairline above it, so the right side reads as evenly as the left. */
 .cluster-side-right {
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .cluster-fuel {

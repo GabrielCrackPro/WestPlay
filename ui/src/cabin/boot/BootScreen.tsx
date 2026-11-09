@@ -60,7 +60,7 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
   // keep the same shape. The mark lands after the light has risen, so the screen reads as lighting first and forming
   // on top of it; the brand line comes in with the mark's own light rather than a beat after it, so the truck's name
   // and Cabin Play feel like one screen waking rather than two things arriving one after the other.
-  const markAt = boot * (withBrand ? 0.30 : 0.18)
+  const markAt = boot * (withBrand ? 0.3 : 0.18)
   const wordAt = boot * (withBrand ? 0.345 : 0.215)
   const brandAt = withBrand ? markAt - boot * 0.02 : markAt
 
