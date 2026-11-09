@@ -1,5 +1,5 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
-import { formatGameTime, formatRealTime } from '../../shared/format'
+import { formatGameTimeShort, formatRealTimeShort } from '../../shared/format'
 import { logoSources } from '../boot/brand'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
 import { BrandIcon } from './BrandIcon'
@@ -43,7 +43,10 @@ export function Sidebar() {
   const muted = usePhonePrefs((state) => state.muted)
   const phoneNews = usePhone((state) => newsCount(state.notifications, muted))
   const badgeOf = (app: AppId) => (app === 'notifications' ? unread : app === 'phone' ? phoneNews : 0)
-  const time = clock === 'real' ? formatRealTime(realTime) : gameTime === null ? null : formatGameTime(gameTime)
+  // The status bar's clock: hours and minutes only, as CarPlay's own (shared/format.ts), so the setting's 12 hours
+  // still fit the pill drawn for the sidebar's five characters. Every other clock in the cabin carries AM and PM.
+  const time =
+    clock === 'real' ? formatRealTimeShort(realTime) : gameTime === null ? null : formatGameTimeShort(gameTime)
   // The pinned apps where the player put them, then the recents filling the room the screen's sidebar has left (an
   // app that's pinned isn't drawn twice).
   const pinnedShown = pinned.slice(0, PINNED_LIMIT)

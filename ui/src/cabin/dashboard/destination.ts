@@ -1,5 +1,6 @@
 import { formatGameTime, formatTripDistance, formatTripTime } from '../../shared/format'
 import { cabClock, type JobInfo, type Telemetry } from '../../shared/host'
+import { activeUnits } from '../../shared/units'
 import { labelLines } from '../maps/labels'
 import type { MapLabel } from '../maps/mapData'
 import { metresBetween, toLngLat } from '../maps/projection'
@@ -74,7 +75,10 @@ export function destinationView(
         pay,
       }
     }
-    const distance = routeLeft !== null ? formatTripDistance(routeLeft, text.decimal) : `${job.plannedDistanceKm} km`
+    const distance =
+      routeLeft !== null
+        ? formatTripDistance(routeLeft, text.decimal)
+        : activeUnits().longDistance(job.plannedDistanceKm, text.decimal)
     const late = job.deliveryTime > 0 && now > job.deliveryTime
     const deadline =
       job.deliveryTime > 0

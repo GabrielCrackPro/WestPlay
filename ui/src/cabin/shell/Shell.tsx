@@ -1,5 +1,6 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
-import { cabClock, isInHost } from '../../shared/host'
+import { isInHost } from '../../shared/host'
+import { routeAccent } from '../maps/routeLook'
 import { useLook, useLookChanges, useOemStrip, useScreenProfile } from '../state/hooks'
 import { usePreparedIcons } from '../state/looks'
 import { frameInsets, NO_INSETS, OEM_STRIPS } from '../state/oem'
@@ -11,6 +12,8 @@ import { useYouTubeMusic } from '../apps/youtubeMusic/youtubeMusic'
 import { useWhatsApp } from '../apps/whatsapp/whatsapp'
 import { Keyboard } from '../keyboard/Keyboard'
 import { useCabin, useLive } from '../state/store'
+import { useNightDim } from '../state/nightDim'
+import { useClock } from '../state/clock'
 import { Sidebar } from './Sidebar'
 import { useSidebarPeek } from './sidebarPeek'
 import { VolumeHud } from './VolumeHud'
@@ -40,6 +43,10 @@ export function Shell({ children, overlay, entering = false, voice = true }: She
   useLookChanges()
   usePreparedIcons()
   const { appearance, wallpaperSrc } = useLook()
+  // The dash's accent — the colour the driver chose for the route (Settings › Maps) — is the cabin's too: the same
+  // accent draws the cluster's needle and its lit arc, lights both screens' boot, and marks the way on the cabin's
+  // own surfaces (the Overview's route bar). Set once here, so every Cabin Play surface in the cabin answers it.
+  const routeColour = useCabin((state) => state.mapRoute)
   const profile = useScreenProfile()
   const stripId = useOemStrip()
   const strip = stripId && OEM_STRIPS[stripId]
@@ -49,6 +56,7 @@ export function Shell({ children, overlay, entering = false, voice = true }: She
     '--oem-left': `${insets.left}px`,
     '--oem-bottom': `${insets.bottom}px`,
     '--ui-scale': profile.scale,
+    '--accent': routeAccent(appearance, routeColour),
   } as CSSProperties
   // The screen changes' snapshots hang off <html>, not the shell: they're cut to the CarPlay area with these
   // too (transitions.css).
@@ -70,6 +78,10 @@ export function Shell({ children, overlay, entering = false, voice = true }: She
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(textScale(textSize)))
   }, [textSize])
+  // The page's clock (state/clock.ts): every time on the glass is drawn by a formatter that reads the setting
+  // through shared/clock.ts, so the shell only has to redraw when the setting changes — the sidebar's clock, a
+  // trip's arrival and a map stop's time are all under it.
+  useClock()
 
   // Handed to the truck (the sidebar's truck button, or the W shortcut): CarPlay shrinks into WestPlay's
   // button and the truck's own screen shows; the button grows it back.
@@ -88,7 +100,7 @@ export function Shell({ children, overlay, entering = false, voice = true }: She
   // Over a video full screen, pointing at the left edge brings the sidebar back (shell/sidebarPeek.ts).
   const carplay = useRef<HTMLDivElement>(null)
   const peek = useSidebarPeek(watching, carplay)
-  // Night in the truck: the screen dims as a head unit's does (Shell.tsx `useNightDim`).
+  // Night in the truck: the screen dims as a head unit's does (state/nightDim.ts).
   const nightDim = useNightDim()
   useEffect(() => {
     // Brought back, it goes again as soon as it's left, without the wait it has as YouTube opens.
@@ -141,26 +153,6 @@ export function Shell({ children, overlay, entering = false, voice = true }: She
       {profile.rim && <div className="screen-rim" style={{ color: profile.rim }} aria-hidden />}
     </main>
   )
-}
-
-/**
- * How far the screen dims for the truck's night, and from when to when (game time): the cab's screen glows as a
- * head unit's does in a dark cab instead of glaring at full brightness. Low enough to read everything by, and
- * gone by day unless the lights are on (a tunnel, a storm).
- */
-const NIGHT_DIM = 0.16
-const NIGHT_FROM = 20 * 60
-const NIGHT_TO = 6 * 60
-
-function useNightDim(): number {
-  const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
-  const lit = useLive((state) => Boolean(state.telemetry?.lowBeam || state.telemetry?.highBeam))
-  // The truck's own dash dimmer sets how far it dims: turned down, the screen dims further; turned up, less.
-  const backlight = useLive((state) => state.telemetry?.dashboardBacklight ?? 0)
-  if (clock === null) return 0
-  const minute = ((clock % 1440) + 1440) % 1440
-  if (!(lit || minute >= NIGHT_FROM || minute < NIGHT_TO)) return 0
-  return NIGHT_DIM * (1 - Math.min(1, Math.max(0, backlight)) * 0.5)
 }
 
 /** A mask showing everything but a rounded rectangle, through which what's under the page shows. */

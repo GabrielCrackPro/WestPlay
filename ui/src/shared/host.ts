@@ -373,6 +373,12 @@ export type HostMessage =
   /** Whether the game's camera is outside the cab: everything CabinPlay plays (the music, its presses, the GPS
    * voice) is the cab's, and is heard in it only. */
   | { type: 'camera'; outside: boolean }
+  /** The player's regional units in the game (Options › Interface › Regional Settings), read from the profile:
+   * its "Use miles", and whether the game is ATS's (the US's miles and gallons) or ETS2's (the UK's). */
+  | { type: 'units'; miles: boolean; american: boolean }
+  /** The player's clock in the game (Options › Gameplay › "24-hour clock notation"), read from the profile: false
+   * when the game draws its clocks in 12 hours with AM and PM. */
+  | { type: 'clock'; clock24: boolean }
   /** Whether the host draws the screen's cursor (into the frames the game takes, where the mouse is at once), or
    * the page draws its own (crates/host cursor.rs). */
   | { type: 'cursor'; host: boolean }

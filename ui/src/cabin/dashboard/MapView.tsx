@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { formatGameTime, formatTripDistance, formatTripTime, speedKmh } from '../../shared/format'
+import { formatGameTime, formatTripDistance, formatTripTime } from '../../shared/format'
 import { hvtMapMessage } from '../maps/blockedMap'
 import { GuidanceCard } from '../maps/GuidanceCard'
 import { DashboardMapControls, MapControls } from '../maps/MapControls'
@@ -17,6 +17,7 @@ import { destinationView } from './destination'
 import { go, useCabin, useLive } from '../state/store'
 import { useTicker } from '../state/ticker'
 import { useText } from '../state/text'
+import { useUnits } from '../state/units'
 import './map.css'
 import { cabClock } from '../../shared/host'
 
@@ -30,10 +31,11 @@ import { cabClock } from '../../shared/host'
  * On a map WestPlay doesn't allow (by HVT), it says so instead, in the game's language.
  */
 export function MapView({ interactive = false }: { interactive?: boolean }) {
-  const speed = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.speed) : 0))
+  const units = useUnits()
+  const speed = useLive((state) => (state.telemetry ? units.speed(state.telemetry.speed) : 0))
   // The badge's number eased like a speedo, not the game's twenty frames a second (state/ticker.ts).
   const shownSpeed = Math.round(useTicker(speed))
-  const limit = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.navigationSpeedLimit) : 0))
+  const limit = useLive((state) => (state.telemetry ? units.limit(state.telemetry.navigationSpeedLimit) : 0))
   const data = useMapData()
   const hvtMap = useLive((state) => state.hvtMap)
   const showLimit = useCabin((state) => state.mapLimit)

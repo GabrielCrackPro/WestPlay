@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react'
 import { launchingNow } from '../../state/launch'
 import { useCabin, useLive, type DiagnosticsPage } from '../../state/store'
 import { useText } from '../../state/text'
+import { useUnits } from '../../state/units'
 import {
   adblue,
   battery,
@@ -47,10 +48,12 @@ type Lit = { label: string; tone: 'green' | 'blue' | 'amber' | 'red'; blink?: bo
  */
 export function DiagnosticsApp() {
   const text = useText()
+  // The driver's units (the game's own regional setting, or Settings › Appearance › Units).
+  const units = useUnits()
   const telemetry = useLive((state) => state.telemetry)
   // The speed as a speedo shows it: eased rather than snapped to the game's twenty frames a second (useDamped.ts).
   // Called before the early return below, as every hook is.
-  const speedShown = Math.round(useDamped(Math.abs(telemetry?.speed ?? 0) * 3.6))
+  const speedShown = Math.round(useDamped(telemetry ? units.speed(telemetry.speed) : 0))
   const truck = useLive((state) => state.truck)
   const trailer = useLive((state) => state.trailer)
   // The trip computer and the two histories, from the frames the game sends.
@@ -120,15 +123,15 @@ export function DiagnosticsApp() {
 
   const byOverall: Record<State, string> = { ok: words.normal, warn: words.check, alarm: words.service }
 
-  const celsius = (value: number) => `${n(Math.round(value))} ${words.celsius}`
-  const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
+  const celsius = (value: number) => units.temperature(value, text.decimal)
+  const psi = (value: number) => units.pressure(value, text.decimal)
   const gear = t.displayedGear < 0 ? 'R' : t.displayedGear === 0 ? 'N' : n(t.displayedGear)
   // Minutes as the cab writes them: an hour and a half is "1 h 30", twenty minutes "20 min".
   const inMinutes = (value: number) =>
     value >= 60
       ? `${n(Math.floor(value / 60))} ${words.hours} ${String(Math.floor(value % 60)).padStart(2, '0')}`
       : `${n(Math.round(value))} ${words.minutes}`
-  const cruise = t.cruiseControlSpeed > 0.5 ? `${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}` : words.off
+  const cruise = t.cruiseControlSpeed > 0.5 ? `${units.speed(t.cruiseControlSpeed)} ${units.labels.speed}` : words.off
   const retarder =
     t.retarderLevel > 0
       ? `${n(t.retarderLevel)}${truck && truck.retarderSteps > 0 ? ` / ${n(truck.retarderSteps)}` : ''}`
@@ -162,7 +165,7 @@ export function DiagnosticsApp() {
     })
   if (t.cruiseControlSpeed > 0.5)
     lit.push({
-      label: `${words.cruiseControl} ${n(Math.round(t.cruiseControlSpeed * 3.6))} ${words.kmh}`,
+      label: `${words.cruiseControl} ${units.speed(t.cruiseControlSpeed)} ${units.labels.speed}`,
       tone: 'green',
       icon: (
         <>
@@ -230,7 +233,7 @@ export function DiagnosticsApp() {
                 >
                   <div className="diag-speed">
                     <span className="diag-speed-value">{n(speedShown)}</span>
-                    <span className="diag-speed-unit">{words.kmh}</span>
+                    <span className="diag-speed-unit">{units.labels.speed}</span>
                   </div>
                   <p className="diag-hero-meta">
                     {words.gear} {gear} · {t.engineEnabled ? words.running : words.engineOff} · {words.parkingBrake}{' '}
@@ -268,14 +271,12 @@ export function DiagnosticsApp() {
                     <Cell
                       read={heat}
                       label={words.coolant}
-                      value={n(Math.round(t.coolantTemperature))}
-                      unit={words.celsius}
+                      {...units.temperatureFigure(t.coolantTemperature, text.decimal)}
                     />
                     <Cell
                       read={air}
                       label={words.brakeAir}
-                      value={n(Math.round(t.brakeAirPressure))}
-                      unit={words.psi}
+                      {...units.pressureFigure(t.brakeAirPressure, text.decimal)}
                     />
                     <Cell
                       read={volts}
@@ -283,17 +284,17 @@ export function DiagnosticsApp() {
                       value={n(Math.round(t.batteryVoltage * 10) / 10)}
                       unit={words.volts}
                     />
-                    <Cell read={fuel} label={words.fuel} value={n(Math.round(t.fuel))} unit={words.litres} />
+                    <Cell read={fuel} label={words.fuel} {...units.volumeFigure(t.fuel, text.decimal)} />
                   </div>
                 </Card>
 
                 <Card title={words.trip}>
                   <div className="diag-trip">
-                    <Stat label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
-                    <Stat label={words.used} value={`${n(Math.round(trip.fuel * 10) / 10)} ${words.litres}`} />
+                    <Stat label={words.distance} value={units.distance(trip.distance, text.decimal)} />
+                    <Stat label={words.used} value={units.volume(trip.fuel, text.decimal)} />
                     <Stat
                       label={words.average}
-                      value={`${n(Math.round(tripAverage(trip) * 10) / 10)} ${words.lPer100}`}
+                      value={units.consumption(tripAverage(trip), text.decimal)}
                       state={economy.state}
                     />
                     <Stat label={words.time} value={clock(trip.moving + trip.idle)} />
@@ -322,9 +323,7 @@ export function DiagnosticsApp() {
                     />
                     <Row
                       label={`${words.fuel} · ${words.low}`}
-                      value={
-                        worstRead.fuelLow === null ? words.off : `${n(Math.round(worstRead.fuelLow))} ${words.litres}`
-                      }
+                      value={worstRead.fuelLow === null ? words.off : units.volume(worstRead.fuelLow, text.decimal)}
                       state={lowTank?.state}
                     />
                     <Row label={words.warnings} value={n(worstRead.warnings)} />
@@ -338,8 +337,7 @@ export function DiagnosticsApp() {
                 <Card title={words.engine}>
                   <Lead
                     read={heat}
-                    value={n(Math.round(t.coolantTemperature))}
-                    unit={words.celsius}
+                    {...units.temperatureFigure(t.coolantTemperature, text.decimal)}
                     label={words.coolant}
                   />
                   <Sparkline values={trends.coolant} />
@@ -359,24 +357,23 @@ export function DiagnosticsApp() {
                 </Card>
 
                 <Card title={words.fuel}>
-                  <Lead read={fuel} value={n(Math.round(t.fuel))} unit={words.litres} label={words.fuel} />
+                  <Lead read={fuel} {...units.volumeFigure(t.fuel, text.decimal)} label={words.fuel} />
                   <div className="diag-rows">
-                    <Row label={words.range} value={`${n(Math.round(t.fuelRange))} ${words.km}`} />
+                    <Row label={words.range} value={units.longDistance(t.fuelRange, text.decimal)} />
                     <Row
                       label={words.consumption}
-                      value={`${n(Math.round(t.fuelAverage * 10) / 10)} ${words.lPer100}`}
+                      value={units.consumption(t.fuelAverage, text.decimal)}
                       state={economy.state}
                     />
-                    <Row label={words.adblue} value={`${n(Math.round(t.adblue))} ${words.litres}`} state={urea.state} />
-                    <Row label={words.odometer} value={`${n(Math.round(t.odometer))} ${words.km}`} />
+                    <Row label={words.adblue} value={units.volume(t.adblue, text.decimal)} state={urea.state} />
+                    <Row label={words.odometer} value={units.longDistance(t.odometer, text.decimal)} />
                   </div>
                 </Card>
 
                 <Card title={words.brakes} wide>
                   <Lead
                     read={air}
-                    value={n(Math.round(t.brakeAirPressure))}
-                    unit={words.psi}
+                    {...units.pressureFigure(t.brakeAirPressure, text.decimal)}
                     label={words.airPressure}
                   />
                   <Sparkline values={trends.brakes} />
@@ -400,7 +397,7 @@ export function DiagnosticsApp() {
                     />
                     <Row label={words.mandatoryBreak} value={breakIn >= 0 ? inMinutes(breakIn) : words.noRest} />
                     <Row label={words.time} value={clock(trip.moving + trip.idle)} />
-                    <Row label={words.distance} value={`${n(Math.round(trip.distance))} ${words.km}`} />
+                    <Row label={words.distance} value={units.distance(trip.distance, text.decimal)} />
                   </div>
                 </Card>
 

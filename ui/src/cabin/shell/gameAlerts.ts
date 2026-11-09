@@ -1,4 +1,5 @@
 import type { Telemetry } from '../../shared/host'
+import { activeUnits, type Units } from '../../shared/units'
 import type { Strings } from '../state/strings'
 import type { NoteAction } from './notesShown'
 
@@ -21,11 +22,11 @@ export interface GameAlert {
  * quarter of an hour out, each with the words the cab shows. `on` is false for a reading that is right, so the
  * caller can raise a note on its rising edge and forget it once it has gone right again.
  */
-export function gameAlerts(telemetry: Telemetry, text: Strings): GameAlert[] {
+export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = activeUnits()): GameAlert[] {
   const words = text.diagnostics
   const n = text.number
-  const psi = (value: number) => `${n(Math.round(value))} ${words.psi}`
-  const litres = (value: number) => `${n(Math.round(value))} ${words.litres}`
+  const psi = (value: number) => units.pressure(value, text.decimal)
+  const litres = (value: number) => units.volume(value, text.decimal)
   // Minutes as the cab writes them: "1 h 30", or "12 min".
   const minutes = (value: number) =>
     value >= 60

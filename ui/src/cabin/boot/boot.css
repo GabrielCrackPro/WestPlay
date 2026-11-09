@@ -96,11 +96,18 @@
 }
 
 /* Its own light, thrown once as the mark lands: the mark is the screen waking up, not a picture on it. */
+/* The mark's light, in the cab's accent (--boot-accent, from the route's colour): the cabin's boot and the dash's
+   are the same boot, so they throw the same light — the one the driver chose for the way. */
 .boot-intro-halo {
   position: absolute;
   inset: -60%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.06) 62%, transparent 74%);
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--boot-accent, #fff) 32%, transparent),
+    color-mix(in srgb, var(--boot-accent, #fff) 7%, transparent) 62%,
+    transparent 74%
+  );
   opacity: 0;
   animation: mark-halo 1100ms var(--motion-ease) calc(var(--boot-ms) * 0.26) both;
 }

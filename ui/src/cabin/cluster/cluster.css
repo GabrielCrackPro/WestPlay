@@ -45,10 +45,10 @@ body,
 }
 
 /*
- * The instrument cluster, laid out at 1280 x 480 as the Scania Smart Dash: telltales across the top with the
- * route, the newest cab warning or a phone notification between them, the trip, engine and the driver's clocks
- * on the left, the speed dial in the middle with one line of what plays under it, and the truck's gauges on
- * the right.
+ * The instrument cluster, laid out at 1280 x 480 as the Scania Smart Dash: the lights on the left of the top line,
+ * the route in the space between them, the warnings on its right and the clock at its end; the trip, the engine and
+ * the driver's clocks on the left; the newest cab message on a line of its own over the dial, the dial, and one
+ * line of what plays under it; the truck's gauges on the right.
  *
  * The readings sit directly on the panel rather than in cards: the dash is one surface, so the trip, the clocks
  * and the gauges are separated by space and a hairline where they need it, not by boxes. The appearance follows
@@ -61,17 +61,29 @@ body,
   --dim: #8b9ba8;
   --line: rgb(255 255 255 / 0.09);
   --track: rgb(255 255 255 / 0.11);
+  /* The live colour: the map's route colour, the one the driver chose for the way (set from the page, and the
+     route's own values below are only what the panel falls back to before it does). */
   --accent: #5ad7c6;
   --accent-2: #5b9dff;
   --ok: #66d69b;
   --warn: #ffbe55;
   --danger: #ff6a61;
   --urea: #62a8ff;
+  --cold: #6fb6ff;
+  /* A gauge's fill, before any state gives it a colour: the dash's bars are white, not the accent. */
+  --bar: rgb(232 242 247 / 0.66);
 
   position: relative;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
+  /*
+   * The player's Text Size (state/textSize.ts, `clusterTextScale`). Every `font-size` below is multiplied by
+   * `--cluster-scale`, and the vertical spaces between the blocks of the two columns by its reciprocal,
+   * `--cluster-give`: the type grows and the gaps give way, so the columns still fit the 408 px the page gives them
+   * and the dial — a figure, not text — keeps the size it is drawn at at every step. Both come from the page, so they
+   * can't disagree.
+   */
   margin: 0;
   padding: 10px 26px 14px;
   overflow: hidden;
@@ -82,7 +94,9 @@ body,
     radial-gradient(50% 70% at 50% 50%, rgb(90 215 198 / 0.055), transparent 70%),
     linear-gradient(180deg, #080d13, var(--bg));
   color: var(--ink);
-  font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+  /* The cabin's own stack (shell/shell.css): the dash and the screen speak in one face, Inter filling in the
+     scripts Instrument Sans doesn't write (a map mod's Cyrillic place names reach the dash too). */
+  font-family: 'Instrument Sans Variable', 'Inter Variable', sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -98,6 +112,8 @@ body,
   --warn: #9b5b00;
   --danger: #b3251e;
   --urea: #1a5fbf;
+  --cold: #1a5fbf;
+  --bar: rgb(14 25 33 / 0.62);
   background:
     radial-gradient(70% 110% at 50% 116%, rgb(255 255 255 / 0.95), transparent 60%),
     linear-gradient(180deg, #f7fafb, var(--bg));
@@ -121,8 +137,16 @@ body,
   }
 }
 
-/* --- The top line: fixed telltale lights, the brand, the clock -------------------------------- */
+/* --- The top line: the lights, the route, the warnings and the clock --------------------------- */
 
+/*
+ * The type here is a step larger than a desktop UI's: the dash is read at arm's length, through the game's own
+ * glass, and the small labels around the figures were hard to make out at the size they were first set (owner
+ * 2026-11-09: "make the text easier to read"). The figures beside them grew with them, and the space came out of
+ * the gaps and paddings, so each column still fits the 408 px the 480 px page gives it. The dial's own number is
+ * unchanged: it was never the one being squinted at. These are the sizes at the step WestPlay starts on; the page
+ * scales the whole panel with the cabin's Text Size after them (`.cluster` below, clusterTextScale).
+ */
 .cluster-status {
   display: flex;
   align-items: center;
@@ -211,20 +235,42 @@ body,
 }
 
 /*
- * The notice line: one of the cab's alerts, the phone's newest notification, or a call, in the route's place.
- * The cabin keeps a stack; the cluster has one line, so what else is waiting is counted at its end.
+ * The message line's slot, above the dial: one line high and always held, so a notice never moves the route and
+ * never covers the dial. The cabin keeps a stack; the cluster has this one line, so what else is waiting is
+ * counted at its end.
  */
+/* The notice row: the cab's message in the middle of the dial's column, the phone's status at its right end. Three
+   columns — two equal sides and the message between them — keep the message over the dial's centre whether or not the
+   phone is charging and whatever its name is long. A message too wide for the row takes the sides' room first and is
+   cut by the row itself, rather than running under the phone. */
+.cluster-message {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  height: 28px;
+  overflow: hidden;
+}
+
+.cluster-message .cluster-phone {
+  grid-column: 3;
+  justify-self: end;
+  height: 26px;
+}
+
 .cluster-notice {
   --notice-tone: var(--accent-2);
 
-  flex: 1;
+  grid-column: 2;
+  justify-self: center;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
   color: var(--dim);
-  font-size: 16px;
+  font-size: calc(17px * var(--cluster-scale, 1));
   font-weight: 550;
   animation: notice-in 280ms var(--motion-ease) both;
 }
@@ -268,10 +314,10 @@ body,
 }
 
 .cluster-notice-label {
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   color: var(--notice-tone);
-  font-size: 12px;
+  font-size: calc(13.5px * var(--cluster-scale, 1));
   font-weight: 650;
   letter-spacing: 0.12em;
   text-overflow: ellipsis;
@@ -302,7 +348,7 @@ body,
   border: 1px solid color-mix(in srgb, var(--notice-tone) 38%, transparent);
   border-radius: 999px;
   color: var(--notice-tone);
-  font-size: 12px;
+  font-size: calc(13px * var(--cluster-scale, 1));
   font-weight: 650;
 }
 
@@ -319,7 +365,7 @@ body,
   white-space: nowrap;
 }
 
-/* The route's own line, centred in the space the fixed telltales and the clock leave. */
+/* The route's own line, centred in the space the lights and the clock leave: kept whether or not it has words. */
 .cluster-route {
   flex: 1;
   min-width: 0;
@@ -328,7 +374,7 @@ body,
   justify-content: center;
   gap: 10px;
   color: var(--dim);
-  font-size: 16px;
+  font-size: calc(16.5px * var(--cluster-scale, 1));
   font-weight: 550;
   animation: route-in 520ms var(--motion-ease) 120ms both;
 }
@@ -348,7 +394,7 @@ body,
 }
 
 .cluster-route b {
-  max-width: 240px;
+  max-width: 200px;
   overflow: hidden;
   color: var(--ink);
   font-weight: 600;
@@ -374,57 +420,16 @@ body,
 .cluster-status-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-/* The truck's mark, at the size the dash gives its maker: a logo where there is one, its name where not. */
-.cluster-brand {
-  display: grid;
-  place-items: center;
-  width: 104px;
-  height: 32px;
-  animation: brand-in 700ms var(--motion-ease) 90ms both;
-}
-
-@keyframes brand-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-.cluster-brand img {
-  max-width: 104px;
-  max-height: 30px;
-  object-fit: contain;
-  opacity: 0.86;
-  filter: brightness(0) invert(1);
-}
-
-.cluster[data-appearance='light'] .cluster-brand img {
-  opacity: 0.62;
-  filter: brightness(0);
-}
-
-.cluster-brand b {
-  max-width: 104px;
-  overflow: hidden;
-  color: var(--dim);
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: 0.16em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
+  gap: 10px;
 }
 
 .cluster-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 34px;
+  gap: 7px;
+  height: 30px;
   padding: 0 2px;
-  font-size: 18px;
+  font-size: calc(18.5px * var(--cluster-scale, 1));
   font-weight: 600;
 }
 
@@ -460,45 +465,178 @@ body,
 }
 
 .cluster-clock time {
-  font-size: 21px;
+  font-size: calc(20.5px * var(--cluster-scale, 1));
   letter-spacing: 0.02em;
 }
 
-/* One line of what plays, in the dial's open bottom: its title and who it's by. */
-.cluster-nowplaying {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 620px;
-  transform: translateX(-50%);
-  color: var(--dim);
-  font-size: 14px;
-  font-weight: 550;
-  pointer-events: none;
-  /* Not `both`: after the entrance the paused line's own opacity has to show through. */
-  animation: nowplaying-in 420ms var(--motion-ease) 120ms backwards;
+/* The speed limit the truck's navigation knows, as a road sign: white, ringed in red, red over the limit. It sits in
+   the status line with the clock, where the driver glances for the time, rather than over the dial's open top. */
+.cluster-limitsign {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(34px * var(--cluster-scale, 1));
+  height: calc(34px * var(--cluster-scale, 1));
+  /* The sign's ring, the same red the cabin draws its own limit sign in (dashboard/map.css, glance.css): one road
+     sign across the cab, so the dash and the screen can't disagree about what the limit looks like. */
+  border: calc(3px * var(--cluster-scale, 1)) solid #e3141b;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: calc(14px * var(--cluster-scale, 1));
+  font-weight: 700;
+  animation: limit-in 460ms var(--motion-ease) 240ms both;
 }
 
-@keyframes nowplaying-in {
+@keyframes limit-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 3px);
+    transform: scale(0.8);
   }
 }
 
-.cluster-nowplaying svg {
+.cluster-limitsign[data-over] b {
+  color: #c01d16;
+}
+
+/*
+ * The paired phone, closing the notice row at its right end, under the status bar: while it is there, the receiver
+ * with which phone it is and the charge it has; while it isn't, a dim receiver alone, with no name and no charge —
+ * that is the one thing a driver checks before a call. The battery is a phone's own mark (its terminal, the level
+ * filled in, red under a fifth of it and green with the bolt that says charging) with the level in figures beside it:
+ * the bar for a look, the numbers for the answer. The cabin's sidebar keeps the same status with the way into the
+ * app; a call is the notice's own, where it can be answered and read.
+ */
+.cluster-phone {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 2px;
+  color: var(--dim);
+  opacity: 0.42;
+  transition: opacity 220ms var(--motion-ease);
+}
+
+.cluster-phone[data-on] {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.cluster-phone svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* Which phone it is: the model it gives itself, at one line's length. A long one is cut rather than shortening the
+   route's line on the other side of the status bar. */
+.cluster-phone-name {
+  max-width: 124px;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: calc(15.5px * var(--cluster-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The figure close to the battery it belongs to — nearer that than the name before it. */
+.cluster-phone-level {
+  margin-left: -3px;
+  color: var(--ink);
+  font-size: calc(15.5px * var(--cluster-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.cluster-phone-charge {
+  position: relative;
+  flex: none;
+  display: block;
+  width: 25px;
+  height: 13px;
+  padding: 1.5px;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 58%, transparent);
+  border-radius: 4px;
+}
+
+/* Its terminal, as a battery has one. */
+.cluster-phone-charge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 1.8px);
+  width: 2px;
+  height: 5px;
+  translate: 0 -50%;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--ink) 48%, transparent);
+}
+
+.cluster-phone-fill {
+  display: block;
+  width: calc(var(--battery, 0) * 1%);
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: width 420ms var(--motion-ease);
+}
+
+/* Under a fifth: red, as a phone's own is — the one time the level is worth a colour. On the charger: green, with
+   the bolt a phone's battery shows. */
+.cluster-phone-charge[data-low] .cluster-phone-fill {
+  background: var(--danger);
+}
+
+.cluster-phone-charge[data-charging] .cluster-phone-fill {
+  background: var(--ok);
+}
+
+.cluster-phone-charge[data-charging]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 5px;
+  height: 8px;
+  margin: auto;
+  /* The dash's ink, as the fill is: a bolt cut out of whatever it lies on, since a phone on the charger is often
+     one that has hardly any charge to show beneath it. */
+  background: var(--ink);
+  clip-path: polygon(58% 0, 10% 58%, 44% 58%, 36% 100%, 90% 42%, 54% 42%);
+}
+
+/* One line of what plays, under the dial: its title and who it's by, kept out of the face's open bottom. */
+.cluster-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: calc(15.5px * var(--cluster-scale, 1));
+  font-weight: 550;
+  /* Not `both`: after the entrance the paused line's own opacity has to show through. */
+  animation: media-in 420ms var(--motion-ease) 120ms backwards;
+}
+
+@keyframes media-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.cluster-media svg {
   flex: none;
   width: 16px;
   height: 16px;
   color: var(--accent);
 }
 
-.cluster-nowplaying b {
-  max-width: 330px;
+.cluster-media b {
+  max-width: 340px;
   min-width: 0;
   overflow: hidden;
   color: var(--ink);
@@ -507,14 +645,14 @@ body,
   white-space: nowrap;
 }
 
-.cluster-nowplaying span {
+.cluster-media span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cluster-nowplaying[data-paused] {
+.cluster-media[data-paused] {
   opacity: 0.55;
 }
 
@@ -533,7 +671,7 @@ body,
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  padding: 8px 4px 2px;
+  padding: calc(8px * var(--cluster-give, 1)) 4px calc(2px * var(--cluster-give, 1));
   /* A column that overflows (a long number in a long language) is cut here rather than drawn over the dial. */
   overflow: hidden;
 }
@@ -564,19 +702,31 @@ body,
   }
 }
 
-/* A reading's mark, in the cluster's accent; a warning turns it red. */
+/*
+ * A reading's mark. It is drawn in the same ink as the reading: on the dash a gauge's symbol is part of the gauge,
+ * and colour is kept for states, so a column of readings doesn't read as a column of warnings. Hot is amber, a
+ * warning or a low tank is red, and a cold engine is blue until it is up to temperature.
+ */
 .cluster-glyph {
   flex: none;
   display: grid;
   place-items: center;
   width: 24px;
   height: 24px;
-  color: var(--accent);
+  color: var(--dim);
 }
 
 .cluster-glyph svg {
   width: 24px;
   height: 24px;
+}
+
+.cluster-glyph[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-glyph[data-cold] {
+  color: var(--cold);
 }
 
 .cluster-glyph[data-warn] {
@@ -597,7 +747,7 @@ body,
 .cluster-mini small,
 .cluster-trip-value small {
   color: var(--dim);
-  font-size: 12px;
+  font-size: calc(13.5px * var(--cluster-scale, 1));
   font-weight: 550;
 }
 
@@ -606,8 +756,8 @@ body,
 .cluster-trip {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  padding-top: 7px;
+  gap: calc(13px * var(--cluster-give, 1));
+  padding-top: calc(7px * var(--cluster-give, 1));
 }
 
 .cluster-trip-top {
@@ -630,7 +780,7 @@ body,
   display: flex;
   align-items: baseline;
   gap: 7px;
-  font-size: 52px;
+  font-size: calc(40px * var(--cluster-scale, 1));
   font-weight: 500;
   line-height: 0.9;
   letter-spacing: -0.04em;
@@ -640,7 +790,7 @@ body,
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  padding-top: 15px;
+  padding-top: calc(13px * var(--cluster-give, 1));
   border-top: 1px solid var(--line);
 }
 
@@ -661,7 +811,7 @@ body,
 }
 
 .cluster-pair b {
-  font-size: 21px;
+  font-size: calc(20.5px * var(--cluster-scale, 1));
   font-weight: 550;
   line-height: 1.15;
 }
@@ -674,10 +824,10 @@ body,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 13px;
+  padding-top: calc(11px * var(--cluster-give, 1));
   border-top: 1px solid var(--line);
   color: var(--dim);
-  font-size: 13px;
+  font-size: calc(14.5px * var(--cluster-scale, 1));
 }
 
 .cluster-odo svg {
@@ -688,7 +838,7 @@ body,
 
 .cluster-odo b {
   color: var(--ink);
-  font-size: 16px;
+  font-size: calc(17px * var(--cluster-scale, 1));
   font-weight: 550;
 }
 
@@ -696,9 +846,9 @@ body,
 
 .cluster-engine {
   display: grid;
-  gap: 6px;
-  margin-top: 6px;
-  padding-top: 10px;
+  gap: calc(4px * var(--cluster-give, 1));
+  margin-top: calc(6px * var(--cluster-give, 1));
+  padding-top: calc(10px * var(--cluster-give, 1));
   border-top: 1px solid var(--line);
 }
 
@@ -722,20 +872,24 @@ body,
 }
 
 .cluster-readout b {
-  font-size: 20px;
+  font-size: calc(19.5px * var(--cluster-scale, 1));
   font-weight: 550;
   line-height: 1;
 }
 
 .cluster-readout small {
   color: var(--dim);
-  font-size: 11px;
+  font-size: calc(13px * var(--cluster-scale, 1));
   font-weight: 550;
 }
 
 .cluster-readout[data-warn] .cluster-glyph,
 .cluster-readout[data-warn] b {
   color: var(--danger);
+}
+
+.cluster-readout[data-cold] .cluster-glyph {
+  color: var(--cold);
 }
 
 /* --- The driver's clocks, left ---------------------------------------------------------------- */
@@ -745,7 +899,7 @@ body,
   flex-direction: column;
   gap: 0;
   margin-top: auto;
-  padding: 14px 0 1px;
+  padding: calc(12px * var(--cluster-give, 1)) 0 1px;
   border-top: 1px solid var(--line);
 }
 
@@ -753,7 +907,8 @@ body,
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  /* Two pixels off what the row had, to pay for the larger clock: the column's foot has to stay inside its 408 px. */
+  padding: calc(8px * var(--cluster-give, 1)) 0;
 }
 
 .cluster-hours-row + .cluster-hours-row {
@@ -761,7 +916,7 @@ body,
 }
 
 .cluster-hours-row strong {
-  font-size: 27px;
+  font-size: calc(31px * var(--cluster-scale, 1));
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -785,7 +940,17 @@ body,
   box-shadow: 0 0 10px var(--warn);
 }
 
-/* --- The speed dial, centre ------------------------------------------------------------------- */
+/* --- The middle column: the message line, the dial, what plays --------------------------------- */
+
+/* The column's three tiers from the top down: one message line, the dial, one line of what plays. The message's slot
+   is held empty when there is nothing to say, so the dial and the route above never move. */
+.cluster-centre {
+  display: grid;
+  grid-template-rows: 28px minmax(0, 1fr) 22px;
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 0;
+}
 
 .cluster-dial {
   display: grid;
@@ -824,13 +989,15 @@ body,
   stroke-width: 3;
 }
 
-.cluster-dial-rpm {
+/* The live arc: the track is the scale's groove and this is how much of it the truck has used, drawn in the
+   dash's accent. A hair thinner than the groove, so its edges still read as a groove, and round-capped so the
+   head of the arc meets the needle's bead rather than being cut off square. */
+.cluster-dial-fill {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 7;
+  stroke-width: 2.6;
   stroke-linecap: round;
-  transition: stroke-dasharray 180ms linear;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 45%, transparent));
+  transition: stroke-dasharray 230ms linear;
 }
 
 .cluster-tick {
@@ -843,30 +1010,68 @@ body,
   stroke-width: 2;
 }
 
-/* The needle follows the speed round the same 270° the rpm arc holds, easing into each new reading. */
+/* The face's numbers, every 20 km/h, inside the ticks: a speedo is read by eye, not counted out from the first
+   major. They are the one thing the pointer never crosses, since it rides the ring outside them. */
+.cluster-dial-label {
+  fill: var(--dim);
+  font-size: calc(14px * var(--cluster-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The tacho, outside the speedo's ring: its track, the engine's arc, and Scania's bands — blue where the auxiliary
+   brake is strongest (2,000 to 2,400 rpm) and red past 2,400. The arc is in the ink, as the dash's is, so the
+   bands stay the only colour on the face. */
+.cluster-dial-rpm-track {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 3;
+}
+
+.cluster-dial-rpm {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 78%, transparent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 180ms linear;
+}
+
+.cluster-rpm-band {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: butt;
+  opacity: 0.85;
+}
+
+.cluster-rpm-band[data-band='aux'] {
+  stroke: var(--cold);
+}
+
+.cluster-rpm-band[data-band='red'] {
+  stroke: var(--danger);
+}
+
+/*
+ * The needle is the head of the lit arc rather than a line from the hub: a bead riding the groove, eased round
+ * with each reading. A line from the centre would run through the figure, the unit and the brand — the dial's
+ * centre is the one part of the face that has to stay clear — and through the scale's numbers on its way out.
+ */
 .cluster-needle {
   transform-box: view-box;
   transition: transform 230ms linear;
 }
 
-.cluster-needle line {
-  stroke: var(--accent);
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 55%, transparent));
+.cluster-needle-head {
+  fill: var(--accent);
+  /* A rim in the panel's own colour lifts the bead off the lit arc it heads. */
+  stroke: var(--bg);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
 }
 
-.cluster-needle-cap {
-  fill: var(--bg);
-  stroke: var(--accent);
-  stroke-width: 2;
-}
-
-.cluster[data-appearance='light'] .cluster-needle-cap {
-  fill: #f7fafb;
-}
-
-/* The figure, at the dial's centre, with its unit under it: the one number the dash always shows. */
+/* The figure, at the dial's centre, with its unit and the truck's brand under it: the one number the dash always
+   shows, and whose dash it is. The block is nudged down by as much as the brand adds above it, so the figure keeps
+   the place it had on the face before the brand was there. */
 .cluster-speed {
   position: absolute;
   inset: 0;
@@ -875,15 +1080,20 @@ body,
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transform: translateY(-5px);
+  transform: translateY(11px);
 }
 
 .cluster-speed strong {
   display: block;
-  font-size: 104px;
+  /* The figure follows Text Size only as far as the face allows: three digits at this size already reach the
+     numbers on the scale, so past that the dial would read as one bright mass. */
+  font-size: min(calc(104px * var(--cluster-scale, 1)), 108px);
   font-weight: 450;
   line-height: 0.86;
   letter-spacing: -0.06em;
+  /* One digit's width for every digit, as the cabin's own speed reads (glance.css): the figure holds still as it
+     changes instead of shuffling sideways with each kilometre. */
+  font-variant-numeric: tabular-nums;
 }
 
 /* Each whole kilometre arrives with a small settle, so the number reads as live rather than redrawn. */
@@ -898,12 +1108,52 @@ body,
   }
 }
 
-.cluster-speed span {
+.cluster-speed > span {
+  color: var(--dim);
+  font-size: calc(14.5px * var(--cluster-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/*
+ * The truck's brand under the unit: small, quiet, and part of the glass rather than a badge on it. The logo files
+ * are line art in white (the boot screen's AMOLED marks), so the dark panel keeps them white and the light one
+ * turns them black; the opacity is what makes them read as grey ink rather than a lit sign. A brand with no logo
+ * shows its name in the same small caps as the unit above it.
+ */
+.cluster-brand {
+  display: grid;
+  place-items: center;
+  /* A mark on the face, not a reading: it keeps the dial's own size as the type grows around it. */
+  height: 26px;
+  max-width: 180px;
+  margin-top: 2px;
+}
+
+.cluster-brand img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.5;
+}
+
+.cluster[data-appearance='light'] .cluster-brand img {
+  filter: brightness(0);
+}
+
+.cluster-brand-wordmark {
+  overflow: hidden;
   color: var(--dim);
   font-size: 13px;
   font-weight: 650;
   letter-spacing: 0.16em;
+  opacity: 0.85;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* The gear sits under the dial as a mark of its own, not another badge. */
@@ -917,7 +1167,7 @@ body,
   min-width: 44px;
   height: 36px;
   color: var(--accent);
-  font-size: 29px;
+  font-size: calc(30px * var(--cluster-scale, 1));
   font-weight: 600;
   animation: gear-in 460ms var(--motion-ease) 360ms both;
 }
@@ -929,49 +1179,20 @@ body,
   }
 }
 
-/* The speed limit sign the truck's navigation knows, as a road sign: white, ringed in red, red over the limit. */
-.cluster-limitsign {
-  position: absolute;
-  top: 4%;
-  right: 3%;
-  display: grid;
-  place-items: center;
-  width: 58px;
-  height: 58px;
-  border: 6px solid #e0322a;
-  border-radius: 50%;
-  background: #fff;
-  color: #111;
-  font-size: 24px;
-  font-weight: 700;
-  box-shadow: 0 8px 20px rgb(0 0 0 / 0.28);
-  animation: limit-in 460ms var(--motion-ease) 240ms both;
-}
-
-@keyframes limit-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-}
-
-.cluster-limitsign.over b {
-  color: #c01d16;
-}
-
 /* --- The truck's gauges, right ---------------------------------------------------------------- */
 
+/* The gauges are spread down the column rather than stacked at its head: five groups on 408 px, each with a
+   hairline above it, so the right side reads as evenly as the left. */
 .cluster-side-right {
+  justify-content: space-between;
   padding-top: 10px;
 }
 
 .cluster-fuel {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
-  gap: 14px;
-  padding: 6px 0 20px;
+  gap: 13px;
+  padding: 4px 0 2px;
 }
 
 .cluster-gauge-row {
@@ -1004,10 +1225,19 @@ body,
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background: var(--bar);
   transform-origin: left;
   animation: meter-grow 760ms var(--motion-ease) both;
   transition: width 320ms var(--motion-ease);
+}
+
+/* The same three states as the glyphs: cold is blue, hot is amber to red, a warning or a low tank is red. */
+.cluster-meter[data-cold] > span {
+  background: var(--cold);
+}
+
+.cluster-meter[data-warn] > span {
+  background: var(--danger);
 }
 
 @keyframes meter-grow {
@@ -1038,8 +1268,8 @@ body,
   align-items: baseline;
   justify-content: flex-end;
   gap: 3px;
-  min-width: 60px;
-  font-size: 30px;
+  min-width: 70px;
+  font-size: calc(29px * var(--cluster-scale, 1));
   font-weight: 550;
   line-height: 1;
 }
@@ -1052,7 +1282,7 @@ body,
   padding-top: 14px;
   border-top: 1px solid var(--line);
   color: var(--dim);
-  font-size: 13px;
+  font-size: calc(14.5px * var(--cluster-scale, 1));
 }
 
 .cluster-foot-pair {
@@ -1070,20 +1300,38 @@ body,
 
 .cluster-gauge-foot b {
   color: var(--ink);
-  font-size: 21px;
+  font-size: calc(22px * var(--cluster-scale, 1));
   font-weight: 550;
 }
 
-/* Brake heat fills the fuel column's gap: a disc, its meter and the reading. */
+/* Brake heat: a disc, its meter and the reading. */
 .cluster-brakes {
   flex: none;
-  padding: 14px 0 16px;
+  padding: 14px 0 12px;
   border-top: 1px solid var(--line);
 }
 
-/* With the fuel card turned off, the brakes and the pair take the column's foot where the fuel card held it. */
-.cluster-side-right > .cluster-brakes:first-child {
-  margin-top: auto;
+/* The two states the dash adds to the tank and the temperatures: fuel this moment (from the tank's own loss) and
+   the truck's damage, the worst of its parts. Both are one line, so they sit at the column's foot beside the
+   readings they explain. */
+.cluster-instant,
+.cluster-wear {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-instant .cluster-meter,
+.cluster-wear .cluster-meter {
+  height: 8px;
+}
+
+.cluster-instant .cluster-gauge-value,
+.cluster-wear .cluster-gauge-value {
+  min-width: 0;
+  font-size: calc(23px * var(--cluster-scale, 1));
 }
 
 .cluster-brake-head {
@@ -1129,7 +1377,7 @@ body,
   display: flex;
   align-items: baseline;
   gap: 3px;
-  font-size: 28px;
+  font-size: calc(29px * var(--cluster-scale, 1));
   font-weight: 550;
   line-height: 1;
 }
@@ -1140,12 +1388,13 @@ body,
   height: 8px;
 }
 
+/* AdBlue keeps its own blue, as the fluid's filler cap and the dash's own gauge do. */
 .cluster-mini .cluster-meter > span {
   background: var(--urea);
 }
 
 .cluster-mini.cluster-coolant .cluster-meter > span {
-  background: var(--accent);
+  background: var(--bar);
 }
 
 .cluster-mini:nth-child(2) .cluster-meter > span {
@@ -1158,6 +1407,39 @@ body,
 
 .cluster-mini .cluster-meter[data-hot] > span {
   background: linear-gradient(90deg, var(--warn), var(--danger));
+}
+
+/* The truck's own alarm tints the dial: a red halo behind the face, so a fault is felt before it is read. */
+.cluster[data-alarm] .cluster-dial-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 60%,
+    color-mix(in srgb, var(--danger) 26%, transparent) 88%,
+    transparent 100%
+  );
+  animation: alarm-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes alarm-glow {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Night in the truck (state/nightDim.ts): the panel dims as the cabin's screen does, so the cluster doesn't glare
+   in a dark cab. Over everything the cluster draws, under the boot, and it takes no presses. */
+.cluster-night {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+  pointer-events: none;
+  transition: opacity 2s var(--motion-ease);
 }
 
 /* Reduced motion (Settings › Appearance, or the PC's own): the cluster's own movement is cut, and its boot's is

@@ -1,19 +1,52 @@
+import { activeClock24, activeMeridiem } from './clock'
+import { activeUnits } from './units'
+
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function minuteOfDay(gameTime: number): number {
   return ((gameTime % 1440) + 1440) % 1440
 }
 
-/** "14:22" — the clock as shown in the sidebar. */
-export function formatGameTime(gameTime: number): string {
-  const minutes = minuteOfDay(gameTime)
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+function two(value: number): string {
+  return String(value).padStart(2, '0')
 }
 
-/** The player's own time at `at` (ms since the epoch), as the sidebar shows it: "14:22". */
+/**
+ * A time of day as the page's clock says it (shared/clock.ts): "14:22", or "2:22 PM" in 12 hours — the leading zero
+ * dropped, as the game and Apple's own clocks drop it, and the language's own AM and PM ("ÖS", "p. m."). Without
+ * `meridiem` it is the status bar's clock, hours and minutes only: CarPlay has no room for more beside the sidebar.
+ */
+function formatClock(hours: number, minutes: number, meridiem = true): string {
+  if (activeClock24()) return `${two(hours)}:${two(minutes)}`
+  const twelve = hours % 12 === 0 ? 12 : hours % 12
+  if (!meridiem) return `${twelve}:${two(minutes)}`
+  const { am, pm } = activeMeridiem()
+  return `${twelve}:${two(minutes)} ${hours < 12 ? am : pm}`
+}
+
+/** "14:22" — the clock as shown in the sidebar, and in the dash, the trip's arrival and the map's stops. */
+export function formatGameTime(gameTime: number): string {
+  const minutes = minuteOfDay(gameTime)
+  return formatClock(Math.floor(minutes / 60), minutes % 60)
+}
+
+/** The player's own time at `at` (ms since the epoch): "14:22", or "2:22 PM". */
 export function formatRealTime(at: number): string {
   const date = new Date(at)
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  return formatClock(date.getHours(), date.getMinutes())
+}
+
+/** The sidebar's clock: hours and minutes, as CarPlay's status bar shows them ("14:22", or "2:22" in 12 hours).
+ * The pill is drawn for the five characters 24 hours take, so the meridiem is left to the clocks with room for it. */
+export function formatGameTimeShort(gameTime: number): string {
+  const minutes = minuteOfDay(gameTime)
+  return formatClock(Math.floor(minutes / 60), minutes % 60, false)
+}
+
+/** The sidebar's own time, in the same five characters: "14:22", or "2:22". */
+export function formatRealTimeShort(at: number): string {
+  const date = new Date(at)
+  return formatClock(date.getHours(), date.getMinutes(), false)
 }
 
 /** "Thu 14:22" */
@@ -46,11 +79,9 @@ export function formatTripTime(minutes: number, words: TimeWords): string {
   return words.hours(Math.floor(whole / 60), String(whole % 60).padStart(2, '0'))
 }
 
-/** A distance (metres, as the game counts them) as Apple shows it: "850 m", "9.4 km", "214 km" (with the
- * language's decimal separator). Close by, to the nearest 10 m, from 100 m the nearest 50. */
+/** A distance (metres, as the game counts them) as the driver's units say it: "850 m", "9.4 km", "0.6 mi",
+ * "214 mi" (with the language's decimal separator). The units are the page's (shared/units.ts), so every label
+ * follows the same choice without being told it. */
 export function formatTripDistance(metres: number, decimal = '.'): string {
-  if (metres < 100) return `${Math.max(0, Math.round(metres / 10) * 10)} m`
-  if (metres < 975) return `${Math.round(metres / 50) * 50} m`
-  if (metres < 9950) return `${(metres / 1000).toFixed(1).replace('.', decimal)} km`
-  return `${Math.round(metres / 1000)} km`
+  return activeUnits().distance(metres, decimal)
 }

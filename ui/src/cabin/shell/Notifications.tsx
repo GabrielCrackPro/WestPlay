@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { cabClock, type PhoneNotification, postToHost } from '../../shared/host'
 import { formatGameTime, formatRealTime } from '../../shared/format'
-import { appHue, sendPhoneCommand, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
+import { appHue, sendPhoneCommand, takeDownNotification, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
 import { useNowPlayingTrack } from '../dashboard/useNowPlaying'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
@@ -24,7 +24,6 @@ export function Notifications() {
   const route = useCabin((state) => state.navigation.route)
   const handedOver = useCabin((state) => state.truckScreen)
   const toasts = usePhoneToasts((state) => state.toasts)
-  const dropToast = usePhoneToasts((state) => state.drop)
   const inPhoneApp = route.kind === 'app' && route.app === 'phone'
   const phoneNotes = inPhoneApp || handedOver ? NO_TOASTS : toasts
   const leavingPhone = useLeaving(phoneNotes, toastKey)
@@ -42,17 +41,19 @@ export function Notifications() {
         <NotePill key={`${note.key}:out`} note={note} leaving />
       ))}
       {/* The phone's: oldest first, so the newest message is the last of them, nearest the app underneath. */}
+      {/* A card's cross takes it down from both of the cab's screens (apps/phone/phone.ts): the dash's notice
+          line goes with it. */}
       {phoneNotes
         .slice()
         .reverse()
         .map((notification) => (
-          <PhoneCard key={notification.id} notification={notification} onDrop={dropToast} />
+          <PhoneCard key={notification.id} notification={notification} onDrop={takeDownNotification} />
         ))}
       {leavingPhone
         .slice()
         .reverse()
         .map((notification) => (
-          <PhoneCard key={`${notification.id}:out`} notification={notification} leaving onDrop={dropToast} />
+          <PhoneCard key={`${notification.id}:out`} notification={notification} leaving onDrop={takeDownNotification} />
         ))}
     </div>
   )

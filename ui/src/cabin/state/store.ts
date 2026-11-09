@@ -19,6 +19,9 @@ import {
   type TrailerInfo,
   type TruckInfo,
 } from '../../shared/host'
+import { type ClockChoice, CLOCK_CHOICES, setActiveClock } from '../../shared/clock'
+import { languageOf, STRINGS } from './strings'
+import { setActiveUnits, type UnitSystem, type UnitsChoice, UNIT_SYSTEMS } from '../../shared/units'
 import type { Maneuver, TurnKind } from '../maps/guidance'
 import {
   receiveAnswer as receiveAppleMusicAnswer,
@@ -200,6 +203,12 @@ interface CabinState {
   clusterCards: Record<ClusterCard, boolean>
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
+  /** The driver's units (Settings › Appearance › Units): the game's own regional setting, or one chosen here.
+   * Every figure on the glass follows it (shared/units.ts). */
+  units: UnitsChoice
+  /** How the clocks read (Settings › Appearance › Clock): the game's own 24-hour switch, or one chosen here. Every
+   * clock on the glass follows it (shared/clock.ts), the sidebar's own time included. */
+  clockFormat: ClockChoice
   /** Album art on Now Playing and in Music (Settings, Now Playing): off, a plain note instead. */
   albumArt: boolean
   /** The apps' text size, a step of `TEXT_SIZES` (Settings › Appearance › Text Size). */
@@ -296,6 +305,8 @@ interface CabinState {
   /** Shows or hides one of the instrument cluster's cards. */
   setClusterCard(card: ClusterCard, shown: boolean): void
   setClock(clock: Clock): void
+  setUnits(units: UnitsChoice): void
+  setClockFormat(clockFormat: ClockChoice): void
   setAlbumArt(shown: boolean): void
   setTextSize(step: number): void
   setReduceMotion(on: boolean): void
@@ -379,6 +390,8 @@ type Persisted = Pick<
   | 'clusterShown'
   | 'clusterCards'
   | 'clock'
+  | 'units'
+  | 'clockFormat'
   | 'albumArt'
   | 'textSize'
   | 'reduceMotion'
@@ -525,6 +538,8 @@ export const useCabin = create<CabinState>()(
       clusterShown: true,
       clusterCards: { ...STARTER_CLUSTER_CARDS },
       clock: 'real',
+      units: 'game',
+      clockFormat: 'game',
       albumArt: true,
       textSize: DEFAULT_TEXT_SIZE,
       reduceMotion: SYSTEM_REDUCES_MOTION,
@@ -586,6 +601,14 @@ export const useCabin = create<CabinState>()(
       setClusterShown: (clusterShown) => set({ clusterShown }),
       setClusterCard: (card, shown) => set((state) => ({ clusterCards: { ...state.clusterCards, [card]: shown } })),
       setClock: (clock) => set({ clock }),
+      setUnits: (units) => {
+        set({ units })
+        syncUnits()
+      },
+      setClockFormat: (clockFormat) => {
+        set({ clockFormat })
+        syncClock()
+      },
       setAlbumArt: (albumArt) => set({ albumArt }),
       setTextSize: (step) => set({ textSize: toTextSize(step) }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
@@ -788,6 +811,8 @@ export const useCabin = create<CabinState>()(
         clusterShown: state.clusterShown,
         clusterCards: state.clusterCards,
         clock: state.clock,
+        units: state.units,
+        clockFormat: state.clockFormat,
         albumArt: state.albumArt,
         textSize: state.textSize,
         reduceMotion: state.reduceMotion,
@@ -892,6 +917,12 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     >
   }
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
+  if (stored.units === 'game' || UNIT_SYSTEMS.includes(stored.units as UnitSystem)) {
+    result.units = stored.units
+  }
+  if (CLOCK_CHOICES.includes(stored.clockFormat as ClockChoice)) {
+    result.clockFormat = stored.clockFormat
+  }
   if (typeof stored.albumArt === 'boolean') result.albumArt = stored.albumArt
   if (stored.textSize !== undefined) result.textSize = toTextSize(stored.textSize)
   if (typeof stored.reduceMotion === 'boolean') result.reduceMotion = stored.reduceMotion
@@ -1045,6 +1076,12 @@ export interface LiveState {
   cursorByHost: boolean
   /** Whether the game's camera is outside the cab: everything CabinPlay plays is the cab's, heard in it only. */
   outsideCab: boolean
+  /** The game's own regional units, from the player's profile (`null`: not heard yet, or the page's preview): its
+   * "Use miles" and the game it belongs to decide between the UK's miles and the US's. */
+  gameUnits: UnitSystem | null
+  /** The game's own clock, from the player's profile (`null`: not heard yet, or the page's preview): whether its
+   * clocks read 24 hours. */
+  gameClock24: boolean | null
   /** What the cabin's Now Playing reports, for the cluster's one line (`null`: nothing loaded). */
   nowPlaying: NowPlayingInfo | null
 }
@@ -1083,6 +1120,8 @@ export const useLive = create<LiveState>()(() => ({
   spectrum: [],
   cursorByHost: false,
   outsideCab: false,
+  gameUnits: null,
+  gameClock24: null,
   nowPlaying: null,
 }))
 
@@ -1115,6 +1154,42 @@ function previewLayout(): ScreenLayoutId | null {
 let resumeHeard: boolean | null = null
 
 /**
+ * The units in force, from the driver's choice and the game's own regional setting: `game` follows the profile's
+ * "Use miles" (and its game, for the UK's miles against the US's), anything else is the driver's own. Also mirrored
+ * into shared/units.ts, where the formatters used outside a component (the map's labels) read it.
+ */
+export function resolveUnits(choice: UnitsChoice, game: UnitSystem | null): UnitSystem {
+  return choice === 'game' ? (game ?? 'metric') : choice
+}
+
+export function syncUnits(): void {
+  setActiveUnits(resolveUnits(useCabin.getState().units, useLive.getState().gameUnits))
+}
+
+/**
+ * The clock in force, from the player's choice and the game's own switch: `game` follows the profile's "24-hour
+ * clock notation" (and 24 hours until the game has said), anything else is the player's own. Mirrored into
+ * shared/clock.ts with the language's AM and PM, where every formatter reads it.
+ */
+export function resolveClock24(choice: ClockChoice, game: boolean | null): boolean {
+  if (choice === '24') return true
+  if (choice === '12') return false
+  return game ?? true
+}
+
+export function syncClock(): void {
+  const words = STRINGS[languageOf(useLive.getState().gameLanguage)]
+  setActiveClock(resolveClock24(useCabin.getState().clockFormat, useLive.getState().gameClock24), {
+    am: words.am,
+    pm: words.pm,
+  })
+}
+
+// The player's own choice comes with the page's storage, so the first frame is drawn with it rather than with the
+// default until the host connects and says what the game's own switch is set to.
+syncClock()
+
+/**
  * Feeds host messages into the stores, and tells the host whether WestPlay is open on the truck's screen
  * (as the page connects, and whenever it opens or closes). Returns the unsubscribe function; call once at
  * startup. The power sequence follows the truck's electrics (and only changes when they change).
@@ -1127,6 +1202,20 @@ export function connectHost(now: () => number = () => performance.now()): () => 
     if (state.truckScreen !== previous.truckScreen) report()
   })
   // The field selected, for the player's own keyboard to type into (the host passes it to the game plugin).
+  // The driver's units, page-wide for the formatters that are not components (shared/units.ts).
+  const stopUnits = useCabin.subscribe((state, previous) => {
+    if (state.units !== previous.units) syncUnits()
+  })
+  syncUnits()
+  // The clock, page-wide for the same formatters (shared/clock.ts): the player's choice, the game's own switch, and
+  // the AM and PM of the language the cabin is speaking.
+  const stopClock = useCabin.subscribe((state, previous) => {
+    if (state.clockFormat !== previous.clockFormat) syncClock()
+  })
+  const stopLanguage = useLive.subscribe((state, previous) => {
+    if (state.gameLanguage !== previous.gameLanguage) syncClock()
+  })
+  syncClock()
   const reportSelection = () => postToHost({ type: 'typing', selection: useKeyboard.getState().selection })
   reportSelection()
   const stopSelections = useKeyboard.subscribe((state, previous) => {
@@ -1136,6 +1225,9 @@ export function connectHost(now: () => number = () => performance.now()): () => 
     stopMessages()
     stopReports()
     stopSelections()
+    stopUnits()
+    stopClock()
+    stopLanguage()
   }
 }
 
@@ -1241,6 +1333,17 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
         break
       case 'camera':
         useLive.setState({ outsideCab: message.outside })
+        break
+      case 'units':
+        // The profile's "Use miles", and its game: miles in America are the US's gallons and degrees, in Europe the
+        // UK's miles and litres.
+        useLive.setState({ gameUnits: message.miles ? (message.american ? 'us' : 'uk') : 'metric' })
+        syncUnits()
+        break
+      case 'clock':
+        // The profile's "24-hour clock notation": 24 hours, or 12 with AM and PM, wherever Cabin Play shows a time.
+        useLive.setState({ gameClock24: message.clock24 })
+        syncClock()
         break
       case 'settings': {
         const cabin = useCabin.getState()

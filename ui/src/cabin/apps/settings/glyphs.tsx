@@ -45,6 +45,17 @@ export function DashboardGlyph() {
   )
 }
 
+/** Instrument Cluster: a speedo, its needle up the face and its reading under the hub. */
+export function ClusterGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M4.2 17.4a8.4 8.4 0 1 1 15.6 0" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" />
+      <path d="M12 14.4 15.9 9" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" />
+      <circle cx="12" cy="14.6" r="1.9" fill="#fff" />
+    </TileGlyph>
+  )
+}
+
 /** Home Screen: a house, the screen the apps live on. */
 export function HomeGlyph() {
   return (
@@ -103,6 +114,18 @@ export function IconsGlyph() {
       <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.4" />
       <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.4" />
       <rect x="13.2" y="13.2" width="7.4" height="7.4" rx="2.4" />
+    </TileGlyph>
+  )
+}
+
+/** Units & Clock: a ruler, its marks cut out of the tile's white. */
+export function UnitsGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M3.2 8.4h17.6a1.4 1.4 0 0 1 1.4 1.4v4.4a1.4 1.4 0 0 1-1.4 1.4H3.2a1.4 1.4 0 0 1-1.4-1.4v-4.4a1.4 1.4 0 0 1 1.4-1.4Zm2.6 2.1v1.9h1.7v-1.9H5.8Zm4.3 0v2.9h1.7v-2.9H10.1Zm4.3 0v1.9h1.7v-1.9h-1.7Zm4.3 0v2.9h1.7v-2.9h-1.7Z"
+      />
     </TileGlyph>
   )
 }

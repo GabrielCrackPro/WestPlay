@@ -27,6 +27,16 @@ export const ROUTE_COLOURS: Record<Appearance, Record<MapRouteColour, { fill: st
   },
 }
 
+/**
+ * The route's colour used away from the map (the cluster's accent): the line's own fill on a dark panel, its darker
+ * casing where the panel is light, so a needle or a live mark in that colour stays legible on the glass it is drawn
+ * on and not only against the map's ground.
+ */
+export function routeAccent(appearance: Appearance, colour: MapRouteColour): string {
+  const route = ROUTE_COLOURS[appearance][colour]
+  return appearance === 'dark' ? route.fill : route.casing
+}
+
 /** The truck's marker on the live map (Settings › Maps), and its size. */
 export type MapMarker = 'arrow' | 'dot' | 'truck'
 export const MAP_MARKERS: readonly MapMarker[] = ['arrow', 'dot', 'truck']

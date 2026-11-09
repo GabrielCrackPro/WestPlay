@@ -380,6 +380,10 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // — the GPS voice, the presses — are the cab's too, and silent outside it).
     let mut was_outside = false;
     let mut outside_told: Option<bool> = None;
+    // The game's regional units, as both pages were last told (they change in the game's menu, not the SDK).
+    let mut units_told: Option<game_settings::RegionalUnits> = None;
+    // The game's clock (24 hours, or 12), as they were last told: it changes in the game's menu too.
+    let mut clock_told: Option<bool> = None;
     // The players' tone (the cab's Settings › Equalizer), passed on with the cab ([`settings::SoundSettings`]).
     let mut equalizer = config.settings.get().sound.playing();
     // The music's spectrum wanted by the cab (its Equalizer open): asked of the players with the cab.
@@ -910,6 +914,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             last_telemetry = None;
             last_truck = None;
             last_job = None;
+            // Told again with the telemetry's neighbours: its units, and whether the game is ATS's; its clock.
+            units_told = None;
+            clock_told = None;
             // The phone's current state, for the notice line (it was sent before this page loaded).
             let _ = cluster_view.post_json(&phone.state_message());
             if let Some(message) = &now_playing_message {
@@ -937,6 +944,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     spectrum = false;
                     cursor_told = None;
                     outside_told = None;
+                    units_told = None;
+                    clock_told = None;
                     startup::mark("page: running (its scripts loaded)");
                     last_telemetry = None;
                     last_truck = None;
@@ -1695,6 +1704,25 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             if outside != was_outside {
                 was_outside = outside;
                 log!("camera: {} the cab", if outside { "outside" } else { "in" });
+            }
+            // The player's units in the game (Options › Interface › Regional Settings), for every figure Cabin
+            // Play reads out: the dash in the driver's own units, not the game's metric ones.
+            let units = game_settings.units();
+            if units_told != Some(units) {
+                units_told = Some(units);
+                let message = serde_json::json!({ "type": "units", "miles": units.miles, "american": units.american })
+                    .to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
+            }
+            // The player's clock in the game (Options › Gameplay › "24-hour clock notation"), for every time Cabin
+            // Play draws to read as the game's does: 24 hours, or 12 with AM and PM.
+            let clock_24 = game_settings.clock_24();
+            if clock_told != Some(clock_24) {
+                clock_told = Some(clock_24);
+                let message = serde_json::json!({ "type": "clock", "clock24": clock_24 }).to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             // The cabin page, for its own sounds: the cab's, so heard in it only.
             if outside_told != Some(outside) {

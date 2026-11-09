@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PhoneCall, PhoneContact, PhoneNotification, PhoneRecent, PhoneState } from '../../../shared/host'
 import {
   callerOf,
@@ -7,6 +7,9 @@ import {
   favouritesFirst,
   initialsOf,
   recentsMatching,
+  receivePhoneNotifications,
+  takeDownNotification,
+  usePhoneToasts,
   visibleNotifications,
 } from './phone'
 
@@ -92,9 +95,7 @@ describe('the call log search', () => {
 describe('who is calling', () => {
   it('takes the name the phone gave for the call', () => {
     expect(
-      callerOf(
-        line({ call: { id: 'c1', state: 'ringing', name: 'Grace Hopper', number: '+1 555 010 2000' } }),
-      ),
+      callerOf(line({ call: { id: 'c1', state: 'ringing', name: 'Grace Hopper', number: '+1 555 010 2000' } })),
     ).toEqual({ name: 'Grace Hopper', number: '+1 555 010 2000' })
   })
 
@@ -113,9 +114,9 @@ describe('who is calling', () => {
 
   it('is nobody when no call is on the line, or nothing named it', () => {
     expect(callerOf(line())).toEqual({ name: null, number: null })
-    expect(
-      callerOf(line({ call: ringing, notifications: [note({ package: 'com.whatsapp', title: 'Ada' })] })),
-    ).toEqual({ name: null, number: null })
+    expect(callerOf(line({ call: ringing, notifications: [note({ package: 'com.whatsapp', title: 'Ada' })] }))).toEqual(
+      { name: null, number: null },
+    )
     expect(callerOf(line({ call: ringing }))).toEqual({ name: null, number: null })
   })
 })
@@ -131,5 +132,47 @@ describe('the contact a call was with', () => {
     expect(contactFor(contacts, '555 010 9999')).toBeNull()
     expect(contactFor(contacts, '010')).toBeNull()
     expect(contactFor(contacts, '')).toBeNull()
+  })
+})
+
+describe('taking a notification down', () => {
+  // The tests run without a browser's storage: the cab's two pages share one in the app, and every write is
+  // guarded, so a stand-in here is all the cabinet's own page needs.
+  let stored: Map<string, string>
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    stored = new Map()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => void stored.set(key, value),
+    })
+  })
+
+  afterEach(() => {
+    usePhoneToasts.setState({ toasts: [] })
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('takes the card down here, and leaves the other page its own', () => {
+    usePhoneToasts.getState().show(note({ id: 'a' }))
+    expect(usePhoneToasts.getState().toasts.map((each) => each.id)).toEqual(['a'])
+
+    takeDownNotification('a')
+
+    expect(usePhoneToasts.getState().toasts).toEqual([])
+    // What the cluster reads as its storage changes: the same id, taken down.
+    expect(JSON.parse(stored.get('westplay.phone.takenDown') ?? '[]')).toEqual(['a'])
+  })
+
+  it('takes the card down when the phone no longer lists its notification', () => {
+    usePhoneToasts.getState().show(note({ id: 'a' }))
+    usePhoneToasts.getState().show(note({ id: 'b' }))
+
+    // The phone's list, as a dismissal on the phone itself arrives: one of the two gone.
+    receivePhoneNotifications([note({ id: 'b' })], true)
+
+    expect(usePhoneToasts.getState().toasts.map((each) => each.id)).toEqual(['b'])
   })
 })

@@ -1,7 +1,8 @@
 import { type CSSProperties, useEffect, useState } from 'react'
 import { postToHost } from '../../shared/host'
 import { CONNECTING_MS, type PowerPhase, SPLASH_MS } from '../state/power'
-import { useLive } from '../state/store'
+import { routeAccent } from '../maps/routeLook'
+import { useCabin, useLive } from '../state/store'
 import { logoSources } from './brand'
 import './boot.css'
 
@@ -20,8 +21,16 @@ export function BootScreen({ phase }: { phase: Exclude<PowerPhase, 'on'> }) {
   if (phase === 'splash' && !withBrand) setWithBrand(true)
   // Up for as long as the phases it goes through, from the first of them.
   const ms = withBrand ? SPLASH_MS + CONNECTING_MS : CONNECTING_MS
+  // The cab's accent, the route's own colour in its dark form (this panel is always black, whatever the cabin's
+  // appearance): the cabin and the dash power on wearing the same light, so the two screens read as one cab's.
+  const routeColour = useCabin((state) => state.mapRoute)
   return (
-    <div className="boot" data-phase={phase} style={{ '--boot-ms': `${ms}ms` } as CSSProperties} aria-hidden>
+    <div
+      className="boot"
+      data-phase={phase}
+      style={{ '--boot-ms': `${ms}ms`, '--boot-accent': routeAccent('dark', routeColour) } as CSSProperties}
+      aria-hidden
+    >
       {/* Nothing while the electrics are off: the game hides the screen itself, and a dark panel has nothing to
           show. Everything is mounted here, so its animation starts the moment the panel lights. */}
       {phase !== 'off' && (

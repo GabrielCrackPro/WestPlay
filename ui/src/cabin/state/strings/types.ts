@@ -14,6 +14,9 @@ export type Language = 'en' | 'tr' | 'es'
 export interface Strings {
   /** The decimal separator: "9.4 km", "9,4 km". */
   decimal: string
+  /** A 12-hour clock's halves of the day: "AM" and "PM" ("ÖÖ"/"ÖS", "a. m."/"p. m."). */
+  am: string
+  pm: string
   /** A whole number using the language's thousands separator. */
   number: (value: number) => string
   /** The trip pill: "15:40 arrival · 12 min · 9.4 km". */
@@ -519,6 +522,24 @@ export interface Strings {
     /** The truck's information bar beside WestPlay (the DAF's, the Scania Smart Dash's), and what it is. */
     vehicleBar: string
     vehicleBarFooter: string
+    /** Units (Settings › Appearance): the driver's choice, and what following the game means. */
+    units: string
+    unitsFooter: string
+    unitsGame: string
+    /** The list's sections: how the screen looks, what the cab's own displays show, and the apps. */
+    screenSection: string
+    cabSection: string
+    appsSection: string
+    /** The page holding the driver's units and the clock, both of which can follow the game. */
+    unitsClock: string
+    clockFormat: string
+    clockFormatFooter: string
+    clockFormatGame: string
+    clockFormat24: string
+    clockFormat12: string
+    unitsMetric: string
+    unitsUk: string
+    unitsUs: string
     textSize: string
     /** Text Size's own text, shown at the size chosen (iOS's). */
     textSizeAbout: string
@@ -660,6 +681,10 @@ export interface Strings {
     warnings: string
     /** The cluster's strip of telltales: its indicators, lights, states and warnings together. */
     telltales: string
+    /** Fuel consumption this moment, beside the trip's average. */
+    instant: string
+    /** The truck's damage, the worst of its parts (the dash's warning and stop lamps). */
+    damage: string
     consumption: string
     odometer: string
     retarder: string

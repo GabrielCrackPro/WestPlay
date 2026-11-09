@@ -86,6 +86,7 @@ export const usePhonePrefs = create<PhonePrefs>()((set, get) => ({
 export function receivePhoneState(state: PhoneState): void {
   announce(state.notifications)
   usePhone.setState(state)
+  dropStaleToasts(state.notifications)
   keepCaller(state)
 }
 
@@ -95,6 +96,7 @@ export function receivePhoneState(state: PhoneState): void {
 export function receivePhoneNotifications(notifications: PhoneNotification[], backlog = false): void {
   announce(notifications, backlog)
   usePhone.setState({ notifications })
+  dropStaleToasts(notifications)
   // The dialer's notification is what names a caller, and it comes after the call itself.
   keepCaller(usePhone.getState())
 }
@@ -117,8 +119,9 @@ interface PhoneToasts {
 
 const toastTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
-/** The phone's newest notifications, over whatever the cab is showing (shell/PhoneAlerts.tsx): each arrives on its
- * own timer and goes on it, so nothing has to watch the phone's list to notice them. */
+/** The phone's newest notifications, over whatever the cab is showing (shell/Notifications.tsx): each arrives on
+ * its own timer and goes on it, so nothing has to watch the phone's list to notice them — and goes sooner if it is
+ * taken down on this screen or the other one, or if the phone stops listing it. */
 export const usePhoneToasts = create<PhoneToasts>()((set) => ({
   toasts: [],
   show: (notification) => {
@@ -137,6 +140,65 @@ export const usePhoneToasts = create<PhoneToasts>()((set) => ({
     set((state) => ({ toasts: state.toasts.filter((each) => each.id !== id) }))
   },
 }))
+
+/**
+ * The notifications taken down from one of the cab's screens, by id, in the cab's own storage. The cabin and the
+ * cluster are two pages of one cab — its screen and its dash — and each stacks the phone's notifications for
+ * itself (the cabin's cards, the dash's one notice line). This is how a card taken down on one goes from the
+ * other's stack at once, instead of being left up on the screen the driver isn't looking at until it times out.
+ *
+ * Storage rather than the host, because the two pages already share it (the settings live there, and the cluster
+ * follows their changes): the dismissal reaches the other screen without a round trip through the phone, and holds
+ * even with the phone disconnected.
+ */
+const TAKEN_DOWN_KEY = 'westplay.phone.takenDown'
+/** The ids kept: the stack holds three, and a dismissal matters only as long as its card would have stood. */
+const MOST_TAKEN_DOWN = 12
+
+function readTakenDown(): string[] {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(TAKEN_DOWN_KEY) ?? '[]')
+    return Array.isArray(stored) ? stored.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    // A locked-down browser: dismissals still work on the page they were made on.
+    return []
+  }
+}
+
+/** Takes a notification down from both of the cab's screens: the card on this one, and the dash's notice line. */
+export function takeDownNotification(id: string): void {
+  usePhoneToasts.getState().drop(id)
+  try {
+    const takenDown = readTakenDown().filter((each) => each !== id)
+    localStorage.setItem(TAKEN_DOWN_KEY, JSON.stringify([...takenDown, id].slice(-MOST_TAKEN_DOWN)))
+  } catch {
+    // As above: this page has it taken down, which is what the driver pressed.
+  }
+}
+
+/**
+ * Takes down the cards whose notification the phone no longer lists: one dismissed on the phone itself, or in the
+ * Phone app's own list, is dismissed all round — the cabin's stack and the dash's line together, rather than each
+ * sitting out its own six seconds.
+ */
+function dropStaleToasts(notifications: PhoneNotification[]): void {
+  const listed = new Set(notifications.map((each) => each.id))
+  for (const toast of usePhoneToasts.getState().toasts) {
+    if (!listed.has(toast.id)) usePhoneToasts.getState().drop(toast.id)
+  }
+}
+
+// The other page's dismissals, as they happen: a `storage` event fires in every page but the one that wrote (the
+// cabin writes and the cluster takes down, and back the other way). Installed here, once, because both pages load
+// this module for the phone's state.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', (event) => {
+    // Another key is somebody else's change (the settings, most of them); the whole storage cleared has no key at
+    // all, and that leaves the list empty — and nothing to take down.
+    if (event.key !== TAKEN_DOWN_KEY) return
+    for (const id of readTakenDown()) usePhoneToasts.getState().drop(id)
+  })
+}
 
 /** What the phone had already said, by id and by its words: only what it says after this page has heard it is
  * news. `null` until the first snapshot, which is its backlog. */

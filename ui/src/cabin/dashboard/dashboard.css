@@ -294,7 +294,9 @@ button.widget:active {
 .driver-widget-total-label {
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(13px * var(--text-scale, 1));
+  /* Raised with the cluster's labels (owner 2026-11-09: "make the text easier to read"): these are the card's
+     smallest words, and the card has room under the figures for them. */
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -883,11 +885,11 @@ button.widget:active {
   }
 
   .widgets .driver-widget-name {
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 
   .widgets .driver-widget-total-label {
-    font-size: calc(12px * var(--text-scale, 1));
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 
   .widgets .driver-widget-total-value {
@@ -965,7 +967,7 @@ button.widget:active {
   }
 
   .now-playing .service {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15.5px * var(--text-scale, 1));
   }
 
   .now-playing .controls button {
@@ -1074,12 +1076,12 @@ button.widget:active {
   }
 
   .now-playing .service {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15.5px * var(--text-scale, 1));
   }
 
   .now-playing .np-progress {
     gap: calc(8px * var(--text-scale, 1));
-    font-size: calc(13px * var(--text-scale, 1));
+    font-size: calc(14.5px * var(--text-scale, 1));
   }
 
   .now-playing .controls {
@@ -1105,7 +1107,7 @@ button.widget:active {
   }
 
   .fuel .kicker {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15.5px * var(--text-scale, 1));
   }
 
   /* The fuel's line is the longest ("1,241 km of range"): a size down and it still fits the narrow column. */
@@ -1180,7 +1182,7 @@ button.widget:active {
 
   .widget.driver-hours .hours-label,
   .widget.driver-hours .hours-detail {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15.5px * var(--text-scale, 1));
   }
 
   .widget.driver-hours .hours-glyph {

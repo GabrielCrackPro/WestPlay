@@ -7,6 +7,8 @@ import { EqualizerGraph, TrackRow } from './equalizer'
 import { ChoiceRows, Group, NavRow, OrderButtons, Page, SwitchOrderRow, SwitchRow } from './rows'
 import { setIcons, useLooks, useWallpapers } from '../../state/looks'
 import { fileUrl, type IconSet, type IconStyle } from '../../../shared/customize'
+import type { ClockChoice } from '../../../shared/clock'
+import type { UnitsChoice } from '../../../shared/units'
 import { type AppIconRole, appIcon, type IconLook } from '../../../shared/icons'
 import {
   MAP_MARKERS,
@@ -26,6 +28,7 @@ import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearby
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
+import { useUnits } from '../../state/units'
 import {
   CLUSTER_CARDS,
   DASHBOARD_LAYOUTS,
@@ -52,6 +55,7 @@ import {
   AppearanceGlyph,
   CheckGlyph,
   ChevronGlyph,
+  ClusterGlyph,
   DashboardGlyph,
   HomeGlyph,
   IconsGlyph,
@@ -61,6 +65,7 @@ import {
   MapTrafficGlyph,
   NowPlayingGlyph,
   SoundGlyph,
+  UnitsGlyph,
   VoiceGlyph,
   WallpaperGlyph,
 } from './glyphs'
@@ -113,6 +118,12 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <IconsPage />
     case 'dashboard':
       return <DashboardPage />
+    case 'overview':
+      return <OverviewPage />
+    case 'cluster':
+      return <ClusterPage />
+    case 'units':
+      return <UnitsPage />
     case 'home':
       return <HomeScreenPage />
     case 'map':
@@ -169,6 +180,7 @@ function ListPage() {
   const iconSet = useLooks((state) => state.iconSet)
   const iconStyle = useLooks((state) => state.iconStyle)
   const detail = useCabin((state) => state.mapDetail)
+  const clusterShown = useCabin((state) => state.clusterShown)
   // What each row is set to now, as iOS's Settings says it: the screen's look, its wallpaper, its icons, and how
   // much the map draws.
   const wallpaper = wallpapers.find((each) => each.id === wallpaperId) ?? wallpapers[0]
@@ -195,8 +207,11 @@ function ListPage() {
         <SearchResults results={results} onOpen={openResult} />
       ) : (
         <>
-          {/* The screen's own look, in one card: how it looks, what's on it, how its apps are drawn. */}
-          <Group>
+          {/* The list in three sections, so a setting is found where it's expected: how the screen looks, what the
+              cab's own displays show, and the apps. The cab's displays sit together — the dash, its Overview, the
+              map — and the units and clock, which both follow the game, are one page of their own rather than a
+              footnote under Appearance. */}
+          <Group header={text.settings.screenSection}>
             <NavRow
               tile="var(--apple-blue)"
               icon={<AppearanceGlyph />}
@@ -219,8 +234,7 @@ function ListPage() {
               onOpen={() => open('icons')}
             />
           </Group>
-          {/* The apps' own settings, in the order they're met on the screen, the sound with the playing. */}
-          <Group>
+          <Group header={text.settings.cabSection}>
             <NavRow
               tile="var(--apple-indigo)"
               icon={<DashboardGlyph />}
@@ -228,10 +242,11 @@ function ListPage() {
               onOpen={() => open('dashboard')}
             />
             <NavRow
-              tile="var(--apple-blue)"
-              icon={<HomeGlyph />}
-              label={text.settings.homeScreen}
-              onOpen={() => open('home')}
+              tile="var(--apple-teal)"
+              icon={<ClusterGlyph />}
+              label={text.settings.clusterScreen}
+              value={clusterShown ? text.diagnostics.on : text.diagnostics.off}
+              onOpen={() => open('cluster')}
             />
             <NavRow
               tile="var(--apple-green)"
@@ -239,6 +254,20 @@ function ListPage() {
               label={text.apps.maps}
               value={drawn[detail]}
               onOpen={() => open('map')}
+            />
+            <NavRow
+              tile="var(--apple-gray)"
+              icon={<UnitsGlyph />}
+              label={text.settings.unitsClock}
+              onOpen={() => open('units')}
+            />
+          </Group>
+          <Group header={text.settings.appsSection}>
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<HomeGlyph />}
+              label={text.settings.homeScreen}
+              onOpen={() => open('home')}
             />
             <NavRow
               tile="var(--apple-pink)"
@@ -336,6 +365,7 @@ function AppearancePage() {
           onToggle={useCabin((state) => state.setReduceMotion)}
         />
       </Group>
+
       {hasBar && (
         <Group footer={text.settings.vehicleBarFooter}>
           <SwitchRow
@@ -603,16 +633,14 @@ function IconSetRow({
   )
 }
 
-/** Which widgets the Dashboard shows and the order and size they come in (Auto order: the drive's own), and which
- * clock the sidebar keeps: the player's own time or the game's. */
+/** Which widgets the Dashboard shows and the order and size they come in (Auto order: the drive's own), and its
+ * second screen, the Overview, which has a page of its own. */
 function DashboardPage() {
   const text = useText()
   const widgets = useCabin((state) => state.dashboardWidgets)
   const setWidget = useCabin((state) => state.setDashboardWidget)
   const sizes = useCabin((state) => state.dashboardWidgetSizes)
   const setSize = useCabin((state) => state.setDashboardWidgetSize)
-  const clock = useCabin((state) => state.clock)
-  const setClock = useCabin((state) => state.setClock)
   const autoOrder = useCabin((state) => state.autoOrder)
   const setAutoOrder = useCabin((state) => state.setAutoOrder)
   const order = useCabin((state) => state.dashboardOrder)
@@ -628,15 +656,7 @@ function DashboardPage() {
   const [namingLayout, setNamingLayout] = useState(false)
   const [layoutName, setLayoutName] = useState('')
   const overviewShown = useCabin((state) => state.overviewShown)
-  const setOverviewShown = useCabin((state) => state.setOverviewShown)
-  const overviewDefault = useCabin((state) => state.overviewDefault)
-  const setOverviewDefault = useCabin((state) => state.setOverviewDefault)
-  const overviewCards = useCabin((state) => state.overviewCards)
-  const setOverviewCard = useCabin((state) => state.setOverviewCard)
-  const clusterShown = useCabin((state) => state.clusterShown)
-  const setClusterShown = useCabin((state) => state.setClusterShown)
-  const clusterCards = useCabin((state) => state.clusterCards)
-  const setClusterCard = useCabin((state) => state.setClusterCard)
+  const open = useSettings((state) => state.open)
   const names: Record<DashboardWidget, string> = {
     nowPlaying: text.nowPlaying,
     destination: text.destination,
@@ -644,21 +664,6 @@ function DashboardPage() {
     driver: text.apps.driver,
     weather: text.apps.weather,
     diagnostics: text.apps.diagnostics,
-  }
-  // The Overview's cards, by the names their pages use (the truck's readings are the Diagnostics page's).
-  const overviewNames: Record<OverviewCard, string> = {
-    trip: text.destination,
-    truck: text.apps.diagnostics,
-    hours: text.diagnostics.driverHours,
-    media: text.nowPlaying,
-    weather: text.apps.weather,
-  }
-  const clusterNames: Record<ClusterCard, string> = {
-    trip: text.diagnostics.trip,
-    fuel: text.diagnostics.fuel,
-    engine: text.diagnostics.engine,
-    hours: text.diagnostics.driverHours,
-    warnings: text.diagnostics.warnings,
   }
   const sizeNames: Record<DashboardWidgetSize, string> = {
     compact: text.settings.widgetCompact,
@@ -919,41 +924,121 @@ function DashboardPage() {
       <Group footer={text.settings.autoOrderFooter}>
         <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
       </Group>
-      {/* The Dashboard's Overview: offered or not, opened on, and which of its cards it shows. */}
-      <Group header={text.diagnostics.overview} footer={text.settings.overviewFooter}>
-        <SwitchRow label={text.settings.overviewScreen} on={overviewShown} onToggle={setOverviewShown} />
-        {overviewShown && (
-          <SwitchRow label={text.settings.openOverview} on={overviewDefault} onToggle={setOverviewDefault} />
-        )}
+      {/* The Dashboard's second screen: offered or not, and which cards it keeps — a page of its own, so this one
+          stays about the widgets beside the map. */}
+      <Group footer={text.settings.overviewFooter}>
+        <NavRow
+          label={text.diagnostics.overview}
+          value={overviewShown ? text.diagnostics.on : text.diagnostics.off}
+          onOpen={() => open('overview')}
+        />
       </Group>
-      {overviewShown && (
+    </Page>
+  )
+}
+
+/** The Dashboard's Overview: its second screen, offered or not, opened on, and which of its cards it shows. */
+function OverviewPage() {
+  const text = useText()
+  const shown = useCabin((state) => state.overviewShown)
+  const setShown = useCabin((state) => state.setOverviewShown)
+  const openOn = useCabin((state) => state.overviewDefault)
+  const setOpenOn = useCabin((state) => state.setOverviewDefault)
+  const cards = useCabin((state) => state.overviewCards)
+  const setCard = useCabin((state) => state.setOverviewCard)
+  // The cards, by the names their pages use (the truck's readings are the Diagnostics page's).
+  const names: Record<OverviewCard, string> = {
+    trip: text.destination,
+    truck: text.apps.diagnostics,
+    hours: text.diagnostics.driverHours,
+    media: text.nowPlaying,
+    weather: text.apps.weather,
+  }
+  return (
+    <Page title={text.diagnostics.overview}>
+      <Group footer={text.settings.overviewFooter}>
+        <SwitchRow label={text.settings.overviewScreen} on={shown} onToggle={setShown} />
+        {shown && <SwitchRow label={text.settings.openOverview} on={openOn} onToggle={setOpenOn} />}
+      </Group>
+      {shown && (
         <Group header={text.settings.overviewCards}>
           {OVERVIEW_CARDS.map((card) => (
-            <SwitchRow
-              key={card}
-              label={overviewNames[card]}
-              on={overviewCards[card]}
-              onToggle={(on) => setOverviewCard(card, on)}
-            />
+            <SwitchRow key={card} label={names[card]} on={cards[card]} onToggle={(on) => setCard(card, on)} />
           ))}
         </Group>
       )}
-      {/* The instrument cluster WestPlay replaces on the trucks it is built for: offered or not, and its cards. */}
-      <Group header={text.settings.clusterScreen} footer={text.settings.clusterFooter}>
-        <SwitchRow label={text.settings.clusterSwitch} on={clusterShown} onToggle={setClusterShown} />
+    </Page>
+  )
+}
+
+/** The instrument cluster WestPlay replaces on the trucks it is built for: offered or not, and its cards. */
+function ClusterPage() {
+  const text = useText()
+  const shown = useCabin((state) => state.clusterShown)
+  const setShown = useCabin((state) => state.setClusterShown)
+  const cards = useCabin((state) => state.clusterCards)
+  const setCard = useCabin((state) => state.setClusterCard)
+  const names: Record<ClusterCard, string> = {
+    trip: text.diagnostics.trip,
+    fuel: text.diagnostics.fuel,
+    engine: text.diagnostics.engine,
+    hours: text.diagnostics.driverHours,
+    warnings: text.diagnostics.warnings,
+  }
+  return (
+    <Page title={text.settings.clusterScreen}>
+      <Group footer={text.settings.clusterFooter}>
+        <SwitchRow label={text.settings.clusterSwitch} on={shown} onToggle={setShown} />
       </Group>
-      {clusterShown && (
+      {shown && (
         <Group header={text.settings.clusterCards}>
           {CLUSTER_CARDS.map((card) => (
-            <SwitchRow
-              key={card}
-              label={clusterNames[card]}
-              on={clusterCards[card]}
-              onToggle={(on) => setClusterCard(card, on)}
-            />
+            <SwitchRow key={card} label={names[card]} on={cards[card]} onToggle={(on) => setCard(card, on)} />
           ))}
         </Group>
       )}
+    </Page>
+  )
+}
+
+/** The driver's units and the clock: both can follow the game's own settings, so they share one page rather than sit
+ * among the screen's look. The sidebar's own clock — the player's time or the game's — is here too: it is the clock
+ * the driver reads most. */
+function UnitsPage() {
+  const text = useText()
+  const units = useCabin((state) => state.units)
+  const setUnits = useCabin((state) => state.setUnits)
+  const clockFormat = useCabin((state) => state.clockFormat)
+  const setClockFormat = useCabin((state) => state.setClockFormat)
+  const clock = useCabin((state) => state.clock)
+  const setClock = useCabin((state) => state.setClock)
+  return (
+    <Page title={text.settings.unitsClock}>
+      <ChoiceRows<UnitsChoice>
+        header={text.settings.units}
+        footer={text.settings.unitsFooter}
+        radio="units"
+        value={units}
+        options={[
+          { id: 'game', label: text.settings.unitsGame },
+          { id: 'metric', label: text.settings.unitsMetric },
+          { id: 'uk', label: text.settings.unitsUk },
+          { id: 'us', label: text.settings.unitsUs },
+        ]}
+        onPick={setUnits}
+      />
+      <ChoiceRows<ClockChoice>
+        header={text.settings.clockFormat}
+        footer={text.settings.clockFormatFooter}
+        radio="clockFormat"
+        value={clockFormat}
+        options={[
+          { id: 'game', label: text.settings.clockFormatGame },
+          { id: '24', label: text.settings.clockFormat24 },
+          { id: '12', label: text.settings.clockFormat12 },
+        ]}
+        onPick={setClockFormat}
+      />
       <Group footer={text.settings.clockFooter}>
         <SwitchRow
           label={text.settings.realClock}
@@ -1421,6 +1506,7 @@ function MapDisplayPage() {
  */
 function MapTrafficPage() {
   const text = useText()
+  const units = useUnits()
   const words = text.destinations
   const junction = useCabin((state) => state.mapJunction)
   const setJunction = useCabin((state) => state.setMapJunction)
@@ -1442,7 +1528,7 @@ function MapTrafficPage() {
         radio={words.mapTraffic}
         options={MAP_TRAFFIC_AROUND.map((metres) => ({
           id: metres,
-          label: metres === 0 ? words.mapNever : `${metres / 1000} km`,
+          label: metres === 0 ? words.mapNever : units.longDistance(metres / 1000, text.decimal),
         }))}
         value={around}
         onPick={setAround}

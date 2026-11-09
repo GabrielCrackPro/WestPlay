@@ -1,12 +1,14 @@
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
+import { useUnits } from '../state/units'
 
 /** The truck's own state over the map: the hazard warning lights, and the cruise control's set speed. */
 export function DriveStatus() {
   const text = useText()
+  const units = useUnits()
   const hazard = useLive((state) => state.telemetry?.hazard ?? false)
   const cruise = useLive((state) => state.telemetry?.cruiseControlSpeed ?? 0)
-  const speed = Math.round(cruise * 3.6)
+  const speed = units.speed(cruise)
   if (!hazard && cruise <= 0.5) return null
   return (
     <div className="drive-status" role="group">
@@ -18,7 +20,7 @@ export function DriveStatus() {
       {cruise > 0.5 && (
         <span
           className="drive-badge cruise"
-          aria-label={`${text.diagnostics.cruiseControl} ${speed} ${text.diagnostics.kmh}`}
+          aria-label={`${text.diagnostics.cruiseControl} ${speed} ${units.labels.speed}`}
         >
           <CruiseGlyph />
           <span>{speed}</span>

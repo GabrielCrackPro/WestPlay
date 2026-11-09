@@ -1155,7 +1155,7 @@ html[data-motion='reduced'] *::after {
   }
 }
 
-/* Night in the truck (Shell.tsx `useNightDim`): the screen dims as a head unit's does, so the map doesn't glare in a
+/* Night in the truck (state/nightDim.ts): the screen dims as a head unit's does, so the map doesn't glare in a
    dark cab. Over everything the CarPlay area draws, and it takes no presses. */
 .cab-night {
   position: absolute;

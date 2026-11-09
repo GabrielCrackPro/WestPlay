@@ -65,15 +65,21 @@
   font-weight: 600;
 }
 
+/*
+ * The speed limit as the sign it is, drawn the way the dash draws it (the cluster's own limit sign): a red ring on
+ * a white face, the figure dark until the truck is over it and then red — the ring stays the sign's either way.
+ * One mark on both of the cab's screens, and one the driver reads without being told what it is.
+ */
 .glance-limit {
   display: grid;
   place-items: center;
   width: calc(52px * var(--text-scale, 1));
   height: calc(52px * var(--text-scale, 1));
   margin-left: auto;
-  border: calc(5px * var(--text-scale, 1)) solid #fff;
+  /* The map's own sign red (map.css), and the dash's: one road sign across the cab. */
+  border: calc(5px * var(--text-scale, 1)) solid #e3141b;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.92);
+  background: #fff;
   color: #14161a;
   font-size: calc(22px * var(--text-scale, 1));
   font-weight: 700;
@@ -81,8 +87,7 @@
 }
 
 .glance-limit.over {
-  border-color: var(--apple-red, #ff453a);
-  color: var(--apple-red, #ff453a);
+  color: #c01d16;
 }
 
 .glance-speed-meta {
@@ -115,7 +120,9 @@
   border-radius: 99px;
   background: var(--fill);
   color: var(--text-dim);
-  font-size: calc(13px * var(--text-scale, 1));
+  /* The smallest words on the card, raised with the cluster's labels (owner 2026-11-09: "make the text easier to
+     read"): a chip is read at a glance from the driver's seat, not held up close. */
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -205,7 +212,7 @@
 .glance-stat span {
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(15.5px * var(--text-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -232,6 +239,12 @@
 
 .glance-bar.fuel > span {
   background: #f5f5f7;
+}
+
+/* The way so far, in the colour the driver chose for the route (--accent, set by the shell): the map's line, the
+   dash's needle and its lit arc and this bar are one colour, so the cabin and the cluster name the way alike. */
+.glance-bar.way > span {
+  background: var(--accent, #fff);
 }
 
 /* Weather: the cab's clock over where the truck is and the sky, with its symbol. */
@@ -330,7 +343,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--text-dim);
-  font-size: calc(14px * var(--text-scale, 1));
+  font-size: calc(15.5px * var(--text-scale, 1));
   font-weight: 500;
   white-space: nowrap;
 }
@@ -506,7 +519,7 @@
   }
 
   .glance-kicker {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15.5px * var(--text-scale, 1));
   }
 
   .glance-speed-value {
@@ -542,7 +555,8 @@
   .glance-hours-line span:last-child,
   .glance-hours-detail,
   .glance-media-text span {
-    font-size: calc(12px * var(--text-scale, 1));
+    /* The 7" screen's labels, the smallest text the cabin draws: a step and a half up, for the same reason. */
+    font-size: calc(13.5px * var(--text-scale, 1));
   }
 
   .glance-clock {

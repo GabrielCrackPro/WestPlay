@@ -6,6 +6,8 @@ import type { Strings } from './types'
  */
 export const SPANISH_STRINGS: Strings = {
   decimal: ',',
+  am: 'a. m.',
+  pm: 'p. m.',
   number: (value) => new Intl.NumberFormat('es-ES').format(value),
   arrival: 'llegada',
   minutes: (minutes) => `${minutes} min`,
@@ -541,8 +543,26 @@ export const SPANISH_STRINGS: Strings = {
     vehicleBar: 'Barra del vehículo',
     vehicleBarFooter:
       'La barra de información del camión junto a Cabin Play. Desactivada, Cabin Play ocupa toda la pantalla.',
+    units: 'Unidades',
+    unitsFooter:
+      'Velocidades, distancias, combustible y temperaturas en todo Cabin Play. Seguir el juego usa la opción «Usar millas» de sus ajustes regionales.',
+    unitsGame: 'Seguir el juego',
+    screenSection: 'Pantalla',
+    cabSection: 'La cabina',
+    appsSection: 'Apps',
+    unitsClock: 'Unidades y reloj',
+    clockFormat: 'Reloj',
+    clockFormatFooter:
+      'Todos los relojes de Cabin Play, incluida la hora de la barra lateral. Seguir el juego usa su opción «notación de 24 horas».',
+    clockFormatGame: 'Seguir el juego',
+    clockFormat24: '24 horas — 14:22',
+    clockFormat12: '12 horas — 2:22 p. m.',
+    unitsMetric: 'Métrico — km, litros, °C',
+    unitsUk: 'Reino Unido — millas, litros, °C',
+    unitsUs: 'Estados Unidos — millas, galones, °F',
     textSize: 'Tamaño del texto',
-    textSizeAbout: 'Las apps de Cabin Play se ajustarán al tamaño de lectura que elijas abajo.',
+    textSizeAbout:
+      'Las apps de Cabin Play y el cuadro de instrumentos se ajustarán al tamaño de lectura que elijas abajo.',
     wallpaper: 'Fondo de pantalla',
     icons: 'Iconos de apps',
     iconStyle: 'Aspecto de iconos',
@@ -668,6 +688,8 @@ export const SPANISH_STRINGS: Strings = {
     sinceStart: 'Desde que arrancó el motor',
     warnings: 'Avisos',
     telltales: 'Luces y avisos',
+    instant: 'Instantáneo',
+    damage: 'Daño',
     consumption: 'Consumo',
     odometer: 'Odómetro',
     retarder: 'Ralentizador',

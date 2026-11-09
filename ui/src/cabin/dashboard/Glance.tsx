@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow'
-import { formatGameTime, formatTripDistance, formatTripTime, speedKmh } from '../../shared/format'
+import { formatGameTime, formatTripDistance, formatTripTime } from '../../shared/format'
 import { cabClock } from '../../shared/host'
 import type { State } from '../apps/diagnostics/readings'
 import { NoteGlyph } from '../apps/music/glyphs'
@@ -7,6 +7,7 @@ import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { useTicker } from '../state/ticker'
+import { useUnits } from '../state/units'
 import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
 import { nearestCity } from './destination'
 import { fuelShare, gearLabel, routeShare } from './overview'
@@ -27,11 +28,12 @@ export function Glance() {
   // The cards the player kept on (Settings › Dashboard); the speed is always there.
   const cards = useCabin((state) => state.overviewCards)
   const truck = useLive((state) => state.truck)
-  const speed = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.speed) : 0))
+  const units = useUnits()
+  const speed = useLive((state) => (state.telemetry ? units.speed(state.telemetry.speed) : 0))
   const shownSpeed = Math.round(useTicker(speed))
-  const limit = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.navigationSpeedLimit) : 0))
+  const limit = useLive((state) => (state.telemetry ? units.limit(state.telemetry.navigationSpeedLimit) : 0))
   const gear = useLive((state) => (state.telemetry ? gearLabel(state.telemetry.displayedGear) : 'N'))
-  const cruise = useLive((state) => (state.telemetry ? speedKmh(state.telemetry.cruiseControlSpeed) : 0))
+  const cruise = useLive((state) => (state.telemetry ? units.speed(state.telemetry.cruiseControlSpeed) : 0))
   const clock = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
   const fuel = useLive((state) => state.telemetry?.fuel ?? 0)
   const room = truck?.fuelCapacity ?? 0
@@ -116,7 +118,7 @@ export function Glance() {
       <article className="glance-card glance-speed">
         <div className="glance-speed-line">
           <span className="glance-speed-value">{shownSpeed}</span>
-          <span className="glance-speed-unit">{words.kmh}</span>
+          <span className="glance-speed-unit">{units.labels.speed}</span>
           {limit > 0 && <span className={speed > limit ? 'glance-limit over' : 'glance-limit'}>{limit}</span>}
         </div>
         <div className="glance-speed-meta">
@@ -179,7 +181,7 @@ export function Glance() {
           </div>
         )}
         {trip?.progress !== null && trip?.progress !== undefined && (
-          <span className="glance-bar" aria-hidden>
+          <span className="glance-bar way" aria-hidden>
             <span style={{ width: `${Math.round(trip.progress * 100)}%` }} />
           </span>
         )}
@@ -201,8 +203,8 @@ export function Glance() {
         <div className="glance-kicker">{words.fuel}</div>
         <div className="glance-fuel-line">
           <div className="glance-fuel-value">
-            <b>{text.number(Math.round(fuel))}</b> {words.litres}
-            {room > 0 && <span className="glance-fuel-room"> / {text.number(Math.round(room))}</span>}
+            <b>{units.volumeFigure(fuel, text.decimal).value}</b> {units.volumeFigure(fuel, text.decimal).unit}
+            {room > 0 && <span className="glance-fuel-room"> / {units.volumeFigure(room, text.decimal).value}</span>}
           </div>
           <div className="glance-fuel-range">{text.range(formatTripDistance(range, text.decimal))}</div>
         </div>
