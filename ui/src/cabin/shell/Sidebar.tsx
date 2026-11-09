@@ -1,6 +1,8 @@
+import { motion } from 'motion/react'
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
 import { formatGameTimeShort, formatRealTimeShort } from '../../shared/format'
 import { logoSources } from '../boot/brand'
+import { motionEase, useMotionReduced } from '../motion'
 import { useAppIcon, useScreenProfile } from '../state/hooks'
 import { BrandIcon } from './BrandIcon'
 import { type AppId, APPS, PINNED_LIMIT } from '../state/apps'
@@ -594,8 +596,16 @@ function BrandMark() {
 function TruckBrand({ brandId, brand }: { brandId: string; brand: string }) {
   const sources = logoSources(brandId, brand, { mono: true })
   const [attempt, setAttempt] = useState(0)
+  const reduced = useMotionReduced()
   return (
-    <div className="brand" role="img" aria-label={brand}>
+    <motion.div
+      className="brand"
+      role="img"
+      aria-label={brand}
+      initial={reduced ? false : { opacity: 0, y: 3, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: motionEase }}
+    >
       {attempt < sources.length ? (
         <img
           key={sources[attempt].src}
@@ -606,6 +616,6 @@ function TruckBrand({ brandId, brand }: { brandId: string; brand: string }) {
       ) : (
         <span className="brand-wordmark">{brand}</span>
       )}
-    </div>
+    </motion.div>
   )
 }

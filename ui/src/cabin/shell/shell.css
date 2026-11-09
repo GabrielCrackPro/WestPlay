@@ -293,20 +293,10 @@ body,
   inset: 0;
 }
 
-/* After the boot sequence, the first screen fades in — under the boot, which takes the same 500ms to fade out over it
-   (boot.css, state/power.ts: HANDOVER_MS), so the two are one motion: the boot's light going down as CarPlay comes up.
-   Other screen changes are animated by transitions.css; screens have no entry animation of their own, so nothing can
-   replay one when a transition ends. */
-.carplay-content.entering > .screen-slot > .screen {
-  animation: screen-in 500ms var(--motion-ease) both;
-}
-
-@keyframes screen-in {
-  from {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-}
+/* The first screen's entry is Motion's (CabinApp.tsx `Screens`): it fades in under the boot, which takes the same
+   500ms to go down (boot.css, state/power.ts: HANDOVER_MS), so the two are one motion. Other screen changes are
+   animated by transitions.css; screens have no entry animation of their own, so nothing can replay one when a
+   transition ends. */
 
 /* Sidebar: clock + brand, recent apps, Home button. */
 .sidebar {
@@ -344,7 +334,8 @@ body,
 }
 
 /* The truck's mark above the clock: the boot splash's own mark, drawn the same way and filling its box the
-   same way, so the sidebar shows the splash's mark rather than a variant of it. */
+   same way, so the sidebar shows the splash's mark rather than a variant of it. It arrives with Motion
+   (Sidebar.tsx), as the splash's did. */
 .brand {
   display: flex;
   align-items: center;
@@ -352,14 +343,6 @@ body,
   width: 100%;
   height: calc(30px * var(--sidebar-scale));
   margin-bottom: calc(7px * var(--sidebar-scale));
-  animation: brand-in 700ms var(--motion-ease) both;
-}
-
-@keyframes brand-in {
-  from {
-    opacity: 0;
-    transform: translateY(3px) scale(0.97);
-  }
 }
 
 .brand img {

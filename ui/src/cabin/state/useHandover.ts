@@ -4,7 +4,8 @@ import { handoverAt, type PowerPhase } from './power'
 /**
  * Whether the boot has reached its hand-over: its last part (HANDOVER_MS), when its light goes down. What the boot
  * hands over to mounts then — the cabin's first screen, and the cluster's shell on the other display — so it is drawn
- * as the boot's screen fades out (boot.css, `boot-out`): CarPlay arriving as the light goes down, one motion, rather
+ * as the boot's screen fades out (Motion's exit, BootScreen.tsx): CarPlay arriving as the light goes down, one motion,
+ * rather
  * than the boot fading to black and a screen appearing after it.
  *
  * `power` is on `clock`'s time: each page counts the boot on its own clock (the cabin's page clock, `performance.now`;

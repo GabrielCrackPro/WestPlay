@@ -192,14 +192,6 @@ body,
   display: flex;
   flex-direction: column;
   gap: 4px;
-  animation: cluster-in 480ms var(--motion-ease) both;
-}
-
-@keyframes cluster-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
 }
 
 /* --- The top line: the lights, the route, the warnings and the clock --------------------------- */
@@ -217,14 +209,6 @@ body,
   justify-content: space-between;
   gap: 24px;
   min-height: 40px;
-  animation: status-in 520ms var(--motion-ease) both;
-}
-
-@keyframes status-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
 }
 
 /* Every light has a slot whether it is lit or not, so the row never rearranges as the truck changes state. */
@@ -447,14 +431,6 @@ body,
   color: var(--dim);
   font-size: var(--type-sm);
   font-weight: 550;
-  animation: route-in 520ms var(--motion-ease) 120ms both;
-}
-
-@keyframes route-in {
-  from {
-    opacity: 0;
-    transform: translateY(-3px);
-  }
 }
 
 .cluster-route > svg {
@@ -562,23 +538,11 @@ body,
   color: var(--ink);
   font-size: var(--type-unit);
   font-weight: 700;
-  /* `backwards`, not `both`: after the entrance the sign's own opacity has to be free for the fade out below. */
-  animation: limit-in 460ms var(--motion-ease) 240ms backwards;
-  transition: opacity 420ms var(--motion-ease);
 }
 
 /* The route has stopped knowing a limit: the sign leaves over one fade instead of blinking out of the status bar,
-   and the dial's mark on the scale goes with it (useLingering, in the page). */
-.cluster-limitsign[data-leaving] {
-  opacity: 0;
-}
-
-@keyframes limit-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-}
+   and the dial's mark on the scale goes with it (useLingering, in the page). Motion owns that fade now
+   (ClusterScreen.tsx), so the leaving state no longer needs a rule of its own. */
 
 /* Over the limit the sign's figure breathes as well as reddening: a red numeral at the end of the status bar is
    something the eye can pass over, and the dash's other states (a low tank, the truck's alarm) already move. The
@@ -720,14 +684,6 @@ body,
   color: var(--dim);
   font-size: var(--type-sm);
   font-weight: 550;
-  /* Not `both`: after the entrance the paused line's own opacity has to show through. */
-  animation: media-in 420ms var(--motion-ease) 120ms backwards;
-}
-
-@keyframes media-in {
-  from {
-    opacity: 0;
-  }
 }
 
 .cluster-media svg {
@@ -752,10 +708,6 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.cluster-media[data-paused] {
-  opacity: 0.55;
 }
 
 /* The app the track plays from, as the screen's own Home grid draws it: the same icon at the line's size, so a glance
@@ -828,20 +780,7 @@ body,
   padding: 0;
 }
 
-.cluster-side > * {
-  animation: cluster-rise 560ms var(--motion-ease) both;
-}
-
-.cluster-side > *:nth-child(2) {
-  animation-delay: 70ms;
-}
-
-@keyframes cluster-rise {
-  from {
-    opacity: 0;
-    transform: translateY(9px);
-  }
-}
+/* The readings' entrance is Motion's (ClusterScreen.tsx): each column's groups rise one after the other. */
 
 /*
  * A reading's mark. It is drawn in the same ink as the reading: on the dash a gauge's symbol is part of the gauge,
@@ -1108,14 +1047,6 @@ body,
   max-height: 384px;
   max-width: 100%;
   aspect-ratio: 1;
-  animation: dial-in 680ms var(--motion-ease) 80ms both;
-}
-
-@keyframes dial-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
 }
 
 .cluster-dial-ring {
@@ -1133,7 +1064,6 @@ body,
   stroke: var(--line);
   stroke-width: 1;
   stroke-linecap: round;
-  animation: dial-marks-in 520ms var(--motion-ease) 60ms both;
 }
 
 /* The groove the speed's arc runs in: a hair wider than the arc, so the lit part sits inside it, and round-capped
@@ -1143,7 +1073,6 @@ body,
   stroke: var(--track);
   stroke-width: 3.4;
   stroke-linecap: round;
-  animation: dial-marks-in 520ms var(--motion-ease) 60ms both;
 }
 
 /* The live arc: the track is the scale's groove and this is how much of it the truck has used, drawn in the
@@ -1154,10 +1083,10 @@ body,
   stroke: var(--accent);
   stroke-width: 2.6;
   stroke-linecap: round;
-  /* The lit part comes up after its groove rather than with it, so a dial that mounts already reading is built
-     rather than switched on. Its length is not transitioned here: the page eases the reading itself a frame at a
-     time (useSmoothed), and a CSS transition on top of that would smooth a value that is already moving. */
-  animation: dial-marks-in 640ms var(--motion-ease) 180ms both;
+  /* The lit part comes up after its groove rather than with it (Motion, ClusterScreen.tsx), so a dial that mounts
+     already reading is built rather than switched on. Its length is not transitioned here: the page eases the
+     reading itself a frame at a time (useSmoothed), and a CSS transition on top of that would smooth a value that
+     is already moving. */
 }
 
 /* The scale's marks: every one round-capped and hung from the groove, the numbered ones reaching it and the rest
@@ -1166,7 +1095,6 @@ body,
   stroke: var(--line);
   stroke-width: 1.5;
   stroke-linecap: round;
-  animation: dial-marks-in 460ms var(--motion-ease) 160ms both;
 }
 
 .cluster-tick.major {
@@ -1176,22 +1104,13 @@ body,
 
 /* The face's numbers, every 20 km/h, inside the ticks: a speedo is read by eye, not counted out from the first
    major. They are the one thing the pointer never crosses, since it rides the ring outside them. Each fades in a
-   frame after the one before it (the delay is set per number in the page), and no element is re-created by a
-   reading, so the spread plays once. */
+   frame after the one before it (Motion, ClusterScreen.tsx), and no element is re-created by a reading, so the
+   spread plays once. */
 .cluster-dial-label {
   fill: var(--dim);
   font-size: var(--type-unit);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  animation: dial-marks-in 420ms var(--motion-ease) both;
-}
-
-/* One curve for the dial's parts as they come up: they sit at their place and fade in, so nothing slides across the
-   face. `both` holds them hidden through their delay, which is what lets a later part arrive last. */
-@keyframes dial-marks-in {
-  from {
-    opacity: 0;
-  }
 }
 
 /* The tacho, outside the speedo's ring: a thinner line than the speed's, so the speed stays the ring that reads
@@ -1203,7 +1122,6 @@ body,
   stroke: var(--track);
   stroke-width: 2.6;
   stroke-linecap: round;
-  animation: dial-marks-in 520ms var(--motion-ease) 100ms both;
 }
 
 .cluster-dial-rpm {
@@ -1211,7 +1129,6 @@ body,
   stroke: color-mix(in srgb, var(--ink) 70%, transparent);
   stroke-width: 2.6;
   stroke-linecap: round;
-  animation: dial-marks-in 520ms var(--motion-ease) 220ms both;
 }
 
 .cluster-rpm-band {
@@ -1219,7 +1136,6 @@ body,
   stroke-width: 2.6;
   stroke-linecap: butt;
   opacity: 0.8;
-  animation: dial-marks-in 520ms var(--motion-ease) 120ms both;
 }
 
 .cluster-rpm-band[data-band='aux'] {
@@ -1240,19 +1156,11 @@ body,
 }
 
 /* The mark's own group, which carries the two movements it has: it fades in with the sign and, when the route stops
-   knowing a limit, out over the same 420 ms; and its angle is a transition, so a limit that changes on the road (90 to
-   80 for a town) slides round the face instead of jumping between the two. */
+   knowing a limit, out over the same 420 ms (Motion, ClusterScreen.tsx); and its angle is a transition, so a limit
+   that changes on the road (90 to 80 for a town) slides round the face instead of jumping between the two. */
 .cluster-limit {
   transform-box: view-box;
-  opacity: 1;
-  transition:
-    opacity 420ms var(--motion-ease),
-    transform 360ms var(--motion-ease);
-  animation: dial-marks-in 420ms var(--motion-ease) backwards;
-}
-
-.cluster-limit[data-leaving] {
-  opacity: 0;
+  transition: transform 360ms var(--motion-ease);
 }
 
 /*
@@ -1276,7 +1184,6 @@ body,
   stroke-width: 2.6;
   stroke-linecap: round;
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 55%, transparent));
-  animation: dial-marks-in 260ms var(--motion-ease) 80ms both;
 }
 
 /* The figure, at the dial's centre, with its unit, the road's limit and the truck's brand under it: the one number the
@@ -1344,7 +1251,6 @@ body,
   place-items: center;
   width: 38%;
   height: 11.5%;
-  animation: dial-marks-in 560ms var(--motion-ease) 300ms both;
 }
 
 .cluster-brand img {
@@ -1385,14 +1291,6 @@ body,
   color: var(--accent);
   font-size: var(--type-lg);
   font-weight: 600;
-  animation: gear-in 460ms var(--motion-ease) 360ms both;
-}
-
-@keyframes gear-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 4px);
-  }
 }
 
 /* Each change of gear lands with a small drop, as the speed figure settles on every kilometre: a lever has moved,
@@ -1425,19 +1323,11 @@ body,
   font-size: var(--type-sm);
   font-weight: 650;
   line-height: 1;
-  animation: retarder-in 280ms var(--motion-ease) both;
 }
 
 .cluster-retarder svg {
   width: 20px;
   height: 20px;
-}
-
-@keyframes retarder-in {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
 }
 
 /* --- The truck's gauges, right ---------------------------------------------------------------- */

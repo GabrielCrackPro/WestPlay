@@ -30,13 +30,108 @@ html[data-transition='appearance'] :not(.cursor) {
   view-transition-name: none !important;
 }
 
-/* The sidebar stays where it is (its icons have names of their own and slide when the order changes). */
-::view-transition-old(sidebar) {
-  display: none;
+/* --- Light / dark appearance -------------------------------------------------------------------------
+   A change of appearance is one picture fading into the next, plus a soft light sweep that travels across the
+   screen as it changes — dark to light lifts a warm band across it, light to dark lets a quiet shadow pass over
+   it. The sweep is one element (shell.tsx .appearance-sweep) whose gradient position animates with Motion; the
+   page around it crossfades with the View Transition the way iOS changes it, so the two read as one motion.
+   Reduce Motion turns the sweep off and leaves the crossfade as it was. */
+
+/* The sweep sits inside the CarPlay area, over the old and new snapshots alike, so it shades both the same way. */
+.appearance-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  opacity: 0;
+  mix-blend-mode: plus-lighter;
+  background: linear-gradient(
+    116deg,
+    transparent 42%,
+    color-mix(in srgb, var(--text) 22%, transparent) 50%,
+    color-mix(in srgb, var(--text) 14%, transparent) 58%,
+    transparent 66%
+  );
+  background-size: 220% 100%;
 }
 
-::view-transition-new(sidebar) {
-  animation: none;
+.appearance-sweep.light {
+  mix-blend-mode: multiply;
+  background: linear-gradient(
+    116deg,
+    transparent 42%,
+    color-mix(in srgb, rgb(0 0 0 / 0.28) 30%, transparent) 50%,
+    color-mix(in srgb, rgb(0 0 0 / 0.16) 20%, transparent) 58%,
+    transparent 66%
+  );
+  background-size: 220% 100%;
+}
+
+/* The surfaces that change colour with the look: each comes to its new colour in sequence, on the same spring the
+   rest of the cabin moves on, so the screen reads as one formed thing changing rather than a list of boxes flipping.
+   They are timed from the same moment the crossfade starts; the sweep leads, the glass panels answer under it. */
+.shell.appearing .glass,
+.shell.appearing .sidebar,
+.shell.appearing .home-button,
+.shell.appearing .sidebar-button,
+.shell.appearing .sidebar-phone-open,
+.shell.appearing .sidebar-app-options,
+.shell.appearing .sidebar-menu,
+.shell.appearing .notification,
+.shell.appearing .phone-alert,
+.shell.appearing .volume-hud-pill,
+.shell.appearing .cursor-dot,
+.shell.appearing .recent-badge,
+.shell.appearing .keyboard,
+.shell.appearing .dashboard-widget,
+.shell.appearing .overview-card,
+.shell.appearing [class*="-pill"],
+.shell.appearing [class*="-card"]:not(.map-card),
+.shell.appearing .map-controls .glass,
+.shell.appearing .map-tile.light,
+.shell.appearing .map-tile.dark {
+  transition: background-color 420ms var(--motion-ease) 40ms, border-color 420ms var(--motion-ease) 80ms, box-shadow 420ms var(--motion-ease) 120ms;
+}
+
+/* Text and icons across the look: the same breath, a little later, so they come up under the glass that holds them. */
+.shell.appearing *,
+.shell.appearing *::before,
+.shell.appearing *::after {
+  transition: color 420ms var(--motion-ease) 160ms, fill 420ms var(--motion-ease) 160ms, stroke 420ms var(--motion-ease) 160ms;
+}
+
+/* The screen's rim is part of the artwork, not a surface that breathes: it stays hard while the rest moves. */
+.shell.appearing .screen-rim {
+  transition: none;
+}
+
+/* The wallpaper does its own fade on a picture change; it is not part of the look's colour breath. */
+.shell.appearing .wallpaper {
+  transition: none;
+}
+
+/* Keep the brief ones quick: presses, hovers, the little living marks. Those are a different tempo and should not
+   wait on a look change. */
+.shell.appearing :is(button, a, [tabindex], [role='tab'], [role='switch'], [role='radio'], [role='slider']):focus-visible,
+.shell.appearing button:active,
+.shell.appearing .sidebar-button:active,
+.shell.appearing .recent button:active,
+.shell.appearing .sidebar-phone-answer:active,
+.shell.appearing .sidebar-phone-decline:active,
+.shell.appearing .cursor-dot.pressed,
+.shell.appearing .recent button[aria-current='page']::after,
+.shell.appearing .sidebar-phone-answer::after,
+.shell.appearing .sidebar-phone-battery-fill,
+.shell.appearing .brand img,
+.shell.appearing .time {
+  transition: none;
+}
+
+/* The sidebar's mark and the brand wordmark flip with the look over a cover: they breathe with it too, but only
+   while the look is arriving — after that they keep the instant flip they already have. */
+.shell.appearing .brand img,
+.shell.appearing .brand-wordmark {
+  transition: filter 420ms var(--motion-ease) 60ms, color 420ms var(--motion-ease) 160ms;
 }
 
 /* The sidebar is glass, and a snapshot can't blur what's behind it (it's taken on its own). Its group does
@@ -67,6 +162,12 @@ html[data-transition='appearance'] :not(.cursor) {
 
 ::view-transition-new(cursor) {
   animation: none;
+}
+
+/* The appearance sweep's own motion is in shell.tsx (Motion), on the same shape and timing as the boot's scan.
+   Here: only the way it is masked to the CarPlay area, so it never spends a frame off the screen. */
+.appearance-sweep {
+  clip-path: inset(0 0 var(--oem-bottom, 0px) var(--oem-left, 0px));
 }
 
 /* --- The app window and its icon -------------------------------------------------------------------- */
@@ -226,8 +327,8 @@ html[data-transition='close']::view-transition-new(root) {
 
 /* --- Home and the Dashboard trading places (CabinApp.tsx `Screens`) ----------------------------------------
    Not a View Transition: nothing morphs between the two, and the live screens keep their glass blurring the
-   real wallpaper while they move (a snapshot's glass has nothing behind it). The screens scale; only their
-   pieces fade, since fading a whole screen (opacity) would cut its glass off from the wallpaper too.
+   real wallpaper while they move (a snapshot's glass has nothing behind it). Motion moves the screens; only
+   their pieces fade here, since fading a whole screen (opacity) would cut its glass off from the wallpaper too.
    To the Dashboard, Home's icons zoom gently towards the player as the Dashboard settles in from a little
    smaller; back to Home, the other way round: the same language as opening and closing apps. */
 
@@ -238,22 +339,6 @@ html[data-transition='close']::view-transition-new(root) {
 
 .screen-slot.leaving {
   pointer-events: none;
-}
-
-.screen-slot.to-dashboard.leaving {
-  animation: slot-to-large var(--switch-duration) var(--motion-ease) both;
-}
-
-.screen-slot.to-dashboard.entering {
-  animation: slot-from-small var(--switch-duration) var(--motion-ease) both;
-}
-
-.screen-slot.to-home.leaving {
-  animation: slot-to-small var(--switch-duration) var(--motion-ease) both;
-}
-
-.screen-slot.to-home.entering {
-  animation: slot-from-large var(--switch-duration) var(--motion-ease) both;
 }
 
 .screen-slot.leaving :is(.home-grid .app > img, .home-grid .label, .dashboard .map-tile, .dashboard .widget) {
@@ -267,28 +352,4 @@ html[data-transition='close']::view-transition-new(root) {
 :root {
   /* Must match SWITCH_MS in CabinApp.tsx. */
   --switch-duration: 420ms;
-}
-
-@keyframes slot-to-large {
-  to {
-    transform: scale(1.06);
-  }
-}
-
-@keyframes slot-from-large {
-  from {
-    transform: scale(1.06);
-  }
-}
-
-@keyframes slot-to-small {
-  to {
-    transform: scale(0.96);
-  }
-}
-
-@keyframes slot-from-small {
-  from {
-    transform: scale(0.96);
-  }
 }

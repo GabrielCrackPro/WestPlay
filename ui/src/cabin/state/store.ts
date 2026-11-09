@@ -1133,6 +1133,7 @@ export const useLive = create<LiveState>()(() => ({
 /** Plain browser previews have no game to report the screen: `?layout=scania-2025` stands in for it. */
 /** In a browser, `?truck=scania.s_2016` drives that truck (its screen profile). */
 function previewTruck(): TruckInfo | null {
+  if (typeof window === 'undefined') return null
   if (isInHost()) return null
   const model = new URLSearchParams(location.search).get('truck')
   if (!model) return null
@@ -1149,6 +1150,7 @@ function previewTruck(): TruckInfo | null {
 }
 
 function previewLayout(): ScreenLayoutId | null {
+  if (typeof window === 'undefined') return null
   if (isInHost()) return null
   const layout = new URLSearchParams(location.search).get('layout')
   return isScreenLayoutId(layout) ? layout : null

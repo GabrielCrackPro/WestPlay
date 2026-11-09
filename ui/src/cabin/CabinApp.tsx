@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { isInHost, postToHost } from '../shared/host'
 import { appleMusicPlayer, pauseAppleMusicWithGame } from './apps/music/pauseWithGame'
@@ -20,11 +21,12 @@ import { Cursor } from './shell/Cursor'
 import { Shell } from './shell/Shell'
 import { showVolume } from './shell/volumeShown'
 import { type Route, routeKey } from './state/navigation'
-import { nextPhaseAt } from './state/power'
+import { HANDOVER_MS, nextPhaseAt } from './state/power'
 import { useHandover } from './state/useHandover'
 import { meterFrames } from './state/frameMeter'
 import { installSounds } from './state/sound'
 import { connectHost, useCabin, useLive } from './state/store'
+import { motionEase, seconds, useMotionReduced } from './motion'
 import { languageOf } from './state/strings'
 import { followTimeZone } from './state/timeZone'
 
@@ -82,23 +84,26 @@ export function CabinApp() {
   const handover = useHandover(power, pageClock)
   const powered = !FOLLOW_POWER || phase === 'on' || handover
   const entering = usePowerOnEntry(powered)
+  // The boot leaves as it hands over: while it is not reduced, its screen fades under the first screen coming up;
+  // reduced, it stays whole until the electrics' boot is done and is cut then (boot.css, shell.css).
+  const bootPhase = phase === 'on' ? null : phase
+  const booting = FOLLOW_POWER && bootPhase !== null && (reduceMotion || !handover)
   // For the host's startup log: when each boot screen comes up.
   useEffect(() => postToHost({ type: 'startup', stage: `power ${phase}` }), [phase])
 
   return (
     <Shell
-      entering={entering}
       voice={powered}
       overlay={
         <>
-          {FOLLOW_POWER && phase !== 'on' && <BootScreen phase={phase} />}
+          <AnimatePresence>{booting && bootPhase && <BootScreen phase={bootPhase} />}</AnimatePresence>
           {/* In a plain browser the system cursor is there already. */}
           {isInHost() && <Cursor />}
         </>
       }
     >
       {/* The screen mounts as the boot's light goes down, and fades in under it. */}
-      {powered && <Screens route={route} />}
+      {powered && <Screens route={route} entering={entering} />}
     </Shell>
   )
 }
@@ -122,8 +127,7 @@ function followKeybinds(): () => void {
 const pageClock = () => performance.now()
 
 /** How long the first screen takes to fade in: the hand-over's own window (state/power.ts: HANDOVER_MS, which the boot
- * fades out over — shell.css's `.carplay-content.entering`), so the boot going down and CarPlay coming up are one
- * motion. */
+ * fades out over), so the boot going down and CarPlay coming up are one motion. */
 const ENTRY_MS = 500
 
 /** True for the first moments after the screen comes up, while the first screen fades in. */
@@ -163,13 +167,17 @@ const SWITCH_MS = 420
 
 /**
  * The screen for the route. Home and the Dashboard trade places live: the old one stays a moment, moving
- * and fading out while the new one comes in (shell/transitions.css). Any other change swaps at once; app
- * launches are animated by View Transitions (state/launch.ts). A press during a switch starts the next one
- * from wherever things are.
+ * and fading out while the new one comes in (Motion moves the screens; transitions.css fades their pieces).
+ * Any other change swaps at once; app launches are animated by View Transitions (state/launch.ts). A press
+ * during a switch starts the next one from wherever things are.
+ *
+ * The first screen mounts with the boot's hand-over and fades in under the boot's light going down: `entering`
+ * opens it, and Motion's 500 ms matches the boot's exit (state/power.ts: HANDOVER_MS), so the two are one motion.
  */
-function Screens({ route }: { route: Route }) {
+function Screens({ route, entering }: { route: Route; entering: boolean }) {
   const [shown, setShown] = useState(route)
   const [leaving, setLeaving] = useState<{ route: Route; to: 'home' | 'dashboard' } | null>(null)
+  const reduced = useMotionReduced()
 
   // Adjusting state during render: the shown screen follows the route.
   if (routeKey(route) !== routeKey(shown)) {
@@ -187,24 +195,41 @@ function Screens({ route }: { route: Route }) {
     return () => clearTimeout(timer)
   }, [leaving])
 
-  const switching = leaving ? ` to-${leaving.to}` : ''
+  const transition = reduced
+    ? { duration: 0 }
+    : leaving
+      ? { duration: seconds(SWITCH_MS), ease: motionEase }
+      : { duration: seconds(HANDOVER_MS), ease: motionEase }
+  // To the Dashboard, Home's icons zoom gently towards the player as the Dashboard settles in from a little
+  // smaller; back to Home, the other way round: the same language as opening and closing apps.
+  const out = leaving?.to === 'dashboard' ? 1.06 : 0.96
+  const into = leaving?.to === 'dashboard' ? 0.96 : 1.06
   return (
     <>
       {leaving && (
-        <div key={`out:${routeKey(leaving.route)}`} className={`screen-slot leaving${switching}`} aria-hidden>
+        <motion.div
+          key={`out:${routeKey(leaving.route)}`}
+          className="screen-slot leaving"
+          aria-hidden
+          initial={reduced ? false : { scale: 1 }}
+          animate={{ scale: out }}
+          transition={transition}
+        >
           <RouteScreen route={leaving.route} />
-        </div>
+        </motion.div>
       )}
-      <div
+      <motion.div
         key={routeKey(shown)}
-        className={leaving ? `screen-slot entering${switching}` : 'screen-slot'}
-        // Its own animation, not one of its icons' (theirs bubble up here too).
-        onAnimationEnd={(event) => {
-          if (leaving && event.target === event.currentTarget) setLeaving(null)
+        className={leaving ? 'screen-slot entering' : 'screen-slot'}
+        initial={reduced ? false : leaving ? { scale: into } : entering ? { opacity: 0, scale: 0.985 } : false}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={transition}
+        onAnimationComplete={() => {
+          if (leaving) setLeaving(null)
         }}
       >
         <RouteScreen route={shown} />
-      </div>
+      </motion.div>
     </>
   )
 }

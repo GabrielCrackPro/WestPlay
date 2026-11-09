@@ -1355,7 +1355,9 @@ export const IS_DEMO = typeof location !== 'undefined' && new URLSearchParams(lo
 
 /** Whether the page runs inside the WestPlay host (and not in a plain browser preview, nor as the demo). */
 export function isInHost(): boolean {
-  return !IS_DEMO && window.chrome?.webview !== undefined
+  if (IS_DEMO) return false
+  if (typeof window === 'undefined' || window.chrome == null) return false
+  return window.chrome.webview !== undefined
 }
 
 /**

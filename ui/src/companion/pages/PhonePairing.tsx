@@ -23,9 +23,7 @@ export function PhonePairing({
   const pairing = phone?.pairing ?? null
   const device = phone?.device ?? null
   const phoneDetail = phone?.connected
-    ? [device?.name ?? words.connected, device?.appVersion && `Bridge ${device.appVersion}`]
-        .filter(Boolean)
-        .join(' · ')
+    ? [device?.name ?? words.connected, device?.appVersion && `Bridge ${device.appVersion}`].filter(Boolean).join(' · ')
     : words.waiting
 
   // The whole line as the phone takes it: scanned, or pasted in one go.
@@ -44,11 +42,7 @@ export function PhonePairing({
     <>
       {/* The page's panel is already titled with the phone's own words: the group needs none. */}
       <Group place={place}>
-        <Row
-          title={words.phone}
-          detail={phoneDetail}
-          accessory={phone?.connected ? <Tick done /> : undefined}
-        />
+        <Row title={words.phone} detail={phoneDetail} accessory={phone?.connected ? <Tick done /> : undefined} />
         {pairing && (
           <>
             <Row title={words.address} detail={`${pairing.host}:${pairing.port}`} />
