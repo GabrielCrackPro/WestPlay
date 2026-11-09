@@ -20,7 +20,8 @@ import { Cursor } from './shell/Cursor'
 import { Shell } from './shell/Shell'
 import { showVolume } from './shell/volumeShown'
 import { type Route, routeKey } from './state/navigation'
-import { nextPhaseAt, type PowerPhase } from './state/power'
+import { nextPhaseAt } from './state/power'
+import { useHandover } from './state/useHandover'
 import { meterFrames } from './state/frameMeter'
 import { installSounds } from './state/sound'
 import { connectHost, useCabin, useLive } from './state/store'
@@ -36,7 +37,8 @@ const FOLLOW_POWER = isInHost() || new URLSearchParams(location.search).has('pow
 /** The in-cabin screen: the shell around the screen for the current route, after the boot sequence. */
 export function CabinApp() {
   const route = useCabin((state) => state.navigation.route)
-  const phase = useCabin((state) => state.power.phase)
+  const power = useCabin((state) => state.power)
+  const phase = power.phase
   useEffect(() => connectHost(), [])
   // YouTube, Spotify, Apple Music and YouTube Music pause with the game (its menu, tabbing out) and play on after.
   useEffect(() => pauseYouTubeWithGame(), [])
@@ -74,11 +76,14 @@ export function CabinApp() {
     document.documentElement.lang = language
   }, [language])
   usePowerClock()
-  const entering = usePowerOnEntry(phase)
+  // The screen comes up under the boot's light going down: it mounts at the boot's hand-over (state/useHandover.ts),
+  // so the cabin's boot fades out over a screen that is already fading in — the same one motion the dash makes on the
+  // other display.
+  const handover = useHandover(power, pageClock)
+  const powered = !FOLLOW_POWER || phase === 'on' || handover
+  const entering = usePowerOnEntry(powered)
   // For the host's startup log: when each boot screen comes up.
   useEffect(() => postToHost({ type: 'startup', stage: `power ${phase}` }), [phase])
-
-  const powered = !FOLLOW_POWER || phase === 'on'
 
   return (
     <Shell
@@ -92,7 +97,7 @@ export function CabinApp() {
         </>
       }
     >
-      {/* The screen mounts when the power is on, and fades in after the boot. */}
+      {/* The screen mounts as the boot's light goes down, and fades in under it. */}
       {powered && <Screens route={route} />}
     </Shell>
   )
@@ -113,17 +118,22 @@ function followKeybinds(): () => void {
   }
 }
 
-/** Must match --motion-duration in shell.css: how long the first screen takes to fade in. */
-const ENTRY_MS = 650
+/** The page's own clock, the one the power sequence is counted on (state/power.ts): the hand-over's too. */
+const pageClock = () => performance.now()
 
-/** True for the first moments after the power sequence ends, while the first screen fades in. */
-function usePowerOnEntry(phase: PowerPhase): boolean {
+/** How long the first screen takes to fade in: the hand-over's own window (state/power.ts: HANDOVER_MS, which the boot
+ * fades out over — shell.css's `.carplay-content.entering`), so the boot going down and CarPlay coming up are one
+ * motion. */
+const ENTRY_MS = 500
+
+/** True for the first moments after the screen comes up, while the first screen fades in. */
+function usePowerOnEntry(up: boolean): boolean {
   const [entering, setEntering] = useState(false)
-  // Adjusting state during render: the phase is a prop-like value this state follows.
-  const [lastPhase, setLastPhase] = useState(phase)
-  if (phase !== lastPhase) {
-    setLastPhase(phase)
-    if (phase === 'on') setEntering(true)
+  // Adjusting state during render: whether the screen is up is a prop-like value this state follows.
+  const [wasUp, setWasUp] = useState(up)
+  if (up !== wasUp) {
+    setWasUp(up)
+    if (up) setEntering(true)
   }
   useEffect(() => {
     if (!entering) return

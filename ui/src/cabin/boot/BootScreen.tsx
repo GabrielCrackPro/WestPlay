@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useState } from 'react'
 import { postToHost } from '../../shared/host'
-import { CONNECTING_MS, type PowerPhase, SPLASH_MS } from '../state/power'
+import { bootLength, type PowerPhase } from '../state/power'
 import { routeAccent } from '../maps/routeLook'
 import { useCabin, useLive } from '../state/store'
 import { logoSources } from './brand'
@@ -13,14 +13,18 @@ import './boot.css'
  * The power phases (state/power.ts) are only its clock: `splash` then `connecting` on a screen of the truck's
  * own, `connecting` alone when the app or plugin starts mid-drive. Nothing on the screen changes with them —
  * one composition, one animation, from the electrics to CarPlay.
+ *
+ * It is the same screen on both of the truck's displays (the cabin's page and the cluster's), so the two are one
+ * boot: `elapsed` is how far into it this page came in, for the page that loads while the other is already booting.
+ * A boot that begins here is at 0 and plays from its first frame.
  */
-export function BootScreen({ phase }: { phase: Exclude<PowerPhase, 'on'> }) {
+export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 'on'>; elapsed?: number }) {
   // Whether the truck's brand belongs on it: a boot that began with the electrics has a truck to name; one
   // that started mid-drive (or on a tablet screen, which boots no truck) doesn't.
   const [withBrand, setWithBrand] = useState(false)
   if (phase === 'splash' && !withBrand) setWithBrand(true)
   // Up for as long as the phases it goes through, from the first of them.
-  const ms = withBrand ? SPLASH_MS + CONNECTING_MS : CONNECTING_MS
+  const ms = bootLength(withBrand ? 'splash' : 'connecting')
   // The cab's accent, the route's own colour in its dark form (this panel is always black, whatever the cabin's
   // appearance): the cabin and the dash power on wearing the same light, so the two screens read as one cab's.
   const routeColour = useCabin((state) => state.mapRoute)
@@ -28,7 +32,13 @@ export function BootScreen({ phase }: { phase: Exclude<PowerPhase, 'on'> }) {
     <div
       className="boot"
       data-phase={phase}
-      style={{ '--boot-ms': `${ms}ms`, '--boot-accent': routeAccent('dark', routeColour) } as CSSProperties}
+      style={
+        {
+          '--boot-ms': `${ms}ms`,
+          '--boot-age': `${elapsed}ms`,
+          '--boot-accent': routeAccent('dark', routeColour),
+        } as CSSProperties
+      }
       aria-hidden
     >
       {/* Nothing while the electrics are off: the game hides the screen itself, and a dark panel has nothing to
@@ -39,7 +49,6 @@ export function BootScreen({ phase }: { phase: Exclude<PowerPhase, 'on'> }) {
           <div className="boot-panel">
             <BootMark withBrand={withBrand} />
           </div>
-          <span className="boot-light-out" />
         </>
       )}
     </div>

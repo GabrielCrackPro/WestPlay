@@ -30,14 +30,22 @@ export function textScale(step: number): number {
 /**
  * The cluster's share of the same choice (Settings › Appearance › Text Size). Its page is a fixed 1280 x 480 panel —
  * a texture the host draws on the truck's own dash — so it can't take the apps' whole range: twice their text would
- * not fit a dash, and the columns keep their width whatever the type does. What it takes is the panel's own room,
- * 0.9 to 1.16 of the size the dash is drawn at, and the dial keeps its size at every step: the speed is a figure,
- * not text, and shrinking it as the labels grow would be the opposite of reading easier (cluster.css spreads the
- * type by these scales and takes the difference back out of the spaces between the blocks). The step WestPlay starts
- * on is the dash as it is drawn now (owner 2026-11-09: "let the cluster follow the Text Size setting instead of one
- * fixed scale").
+ * not fit a dash, and the columns keep their width whatever the panel does. What it takes is the panel's own room,
+ * 0.98 to 1.16 of the size the dash is drawn at.
+ *
+ * For the cluster the step is the size of the whole dash, not of its type (cluster.css zooms the panel by it): a
+ * gauge that stayed put while its caption grew would read as a text box laid over a diagram, and the owner asked
+ * for the opposite — "all of it have to be bigger not just the text" (2026-11-09). What stays put is the speed
+ * figure: it is already the size the face gave it, and it is the one number the panel must not make bigger than the
+ * dial's own scale (`.cluster-speed strong` holds it at 108 px of the texture at every step).
+ *
+ * The step WestPlay starts on is a step larger than the dash is drawn at (owner 2026-11-09: "make cluster look
+ * bigger, so i can read it all"): the panel is read through the truck's glass from the seat, a little further away
+ * than a screen. The whole range moved up with it, so the smallest step is the panel as drawn and the largest is the
+ * most its columns hold — the last steps move it little because there is nothing left to give: it is one 1280 x 480
+ * panel, and every reading on it is already drawn.
  */
-export const CLUSTER_TEXT_SIZES = [0.9, 0.92, 0.95, 0.97, 1, 1.04, 1.08, 1.12, 1.16] as const
+export const CLUSTER_TEXT_SIZES = [0.98, 1.01, 1.04, 1.07, 1.12, 1.13, 1.14, 1.15, 1.16] as const
 
 /** How much a step scales the cluster's panel. */
 export function clusterTextScale(step: number): number {

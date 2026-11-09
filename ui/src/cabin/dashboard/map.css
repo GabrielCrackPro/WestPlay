@@ -209,6 +209,9 @@
 }
 
 /* The European sign: white, a red ring, black figures (the same by night, as the real one). */
+/* The road's limit, over the map: the ring alone, the figure in the screen's ink — no white plate behind it, as on
+   the dash and the dashboard's own sign (owner 2026-11-09: "remove bg from speed limit"). The shade over the map is
+   what keeps it legible, so the sign needs no plate of its own, and the drop shadow it carried went with the plate. */
 .speed-limit {
   width: 66px;
   height: 66px;
@@ -216,10 +219,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #fff;
   border: 7px solid #e3141b;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
-  color: #111;
+  color: var(--text);
   font-size: calc(25px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: -0.02em;

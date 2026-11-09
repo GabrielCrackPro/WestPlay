@@ -2,7 +2,7 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { cabClock, type PhoneNotification, postToHost } from '../../shared/host'
 import { formatGameTime, formatRealTime } from '../../shared/format'
 import { appHue, sendPhoneCommand, takeDownNotification, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
-import { useNowPlayingTrack } from '../dashboard/useNowPlaying'
+import { useNowPlaying, useNowPlayingTrack, useProgress } from '../dashboard/useNowPlaying'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { gameAlerts } from './gameAlerts'
@@ -273,18 +273,52 @@ function useLeaving<T>(items: T[], keyOf: (item: T) => string): T[] {
 
 /**
  * Tells the host what Now Playing has, once per track or play/pause change, so the cluster can show one line of
- * it. The players live in this page (the radio's own state among them), so the cab is what knows the answer.
+ * it: the track, which player it is, and how far into it that player was. The players live in this page (the
+ * radio's own state among them), so the cab is what knows the answer.
+ *
+ * The progress goes with a timestamp rather than a second-by-second stream: the dash is told where the track stood
+ * and when, and runs it on from there with its own clock. So the key below leaves the position out — a track that
+ * simply plays on is not news — and a seek or a new track is.
  */
 function useNowPlayingReport() {
   const track = useNowPlayingTrack()
+  const { showing, spotify, appleMusic, youtubeMusic, radio } = useNowPlaying()
+  // The player Now Playing is showing, as its own `MediaSource`: what the progress is read from (video and the
+  // radio report no length, so they have no progress line).
+  const source =
+    showing === 'spotify'
+      ? (spotify?.source ?? null)
+      : showing === 'appleMusic'
+        ? (appleMusic?.source ?? null)
+        : showing === 'youtubeMusic'
+          ? (youtubeMusic?.source ?? null)
+          : showing === 'radio'
+            ? (radio?.source ?? null)
+            : null
+  const progress = useProgress(source)
   const reported = useRef<string | null>(null)
   useEffect(() => {
-    const playing = track ? { title: track.title, artist: track.by, playing: track.playing } : null
-    const key = playing ? `${playing.title}\u0000${playing.artist}\u0000${playing.playing}` : ''
+    const report = track
+      ? {
+          title: track.title,
+          artist: track.by,
+          playing: track.playing,
+          app: showing,
+          position: progress ? progress.position : null,
+          at: progress ? Date.now() : null,
+          duration: progress ? progress.duration : null,
+        }
+      : null
+    // A seek while paused is news too — the dash's next play must start where the screen would — so the position is
+    // part of the key then; while the track plays it moves by itself every second, which is no news at all.
+    const held = report && !report.playing ? Math.round(report.position ?? 0) : ''
+    const key = report
+      ? [report.title, report.artist, report.playing, report.app, report.duration, held].join('\u0000')
+      : ''
     if (key === reported.current) return
     reported.current = key
-    postToHost({ type: 'nowPlaying', playing })
-  }, [track])
+    postToHost({ type: 'nowPlaying', playing: report })
+  }, [track, showing, progress])
 }
 
 /** How long a reading must stay right before a warning on it may be raised again, ms. */

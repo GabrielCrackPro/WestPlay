@@ -13,7 +13,13 @@
  *
  * The game itself hides the screen while the electrics are off, so `off` is mostly bookkeeping.
  * The pairing step ("Connect your phone?") will sit between `connecting` and `on` once there is input (M2).
+ *
+ * This page owns the sequence, and the instrument cluster's page is told it (its own `power` message, through the
+ * host): the truck's screen and the dash are one boot, not two clocks that happen to start together — see
+ * `bootShown` below for the cluster's side of it.
  */
+import type { CabinPower } from '../../shared/host'
+
 export type PowerPhase = 'off' | 'splash' | 'connecting' | 'on'
 
 export interface PowerState {
@@ -31,6 +37,25 @@ export type PowerEvent =
 
 export const SPLASH_MS = 2400
 export const CONNECTING_MS = 2600
+
+/** How long the boot runs from its first phase: the truck's brand and then Cabin Play's mark, or the mark alone when
+ * the boot starts mid-drive (`CONNECTING_MS`). */
+export function bootLength(phase: 'splash' | 'connecting'): number {
+  return phase === 'splash' ? SPLASH_MS + CONNECTING_MS : CONNECTING_MS
+}
+
+/** The boot's last part (ms), when its light goes down and what it hands over to comes up under it: the cabin's first
+ * screen and the cluster's shell both mount as it begins, so the two screens hand over as one motion, and
+ * `boot.css` fades the boot's screen out over the same 500ms (`boot-out`). The two numbers are one window — keep
+ * them together. */
+export const HANDOVER_MS = 500
+
+/** When (on the clock that counts it) the boot hands over: its last `HANDOVER_MS`, or `null` when there is no boot to
+ * hand over from. */
+export function handoverAt(power: { phase: PowerPhase; since: number } | null): number | null {
+  if (power?.phase !== 'splash' && power?.phase !== 'connecting') return null
+  return power.since + bootLength(power.phase) - HANDOVER_MS
+}
 
 export const INITIAL_POWER: PowerState = { phase: 'off', since: 0, observed: false }
 
@@ -52,6 +77,20 @@ export function power(state: PowerState, event: PowerEvent): PowerState {
       return { ...state, phase: state.phase === 'splash' ? 'connecting' : 'on', since: event.at }
     }
   }
+}
+
+/**
+ * The boot another screen plays from the cabin's power (`CabinPower`, the phase its page told the host): the phases
+ * before the screen is on, and how far into that boot a page coming up now is (`elapsed`, ms) — the cluster's page
+ * boots on this, so a page that loads while the cabin is already booting joins the boot where it is. `null`: there is
+ * no boot to show (the cabin hasn't said, or the screen is off or already on).
+ */
+export function bootShown(
+  power: CabinPower | null,
+  wallNow: number,
+): { phase: 'splash' | 'connecting'; since: number; elapsed: number } | null {
+  if (power?.phase !== 'splash' && power?.phase !== 'connecting') return null
+  return { phase: power.phase, since: power.since, elapsed: Math.max(0, wallNow - power.since) }
 }
 
 /** When (on the caller's clock) the current phase advances by itself, or `null` if it doesn't. */

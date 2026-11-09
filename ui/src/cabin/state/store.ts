@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
+  type CabinPower,
   type CareerStats,
   type Equalizer,
   FLAT,
@@ -1084,6 +1085,9 @@ export interface LiveState {
   gameClock24: boolean | null
   /** What the cabin's Now Playing reports, for the cluster's one line (`null`: nothing loaded). */
   nowPlaying: NowPlayingInfo | null
+  /** The cabin's power phase, as the host passed it on (`null`: not heard yet). Only the cluster's page is told it:
+   * there it is the boot (ClusterBoot), which is this page's own boot shown on the other screen. */
+  power: CabinPower | null
 }
 
 /** TruckersMP's players around the player, from its SDK: its game server's id, the player's own number on it,
@@ -1123,6 +1127,7 @@ export const useLive = create<LiveState>()(() => ({
   gameUnits: null,
   gameClock24: null,
   nowPlaying: null,
+  power: null,
 }))
 
 /** Plain browser previews have no game to report the screen: `?layout=scania-2025` stands in for it. */
@@ -1198,6 +1203,18 @@ export function connectHost(now: () => number = () => performance.now()): () => 
   const stopMessages = subscribeHostMessages(receiveHostMessage(now))
   const report = () => postToHost({ type: 'westplay', open: !useCabin.getState().truckScreen })
   report()
+  // The cabin's power sequence, for the cluster's page: the dash plays the same boot as this screen, and needs to
+  // know which moment of it the cabin is at, and from when. Its `since` is this page's `performance.now()`, which is
+  // no page's but its own, so it goes out on the machine's clock (`Date.now()`), the one both WebViews read.
+  const reportPower = () => {
+    const { phase, since } = useCabin.getState().power
+    postToHost({ type: 'power', phase, since: Math.round(Date.now() - (now() - since)) })
+  }
+  // Each time it moves — not as the page connects: a boot that hasn't begun has nothing to draw, and the host keeps
+  // the last phase it was told for a cluster page that loads during one (`Power`).
+  const stopPower = useCabin.subscribe((state, previous) => {
+    if (state.power !== previous.power) reportPower()
+  })
   const stopReports = useCabin.subscribe((state, previous) => {
     if (state.truckScreen !== previous.truckScreen) report()
   })
@@ -1224,6 +1241,7 @@ export function connectHost(now: () => number = () => performance.now()): () => 
   return () => {
     stopMessages()
     stopReports()
+    stopPower()
     stopSelections()
     stopUnits()
     stopClock()
@@ -1284,6 +1302,11 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
           hvtMap: message.hvt ? { language: message.language } : null,
           gameLanguage: message.language,
         })
+        break
+      case 'language':
+        // The cluster's page: its own copy of this store, told the game's language without the map restriction the
+        // cab's copy reads with it (that is the cab's business alone).
+        useLive.setState({ gameLanguage: message.language })
         break
       case 'timeZones':
         useLive.setState({ timeZones: message.on })

@@ -293,10 +293,12 @@ body,
   inset: 0;
 }
 
-/* After the boot sequence, the first screen fades in. Other screen changes are animated by transitions.css;
-   screens have no entry animation of their own, so nothing can replay one when a transition ends. */
+/* After the boot sequence, the first screen fades in — under the boot, which takes the same 500ms to fade out over it
+   (boot.css, state/power.ts: HANDOVER_MS), so the two are one motion: the boot's light going down as CarPlay comes up.
+   Other screen changes are animated by transitions.css; screens have no entry animation of their own, so nothing can
+   replay one when a transition ends. */
 .carplay-content.entering > .screen-slot > .screen {
-  animation: screen-in var(--motion-duration) var(--motion-ease) both;
+  animation: screen-in 500ms var(--motion-ease) both;
 }
 
 @keyframes screen-in {

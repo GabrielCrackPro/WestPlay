@@ -34,6 +34,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   vi.resetModules()
 })
 
@@ -220,6 +221,39 @@ describe('connectHost', () => {
     expect(useCabin.getState().navigation.route).toEqual({ kind: 'app', app: 'maps' })
     expect(useCabin.getState().navigation.recents).toEqual(['maps', 'music'])
     disconnect()
+  })
+
+  it('tells the host each phase of the boot, on the clock both screens read', async () => {
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    // The machine's clock, and this page's own (its `performance.now()`, which no other page shares).
+    const wall = 1_700_000_000_000
+    const pageClock = 5000
+    vi.spyOn(Date, 'now').mockReturnValue(wall)
+    const { connectHost, useCabin } = await import('./store')
+    const phases = () => webview.posted.filter((message) => message.type === 'power')
+
+    const disconnect = connectHost(() => pageClock)
+    // Nothing to say until the boot begins: a page that hasn't powered anything has no boot to draw elsewhere.
+    expect(phases()).toEqual([])
+
+    // The electrics come on: the phase and its start, moved from this page's clock onto the machine's, so the
+    // cluster's page can draw the same moment of the same boot.
+    useCabin.getState().powerEvent({ type: 'electrics', on: false, at: 1000 })
+    useCabin.getState().powerEvent({ type: 'electrics', on: true, at: 1600 })
+    expect(phases().at(-1)).toEqual({ type: 'power', phase: 'splash', since: wall - (pageClock - 1600) })
+
+    // The second part of the boot, and the screen on: the cluster stops drawing the boot when it hears the last.
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 2400 })
+    expect(phases().at(-1)).toMatchObject({ phase: 'connecting' })
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 2400 + 2600 })
+    expect(phases().at(-1)).toMatchObject({ phase: 'on' })
+
+    // Disconnected: no more reports.
+    const told = phases().length
+    disconnect()
+    useCabin.getState().powerEvent({ type: 'electrics', on: false, at: pageClock + 9000 })
+    expect(phases()).toHaveLength(told)
   })
 
   it("tells the host the field selected, and types what the player's keyboard typed", async () => {

@@ -1,11 +1,20 @@
 /* Boot sequence (BootScreen.tsx): one screen, one animation, from the electrics to CarPlay. The panel's light
    comes up, Cabin Play's mark and name arrive, the truck's brand settles in under them, the pair holds, and the
-   light goes down. The power phases (state/power.ts) only set its length — SPLASH_MS + CONNECTING_MS on a screen
-   of the truck's own, CONNECTING_MS when the boot starts mid-drive — carried in `--boot-ms`; every delay below is
-   a share of it, so a shorter boot plays the same screen, compressed. */
+   light goes down — the screen fading out over its last 500ms (`boot-out`), so what is behind it comes up as it
+   goes, one motion from the boot to CarPlay rather than a fade to black and a screen appearing after it. The power
+   phases (state/power.ts) only set its length — SPLASH_MS + CONNECTING_MS on a screen of the truck's own,
+   CONNECTING_MS when the boot starts mid-drive — carried in `--boot-ms`; every delay below is a share of it, so a
+   shorter boot plays the same screen, compressed.
+
+   `--boot-age` is how far into the boot the page came in (0 for a boot that begins on it): every delay below is
+   pulled back by it, so a screen that loads while the other one is already booting joins the boot where it is
+   instead of starting it again. That is what keeps the truck's screen and the cluster's one boot. */
 
 .boot {
   --boot-ms: 5000ms;
+  --boot-age: 0ms;
+  /* The hand-over, with the cluster's shell, which is re-mounted as it begins (state/power.ts: HANDOVER_MS). */
+  --handover: 500ms;
 
   position: absolute;
   inset: 0;
@@ -15,6 +24,24 @@
   overflow: hidden;
   background: #000;
   color: #fff;
+  /* The light going down: the whole screen — its black panel, its glow, its mark — fades away, so the dash that is
+     already coming up behind it is what the panel shows as the boot clears. One motion between the two screens. */
+  animation: boot-out var(--handover) var(--motion-ease) calc(var(--boot-ms) - var(--handover) - var(--boot-age)) both;
+}
+
+@keyframes boot-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Not before the electrics: the panel is mounted already then (an empty black screen, nothing to show and nothing
+   behind it to hand over to), and its fade must start counting when the boot does, not when the page did. */
+.boot[data-phase='off'] {
+  animation: none;
 }
 
 /* The glass's edge: the vignette over the panel. */
@@ -26,8 +53,8 @@
   background: radial-gradient(120% 92% at 50% 50%, transparent 40%, rgb(0 0 0 / 0.6) 88%);
 }
 
-/* The panel's light, behind the mark: it comes up once with the electrics, breathes while the name lands, and is
-   taken down by the light-out at the end. */
+/* The panel's light, behind the mark: it comes up once with the electrics, breathes while the name lands, and goes
+   down with the rest of the screen in the hand-over. */
 .boot-glow {
   position: absolute;
   inset: 0;
@@ -39,7 +66,7 @@
     transparent 72%
   );
   opacity: 0;
-  animation: boot-power var(--boot-ms) var(--motion-ease) both;
+  animation: boot-power var(--boot-ms) var(--motion-ease) calc(-1 * var(--boot-age)) both;
 }
 
 /* Doing up, then a slow breath: a panel's backlight settling, not a lamp switched on. */
@@ -78,7 +105,7 @@
   flex-direction: column;
   align-items: center;
   row-gap: calc(30px * var(--text-scale, 1));
-  animation: intro-life var(--boot-ms) var(--motion-ease) both;
+  animation: intro-life var(--boot-ms) var(--motion-ease) calc(-1 * var(--boot-age)) both;
 }
 
 /* Cabin Play's mark and name, under the brand: the pair that follows it. */
@@ -109,7 +136,7 @@
     transparent 74%
   );
   opacity: 0;
-  animation: mark-halo 1100ms var(--motion-ease) calc(var(--boot-ms) * 0.26) both;
+  animation: mark-halo 1100ms var(--motion-ease) calc(var(--boot-ms) * 0.26 - var(--boot-age)) both;
 }
 
 .boot-intro-mark img {
@@ -123,14 +150,14 @@
   box-shadow:
     0 20px 60px rgb(0 0 0 / 0.6),
     0 0 0 1px rgb(255 255 255 / 0.08);
-  animation: mark-in 700ms var(--motion-ease) calc(var(--boot-ms) * 0.18) both;
+  animation: mark-in 700ms var(--motion-ease) calc(var(--boot-ms) * 0.18 - var(--boot-age)) both;
 }
 
 .boot-intro-wordmark {
   font-size: calc(84px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: -0.01em;
-  animation: wordmark-reveal 800ms var(--motion-ease) calc(var(--boot-ms) * 0.22) both;
+  animation: wordmark-reveal 800ms var(--motion-ease) calc(var(--boot-ms) * 0.22 - var(--boot-age)) both;
 }
 
 /* The truck's brand, above Cabin Play's: it's the truck's screen booting, so its maker leads and Cabin Play
@@ -140,7 +167,8 @@
   position: relative;
   display: block;
   opacity: 0;
-  animation: brand-line calc(var(--boot-ms) * 0.26) var(--motion-ease) calc(var(--boot-ms) * 0.06) both;
+  animation: brand-line calc(var(--boot-ms) * 0.26) var(--motion-ease) calc(var(--boot-ms) * 0.06 - var(--boot-age))
+    both;
 }
 
 .boot-brand-logo {
@@ -224,7 +252,7 @@
   }
 }
 
-/* Hold, then down: it fades a shade smaller into the light-out, so the handover to CarPlay has no edge. */
+/* Hold, then down: it ends a shade smaller and dimmer, so the hand-over to CarPlay has no edge. */
 @keyframes intro-life {
   0% {
     transform: none;
@@ -243,30 +271,17 @@
   }
 }
 
-/* The light going down: the panel dims to black as the screen hands over to CarPlay. The last tenth of the boot,
-   over the glow and the mark. */
-.boot-light-out {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: #000;
-  opacity: 0;
-  animation: light-out calc(var(--boot-ms) * 0.1) var(--motion-ease) calc(var(--boot-ms) * 0.9) both;
-}
-
-@keyframes light-out {
-  to {
-    opacity: 1;
-  }
-}
-
 /* Reduced motion (Settings › Appearance's Reduce Motion, or the PC's own; CabinApp sets data-motion): the boot's
    motion cut — the screen still boots, it just shows its one composition at rest, and nothing is left hidden by
    an animation that never ran. */
 html[data-motion='reduced'] .boot::after,
 html[data-motion='reduced'] .boot * {
   animation: none !important;
+}
+
+/* The boot itself too, so it stays whole until it is gone (a cut, where the other screens fade). */
+html[data-motion='reduced'] .boot {
+  animation: none;
 }
 
 html[data-motion='reduced'] .boot-glow {

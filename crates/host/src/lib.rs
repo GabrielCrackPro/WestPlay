@@ -60,7 +60,7 @@ use route::{RouteUpdate, RouteWatch};
 use settings::SharedSettings;
 use weather::{Sky, Weather, WeatherWatch};
 use webview::{OffscreenWebView, Stage};
-use westplay_mapdata::junctions::Turn;
+use westplay_mapdata::junctions::{Maneuver, Turn};
 
 pub use phone::PhoneStatus;
 pub use webview::{Error, wait_for_browsers};
@@ -401,6 +401,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // The speakers of the parts of the truck the player is in, for the trucks whose speakers come with them.
     let mut part_speakers: Option<PartSpeakers> = None;
     let mut player_messages: Vec<String> = Vec::new();
+    // The game's language as the cluster's page reads it: its own message (the cab's copy comes with the map
+    // restriction), kept to send again when that page reloads.
+    let mut cluster_language: Option<String> = None;
+    // The cabin's power sequence, as its page last told it: the cluster's boot runs on it (`Power`), and it's kept
+    // to send again when the cluster page reloads — a page that comes up during a boot joins it where it is.
+    let mut cluster_power: Option<String> = None;
     // The game's GPS route, and the truck's progress along it, kept to send again when the page reloads.
     let route_watch = RouteWatch::start(bridge.clone(), map_watch.played.clone());
     // The host's number for the route shown (`route::RouteUpdate::Route`).
@@ -410,6 +416,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         Option<String>,
         Option<String>,
     ) = (None, None, None);
+    // The route's turns as the cluster page reads them, which is the same message without the geometry it doesn't
+    // draw (`cluster_route_message_for`). Kept apart from the cab's copy so a reloaded cluster gets its arrow back.
+    let mut cluster_route_paths_message: Option<String> = None;
     // The game's weather, kept to send again when the page reloads.
     let weather_watch = WeatherWatch::start(bridge.clone());
     let mut weather_message: Option<String> = None;
@@ -806,23 +815,32 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 continue;
             }
             let message = route_message_for(&update);
+            // The cluster's copy of the same route: its notice line draws the next turn's arrow from the maneuvers
+            // and how far along the route the truck is, so it never needs the polylines.
+            let cluster_message = cluster_route_message_for(&update);
             match update {
                 RouteUpdate::Next(_) => route_next_message = Some(message.clone()),
-                RouteUpdate::Paths { .. } => route_paths_message = Some(message.clone()),
+                RouteUpdate::Paths { .. } => {
+                    route_paths_message = Some(message.clone());
+                    cluster_route_paths_message = Some(cluster_message.clone());
+                }
                 RouteUpdate::Route { id, nodes, waypoints } => {
                     route_number = Some(id);
                     route_uids = Some(nodes.iter().map(|node| node.uid).collect());
                     route_waypoints = waypoints;
                     (route_message, route_paths_message, route_next_message) = (Some(message.clone()), None, None);
+                    cluster_route_paths_message = None;
                 }
                 RouteUpdate::None => {
                     route_number = None;
                     route_uids = None;
                     route_waypoints.clear();
                     (route_message, route_paths_message, route_next_message) = (Some(message.clone()), None, None);
+                    cluster_route_paths_message = None;
                 }
             }
             let _ = webview.post_json(&message);
+            let _ = cluster_view.post_json(&cluster_message);
             // The player's stops along it, after the route itself (the page finds them in it).
             if route_message.as_deref() == Some(message.as_str()) {
                 let hidden = following.as_ref().map(|follow| follow.handover.handed()).unwrap_or_default();
@@ -861,6 +879,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             player_messages = player_messages_for(&player);
             for message in &player_messages {
                 let _ = webview.post_json(message);
+            }
+            // The cluster's words are the cabin's (state/strings): its own page is told the game's language too, on
+            // its own, so its notices, its readings and its screen reader speak what the cab speaks.
+            cluster_language = Some(language_message(player.language.as_deref()));
+            if let Some(message) = &cluster_language {
+                let _ = cluster_view.post_json(message);
             }
         }
         while let Ok(found) = player_watch.speakers.try_recv() {
@@ -917,9 +941,23 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             // Told again with the telemetry's neighbours: its units, and whether the game is ATS's; its clock.
             units_told = None;
             clock_told = None;
+            // The game's language, for the panel's words (it was sent before this page loaded).
+            if let Some(message) = &cluster_language {
+                let _ = cluster_view.post_json(message);
+            }
+            // The cabin's power, for the panel's boot: a page that loads mid-boot draws it from where it is, and one
+            // that loads after it shows the cluster at once.
+            if let Some(message) = &cluster_power {
+                let _ = cluster_view.post_json(message);
+            }
             // The phone's current state, for the notice line (it was sent before this page loaded).
             let _ = cluster_view.post_json(&phone.state_message());
             if let Some(message) = &now_playing_message {
+                let _ = cluster_view.post_json(message);
+            }
+            // The route and how far along it the truck is: what its notice line draws the next turn's arrow from
+            // (the route first, so the turns land on it).
+            for message in route_message.iter().chain(&cluster_route_paths_message).chain(&route_next_message) {
                 let _ = cluster_view.post_json(message);
             }
         }
@@ -1016,6 +1054,13 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         config.settings.set(settings.clone());
                         (config.on_settings)(&settings);
                     }
+                }
+                Some(PageMessage::Power { phase, since }) => {
+                    // The cabin page's own boot, word for word: the cluster's page runs it on the same clock, so the two
+                    // screens light, keep time and clear together. Kept for a cluster page that loads during it.
+                    let message = power_message(phase, since);
+                    cluster_power = Some(message.clone());
+                    let _ = cluster_view.post_json(&message);
                 }
                 Some(PageMessage::NowPlaying { playing }) => {
                     let message = serde_json::json!({ "type": "nowPlaying", "data": playing }).to_string();
@@ -2369,6 +2414,20 @@ struct NowPlayingPage {
     artist: String,
     #[serde(default)]
     playing: bool,
+    /// Which player it comes from (`spotify`, `appleMusic`, `youtubeMusic`, `video`, `radio`), so the cluster can
+    /// draw that app's own icon beside the track.
+    #[serde(default)]
+    app: Option<String>,
+    /// How far into the track the player was (seconds) when the page last spoke, and when that was (Unix ms):
+    /// forwarded as they arrive, so the cluster can run the position on with its own clock rather than be sent a
+    /// tick a second.
+    #[serde(default)]
+    position: Option<f64>,
+    #[serde(default)]
+    at: Option<f64>,
+    /// The track's length, seconds; `null` where the player reports none (a stream).
+    #[serde(default)]
+    duration: Option<f64>,
 }
 
 /// Messages from the cabin page (`PageMessage` in ui/src/shared/host.ts).
@@ -2384,6 +2443,10 @@ enum PageMessage {
     Startup { stage: String },
     /// Whether WestPlay is open on the truck's screen: posted as the page loads and whenever it changes.
     Westplay { open: bool },
+    /// The cabin's power sequence (`power.ts`), as its page goes through it: which phase the screen is in, and
+    /// when that phase began on the machine's clock (`Date.now()`, which both pages share). Passed on to the
+    /// cluster's page, so the dash plays the cabin's boot rather than one of its own.
+    Power { phase: PowerPhase, since: f64 },
     /// The wallpaper chosen in the cab's Settings (an id: `wallpapers.ts`), to keep with the settings.
     Wallpaper { id: String },
     /// The app icons chosen in the cab's Settings (App Icons): the player's icon set by name (`None`: WestPlay's
@@ -2488,6 +2551,29 @@ fn followed_message(id: u32, follows: bool, answer: &str) -> String {
     serde_json::json!({ "type": "followed", "id": id, "follows": follows, "answer": answer }).to_string()
 }
 
+/// `{"type":"power","phase":"splash","since":1762...}`: the cabin's power phase, on to the cluster's page (the
+/// same message the cabin's page posted, built back from its fields).
+fn power_message(phase: PowerPhase, since: f64) -> String {
+    let phase = match phase {
+        PowerPhase::Off => "off",
+        PowerPhase::Splash => "splash",
+        PowerPhase::Connecting => "connecting",
+        PowerPhase::On => "on",
+    };
+    serde_json::json!({ "type": "power", "phase": phase, "since": since }).to_string()
+}
+
+/// A phase of the cabin's power sequence (`PowerPhase` in ui/src/cabin/state/power.ts): the screen off, the two
+/// parts of its boot, and the screen on.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum PowerPhase {
+    Off,
+    Splash,
+    Connecting,
+    On,
+}
+
 /// What the page asks of the voice assistant.
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2522,6 +2608,13 @@ fn westplay_message(open: bool) -> String {
 
 fn parse_page_message(message: &str) -> Option<PageMessage> {
     serde_json::from_str(message).ok()
+}
+
+/// The game's language for the cluster's page: `{"type":"language","language":"tr_tr"}` (`null` until the host has
+/// read it). Its own message because the cab reads the language with the map restriction (`mapBlock`), which the
+/// dash has no business acting on — and because the dash has to hear it without that.
+fn language_message(language: Option<&str>) -> String {
+    serde_json::json!({ "type": "language", "language": language }).to_string()
 }
 
 /// What the player's latest save says, for the page: garages, lifetime career totals, the map restriction,
@@ -2567,16 +2660,7 @@ fn route_message_for(update: &RouteUpdate) -> String {
             serde_json::json!({ "type": "route", "id": id, "nodes": nodes }).to_string()
         }
         RouteUpdate::Paths { id, paths, maneuvers, shifts } => {
-            let maneuvers: Vec<serde_json::Value> = maneuvers
-                .iter()
-                .map(|(span, maneuver)| {
-                    let exit = match maneuver.turn {
-                        Turn::Roundabout(exit) => Some(exit),
-                        _ => None,
-                    };
-                    serde_json::json!([span, maneuver.turn.name(), maneuver.angle.round(), exit])
-                })
-                .collect();
+            let maneuvers = maneuvers_json(maneuvers);
             let shifts: Vec<(usize, f32)> =
                 shifts.iter().map(|&(node, shift)| (node, (shift * 100.0).round() / 100.0)).collect();
             serde_json::json!({ "type": "routePaths", "id": id, "paths": paths, "maneuvers": maneuvers, "shifts": shifts })
@@ -2584,6 +2668,39 @@ fn route_message_for(update: &RouteUpdate) -> String {
         }
         RouteUpdate::Next(next) => serde_json::json!({ "type": "routeNext", "next": next }).to_string(),
         RouteUpdate::None => serde_json::json!({ "type": "route", "id": null, "nodes": null }).to_string(),
+    }
+}
+
+/// The turns as the page reads them: `[node, turn, angle, exit]`, the exit a roundabout's or `null` for the rest.
+fn maneuvers_json(maneuvers: &[(usize, Maneuver)]) -> Vec<serde_json::Value> {
+    maneuvers
+        .iter()
+        .map(|(span, maneuver)| {
+            let exit = match maneuver.turn {
+                Turn::Roundabout(exit) => Some(exit),
+                _ => None,
+            };
+            serde_json::json!([span, maneuver.turn.name(), maneuver.angle.round(), exit])
+        })
+        .collect()
+}
+
+/// The route as the cluster page reads it: the same messages, less the geometry it doesn't draw. Its notice line
+/// draws the next turn's arrow (the cab's own glyph: `maps/ManeuverGlyph`), which needs the maneuvers and how far
+/// along the route the truck is — not the polylines through every junction, which would put a second copy of the
+/// whole route in another WebView for nothing. Same message type, so the page reads it with the same code.
+fn cluster_route_message_for(update: &RouteUpdate) -> String {
+    match update {
+        RouteUpdate::Paths { id, maneuvers, .. } => serde_json::json!({
+            "type": "routePaths",
+            "id": id,
+            "paths": [],
+            "maneuvers": maneuvers_json(maneuvers),
+            "shifts": [],
+        })
+        .to_string(),
+        // The route itself, its progress and its end are the same words for both pages.
+        other => route_message_for(other),
     }
 }
 
@@ -2719,6 +2836,17 @@ mod tests {
             Some(PageMessage::Westplay { open: false })
         );
         assert_eq!(parse_page_message(r#"{"type":"westplay"}"#), None);
+        // The cabin's power phase, and the same message built back for the cluster's page.
+        assert_eq!(
+            parse_page_message(r#"{"type":"power","phase":"connecting","since":1762598400123}"#),
+            Some(PageMessage::Power { phase: super::PowerPhase::Connecting, since: 1_762_598_400_123.0 })
+        );
+        assert_eq!(
+            super::power_message(super::PowerPhase::Splash, 1_762_598_400_123.0),
+            r#"{"phase":"splash","since":1762598400123.0,"type":"power"}"#
+        );
+        // A phase WestPlay doesn't know is no message.
+        assert_eq!(parse_page_message(r#"{"type":"power","phase":"waking","since":1}"#), None);
         assert_eq!(
             parse_page_message(r#"{"type":"wallpaper","id":"custom:Dusk"}"#),
             Some(PageMessage::Wallpaper { id: "custom:Dusk".into() })
@@ -2811,6 +2939,65 @@ mod tests {
         );
         assert_eq!(parse_page_message(r#"{"type":"other"}"#), None);
         assert_eq!(parse_page_message("not json"), None);
+    }
+
+    /// What plays carries where it plays from and how far into it, and a page that says neither still reads (the
+    /// cluster draws the line it can, not a shape it must have).
+    #[test]
+    fn reads_what_plays_with_its_source_and_progress() {
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"nowPlaying","playing":{"title":"Sultans of Swing","artist":"Dire Straits","playing":true,"app":"spotify","position":83.5,"at":1762700000000,"duration":348}}"#
+            ),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "Sultans of Swing".into(),
+                    artist: "Dire Straits".into(),
+                    playing: true,
+                    app: Some("spotify".into()),
+                    position: Some(83.5),
+                    at: Some(1_762_700_000_000.0),
+                    duration: Some(348.0),
+                })
+            })
+        );
+        // A stream: the player reports no length, so there is no progress to draw.
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"nowPlaying","playing":{"title":"Radio 1","artist":"","playing":true,"app":"radio","position":12,"at":1762700000000}}"#
+            ),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "Radio 1".into(),
+                    artist: String::new(),
+                    playing: true,
+                    app: Some("radio".into()),
+                    position: Some(12.0),
+                    at: Some(1_762_700_000_000.0),
+                    duration: None,
+                })
+            })
+        );
+        // Stopped: the page sends no track at all.
+        assert_eq!(
+            parse_page_message(r#"{"type":"nowPlaying","playing":null}"#),
+            Some(PageMessage::NowPlaying { playing: None })
+        );
+        // An older page's line, with only the fields it had before the source and the progress.
+        assert_eq!(
+            parse_page_message(r#"{"type":"nowPlaying","playing":{"title":"One","artist":"","playing":false}}"#),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "One".into(),
+                    artist: String::new(),
+                    playing: false,
+                    app: None,
+                    position: None,
+                    at: None,
+                    duration: None,
+                })
+            })
+        );
     }
 
     #[test]
@@ -3072,6 +3259,34 @@ mod tests {
             r#"{"id":5,"maneuvers":[[2,"roundabout",-90.0,3],[7,"exit-right",17.0,null]],"paths":[[2,[[1.0,2.0],[3.0,4.0]]]],"shifts":[[3,6.5]],"type":"routePaths"}"#
         );
         assert_eq!(super::route_message_for(&RouteUpdate::None), r#"{"id":null,"nodes":null,"type":"route"}"#);
+    }
+
+    #[test]
+    fn the_clusters_route_carries_the_turns_and_none_of_the_geometry() {
+        use crate::route::RouteUpdate;
+        use westplay_mapdata::junctions::{Maneuver, Turn};
+        let paths = RouteUpdate::Paths {
+            id: 5,
+            paths: vec![(2, vec![[1.0, 2.0], [3.0, 4.0]])],
+            maneuvers: vec![
+                (2, Maneuver { turn: Turn::Roundabout(3), angle: -89.6 }),
+                (7, Maneuver { turn: Turn::ExitRight, angle: 17.2 }),
+            ],
+            shifts: vec![(3, 6.5)],
+        };
+        assert_eq!(
+            super::cluster_route_message_for(&paths),
+            r#"{"id":5,"maneuvers":[[2,"roundabout",-90.0,3],[7,"exit-right",17.0,null]],"paths":[],"shifts":[],"type":"routePaths"}"#
+        );
+        // Everything but the turns is the cab's own message, word for word.
+        assert_eq!(super::cluster_route_message_for(&RouteUpdate::Next(3)), r#"{"next":3,"type":"routeNext"}"#);
+        assert_eq!(super::cluster_route_message_for(&RouteUpdate::None), r#"{"id":null,"nodes":null,"type":"route"}"#);
+    }
+
+    #[test]
+    fn the_cluster_hears_the_games_language_on_its_own() {
+        assert_eq!(super::language_message(Some("tr_tr")), r#"{"language":"tr_tr","type":"language"}"#);
+        assert_eq!(super::language_message(None), r#"{"language":null,"type":"language"}"#);
     }
 
     #[test]

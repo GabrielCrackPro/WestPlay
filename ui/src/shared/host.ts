@@ -277,6 +277,16 @@ export interface NowPlayingInfo {
   title: string
   artist: string
   playing: boolean
+  /** Which player it comes from (`spotify`, `appleMusic`, `youtubeMusic`, `video`, `radio`): the cluster draws its
+   * own icon for it, so the dash says where the sound is coming from as the screen does. */
+  app?: string | null
+  /** How far into the track the player was (seconds) when it last spoke, and when that was (Unix ms): the ports
+   * below are the dash's copy of it, and it runs the position on from there with its own clock — the cab sends a
+   * track once, not a tick a second. */
+  position?: number | null
+  at?: number | null
+  /** The track's length, seconds; `null` where the player reports none (a stream, the game's radio). */
+  duration?: number | null
 }
 
 /** A call on the phone (`westplay_link::Call`). */
@@ -315,8 +325,21 @@ export type PhoneCommand =
   | { action: 'sms'; number: string; body: string }
   | { action: 'reply'; id: string; text: string }
 
+/**
+ * The cabin's power sequence as it stands: which phase Cabin Play's screen is in (`state/power.ts`), and when that
+ * phase began on the machine's clock (`Date.now()`, the one both WebViews share — each page's `performance.now()`
+ * is its own). The cabin's page owns this sequence; the cluster's page is told it, so the two screens boot as one.
+ */
+export interface CabinPower {
+  phase: 'off' | 'splash' | 'connecting' | 'on'
+  /** `Date.now()` when the phase began. */
+  since: number
+}
+
 export type HostMessage =
   | { type: 'telemetry'; data: Telemetry }
+  /** The cabin's power phase, for the cluster's boot (`CabinPower`). Sent by the host only to the cluster's page. */
+  | ({ type: 'power' } & CabinPower)
   | { type: 'truck'; data: TruckInfo }
   | { type: 'job'; data: JobInfo }
   | { type: 'trailer'; data: TrailerInfo }
@@ -400,6 +423,10 @@ export type HostMessage =
   | { type: 'typingState'; state: TypingState }
   /** Whether the player plays on a map by HVT, which WestPlay doesn't allow; and the game's language. */
   | { type: 'mapBlock'; hvt: boolean; language: string | null }
+  /** The game's language on its own (its `g_lang_init`, e.g. `tr_tr`; `null` until the host has read it): the
+   * cluster's page has its own copy of the store and no use for the map restriction above, so it is told just
+   * this — its words, its readings and its page's language are the cabin's. */
+  | { type: 'language'; language: string | null }
   /** Whether the player's profile has the game's time zones on (its clock the time where the truck is). */
   | { type: 'timeZones'; on: boolean }
   /** The game's GPS route: its map nodes in order, `[x, z, forward x, forward z, distance left]` (metres;
@@ -549,6 +576,9 @@ export function toEqualizer(value: unknown): Equalizer {
 
 export type PageMessage =
   | { type: 'ready' }
+  /** The cabin's power phase, as its page goes through it: the host passes it on to the cluster's page (`power`),
+   * which boots on it. Posted as the page connects and at every phase change. */
+  | ({ type: 'power' } & CabinPower)
   /** A startup stage reached (the boot screens shown), for the host's startup log. */
   | { type: 'startup'; stage: string }
   /** Whether WestPlay is open on the truck's screen (or the truck's original screen shows): posted as the

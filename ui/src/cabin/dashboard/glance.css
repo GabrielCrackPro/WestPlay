@@ -66,9 +66,12 @@
 }
 
 /*
- * The speed limit as the sign it is, drawn the way the dash draws it (the cluster's own limit sign): a red ring on
- * a white face, the figure dark until the truck is over it and then red — the ring stays the sign's either way.
+ * The speed limit as the sign it is, drawn the way the dash draws it (the cluster's own limit sign): a red ring and
+ * the figure in the screen's ink, the figure red once the truck is over it — the ring stays the sign's either way.
  * One mark on both of the cab's screens, and one the driver reads without being told what it is.
+ *
+ * No white plate behind it, as on the dash (owner 2026-11-09: "remove bg from speed limit"): a disc of paper in the
+ * middle of a card is the brightest thing on it, and the sign reads as a road sign from its ring alone.
  */
 .glance-limit {
   display: grid;
@@ -79,15 +82,15 @@
   /* The map's own sign red (map.css), and the dash's: one road sign across the cab. */
   border: calc(5px * var(--text-scale, 1)) solid #e3141b;
   border-radius: 50%;
-  background: #fff;
-  color: #14161a;
+  color: var(--text);
   font-size: calc(22px * var(--text-scale, 1));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .glance-limit.over {
-  color: #c01d16;
+  /* Over the limit the figure takes the ring's own red: with no white behind it, a darker red sinks into the card. */
+  color: #e3141b;
 }
 
 .glance-speed-meta {

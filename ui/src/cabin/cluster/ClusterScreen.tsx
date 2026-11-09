@@ -1,6 +1,7 @@
-import { type CSSProperties, type ReactElement, useCallback, useEffect, useState } from 'react'
+import { type CSSProperties, type ReactElement, memo, useEffect, useMemo, useState } from 'react'
 import { formatGameTime, formatGear } from '../../shared/format'
-import { cabClock, hasTruck, subscribeHostMessages } from '../../shared/host'
+import { cabClock, type CabinPower, hasTruck, type NowPlayingInfo, subscribeHostMessages } from '../../shared/host'
+import { appIcon, type AppIconRole } from '../../shared/icons'
 import {
   adblue as adblueReading,
   battery as batteryReading,
@@ -17,17 +18,19 @@ import { useTrends } from '../apps/diagnostics/useTrends'
 import { receivePhoneNotifications, receivePhoneState, useCaller, usePhone, usePhoneToasts } from '../apps/phone/phone'
 import { BootScreen } from '../boot/BootScreen'
 import { logoSources } from '../boot/brand'
-import { CONNECTING_MS, SPLASH_MS } from '../state/power'
+import { bootShown, handoverAt } from '../state/power'
 import { resolveAppearance } from '../state/appearance'
 import { useNightDim } from '../state/nightDim'
 import { syncClock, useCabin, useLive } from '../state/store'
 import { routeAccent } from '../maps/routeLook'
+import { ManeuverGlyph } from '../maps/ManeuverGlyph'
+import { guidanceOf } from '../maps/guidance'
 import { useClock } from '../state/clock'
 import { clusterTextScale } from '../state/textSize'
 import { useUnits } from '../state/units'
-import { useText } from '../state/text'
+import { useLanguage, useText } from '../state/text'
 import type { Strings } from '../state/strings'
-import type { SpeedFace } from '../../shared/units'
+import type { Figure, SpeedFace } from '../../shared/units'
 import { gameAlerts } from '../shell/gameAlerts'
 import {
   AdblueIcon,
@@ -54,11 +57,14 @@ import {
   RangeIcon,
   RestIcon,
   RetarderIcon,
+  TrailerIcon,
   TripIcon,
   WarningIcon,
   WipersIcon,
 } from './ClusterIcons'
 import { useInstantConsumption } from './useInstant'
+import { useLingering } from './useLingering'
+import { useSmoothed } from './useSmoothed'
 import './cluster.css'
 
 /**
@@ -67,16 +73,56 @@ import './cluster.css'
  * `westplay_shared::CLUSTER_WIDTH` x `CLUSTER_HEIGHT`.
  *
  * It reads like the dash it replaces. The speedo is the middle: the driver's face (120 km/h, or 80 mph) with its
- * numbers on it, a lit arc running round to the speed with the needle's bead at its head,
- * the speed and the truck's own brand under it, and the tacho as a ring around the face with Scania's own bands — blue where the auxiliary
- * brake is strongest, red past 2,400 rpm. The truck's readings run down the right, the trip, engine and driver's
- * clocks down the left, the lights and warnings sit either side of the route at the top, and the cab's newest
- * message has a line of its own over the dial instead of taking the route's place. What plays sits in the dial's
- * open bottom (owner 2026-11-08: "more icons and visuals, less text").
+ * numbers on it, a lit arc running round the groove to the speed with the needle's tick at its head, the speed and
+ * the truck's own brand under it, and the tacho as a thinner ring outside the face with Scania's own bands — blue
+ * where the auxiliary brake is strongest, red past 2,400 rpm. The truck's readings run down the right, the trip,
+ * engine and driver's clocks down the left, the lights and warnings sit either side of the route at the top, and
+ * the cab's newest message has a line of its own over the dial instead of taking the route's place. What plays sits
+ * in the dial's open bottom (owner 2026-11-08: "more icons and visuals, less text").
+ *
+ * The panel comes up rather than switches on: the bezel and both grooves first, then the scale's marks, then the
+ * face's numbers a frame apart, then the lit arcs, the cursor and the brand — all on the cabin's own curve, and all
+ * cut by the reduced-motion setting with the rest of the cabin.
  *
  * Colour is the dash's own language: the ink for readings, the accent for what is live, and green, amber, blue and
  * red only for states — so a warning is the one thing on the glass that is coloured.
  */
+
+/**
+ * The app a track plays from, as the cabin's own icon set draws it (shared/icons.ts, the icons the screen's Home grid
+ * shows): the dash says where the sound is coming from with a mark rather than a word, and with the same mark the
+ * screen uses, so the two can't be about different things.
+ */
+const PLAYS_FROM: Record<string, AppIconRole> = {
+  spotify: 'spotify',
+  appleMusic: 'music',
+  youtubeMusic: 'youtubeMusic',
+  video: 'youtube',
+  radio: 'radio',
+}
+
+/**
+ * How far into what plays the dash reads it: the position the host last sent, run on by the dash's own clock while the
+ * track plays (the host sends a track once, not a tick a second — see `useNowPlayingReport` in shell/Notifications).
+ * `null` where there is nothing to measure: no track, or a player that reports no length (a stream, the game's own
+ * radio), which is also exactly what a progress line needs to know.
+ */
+function usePlayed(info: NowPlayingInfo | null): { position: number; duration: number } | null {
+  const playing = info?.playing ?? false
+  // A second's tick while it plays: the bar creeps rather than jumping when a message happens to arrive.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!playing) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [playing])
+  if (!info || !info.duration || info.duration <= 0 || info.position === null || info.position === undefined)
+    return null
+  // `at` is when the player said where it was: played on from there, and held where it was while paused.
+  const ran = playing && info.at ? Math.max(0, now - info.at) / 1000 : 0
+  return { position: Math.min(info.duration, info.position + ran), duration: info.duration }
+}
+
 export function ClusterScreen() {
   const text = useText()
   const words = text.diagnostics
@@ -85,7 +131,12 @@ export function ClusterScreen() {
   const telemetry = useLive((state) => state.telemetry)
   const truck = useLive((state) => state.truck)
   const job = useLive((state) => state.job)
+  // The route the cab's map drew, and how far along it the truck is: the dash draws the same next turn from it.
+  const route = useLive((state) => state.route)
+  const routeNext = useLive((state) => state.routeNext)
   const nowPlaying = useLive((state) => state.nowPlaying)
+  // How far into the track the line's progress reads (held above the early returns: it runs a clock while it plays).
+  const played = usePlayed(nowPlaying)
   const clockShift = useLive((state) => state.clockShift)
   const shown = useCabin((state) => state.clusterShown)
   const cards = useCabin((state) => state.clusterCards)
@@ -121,6 +172,9 @@ export function ClusterScreen() {
         else if (message.type === 'phoneNotes') {
           receivePhoneNotifications(message.notifications, message.backlog === true)
         } else if (message.type === 'nowPlaying') useLive.setState({ nowPlaying: message.data })
+        // The cabin's boot: its page says which part of the power sequence it is in, and the panel's boot follows it
+        // (`ClusterBoot`).
+        else if (message.type === 'power') useLive.setState({ power: { phase: message.phase, since: message.since } })
         else if (message.type === 'game') setRunning(message.running)
         // The profile's "Use miles" and its game: the dash in the driver's own units.
         else if (message.type === 'units') {
@@ -147,6 +201,13 @@ export function ClusterScreen() {
     if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
     else delete document.documentElement.dataset.motion
   }, [reduceMotion])
+  // The page's language, as the cabin page sets it (CabinApp): the dash speaks the cabin's words everywhere it says
+  // one (its notices, its readings' captions, what a reader hears), and the page's own language is what makes text set
+  // in capitals follow that language's rules (Turkish: i to İ, not I) and a screen reader pronounce it.
+  const language = useLanguage()
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
   // The game closed: nothing on the panel is live any more, so it lets go of the truck's last frame (the boot
   // starts afresh when the next game's electrics come on).
   useEffect(() => {
@@ -162,29 +223,30 @@ export function ClusterScreen() {
   }, [telemetry, jobKey, guidedFor])
   const guided = jobKey !== '' && guidedFor === jobKey
 
-  // The boot, as the cabin's: the panel lights with the truck's brand and Cabin Play's mark as the electrics come
-  // on, and clears to the cluster. The cluster page has no power clock of its own, so the electrics are its cue:
-  // an ignition cycle boots the screen again, exactly as the cabin's does. The cycle is its key, so each ignition
-  // gets a fresh boot from its first frame.
-  const electric = telemetry?.electricEnabled ?? false
-  const [ignition, setIgnition] = useState(() => ({ on: electric, cycle: 0 }))
-  useEffect(() => {
-    if (electric) {
-      setIgnition((current) => (current.on ? current : { on: true, cycle: current.cycle + 1 }))
-      return
-    }
-    // A frame with the electrics down is a pause or a dropped reading, not an ignition-off: the panel keeps its
-    // screen unless the off holds, so one hiccup doesn't replay the whole boot.
-    const off = setTimeout(
-      () => setIgnition((current) => (current.on ? { on: false, cycle: current.cycle } : current)),
-      ELECTRIC_OFF_HOLD_MS,
-    )
-    return () => clearTimeout(off)
-  }, [electric])
-  // The cluster is covered by the boot, so its entrance would play out of sight. Re-mount it as the boot clears
-  // and it comes up with everything moving, rather than fading in underneath the panel's light.
+  // The boot, as the cabin's: the panel lights with the truck's brand and Cabin Play's mark as the electrics come on,
+  // and clears to the cluster. It is the cabin's own boot, not a copy of it on a clock beside the cabin's — the cabin's
+  // page owns the power sequence (state/power.ts) and tells the host, which passes the phase here, so the truck's
+  // screen and the dash light together, keep time together and clear together; a page that comes up mid-boot joins it
+  // where it is (`ClusterBoot`). An ignition cycle boots both again, and there is no second clock to drift out of step.
+  const power = useLive((state) => state.power)
+  const booting = power?.phase === 'splash' || power?.phase === 'connecting'
+  // The dash comes up under the boot's light going down. Its shell is re-mounted as the boot enters its last part
+  // (HANDOVER_MS), so its entrance and the dial's power-up sweep are what the driver sees as the boot clears — one
+  // motion between the two screens, not a fade to black and a dash that appears behind it.
   const [shellCycle, setShellCycle] = useState(0)
-  const bootDone = useCallback(() => setShellCycle((cycle) => cycle + 1), [])
+  useEffect(() => {
+    const at = handoverAt(power)
+    if (at === null) return
+    // A page that comes up in the hand-over, or past it, brings the dash up at once: what's left of the boot is only
+    // its light going down.
+    const timer = setTimeout(() => setShellCycle((cycle) => cycle + 1), Math.max(0, at - Date.now()))
+    return () => clearTimeout(timer)
+  }, [power])
+  // The route's speed limit, and its sign held for one fade after the route stops knowing one: a sign that leaves the
+  // way it arrived, in the status bar and on the dial's scale (the dial holds its own mark by the same clock). Both of
+  // these are hooks' business and stand above the early returns, so every render path calls them in the same order.
+  const limit = telemetry ? units.limit(telemetry.navigationSpeedLimit) : 0
+  const sign = useLingering(limit > 0 ? limit : null, LIMIT_LEAVE_MS)
 
   // Switched off in Settings: the game's own cluster shows through the transparent texture.
   if (!shown) return null
@@ -195,15 +257,14 @@ export function ClusterScreen() {
   const speed = t ? units.speed(t.speed) : 0
   const gear = formatGear(t?.displayedGear ?? 0)
   const rpm = t ? Math.max(0, Math.min(1, t.engineRpm / RPM_MAX)) : 0
-  const limit = t ? units.limit(t.navigationSpeedLimit) : 0
+  // The retarder's step while the driver holds one: 0 for off, up to the truck's own steps.
+  const retarder = t?.retarderLevel ?? 0
   const cruise = t ? units.speed(t.cruiseControlSpeed) : 0
   // The face: its top speed, the step between its numbers and between its ticks (faster numbers are further apart
   // in mph, so fewer of them fit the same sweep).
   const face = units.face
   // How far round the face the driver is: the lit arc's length, and the angle the needle's head rides at.
   const speedShare = clamp(speed / face.max)
-  const faceNumbers = Array.from({ length: Math.round(face.max / face.step) + 1 }, (_, at) => at * face.step)
-  const faceTicks = Array.from({ length: Math.round(face.max / face.minor) + 1 }, (_, at) => at * face.minor)
   const capacity = truck?.fuelCapacity ?? 0
   const fuelShare = capacity > 0 && t ? clamp(t.fuel / capacity) : null
   // The readings as Diagnostics gauges them: the same ranges, the same warning lines and the game's own warning
@@ -224,10 +285,24 @@ export function ClusterScreen() {
   // stop lamps are (`indicator_warning` and `indicator_stop`).
   const damage = t ? Math.max(t.wearEngine, t.wearWheels, t.wearTransmission, t.wearCabin, t.wearChassis) : 0
   const damageTone: Telltale['tone'] | null = damage >= DAMAGE_STOP ? 'danger' : damage >= DAMAGE_WARN ? 'warn' : null
+  // The trailer's own wear, on the same lines: its wheels, body and chassis, when one is on the back. `null` on a solo
+  // run, where there is no trailer to have worn anything — and where the truck's own damage already reads.
+  const trailerDamage =
+    t && t.trailerAttached ? Math.max(t.trailerWearWheels, t.trailerWearBody, t.trailerWearChassis) : null
+  const trailerTone: Telltale['tone'] | null =
+    trailerDamage === null
+      ? null
+      : trailerDamage >= DAMAGE_STOP
+        ? 'danger'
+        : trailerDamage >= DAMAGE_WARN
+          ? 'warn'
+          : null
   const rest = t?.restStop ?? -1
   const breaking = t?.mandatoryBreak ?? -1
   const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
   const average = trip.distance > 0.05 ? tripAverage(trip) : (t?.fuelAverage ?? 0)
+  // How long the trip has been moving, as the panel's pair of figures says it: minutes until the hour, then h:mm.
+  const driving = driveTime(trip.moving, words)
   // The readings as the driver's units set them, the number and its unit apart for the dash's two sizes.
   const tripFigure = units.distanceFigure(trip.distance, text.decimal)
   const averageFigure = units.consumptionFigure(average, text.decimal)
@@ -254,6 +329,13 @@ export function ClusterScreen() {
         ? job.plannedDistanceKm * 1000
         : null
   const routeArrival = t && t.navigationTime > 0 ? Math.round(cabClock(t, clockShift) + t.navigationTime / 60) : null
+  // The turn the route takes next, from the cab's own guidance (maps/guidance.ts) — the same step, and therefore the
+  // same glyph, that the map's guidance card draws, so the dash and the screen can't point two ways. It needs the
+  // route's turns: an empty list means the host hasn't read them yet, and the line keeps its route mark until it has.
+  const step =
+    route && route.maneuvers.length > 0
+      ? (guidanceOf(route.distances, route.maneuvers, routeNext, t?.navigationDistance ?? 0)?.step ?? null)
+      : null
   const routeLabel = [
     destination,
     routeDistance !== null ? units.distance(routeDistance, text.decimal) : '',
@@ -265,6 +347,9 @@ export function ClusterScreen() {
     gameTime: t ? cabClock(t, clockShift) : null,
     lowBeam: t?.lowBeam ?? false,
   })
+  // The mark beside the track: the app it plays from, in the icon set the screen's own grid draws (the game's radio
+  // and a stream from an app the cabin doesn't know have no mark of its own, so the note stands in).
+  const playsFrom = nowPlaying?.app ? (PLAYS_FROM[nowPlaying.app] ?? null) : null
   // The dash's accent is the map's route colour (Settings › Maps › Route): the one colour the driver already chose
   // for "this is the way", on the needle, the cruise mark and the live readings. The route's own fill does on the
   // dark panel, its darker edge on the light one, so it reads on either.
@@ -326,7 +411,19 @@ export function ClusterScreen() {
       label: words.retarder,
       tone: 'info',
       icon: <RetarderIcon />,
-      active: (t?.retarderLevel ?? 0) > 0,
+      active: retarder > 0,
+    })
+  }
+
+  // The hitch lamp: lit while a trailer is coupled, out when the truck runs solo, as the dash's own does — and pushed
+  // last, so hitching up adds its slot at the end of the row instead of moving the lights already in it.
+  if (t?.trailerAttached) {
+    lights.push({
+      key: 'trailer',
+      label: `${words.trailer} ${words.hitched}`,
+      tone: 'info',
+      icon: <TrailerIcon />,
+      active: true,
     })
   }
 
@@ -389,18 +486,15 @@ export function ClusterScreen() {
     faults.push({ key: 'damage', label: words.damage, tone: damageTone, icon: <WarningIcon />, active: true })
   }
 
-  // The dial's needle: 270° from its first tick to its last, on the driver's face.
-  const needleAngle = DIAL_START + 90 + DIAL_SWEEP_DEGREES * speedShare
-
   return (
     <main
       className="cluster"
       data-appearance={appearance}
       data-alarm={notice?.tone === 'alarm' ? '' : undefined}
       aria-label={text.settings.clusterScreen}
-      style={{ '--cluster-scale': typeScale, '--cluster-give': 1 / typeScale, '--accent': accent } as CSSProperties}
+      style={{ '--cluster-scale': typeScale, '--accent': accent } as CSSProperties}
     >
-      {ignition.on && <ClusterBoot key={ignition.cycle} onDone={bootDone} />}
+      {booting && power && <ClusterBoot key={power.since} power={power} />}
 
       <div className="cluster-shell" key={shellCycle}>
         <header className="cluster-status">
@@ -419,7 +513,7 @@ export function ClusterScreen() {
           <div className="cluster-route" aria-label={routeLabel || undefined}>
             {routeLabel ? (
               <>
-                <RangeIcon />
+                {step ? <ManeuverGlyph step={step} size={20} /> : <RangeIcon />}
                 {destination && <b>{destination}</b>}
                 {routeDistance !== null && <span>{units.distance(routeDistance, text.decimal)}</span>}
                 {routeArrival !== null && (
@@ -442,15 +536,6 @@ export function ClusterScreen() {
               <CruiseIcon />
               <b>{cruise > 0 ? cruise : 0}</b>
             </span>
-            {limit > 0 && (
-              <span
-                className="cluster-limitsign"
-                data-over={speed > limit ? '' : undefined}
-                aria-label={text.speedLimit(limit)}
-              >
-                <b>{limit}</b>
-              </span>
-            )}
             <span className="cluster-pill cluster-clock" aria-label={`${words.time} ${time}`}>
               <ClockIcon />
               <time>{time}</time>
@@ -483,13 +568,16 @@ export function ClusterScreen() {
                     <b>{t ? averageFigure.value : '—'}</b>
                     <small>{averageFigure.unit}</small>
                   </span>
+                  {/* The trip's time on the move, not the range: the tank's range is already on the fuel panel's foot,
+                      and a figure the dash shows twice is a slot it can't show something else in. The trip computer
+                      counts these seconds for nothing else (`trip.moving`, diagnostics/trip.ts). */}
                   <span
                     className="cluster-pair"
-                    aria-label={`${words.range} ${t ? rangeFigure.value : 0} ${rangeFigure.unit}`}
+                    aria-label={t ? `${words.time} ${driving.value} ${driving.unit}` : undefined}
                   >
-                    <RangeIcon />
-                    <b>{t ? rangeFigure.value : '—'}</b>
-                    <small>{rangeFigure.unit}</small>
+                    <ClockIcon />
+                    <b>{t ? driving.value : '—'}</b>
+                    <small>{t ? driving.unit : ''}</small>
                   </span>
                 </div>
                 <div
@@ -571,135 +659,97 @@ export function ClusterScreen() {
           </aside>
 
           <section className="cluster-centre">
-            {/* The cab's newest message has a line of its own, always reserved, so the route above never moves and a
-                message never covers the dial. The phone's own status closes the line at its right end: the status bar
-                above is the truck's (cruise, limit, clock), and what the phone is belongs with what it has to say. */}
+            {/* One line above the dial, always reserved, so the route above never moves and nothing the cab says
+                covers the face. It carries one thing at a time: the cab's newest message while there is one, and
+                what plays while there isn't — the two are never both news, and a dash with a line for each spent
+                the room the dial needed to grow (owner 2026-11-09). The phone's own status closes the line at its
+                right end: the status bar above is the truck's, what the phone is belongs with what it has to say. */}
             <div className="cluster-message">
-              {notice ? <ClusterNoticeBar notice={notice} /> : null}
+              {notice ? (
+                <ClusterNoticeBar notice={notice} />
+              ) : nowPlaying ? (
+                <div
+                  className="cluster-media"
+                  data-paused={nowPlaying.playing ? undefined : ''}
+                  aria-label={`${text.nowPlaying}: ${nowPlaying.title}${nowPlaying.artist ? ` · ${nowPlaying.artist}` : ''}`}
+                >
+                  {playsFrom ? (
+                    <img className="cluster-media-app" src={appIcon(playsFrom, appearance)} alt="" />
+                  ) : (
+                    <MusicIcon />
+                  )}
+                  <b>{nowPlaying.title}</b>
+                  {nowPlaying.artist && <span>{nowPlaying.artist}</span>}
+                  {/* How far into the track, under its words: the bar's own end is the length, so it needs no time
+                      on it — one look says how much of the song is left. */}
+                  {played && (
+                    <i className="cluster-media-progress" aria-hidden>
+                      <i style={{ width: `${Math.round((played.position / played.duration) * 100)}%` }} />
+                    </i>
+                  )}
+                </div>
+              ) : null}
               <ClusterPhone />
             </div>
 
-            <section className="cluster-dial" aria-label={`${speed} ${units.labels.speed}`}>
+            {/* The face reads the limit with the speed it applies to: the sign hangs under the figure's own unit, so
+                "80" under "87 km/h" is one reading rather than two a glance has to put together across the panel.
+                The whole face is hidden from the reader (the section above says the speed and the limit as words), so
+                the sign needs no name of its own here. */}
+            <section
+              className="cluster-dial"
+              aria-label={
+                sign.value !== null
+                  ? `${speed} ${units.labels.speed}, ${text.speedLimit(sign.value)}`
+                  : `${speed} ${units.labels.speed}`
+              }
+            >
               <div className="cluster-dial-wrap">
-                <svg className="cluster-dial-ring" viewBox="0 0 300 300" aria-hidden>
-                  <circle
-                    className="cluster-dial-track"
-                    cx="150"
-                    cy="150"
-                    r={DIAL_RADIUS}
-                    strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP} ${DIAL_CIRCUMFERENCE}`}
-                    transform={`rotate(${DIAL_START} 150 150)`}
-                  />
-                  {/* The speed, as a lit arc in the track's groove: how far round the face the driver is, drawn in
-                      the dash's accent so the one colour on the glass is also the speed. */}
-                  <circle
-                    className="cluster-dial-fill"
-                    cx="150"
-                    cy="150"
-                    r={DIAL_RADIUS}
-                    strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP * speedShare} ${DIAL_CIRCUMFERENCE}`}
-                    transform={`rotate(${DIAL_START} 150 150)`}
-                  />
-                  {faceTicks.map((tick) => (
-                    <line
-                      key={tick}
-                      className={tick % face.step === 0 ? 'cluster-tick major' : 'cluster-tick'}
-                      x1="150"
-                      y1={tick % face.step === 0 ? 23 : 26}
-                      x2="150"
-                      y2="33"
-                      transform={`rotate(${DIAL_TICK_START + (tick / face.max) * DIAL_SWEEP_DEGREES} 150 150)`}
-                    />
-                  ))}
-                  {faceNumbers.map((value) => {
-                    const at = dialPoint(value, SPEED_LABEL_RADIUS, face)
-                    return (
-                      <text
-                        key={value}
-                        className="cluster-dial-label"
-                        x={at.x}
-                        y={at.y}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                      >
-                        {value}
-                      </text>
-                    )
-                  })}
-                  <circle
-                    className="cluster-dial-rpm-track"
-                    cx="150"
-                    cy="150"
-                    r={RPM_RADIUS}
-                    strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP} ${RPM_CIRCUMFERENCE}`}
-                    transform={`rotate(${DIAL_START} 150 150)`}
-                  />
-                  <circle
-                    className="cluster-dial-rpm"
-                    cx="150"
-                    cy="150"
-                    r={RPM_RADIUS}
-                    strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * rpm} ${RPM_CIRCUMFERENCE}`}
-                    transform={`rotate(${DIAL_START} 150 150)`}
-                  />
-                  {RPM_BANDS.map((band) => (
-                    <circle
-                      key={band.band}
-                      className="cluster-rpm-band"
-                      data-band={band.band}
-                      cx="150"
-                      cy="150"
-                      r={RPM_BAND_RADIUS}
-                      strokeDasharray={`${RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * (band.to - band.from)} ${RPM_BAND_CIRCUMFERENCE}`}
-                      strokeDashoffset={-RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * band.from}
-                      transform={`rotate(${DIAL_START} 150 150)`}
-                    />
-                  ))}
-                  {/* The needle rides the ring rather than crossing the face: a bead at the head of the lit arc.
-                      A line from the hub would run through the figure and the scale's numbers, which is the one
-                      thing the dial can't afford — the speed, the unit and the truck's brand sit at its centre. */}
-                  <g
-                    className="cluster-needle"
-                    style={{ transform: `rotate(${needleAngle}deg)`, transformOrigin: '150px 150px' }}
-                  >
-                    <circle className="cluster-needle-head" cx="150" cy={150 - DIAL_RADIUS} r="4.8" />
-                  </g>
-                </svg>
+                <ClusterDial
+                  speedShare={speedShare}
+                  rpm={rpm}
+                  limit={limit}
+                  max={face.max}
+                  step={face.step}
+                  minor={face.minor}
+                />
 
-                {/* The face reads top to bottom: the figure, its unit, and whose dash this is. The needle never
-                    sweeps the bottom of the face (the arc's gap is there), so the brand sits clear of it, and the
-                    gear keeps the open bottom under it. */}
+                {/* The face reads top to bottom: whose dash this is, the figure, its unit, and the gear in the arc's
+                    open bottom. The brand is an emblem on the face rather than a line in that stack: the speed stays
+                    the thing the centre is for, and the mark reads at a badge's size without crowding it. */}
+                <ClusterBrand />
                 <div className="cluster-speed" aria-hidden>
                   <strong key={Math.round(speed)} className="cluster-speed-value">
                     {speed}
                   </strong>
                   <span>{units.labels.speed}</span>
-                  <ClusterBrand />
+                  {sign.value !== null && (
+                    <span
+                      className="cluster-limitsign"
+                      data-over={speed > sign.value ? '' : undefined}
+                      data-leaving={sign.leaving ? '' : undefined}
+                    >
+                      <b>{sign.value}</b>
+                    </span>
+                  )}
                 </div>
+                {/* The needle never sweeps the bottom of the face (the arc's gap is there), so the gear keeps the
+                    open bottom under the figure. Keyed by the gear, so each change settles into place the way a
+                    gear going in does, instead of the letter being swapped out behind the driver's back. */}
                 <div className="cluster-gear" aria-label={`${words.gear} ${gear}`}>
-                  <span>{gear}</span>
+                  <span key={gear}>{gear}</span>
                 </div>
+                {/* The retarder's step beside the gear while one is held: the telltale in the status bar says the brake
+                    is working, this says how much of it — in the face's open bottom, where the arc's gap has room for
+                    it next to the gear and nothing else lives. */}
+                {retarder > 0 && (
+                  <div className="cluster-retarder" aria-label={`${words.retarder} ${retarder}`}>
+                    <RetarderIcon />
+                    <b>{retarder}</b>
+                  </div>
+                )}
               </div>
             </section>
-
-            {/* What plays, in the dial's open bottom: one line, the way the dash's display keeps it out of the way. */}
-            <div
-              className="cluster-media"
-              data-paused={nowPlaying && !nowPlaying.playing ? '' : undefined}
-              aria-label={
-                nowPlaying
-                  ? `${text.nowPlaying}: ${nowPlaying.title}${nowPlaying.artist ? ` · ${nowPlaying.artist}` : ''}`
-                  : undefined
-              }
-            >
-              {nowPlaying && (
-                <>
-                  <MusicIcon />
-                  <b>{nowPlaying.title}</b>
-                  {nowPlaying.artist && <span>{nowPlaying.artist}</span>}
-                </>
-              )}
-            </div>
           </section>
 
           <aside className="cluster-side cluster-side-right">
@@ -819,30 +869,65 @@ export function ClusterScreen() {
               </strong>
             </section>
 
-            <section className="cluster-panel cluster-wear" aria-label={`${words.damage} ${Math.round(damage * 100)}%`}>
-              <span
-                className="cluster-glyph"
-                data-hot={damageTone === 'warn' ? '' : undefined}
-                data-warn={damageTone === 'danger' ? '' : undefined}
-                aria-hidden
-              >
-                <WarningIcon />
-              </span>
-              <div
-                className="cluster-meter"
-                data-hot={damageTone === 'warn' ? '' : undefined}
-                data-warn={damageTone === 'danger' ? '' : undefined}
-              >
-                <span style={{ width: `${Math.round(damage * 100)}%` }} />
+            {/* The truck's wear, and the trailer's under it while one is on the back: the worst of each one's parts,
+                marked by its own glyph rather than by a word. The trailer's row is the hitch state read as well as a
+                reading — a solo truck has no trailer to have worn anything, so the row simply isn't there. */}
+            <section className="cluster-panel cluster-wear" aria-label={words.wear}>
+              <div className="cluster-wear-row" aria-label={`${words.damage} ${Math.round(damage * 100)}%`}>
+                <span
+                  className="cluster-glyph"
+                  data-hot={damageTone === 'warn' ? '' : undefined}
+                  data-warn={damageTone === 'danger' ? '' : undefined}
+                  aria-hidden
+                >
+                  <WarningIcon />
+                </span>
+                <div
+                  className="cluster-meter"
+                  data-hot={damageTone === 'warn' ? '' : undefined}
+                  data-warn={damageTone === 'danger' ? '' : undefined}
+                >
+                  <span style={{ width: `${Math.round(damage * 100)}%` }} />
+                </div>
+                <strong
+                  className="cluster-gauge-value"
+                  data-hot={damageTone === 'warn' ? '' : undefined}
+                  data-warn={damageTone === 'danger' ? '' : undefined}
+                >
+                  {Math.round(damage * 100)}
+                  <small>%</small>
+                </strong>
               </div>
-              <strong
-                className="cluster-gauge-value"
-                data-hot={damageTone === 'warn' ? '' : undefined}
-                data-warn={damageTone === 'danger' ? '' : undefined}
-              >
-                {Math.round(damage * 100)}
-                <small>%</small>
-              </strong>
+              {trailerDamage !== null && (
+                <div
+                  className="cluster-wear-row"
+                  aria-label={`${words.wearTrailer} ${Math.round(trailerDamage * 100)}%`}
+                >
+                  <span
+                    className="cluster-glyph"
+                    data-hot={trailerTone === 'warn' ? '' : undefined}
+                    data-warn={trailerTone === 'danger' ? '' : undefined}
+                    aria-hidden
+                  >
+                    <TrailerIcon />
+                  </span>
+                  <div
+                    className="cluster-meter"
+                    data-hot={trailerTone === 'warn' ? '' : undefined}
+                    data-warn={trailerTone === 'danger' ? '' : undefined}
+                  >
+                    <span style={{ width: `${Math.round(trailerDamage * 100)}%` }} />
+                  </div>
+                  <strong
+                    className="cluster-gauge-value"
+                    data-hot={trailerTone === 'warn' ? '' : undefined}
+                    data-warn={trailerTone === 'danger' ? '' : undefined}
+                  >
+                    {Math.round(trailerDamage * 100)}
+                    <small>%</small>
+                  </strong>
+                </div>
+              )}
             </section>
           </aside>
         </div>
@@ -900,6 +985,174 @@ function ClusterPhone() {
  * the panel's own greys, white on the dark glass and black on the light, and the brand's name as a small wordmark
  * where it has no logo. It is part of the face, not a reading, so the dial's label stays the speed alone.
  */
+/** What the dial draws, as plain numbers: a face (its top speed and two steps) and the two readings on it. */
+interface ClusterDialProps {
+  /** How far round the face the truck is, 0 (at rest) to 1 (the face's top speed). */
+  speedShare: number
+  /** The engine's share of its own scale, 0 to 1. */
+  rpm: number
+  /** The limit the route knows, in the face's own units (0 when there is none): marked on the scale. */
+  limit: number
+  /** The face: its top speed (in the driver's units), the step between its numbers and between its ticks. */
+  max: number
+  step: number
+  minor: number
+}
+
+/**
+ * The dial's face: the bezel's edge, the groove and the lit arc, the scale with its numbers, the tacho with Scania's
+ * bands, and the cursor. It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the
+ * two readings towards the truck's a frame at a time, and only this SVG is redrawn while they travel — the panels,
+ * the route and the notices carry on at the rate the telemetry actually arrives. Memoised on plain numbers, so a
+ * reading that leaves the dial alone costs it nothing.
+ *
+ * It opens the way a dash does when the electrics come on: the face lit to the far end of its scale, held while the
+ * marks come up, then falling back to the reading as the boot clears (SWEEP_HOLD_MS, SWEEP_MS). The panel is
+ * re-mounted as the boot's light goes down, which is what puts that sweep where the driver can see it rather than
+ * behind the splash.
+ */
+const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, step, minor }: ClusterDialProps) {
+  // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
+  const shownSpeed = useSmoothed(speedShare, { from: 1, hold: SWEEP_HOLD_MS, sweep: SWEEP_MS })
+  const shownRpm = useSmoothed(rpm)
+  // The cursor's angle: 270° from the first tick to the last, on the driver's face.
+  const angle = DIAL_START + 90 + DIAL_SWEEP_DEGREES * shownSpeed
+  // The limit's mark: the sign's own clock (LIMIT_LEAVE_MS), so the mark and the sign leave the panel together. A
+  // limit past the face's top speed has no place on this face and so isn't marked at all.
+  const mark = useLingering(limit > 0 && limit <= max ? limit : null, LIMIT_LEAVE_MS)
+
+  // The scale is fixed for the face it was drawn for: its marks and numbers keep their elements between frames, so a
+  // moving reading only ever re-renders the arc, the tacho and the cursor.
+  const scale = useMemo(() => {
+    const face: SpeedFace = { max, step, minor }
+    const ticks = Array.from({ length: Math.round(max / minor) + 1 }, (_, at) => at * minor)
+    const numbers = Array.from({ length: Math.round(max / step) + 1 }, (_, at) => at * step)
+    return (
+      <>
+        {/* The scale: every tick hangs inward from the groove, so the marks share one inner edge and grow outwards
+            to the ring. The numbered ones reach the groove itself and carry the ink; the rest are half as long, so
+            the scale reads in blocks from the far side of the cab. */}
+        {ticks.map((tick) => (
+          <line
+            key={tick}
+            className={tick % step === 0 ? 'cluster-tick major' : 'cluster-tick'}
+            x1="150"
+            y1={tick % step === 0 ? 22 : 27}
+            x2="150"
+            y2="33"
+            transform={`rotate(${DIAL_TICK_START + (tick / max) * DIAL_SWEEP_DEGREES} 150 150)`}
+          />
+        ))}
+        {/* The numbers come up in the order they run round the face, a frame apart: the face assembles itself rather
+            than appearing whole. Each keeps its element (keyed by its value), so the stagger plays once. */}
+        {numbers.map((value, index) => {
+          const at = dialPoint(value, SPEED_LABEL_RADIUS, face)
+          return (
+            <text
+              key={value}
+              className="cluster-dial-label"
+              x={at.x}
+              y={at.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              style={{ animationDelay: `${200 + index * 18}ms` }}
+            >
+              {value}
+            </text>
+          )
+        })}
+      </>
+    )
+  }, [max, step, minor])
+
+  return (
+    <svg className="cluster-dial-ring" viewBox="0 0 300 300" aria-hidden>
+      {/* The bezel's edge: one hairline just outside the groove, where the face turns up towards the tacho, so the
+          scale reads as machined into a bezel rather than printed on a flat ring. It takes the place's own
+          hairlines (--line), which is what makes it sit under the marks rather than beside them. */}
+      <circle
+        className="cluster-dial-lip"
+        cx="150"
+        cy="150"
+        r={DIAL_LIP_RADIUS}
+        strokeDasharray={`${DIAL_LIP_CIRCUMFERENCE * DIAL_SWEEP} ${DIAL_LIP_CIRCUMFERENCE}`}
+        transform={`rotate(${DIAL_START} 150 150)`}
+      />
+      <circle
+        className="cluster-dial-track"
+        cx="150"
+        cy="150"
+        r={DIAL_RADIUS}
+        strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP} ${DIAL_CIRCUMFERENCE}`}
+        transform={`rotate(${DIAL_START} 150 150)`}
+      />
+      {/* The speed, as a lit arc in the track's groove: how far round the face the driver is, drawn in the dash's
+          accent so the one colour on the glass is also the speed. Its length is the smoothed reading, so it is a
+          frame's worth of movement rather than a step. */}
+      <circle
+        className="cluster-dial-fill"
+        cx="150"
+        cy="150"
+        r={DIAL_RADIUS}
+        strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP * shownSpeed} ${DIAL_CIRCUMFERENCE}`}
+        transform={`rotate(${DIAL_START} 150 150)`}
+      />
+      {/* The limit where it falls on the scale, drawn over the lit arc so passing it reads as passing it: the sign
+          in the status bar says what the limit is, and this says where it is. It is held for one fade after the route
+          stops knowing a limit, so it leaves with the sign rather than blinking away, and its angle is a transform the
+          stylesheet can transition, so a limit that changes slides round the face instead of jumping. */}
+      {mark.value !== null && (
+        <g
+          className="cluster-limit"
+          data-leaving={mark.leaving ? '' : undefined}
+          style={{
+            transform: `rotate(${DIAL_START + 90 + DIAL_SWEEP_DEGREES * (mark.value / max)}deg)`,
+            transformOrigin: '150px 150px',
+          }}
+        >
+          <line className="cluster-limit-mark" x1="150" y1={150 - 126} x2="150" y2={150 - 135} />
+        </g>
+      )}
+      {scale}
+      <circle
+        className="cluster-dial-rpm-track"
+        cx="150"
+        cy="150"
+        r={RPM_RADIUS}
+        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP} ${RPM_CIRCUMFERENCE}`}
+        transform={`rotate(${DIAL_START} 150 150)`}
+      />
+      <circle
+        className="cluster-dial-rpm"
+        cx="150"
+        cy="150"
+        r={RPM_RADIUS}
+        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * shownRpm} ${RPM_CIRCUMFERENCE}`}
+        transform={`rotate(${DIAL_START} 150 150)`}
+      />
+      {RPM_BANDS.map((band) => (
+        <circle
+          key={band.band}
+          className="cluster-rpm-band"
+          data-band={band.band}
+          cx="150"
+          cy="150"
+          r={RPM_BAND_RADIUS}
+          strokeDasharray={`${RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * (band.to - band.from - RPM_BAND_GAP)} ${RPM_BAND_CIRCUMFERENCE}`}
+          strokeDashoffset={-RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * (band.from + RPM_BAND_GAP / 2)}
+          transform={`rotate(${DIAL_START} 150 150)`}
+        />
+      ))}
+      {/* The needle rides the ring rather than crossing the face: a tick across the groove, as a dial's cursor is. A
+          line from the hub would run through the figure and the scale's numbers, which is the one thing the dial
+          can't afford — the speed and its unit sit at its centre. */}
+      <g className="cluster-needle" style={{ transform: `rotate(${angle}deg)`, transformOrigin: '150px 150px' }}>
+        <line className="cluster-needle-mark" x1="150" y1={150 - 126} x2="150" y2={150 - 135} />
+      </g>
+    </svg>
+  )
+})
+
 function ClusterBrand() {
   const truck = useLive((state) => state.truck)
   if (!truck) return null
@@ -913,7 +1166,7 @@ function TruckMark({ brandId, brand }: { brandId: string; brand: string }) {
   const [attempt, setAttempt] = useState(0)
   const source = sources[attempt]
   return (
-    <div className="cluster-brand">
+    <div className="cluster-brand" aria-hidden>
       {source ? (
         <img key={source.src} src={source.src} alt="" onError={() => setAttempt((current) => current + 1)} />
       ) : (
@@ -925,23 +1178,18 @@ function TruckMark({ brandId, brand }: { brandId: string; brand: string }) {
 
 /**
  * The cabin's boot screen, played over the cluster: the panel lights, Cabin Play's mark and the truck's brand
- * arrive, and it goes down as the dial comes up. It starts from the electrics and runs on its own clock, which is
- * what power.ts does for the cabin; here one ignition is one boot.
+ * arrive, and it goes down as the dial comes up. It is the cabin's boot, told rather than timed — the phase comes from
+ * the cabin's page (state/power.ts, through the host), so both screens are at the same moment of it.
+ *
+ * A page that comes up while the cabin is already booting starts where that boot has got to: `elapsed` is how far in
+ * it is, which puts the animation at the cabin's point in it rather than beginning it again.
  */
-function ClusterBoot({ onDone }: { onDone: () => void }) {
-  const [phase, setPhase] = useState<'splash' | 'connecting' | null>('splash')
-  useEffect(() => {
-    const connecting = setTimeout(() => setPhase('connecting'), SPLASH_MS)
-    const done = setTimeout(() => {
-      setPhase(null)
-      onDone()
-    }, SPLASH_MS + CONNECTING_MS)
-    return () => {
-      clearTimeout(connecting)
-      clearTimeout(done)
-    }
-  }, [onDone])
-  return phase ? <BootScreen phase={phase} /> : null
+function ClusterBoot({ power }: { power: CabinPower }) {
+  // Where this page came into the boot, taken once: a boot it sees begin starts at its first frame, and one it loads
+  // into starts where the cabin already is.
+  const [boot] = useState(() => bootShown(power, Date.now()))
+  if (!boot) return null
+  return <BootScreen phase={boot.phase} elapsed={boot.elapsed} />
 }
 
 /** A telltale: its icon, the label a screen reader reads, and the colour the dash lights it in. */
@@ -1079,9 +1327,6 @@ function ClusterNoticeBar({ notice }: { notice: ClusterNotice }) {
   )
 }
 
-/** How long the electrics must stay down for it to be an ignition-off rather than a dropped frame, ms. */
-const ELECTRIC_OFF_HOLD_MS = 1200
-
 /** Damage at which the dash lights its warning lamp, and its stop lamp (the game's 15% and 50%). */
 const DAMAGE_WARN = 0.15
 const DAMAGE_STOP = 0.5
@@ -1099,6 +1344,17 @@ const DIAL_TICK_START = DIAL_START - 270
 const DIAL_SWEEP_DEGREES = 270
 /* The face's numbers, set inside the ticks; which numbers they are is the driver's units' (km/h or mph). */
 const SPEED_LABEL_RADIUS = 105
+/* The bezel's edge, a hairline outside the groove and inside the tacho, on the same 270° sweep. */
+const DIAL_LIP_RADIUS = 133.5
+const DIAL_LIP_CIRCUMFERENCE = 2 * Math.PI * DIAL_LIP_RADIUS
+/* The self-test a dash runs at power-up, as the electrics come on: the face lit to its far end, held there while the
+   bezel, the scale and its numbers come up (`hold`), then falling back to the reading over `sweep`. Long enough to be
+   seen and short enough not to hold the reading back. */
+const SWEEP_HOLD_MS = 340
+const SWEEP_MS = 820
+/* How long the speed limit's sign and its mark on the scale take to leave the panel once the route stops knowing a
+   limit: long enough to read as a fade, short enough that the mark isn't still there on the next road. */
+const LIMIT_LEAVE_MS = 420
 
 /* The tacho: its ring outside the speedo's, read against a 2,500 rpm scale. */
 const RPM_MAX = 2500
@@ -1107,6 +1363,9 @@ const RPM_CIRCUMFERENCE = 2 * Math.PI * RPM_RADIUS
 /* Its bands, as Scania prints them: the auxiliary brake is strongest from 2,000 to 2,400 rpm, the red field past. */
 const RPM_BAND_RADIUS = 144
 const RPM_BAND_CIRCUMFERENCE = 2 * Math.PI * RPM_BAND_RADIUS
+/* The hairline that splits the two fields: without it the blue and the red meet and read as one band in two
+   colours, where the dash shows two marks. Sized in the sweep, so it stays a hairline as the face is drawn. */
+const RPM_BAND_GAP = 0.01
 const RPM_BANDS = [
   { band: 'aux', from: 2000 / RPM_MAX, to: 2400 / RPM_MAX },
   { band: 'red', from: 2400 / RPM_MAX, to: 1 },
@@ -1124,6 +1383,14 @@ function clamp(value: number): number {
 }
 
 /** A driver-hours clock as the cluster says it: "4:05 h", or "58 min", in the cab's language. */
+/** The trip's time on the move, split for the dash's two sizes: "45" and "min" for the first hour, "3:24" and "h"
+ *  past it — the same two readings the driver-hours rows give, in the trip panel's own layout. */
+function driveTime(seconds: number, words: Strings['diagnostics']): Figure {
+  const whole = Math.max(0, Math.round(seconds / 60))
+  if (whole < 60) return { value: String(whole), unit: words.minutes }
+  return { value: `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`, unit: words.hours }
+}
+
 function minutes(value: number, words: Strings['diagnostics']): string {
   const whole = Math.max(0, Math.round(value))
   if (whole < 60) return `${whole} ${words.minutes}`
