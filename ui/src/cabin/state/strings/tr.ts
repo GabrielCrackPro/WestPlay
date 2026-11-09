@@ -652,6 +652,7 @@ export const TURKISH_STRINGS: Strings = {
     adblue: 'AdBlue',
     sinceStart: 'Motor Çalıştığından Beri',
     warnings: 'Uyarılar',
+    telltales: 'Işıklar ve uyarılar',
     consumption: 'Tüketim',
     odometer: 'Kilometre sayacı',
     retarder: 'Retarder',

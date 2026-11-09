@@ -1,6 +1,16 @@
 import { type ReactElement, useCallback, useEffect, useState } from 'react'
 import { formatGameTime, formatGear, formatTripDistance, speedKmh } from '../../shared/format'
 import { cabClock, hasTruck, subscribeHostMessages } from '../../shared/host'
+import {
+  adblue as adblueReading,
+  battery as batteryReading,
+  brakeAir as brakeAirReading,
+  brakeTemperature as brakeTemperatureReading,
+  coolant as coolantReading,
+  fuelLevel,
+  oil as oilReading,
+  warned,
+} from '../apps/diagnostics/readings'
 import { tripAverage } from '../apps/diagnostics/trip'
 import { useTrends } from '../apps/diagnostics/useTrends'
 import { receivePhoneNotifications, receivePhoneState, useCaller, usePhone, usePhoneToasts } from '../apps/phone/phone'
@@ -36,6 +46,7 @@ import {
   PhoneIcon,
   RangeIcon,
   RestIcon,
+  RetarderIcon,
   TripIcon,
   WarningIcon,
   WipersIcon,
@@ -66,6 +77,9 @@ export function ClusterScreen() {
   const cards = useCabin((state) => state.clusterCards)
   const reduceMotion = useCabin((state) => state.reduceMotion)
   const mode = useCabin((state) => state.appearanceMode)
+  // Whether the game runs. The host keeps this page between games, so without it the panel would hold the last
+  // frame of a closed game up as if the truck were still driving.
+  const [running, setRunning] = useState<boolean | null>(null)
   // The trip since the engine came on, worked out from the same telemetry (its distance, not the odometer).
   const { trip } = useTrends()
   // The cab's newest alert or phone notification: the same sources the cabin's stack uses, kept to one line here.
@@ -82,6 +96,7 @@ export function ClusterScreen() {
         else if (message.type === 'phoneNotes') {
           receivePhoneNotifications(message.notifications, message.backlog === true)
         } else if (message.type === 'nowPlaying') useLive.setState({ nowPlaying: message.data })
+        else if (message.type === 'game') setRunning(message.running)
       }),
     [],
   )
@@ -98,14 +113,40 @@ export function ClusterScreen() {
     if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
     else delete document.documentElement.dataset.motion
   }, [reduceMotion])
+  // The game closed: nothing on the panel is live any more, so it lets go of the truck's last frame (the boot
+  // starts afresh when the next game's electrics come on).
+  useEffect(() => {
+    if (running !== false) return
+    useLive.setState({ telemetry: null, truck: null, job: null, nowPlaying: null })
+  }, [running])
+  // The job's route, once the game has guided it. Before guidance starts the job's planned distance is what's
+  // left, but once the destination is reached it is the whole trip, and mustn't read as if it were still ahead.
+  const jobKey = job ? [job.sourceCity, job.sourceCompany, job.destinationCity, job.cargoLoaded].join('|') : ''
+  const [guidedFor, setGuidedFor] = useState<string | null>(null)
+  useEffect(() => {
+    if (telemetry && telemetry.navigationDistance > 0 && guidedFor !== jobKey) setGuidedFor(jobKey)
+  }, [telemetry, jobKey, guidedFor])
+  const guided = jobKey !== '' && guidedFor === jobKey
 
   // The boot, as the cabin's: the panel lights with the truck's brand and Cabin Play's mark as the electrics come
   // on, and clears to the cluster. The cluster page has no power clock of its own, so the electrics are its cue:
   // an ignition cycle boots the screen again, exactly as the cabin's does. The cycle is its key, so each ignition
   // gets a fresh boot from its first frame.
   const electric = telemetry?.electricEnabled ?? false
-  const [ignition, setIgnition] = useState({ on: false, cycle: 0 })
-  if (electric !== ignition.on) setIgnition({ on: electric, cycle: ignition.cycle + 1 })
+  const [ignition, setIgnition] = useState(() => ({ on: electric, cycle: 0 }))
+  useEffect(() => {
+    if (electric) {
+      setIgnition((current) => (current.on ? current : { on: true, cycle: current.cycle + 1 }))
+      return
+    }
+    // A frame with the electrics down is a pause or a dropped reading, not an ignition-off: the panel keeps its
+    // screen unless the off holds, so one hiccup doesn't replay the whole boot.
+    const off = setTimeout(
+      () => setIgnition((current) => (current.on ? { on: false, cycle: current.cycle } : current)),
+      ELECTRIC_OFF_HOLD_MS,
+    )
+    return () => clearTimeout(off)
+  }, [electric])
   // The cluster is covered by the boot, so its entrance would play out of sight. Re-mount it as the boot clears
   // and it comes up with everything moving, rather than fading in underneath the panel's light.
   const [shellCycle, setShellCycle] = useState(0)
@@ -113,6 +154,8 @@ export function ClusterScreen() {
 
   // Switched off in Settings: the game's own cluster shows through the transparent texture.
   if (!shown) return null
+  // The game is gone: there is no truck to read, so the panel goes dark rather than hold a dead screen of zeros.
+  if (running === false) return null
 
   const t = telemetry
   const speed = t ? speedKmh(t.speed) : 0
@@ -122,13 +165,20 @@ export function ClusterScreen() {
   const cruise = t ? speedKmh(t.cruiseControlSpeed) : 0
   const capacity = truck?.fuelCapacity ?? 0
   const fuelShare = capacity > 0 && t ? clamp(t.fuel / capacity) : null
-  const adblueShare = t ? clamp(t.adblue / 60) : 0
-  const coolantShare = t ? clamp((t.coolantTemperature - 40) / 70) : 0
+  // The readings as Diagnostics gauges them: the same ranges, the same warning lines and the game's own warning
+  // channels, so the cluster and the app can't disagree about when something is wrong.
+  const adblue = t ? adblueReading(t.adblue) : null
+  const coolant = t ? coolantReading(t.coolantTemperature) : null
+  const oilTemp = t ? oilReading(t.oilTemperature) : null
+  const air = t ? warned(brakeAirReading(t.brakeAirPressure), t.brakeAirWarning) : null
+  const volts = t ? warned(batteryReading(t.batteryVoltage), t.batteryWarning) : null
+  const brakeHeat = t ? brakeTemperatureReading(t.brakeTemperature) : null
+  const fuel =
+    fuelShare === null ? null : warned(fuelLevel(fuelShare, truck?.fuelWarningFactor), t?.fuelWarning ?? false)
   const rest = t?.restStop ?? -1
   const breaking = t?.mandatoryBreak ?? -1
   const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
   const average = trip.distance > 0.05 ? tripAverage(trip) : (t?.fuelAverage ?? 0)
-  const brakeHeat = t ? clamp(t.brakeTemperature / 600) : 0
   // The route's own line: the game's route while it guides, or the job's planned distance before it starts.
   const destination = job
     ? job.cargoLoaded
@@ -138,7 +188,7 @@ export function ClusterScreen() {
   const routeDistance =
     t && t.navigationDistance > 0
       ? t.navigationDistance
-      : job && job.cargoLoaded && job.plannedDistanceKm > 0
+      : !guided && job && job.cargoLoaded && job.plannedDistanceKm > 0
         ? job.plannedDistanceKm * 1000
         : null
   const routeArrival = t && t.navigationTime > 0 ? Math.round(cabClock(t, clockShift) + t.navigationTime / 60) : null
@@ -254,16 +304,27 @@ export function ClusterScreen() {
     },
   ]
 
+  // The retarder's own light, on the trucks that have one: lit while the driver holds a step.
+  if (truck && truck.retarderSteps > 0) {
+    telltales.push({
+      key: 'retarder',
+      label: words.retarder,
+      tone: 'info',
+      icon: <RetarderIcon />,
+      active: (t?.retarderLevel ?? 0) > 0,
+    })
+  }
+
   // The dial's needle: 270° from its first tick to its last, on a 120 km/h face.
   const needleAngle = DIAL_START + 90 + DIAL_SWEEP_DEGREES * clamp(speed / DIAL_MAX_KMH)
 
   return (
     <main className="cluster" data-appearance={appearance} aria-label={text.settings.clusterScreen}>
-      {electric && <ClusterBoot key={ignition.cycle} onDone={bootDone} />}
+      {ignition.on && <ClusterBoot key={ignition.cycle} onDone={bootDone} />}
 
       <div className="cluster-shell" key={shellCycle}>
         <header className="cluster-status">
-          <ul className="cluster-telltales" aria-label={words.warnings}>
+          <ul className="cluster-telltales" aria-label={words.telltales}>
             {telltales.map((telltale) => (
               <li
                 key={telltale.key}
@@ -279,6 +340,15 @@ export function ClusterScreen() {
               </li>
             ))}
           </ul>
+          {/* What a screen reader hears of the notice. The line itself comes and goes with its words, and a live
+              region mounted along with its text is often not announced: this one is always here to be read into. */}
+          <p className="cluster-sr-only" aria-live="polite" aria-atomic="true">
+            {notice
+              ? [notice.label, notice.title, notice.detail, notice.count > 1 ? `+${notice.count - 1}` : '']
+                  .filter(Boolean)
+                  .join('. ')
+              : ''}
+          </p>
           {notice ? (
             <ClusterNoticeBar notice={notice} />
           ) : routeLabel ? (
@@ -358,7 +428,7 @@ export function ClusterScreen() {
               <section className="cluster-panel cluster-engine" aria-label={words.engine}>
                 <div
                   className="cluster-readout"
-                  data-warn={t && t.oilTemperature >= 120 ? '' : undefined}
+                  data-warn={oilTemp?.state !== 'ok' ? '' : undefined}
                   aria-label={`${words.oilTemperature} ${t ? text.number(Math.round(t.oilTemperature)) : 0} ${words.celsius}`}
                 >
                   <span className="cluster-glyph" aria-hidden>
@@ -369,9 +439,7 @@ export function ClusterScreen() {
                 </div>
                 <div
                   className="cluster-readout"
-                  data-warn={
-                    t && (t.brakeAirWarning || (t.brakeAirPressure > 0 && t.brakeAirPressure < 85)) ? '' : undefined
-                  }
+                  data-warn={air?.state !== 'ok' ? '' : undefined}
                   aria-label={`${words.brakeAir} ${t ? text.number(Math.round(t.brakeAirPressure)) : 0} ${words.psi}`}
                 >
                   <span className="cluster-glyph" aria-hidden>
@@ -382,9 +450,7 @@ export function ClusterScreen() {
                 </div>
                 <div
                   className="cluster-readout"
-                  data-warn={
-                    t && (t.batteryWarning || (t.batteryVoltage > 0 && t.batteryVoltage < 24)) ? '' : undefined
-                  }
+                  data-warn={volts?.state !== 'ok' ? '' : undefined}
                   aria-label={`${words.battery} ${t ? t.batteryVoltage.toFixed(1).replace('.', text.decimal) : 0} ${words.volts}`}
                 >
                   <span className="cluster-glyph" aria-hidden>
@@ -401,23 +467,23 @@ export function ClusterScreen() {
                 <div
                   className="cluster-hours-row"
                   data-due={rest >= 0 && rest <= 60 ? '' : undefined}
-                  aria-label={`${words.restStop} ${rest >= 0 ? minutes(rest) : words.noRest}`}
+                  aria-label={`${words.restStop} ${rest >= 0 ? minutes(rest, words) : words.noRest}`}
                 >
                   <span className="cluster-glyph" aria-hidden>
                     <RestIcon />
                   </span>
-                  <strong>{rest >= 0 ? minutes(rest) : '—'}</strong>
+                  <strong>{rest >= 0 ? minutes(rest, words) : '—'}</strong>
                   <span className="cluster-dot" aria-hidden />
                 </div>
                 <div
                   className="cluster-hours-row"
                   data-due={breaking >= 0 && breaking <= 60 ? '' : undefined}
-                  aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? minutes(breaking) : words.noRest}`}
+                  aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? minutes(breaking, words) : words.noRest}`}
                 >
                   <span className="cluster-glyph" aria-hidden>
                     <BreakIcon />
                   </span>
-                  <strong>{breaking >= 0 ? minutes(breaking) : '—'}</strong>
+                  <strong>{breaking >= 0 ? minutes(breaking, words) : '—'}</strong>
                   <span className="cluster-dot" aria-hidden />
                 </div>
               </section>
@@ -463,7 +529,7 @@ export function ClusterScreen() {
                 <circle className="cluster-needle-cap" cx="150" cy="150" r="6" />
               </svg>
 
-              <div className="cluster-speed">
+              <div className="cluster-speed" aria-hidden>
                 <strong key={Math.round(speed)} className="cluster-speed-value">
                   {speed}
                 </strong>
@@ -485,10 +551,10 @@ export function ClusterScreen() {
             {cards.fuel && (
               <section className="cluster-panel cluster-gauge cluster-fuel" aria-label={words.fuel}>
                 <div className="cluster-gauge-row">
-                  <span className="cluster-glyph" data-warn={t?.fuelWarning ? '' : undefined} aria-hidden>
+                  <span className="cluster-glyph" data-warn={fuel?.state === 'alarm' ? '' : undefined} aria-hidden>
                     <FuelIcon />
                   </span>
-                  <div className="cluster-meter" data-low={t?.fuelWarning ? '' : undefined}>
+                  <div className="cluster-meter" data-low={fuel?.state !== 'ok' ? '' : undefined}>
                     <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
                   </div>
                   <strong className="cluster-gauge-value">
@@ -517,20 +583,16 @@ export function ClusterScreen() {
             {cards.engine && (
               <section className="cluster-panel cluster-brakes" aria-label={words.brakeTemperature}>
                 <div className="cluster-brake-head">
-                  <span
-                    className="cluster-glyph"
-                    data-warn={t && t.brakeTemperature >= 450 ? '' : undefined}
-                    aria-hidden
-                  >
+                  <span className="cluster-glyph" data-warn={brakeHeat?.state === 'alarm' ? '' : undefined} aria-hidden>
                     <BrakeTemperatureIcon />
                   </span>
-                  <div className="cluster-meter" data-hot={t && t.brakeTemperature >= 300 ? '' : undefined}>
-                    <span style={{ width: `${Math.round(brakeHeat * 100)}%` }} />
+                  <div className="cluster-meter" data-hot={brakeHeat?.state !== 'ok' ? '' : undefined}>
+                    <span style={{ width: `${Math.round((brakeHeat?.percent ?? 0) * 100)}%` }} />
                   </div>
                   <strong
                     className="cluster-gauge-value"
-                    data-hot={t && t.brakeTemperature >= 300 ? '' : undefined}
-                    data-warn={t && t.brakeTemperature >= 450 ? '' : undefined}
+                    data-hot={brakeHeat?.state === 'warn' ? '' : undefined}
+                    data-warn={brakeHeat?.state === 'alarm' ? '' : undefined}
                   >
                     {t ? text.number(Math.round(t.brakeTemperature)) : '—'}
                     <small>{words.celsius}</small>
@@ -541,15 +603,15 @@ export function ClusterScreen() {
 
             <div className="cluster-pair-gauges">
               <section className="cluster-panel cluster-mini" aria-label={words.adblue}>
-                <span className="cluster-glyph" data-warn={t?.adblueWarning ? '' : undefined} aria-hidden>
+                <span className="cluster-glyph" data-warn={adblue?.state === 'alarm' ? '' : undefined} aria-hidden>
                   <AdblueIcon />
                 </span>
                 <strong>
                   {t ? text.number(Math.round(t.adblue)) : '—'}
                   <small>{words.litres}</small>
                 </strong>
-                <div className="cluster-meter" data-low={t?.adblueWarning ? '' : undefined}>
-                  <span style={{ width: `${Math.round(adblueShare * 100)}%` }} />
+                <div className="cluster-meter" data-low={adblue?.state !== 'ok' ? '' : undefined}>
+                  <span style={{ width: `${Math.round((adblue?.percent ?? 0) * 100)}%` }} />
                 </div>
               </section>
 
@@ -557,19 +619,15 @@ export function ClusterScreen() {
                 className="cluster-panel cluster-mini cluster-coolant"
                 aria-label={`${words.coolant} ${t ? text.number(Math.round(t.coolantTemperature)) : 0} ${words.celsius}`}
               >
-                <span
-                  className="cluster-glyph"
-                  data-warn={t && t.coolantTemperature >= 100 ? '' : undefined}
-                  aria-hidden
-                >
+                <span className="cluster-glyph" data-warn={coolant?.state !== 'ok' ? '' : undefined} aria-hidden>
                   <CoolantIcon />
                 </span>
                 <strong>
                   {t ? text.number(Math.round(t.coolantTemperature)) : '—'}
                   <small>{words.celsius}</small>
                 </strong>
-                <div className="cluster-meter" data-hot={t && t.coolantTemperature >= 100 ? '' : undefined}>
-                  <span style={{ width: `${Math.round(coolantShare * 100)}%` }} />
+                <div className="cluster-meter" data-hot={coolant?.state !== 'ok' ? '' : undefined}>
+                  <span style={{ width: `${Math.round((coolant?.percent ?? 0) * 100)}%` }} />
                 </div>
               </section>
             </div>
@@ -668,9 +726,10 @@ interface ClusterNotice {
 }
 
 /**
- * The one notice the cluster has room for: a call first, then the phone's newest notification, then the game's
- * newest warning. The cabin's stack keeps all of them and their history; here it is a glance, so the rest are
- * counted rather than stacked over the dial.
+ * The one notice the cluster has room for: the truck's own alarm first (a fault is the one thing on this line the
+ * driver has to act on, and a message can wait), then a call, then the phone's newest notification, then the game's
+ * warnings. The cabin's stack keeps all of them and their history; here it is a glance, so the rest are counted
+ * rather than stacked over the dial.
  */
 function useClusterNotice(): ClusterNotice | null {
   const text = useText()
@@ -678,6 +737,7 @@ function useClusterNotice(): ClusterNotice | null {
   const caller = useCaller(call?.id)
   const toasts = usePhoneToasts((state) => state.toasts)
   const alert = useClusterAlert(text)
+  if (alert?.tone === 'alarm') return alert
   if (call && call.state !== 'idle') {
     const ringing = call.state === 'ringing'
     return {
@@ -733,7 +793,7 @@ function useClusterAlert(text: Strings): ClusterNotice | null {
 /** The notice line in the header: its mark, what it is, what it says, and how many more are waiting. */
 function ClusterNoticeBar({ notice }: { notice: ClusterNotice }) {
   return (
-    <div className="cluster-notice" data-kind={notice.kind} data-tone={notice.tone} aria-live="polite">
+    <div className="cluster-notice" data-kind={notice.kind} data-tone={notice.tone} aria-hidden>
       {notice.icon ? (
         <img className="cluster-notice-app" src={notice.icon} alt="" />
       ) : (
@@ -748,6 +808,9 @@ function ClusterNoticeBar({ notice }: { notice: ClusterNotice }) {
     </div>
   )
 }
+
+/** How long the electrics must stay down for it to be an ignition-off rather than a dropped frame, ms. */
+const ELECTRIC_OFF_HOLD_MS = 1200
 
 /** The dial's geometry: a 270° sweep from 7:30 to 4:30, as a truck's speedometer counts. */
 const DIAL_RADIUS = 132
@@ -764,9 +827,9 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
 
-/** A driver-hours clock as the cluster says it: "4:05 h", or "58 min". */
-function minutes(value: number): string {
+/** A driver-hours clock as the cluster says it: "4:05 h", or "58 min", in the cab's language. */
+function minutes(value: number, words: Strings['diagnostics']): string {
   const whole = Math.max(0, Math.round(value))
-  if (whole < 60) return `${whole} min`
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')} h`
+  if (whole < 60) return `${whole} ${words.minutes}`
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')} ${words.hours}`
 }

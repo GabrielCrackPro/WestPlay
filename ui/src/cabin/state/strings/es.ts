@@ -667,6 +667,7 @@ export const SPANISH_STRINGS: Strings = {
     adblue: 'AdBlue',
     sinceStart: 'Desde que arrancó el motor',
     warnings: 'Avisos',
+    telltales: 'Luces y avisos',
     consumption: 'Consumo',
     odometer: 'Odómetro',
     retarder: 'Ralentizador',

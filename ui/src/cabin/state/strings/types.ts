@@ -658,6 +658,8 @@ export interface Strings {
     /** The worst readings since the engine came on (the trip's span), and how many ways the game warned. */
     sinceStart: string
     warnings: string
+    /** The cluster's strip of telltales: its indicators, lights, states and warnings together. */
+    telltales: string
     consumption: string
     odometer: string
     retarder: string

@@ -611,6 +611,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     log!("the game closed: its web players are closed");
                 }
                 let _ = webview.post_json(&game_message(running));
+                // The cluster page is kept between games: told the game is gone, it lets go of the last frame
+                // instead of holding a closed game's speed and readings up as if they were live.
+                let _ = cluster_view.post_json(&game_message(running));
             }
             let pid = bridge.bridge().plugin.pid.load(Ordering::Relaxed);
             if pid != elevated_pid {
@@ -947,6 +950,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         .chain(&route_next_message);
                     let _ = webview.post_json(&game_shown_message(game_shown));
                     let _ = webview.post_json(&game_message(game_running));
+                    let _ = cluster_view.post_json(&game_message(game_running));
                     let _ = webview.post_json(&truckersmp_message(truckersmp));
                     let _ = webview.post_json(&maps::map_message(map_shown.0.as_deref(), map_shown.1));
                     if spotify.is_some() {

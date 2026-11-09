@@ -652,6 +652,7 @@ export const ENGLISH_STRINGS: Strings = {
     adblue: 'AdBlue',
     sinceStart: 'Since Engine Start',
     warnings: 'Warnings',
+    telltales: 'Lights and warnings',
     consumption: 'Consumption',
     odometer: 'Odometer',
     retarder: 'Retarder',

@@ -306,6 +306,19 @@ body,
   font-weight: 650;
 }
 
+/* The notice as a screen reader hears it. The line itself is drawn for the eye and comes and goes with its words,
+   so it is hidden from the reader and this one, always on the page, carries them (a live region mounted along with
+   its text is often not announced). */
+.cluster-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* The route's own line, centred in the space the fixed telltales and the clock leave. */
 .cluster-route {
   flex: 1;
@@ -521,6 +534,8 @@ body,
   min-height: 0;
   min-width: 0;
   padding: 8px 4px 2px;
+  /* A column that overflows (a long number in a long language) is cut here rather than drawn over the dial. */
+  overflow: hidden;
 }
 
 /*
@@ -1064,6 +1079,11 @@ body,
   flex: none;
   padding: 14px 0 16px;
   border-top: 1px solid var(--line);
+}
+
+/* With the fuel card turned off, the brakes and the pair take the column's foot where the fuel card held it. */
+.cluster-side-right > .cluster-brakes:first-child {
+  margin-top: auto;
 }
 
 .cluster-brake-head {

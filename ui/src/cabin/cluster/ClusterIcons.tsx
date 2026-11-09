@@ -292,5 +292,16 @@ export function CruiseIcon() {
   )
 }
 
+/** The retarder, while a step is held: its cog turned down a step, as the dash marks the braking it adds. */
+export function RetarderIcon() {
+  return (
+    <Glyph>
+      <circle cx="12" cy="9" r="4" />
+      <path d="M12 2.5v2M12 13.5v2M5.5 9h-2M18.5 9h2M7.4 4.4 6 3M16.6 4.4 18 3M7.4 13.6 6 15M16.6 13.6 18 15" />
+      <path d="m9.5 18 2.5 2.5 2.5-2.5" />
+    </Glyph>
+  )
+}
+
 /** What the telltales are drawn as, so the cluster can assemble them from the telemetry. */
 export type TelltaleIcon = ReactElement
