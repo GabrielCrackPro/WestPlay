@@ -7,8 +7,8 @@ import { logoSources } from './brand'
 import './boot.css'
 
 /**
- * The boot, as one screen (boot.css): the panel's light comes up, Cabin Play's mark and name arrive on it, the
- * truck's brand settles in quietly under them, and the light goes down as CarPlay fades up.
+ * The boot, as one screen (boot.css): the panel's light comes up, the truck's brand is lit on it, Cabin Play's mark
+ * and name arrive under it, and the light goes down as CarPlay fades up.
  *
  * The power phases (state/power.ts) are only its clock: `splash` then `connecting` on a screen of the truck's
  * own, `connecting` alone when the app or plugin starts mid-drive. Nothing on the screen changes with them —
@@ -69,6 +69,8 @@ function BootMark({ withBrand }: { withBrand: boolean }) {
               panel's black and only the cab and its play are lit. */}
           <span className="boot-intro-halo" aria-hidden />
           <img src="/cabinplay-amoled.svg" alt="" />
+          {/* The glass over the tile catching the light once, as the screen settles. */}
+          <span className="boot-intro-sheen" aria-hidden />
         </span>
         <span className="boot-intro-wordmark">Cabin Play</span>
       </span>
@@ -94,13 +96,18 @@ function BrandLine() {
   return (
     <span className="boot-brand">
       {attempt < sources.length ? (
-        <img
-          key={sources[attempt].src}
-          className="boot-brand-logo"
-          src={sources[attempt].src}
-          alt=""
-          onError={() => setAttempt((current) => current + 1)}
-        />
+        // The mark and its own sheen: the same file twice, the second a narrow band of light crossing it (boot.css),
+        // so the brand reads as lit by the panel rather than pasted onto it.
+        <span className="boot-brand-art">
+          <img
+            key={sources[attempt].src}
+            className="boot-brand-logo"
+            src={sources[attempt].src}
+            alt=""
+            onError={() => setAttempt((current) => current + 1)}
+          />
+          <img className="boot-brand-sheen" src={sources[attempt].src} alt="" aria-hidden />
+        </span>
       ) : (
         <span className="boot-brand-wordmark">{truck.brand}</span>
       )}
