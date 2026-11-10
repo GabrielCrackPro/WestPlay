@@ -70,6 +70,10 @@ body,
   --danger: #ff6a61;
   --urea: #62a8ff;
   --cold: #6fb6ff;
+  /* The panel's own lighting, as the truck's dimmer leaves it (--cluster-backlight is set from the dashboard's own
+     reading, cluster/ClusterScreen.tsx): one pull on the brightness of everything the panel lights, never below a
+     readable floor. The telltales and the notice line are deliberately not part of it — see the rule below. */
+  --panel-dim: calc(0.35 + 0.65 * var(--cluster-backlight, 1));
   /* A gauge's fill, before any state gives it a colour: the dash's bars are white, not the accent. */
   --bar: rgb(232 242 247 / 0.66);
 
@@ -111,6 +115,7 @@ body,
   --danger: #b3251e;
   --urea: #1a5fbf;
   --cold: #1a5fbf;
+  --panel-dim: calc(0.55 + 0.45 * var(--cluster-backlight, 1));
   --bar: rgb(14 25 33 / 0.55);
   background:
     radial-gradient(75% 120% at 50% 125%, rgb(255 255 255 / 0.98), transparent 55%),
@@ -169,6 +174,22 @@ body,
   padding: 2px 0;
 }
 
+/*
+ * The truck's dash dimmer (telemetry.dashboardBacklight, 0..1, set on the panel as --cluster-backlight) dims the
+ * instruments the way the real panel's lighting dims: a pull on their brightness rather than a veil over the glass, so
+ * the marks stay readable at every setting. The telltales, the route, the notice line and the clock are deliberately
+ * left out — a warning lamp and what the cab has to say are never dimmed by the driver's lighting setting.
+ */
+.cluster-dial-ring,
+.cluster-speed,
+.cluster-brand,
+.cluster-gear,
+.cluster-retarder,
+.cluster-side {
+  filter: brightness(var(--panel-dim, 1));
+  transition: filter 220ms var(--motion-ease);
+}
+
 /* --- The top line: the lights, the route, the warnings and the clock --------------------------- */
 
 /*
@@ -199,6 +220,7 @@ body,
 }
 
 .cluster-telltale {
+  position: relative;
   display: grid;
   place-items: center;
   width: 32px;
@@ -206,45 +228,54 @@ body,
   color: var(--ok);
   opacity: 0;
   visibility: hidden;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 45%, transparent));
-  transition: opacity 180ms var(--motion-ease), visibility 180ms var(--motion-ease);
-  border-radius: 50%;
-  background: transparent;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, currentColor 50%, transparent));
+  transition:
+    opacity 80ms linear,
+    visibility 80ms linear;
 }
 
+/*
+ * A lamp lights the way a lamp does: it comes on, it doesn't grow. The symbol is drawn straight on the glass and only
+ * its glow changes, so the telltale reads as the dash's own bulb rather than as a chip appearing in a row — no pill
+ * behind it, no scale to settle.
+ */
 .cluster-telltale[data-active] {
   opacity: 1;
   visibility: visible;
-  animation: telltale-in 300ms var(--motion-ease) both;
-  filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 55%, transparent));
-  background: color-mix(in srgb, currentColor 8%, transparent);
+  animation: telltale-in 80ms linear both;
+  filter: drop-shadow(0 0 9px color-mix(in srgb, currentColor 55%, transparent));
 }
 
-/* An active blinker slot gets a gentle secondary pulse on its glow so the driver feels it at a glance even before
-   reading the icon — the slot breathes, the lamp blinks. Only the indicators blink this way, and only while they are
-   lit, so a parked-up lamp never pulses. */
-.cluster-telltale[data-active][data-blink] {
-  animation: telltale-in 300ms var(--motion-ease) both,
-    telltale-slot-pulse 1.1s ease-in-out infinite;
+/* The bloom a lamp throws through its diffuser as it lights: one short flare around the symbol, then the steady glow
+   the lamp keeps. It is the only entrance the lamps have, and it plays once per lighting. */
+.cluster-telltale[data-active]::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, currentColor 42%, transparent), transparent 72%);
+  animation: telltale-bloom 420ms var(--motion-ease) both;
+  pointer-events: none;
 }
 
-@keyframes telltale-slot-pulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 10px color-mix(in srgb, currentColor 55%, transparent));
-  }
-  50% {
-    filter: drop-shadow(0 0 16px color-mix(in srgb, currentColor 75%, transparent));
-  }
+.cluster-telltale svg {
+  position: relative;
 }
 
 @keyframes telltale-in {
   from {
     opacity: 0;
-    transform: scale(0.82);
+  }
+}
+
+@keyframes telltale-bloom {
+  from {
+    opacity: 0.8;
+    transform: scale(0.7);
   }
   to {
-    opacity: 1;
-    transform: none;
+    opacity: 0;
+    transform: scale(1.12);
   }
 }
 
@@ -273,8 +304,13 @@ body,
   filter: drop-shadow(0 0 10px color-mix(in srgb, var(--danger) 50%, transparent));
 }
 
+/*
+ * The blinker is a relay, not a fade: hard on, hard off, at the rate the truck's own flashers run (about 75 to the
+ * minute) and with a half that is genuinely dark. The lamp's glow goes with it because the glow belongs to the icon
+ * (drop-shadow), so nothing keeps pulsing after the lamp has gone out.
+ */
 .cluster-telltale[data-blink] svg {
-  animation: telltale-blink 1.05s steps(1, end) infinite;
+  animation: telltale-blink 0.8s steps(1, end) infinite;
 }
 
 @keyframes telltale-blink {
@@ -284,7 +320,31 @@ body,
   }
   50%,
   100% {
-    opacity: 0.2;
+    opacity: 0.06;
+  }
+}
+
+/*
+ * The dash's bulb check, run as the boot clears (the ignition's `on` phase, ClusterScreen): every lamp in the row lights
+ * together and holds for a moment, then drops back to the truck's real states. The whole lit appearance rides on the
+ * animation — visibility, brightness, glow — so when it ends, with no fill, what is left is simply the cascade: the
+ * truck's own lamps. Nothing has to be timed out or undone in script, and the row's labels stay honest, because only a
+ * lamp that is really on is marked active. The blinkers hold steady here too: this is the panel being tested, not the
+ * truck signalling.
+ *
+ * `1500ms` is the window ClusterScreen opens the attribute for (`BULB_CHECK_MS`): the two numbers are one moment, and
+ * the attribute has gone by the time it ends, so a later re-render cannot replay it.
+ */
+.cluster-telltales[data-check] .cluster-telltale {
+  animation: cluster-bulb-check 1500ms linear;
+}
+
+@keyframes cluster-bulb-check {
+  from,
+  to {
+    opacity: 1;
+    visibility: visible;
+    filter: drop-shadow(0 0 9px color-mix(in srgb, currentColor 55%, transparent));
   }
 }
 
@@ -496,11 +556,6 @@ body,
   stroke-width: 2;
 }
 
-/* Hover/touch feedback for interactive pills */
-.cluster-pill {
-  cursor: default;
-}
-
 /* Background tint when pill is active/on */
 .cluster-pill[data-on] {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -508,10 +563,6 @@ body,
 
 .cluster-pill[data-on] svg {
   color: var(--accent);
-}
-
-.cluster-cruise {
-  /* Its slot is held when cruise is off, so the clock doesn't jump when it comes on. */
 }
 
 .cluster-cruise svg {
@@ -550,10 +601,6 @@ body,
 .cluster-cruise[data-on] svg {
   color: var(--accent);
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
-}
-
-.cluster-clock {
-  /* Clock pill styling */
 }
 
 .cluster-clock svg {
@@ -874,14 +921,22 @@ body,
   color: var(--cold);
 }
 
+/* A reading in alarm blinks like the lamp beside it would, on a stepped clock rather than a soft fade: a warning
+   mark that dims smoothly reads as a UI pulse, where a dash's warning is a lamp being switched. It never goes fully
+   dark, so the reading it belongs to can still be found while it blinks. */
 .cluster-glyph[data-warn] {
   color: var(--danger);
-  animation: glyph-warn 1.4s ease-in-out infinite;
+  animation: glyph-warn 1.2s steps(1, end) infinite;
 }
 
 @keyframes glyph-warn {
-  50% {
-    opacity: 0.55;
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.35;
   }
 }
 
@@ -1120,10 +1175,6 @@ body,
   width: 100%;
   height: 100%;
   overflow: visible;
-  /* The truck's own dashboard backlight dims the panel the way the real dash dims — not a blackout overlay but a
-     brightness pull on the glass, so the figures and arcs stay readable at every setting. */
-  filter: brightness(calc(0.35 + 0.65 * var(--cluster-backlight, 1)));
-  transition: filter 220ms var(--motion-ease);
 }
 
 /* The bezel's edge: one hairline outside the groove, where the face turns up to the tacho. Round-capped and cut to
@@ -1152,6 +1203,9 @@ body,
   stroke: var(--accent);
   stroke-width: 2.6;
   stroke-linecap: round;
+  /* The lit arc carries its own light: a soft halo in its colour, so the head of the arc reads at arm's length
+     rather than as a thin line on a dark ring. */
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent));
   /* The lit part comes up after its groove rather than with it (Motion, ClusterScreen.tsx), so a dial that mounts
      already reading is built rather than switched on. Its length is not transitioned here: the page eases the
      reading itself a frame at a time (useSmoothed), and a CSS transition on top of that would smooth a value that
@@ -1161,14 +1215,16 @@ body,
 /* The scale's marks: every one round-capped and hung from the groove, the numbered ones reaching it and the rest
    half as long. They arrive together, just after the groove, so the face assembles from its rings inward. */
 .cluster-tick {
-  stroke: var(--line);
-  stroke-width: 1.5;
+  stroke: color-mix(in srgb, var(--dim) 42%, transparent);
+  stroke-width: 1.4;
   stroke-linecap: round;
 }
 
+/* The numbered marks are the scale's blocks: longer, heavier and in the dim ink, so the face reads 20 / 40 / 60
+   across the cab and only the numbered ones are counted. */
 .cluster-tick.major {
   stroke: var(--dim);
-  stroke-width: 2;
+  stroke-width: 2.1;
 }
 
 /* The face's numbers, every 20 km/h, inside the ticks: a speedo is read by eye, not counted out from the first
@@ -1179,10 +1235,20 @@ body,
    leaving that to a reading on one side. */
 .cluster-dial-label {
   fill: var(--dim);
-  font-size: var(--type-unit);
+  /* Set above the unit type: the scale is read across the cab, and at the figure's 104 units the old unit size made
+     the numbers the smallest thing on the face. There is room at 45° a number — "120" still clears its neighbours. */
+  font-size: calc(var(--type-unit) * 1.3);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   transition: fill 380ms var(--motion-ease);
+}
+
+/* The number the cursor has reached: the one part of the scale in the ink, so a glance at the face finds the truck's
+   block without counting. It steps from one number to the next as the arc passes each, and the fill's transition is
+   what makes that step a lit hand-over rather than a flicker. */
+.cluster-dial-label[data-live] {
+  fill: var(--ink);
+  font-weight: 700;
 }
 
 .cluster-dial-label.cluster-cold {
@@ -1229,6 +1295,9 @@ body,
   stroke: #e3141b;
   stroke-width: 2.2;
   stroke-linecap: round;
+  /* A hair of red light round the mark, as the sign in the status bar carries: the limit is the one red thing on
+     the scale, and a red tick that only glowed in the bar would be easy to miss on the face. */
+  filter: drop-shadow(0 0 3px rgb(227 20 27 / 0.55));
 }
 
 /* The mark's own group, which carries the two movements it has: it fades in with the sign and, when the route stops
@@ -1250,57 +1319,18 @@ body,
   transform-box: view-box;
 }
 
-/* The brake-air arc: a thin safety ring on the tacho's outer edge, present only while the pressure is known.
-   Below the dash's low-pressure line the arc is thin and red-leaning; above it the arc fills and the colour cools, so
-   a healthy pressure reads as a calm, full ring rather than a warning. It shares the tacho's ring space without touching
-   it, so a driver reading the speedo reads the pressure as a neighbour rather than as a second dial. */
-.cluster-brake-air-track {
-  fill: none;
-  stroke: var(--track);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  opacity: 0.5;
-}
-
-.cluster-brake-air-fill {
-  fill: none;
-  stroke: var(--cold);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  transition: stroke 320ms var(--motion-ease);
-}
-
-.cluster-brake-air-fill.cluster-brake-air-low {
-  stroke: color-mix(in srgb, var(--danger) 70%, var(--cold));
-}
-
-/* The retarder's step, beside the tacho as a short vertical bar dropped from the outer ring: the bar fills downward as
-   the driver raises the step, so the reading is a length, not a number — and a truck at rest with the retarder held
-   reads as a quiet mark rather than an empty face. The bar only appears while a step is held and the truck has steps to
-   hold, so a truck with no retarder never shows a phantom bar. */
-.cluster-retarder-bar-track {
-  stroke: var(--track);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  opacity: 0.55;
-}
-
-.cluster-retarder-bar-fill {
-  stroke: var(--accent);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-}
-
-/* Drawn in the accent, over the arc it heads, and no wider than the groove: the tick runs from where the scale's own
-   marks end (r 128) to just short of the RPM ring (r 137), so it never reads as another scale mark. A halo in its own
-   colour, small as it is, gives the moving end of the arc its presence — the pointer is felt as it moves rather than
-   looked for. It arrives first, before the face finishes coming up: it is the mark that does the power-up sweep, so it
-   has to be there when the hold ends (SWEEP_HOLD_MS, in the page) rather than materialising mid-sweep. */
+/* Drawn in the accent, over the arc it heads: the capsule runs from just inside the scale's numbered marks (r 124.5)
+   to just short of the RPM ring (r 136), so it crosses the groove and the head of the arc rather than sitting beside
+   them, and a halo in its own colour gives the moving end of the arc its presence — the pointer is felt as it moves
+   rather than looked for. It arrives first, before the face finishes coming up: it is the mark that does the power-up
+   sweep, so it has to be there when the hold ends (SWEEP_HOLD_MS, in the page) rather than materialising mid-sweep. */
 .cluster-needle-mark {
   stroke: var(--accent);
-  stroke-width: 2.6;
+  /* Heavier than the arc it heads, so the cursor reads as the pointer on the ring rather than as one more tick: a
+     capsule across the groove, wider than the groove and a little longer, with the arc running into its side. */
+  stroke-width: 3.8;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 55%, transparent));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
 }
 
 /* The figure, at the dial's centre, with its unit, the road's limit and the truck's brand under it: the one number the
@@ -1364,8 +1394,12 @@ body,
   top: 19%;
   left: 50%;
   translate: -50% 0;
-  display: grid;
-  place-items: center;
+  /* Flex, not grid: the badge's size is the box's (a percentage of the face), and only a flex item resolves
+     `max-height: 100%` against a definite height — in a grid's auto row it fell back to the image's own size and the
+     mark grew three times its badge, running behind the figure. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 38%;
   height: 11.5%;
 }
@@ -1537,10 +1571,6 @@ body,
   opacity: 1;
 }
 
-.cluster-meter > span {
-  z-index: 1;
-}
-
 /* The same three states as the glyphs: cold is blue, hot is amber to red, a warning or a low tank is red. */
 .cluster-meter[data-cold] > span {
   background: var(--cold);
@@ -1582,20 +1612,6 @@ body,
   font-size: var(--type-lg);
   font-weight: 550;
   line-height: 1;
-}
-
-/* The percentage shown after the value, in the same ink as the figure. */
-.cluster-gauge-value .cluster-pct {
-  color: var(--dim);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  margin-left: 4px;
-}
-
-/* More prominent percentage for wear indicators */
-.cluster-wear-row .cluster-gauge-value .cluster-pct {
-  color: var(--ink);
-  font-weight: 650;
 }
 
 .cluster-gauge-foot {
@@ -1784,6 +1800,69 @@ body,
   transition: opacity 2s var(--motion-ease);
 }
 
+/*
+ * The truck's ignition off (neither the electrics nor the engine up): nothing the panel shows is live, so the dash
+ * goes quiet rather than hold the last drive up as if it were running. The glass loses its lit glows and keeps the
+ * maker's mark and one line, both set back into the dark — what a cluster shows when the key comes out.
+ */
+.cluster-off {
+  background: var(--bg);
+}
+
+.cluster-standby {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+/* The mark stands where the dial's face would be, rather than on the face's top edge where it sits once the dash is
+   up, and it is dimmed to the glass: an unlit badge, not a lit one. */
+.cluster-standby .cluster-brand {
+  position: static;
+  translate: none;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 44px;
+}
+
+/* Sized on the image itself, not through the wrapper: a percentage height inside the grid's auto row resolves to
+   nothing, which let the mark overflow the box and run into the line under it. */
+.cluster-standby .cluster-brand img {
+  width: auto;
+  height: 44px;
+  max-width: 132px;
+  max-height: none;
+  opacity: 0.2;
+}
+
+.cluster-standby .cluster-brand-wordmark {
+  opacity: 0.32;
+}
+
+/* A hairline under the mark, drawn as the panel's own hairlines are. */
+.cluster-standby-rule {
+  width: 148px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+
+.cluster-standby-label {
+  margin: 0;
+  color: var(--dim);
+  font-family: inherit;
+  font-size: var(--type-unit);
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 /* Reduced motion (Settings › Appearance, or the PC's own): the cluster's own movement is cut, and its boot's is
    cut by boot.css. */
 html[data-motion='reduced'] .cluster *,
@@ -1793,54 +1872,9 @@ html[data-motion='reduced'] .cluster *::after {
   transition: none !important;
 }
 
-/* The cluster's fallback when the truck's electrics are off: the readings step out and a single line says the
-   truck is in standby. The panel keeps its glass and its brand, but the dashes go quiet — the way a real cluster
-   does when the driver switches the cab off.
-
-   The body's boot animation (body.css) still draws over the top to fade the cab in. */
-.cluster-standby {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  color: var(--ink-shadow);
-  font-family: var(--cluster-type);
-  font-weight: 400;
-  text-shadow: 0 0 4px var(--panel-solid);
+/* The bulb check is the one exception: it holds a state rather than moving anything — the lamps appear, stay, and go
+   — so a driver who has cut the cabin's motion still sees the panel prove its lamps. */
+html[data-motion='reduced'] .cluster-telltales[data-check] .cluster-telltale {
+  animation: cluster-bulb-check 1500ms linear !important;
 }
 
-.cluster-standby-line {
-  width: 100%;
-  max-width: 220px;
-  pointer-events: none;
-  text-align: center;
-  padding-bottom: 12px;
-  border-bottom: var(--unit) solid var(--ink);
-  border-image: linear-gradient(to right, transparent, var(--ink), transparent) 1;
-}
-
-.cluster-standby-label {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-tint);
-}
-
-/* The dial's own reading: when the beam is the game's, the panel is lit to its top of its own scale; when the game
-   sends a backlight reading the panel follows it, dimming the dial ring to the game's night setting. The backlight
-   lives on the panel's inline style, and the dial reads it back as a brightness that the game runs with.
-   (body.css turns the panel back opaque when the game's cluster is off, which is what keeps the dial visible past
-   the game's own cluster.) */
-.cluster-panels[data-visible] .cluster-dial-ring {
-  filter: brightness(var(--cluster-backlight, 1));
-}
-
-.cluster-dial-label.cluster-cold {
-  fill: var(--cold);
-  paint-order: stroke;
-  stroke: var(--panel-solid);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}

@@ -57,6 +57,7 @@ import {
   MusicIcon,
   ParkingBrakeIcon,
   PhoneIcon,
+  PositionLightIcon,
   RangeIcon,
   RestIcon,
   RetarderIcon,
@@ -85,7 +86,9 @@ import './cluster.css'
  *
  * The panel comes up rather than switches on: the bezel and both grooves first, then the scale's marks, then the
  * face's numbers a frame apart, then the lit arcs, the cursor and the brand — all on the cabin's own curve, and all
- * cut by the reduced-motion setting with the rest of the cabin.
+ * cut by the reduced-motion setting with the rest of the cabin. As the boot clears, the panel runs its own bulb check:
+ * every telltale it has lights for a moment, then drops back to the truck's real states, as a cluster proves its lamps
+ * at power-up.
  *
  * Colour is the dash's own language: the ink for readings, the accent for what is live, and green, amber, blue and
  * red only for states — so a warning is the one thing on the glass that is coloured.
@@ -128,6 +131,28 @@ function usePlayed(info: NowPlayingInfo | null): { position: number; duration: n
 
 /** The machine's clock, which the cluster's power message counts on (`CabinPower.since` is `Date.now()`). */
 const wallClock = () => Date.now()
+
+/**
+ * The dash's bulb check: every lamp lit for one window as the boot clears. The ignition's edge is caught during render,
+ * as `useLingering` catches a value changing under a component, and the effect only ever ends the window — so a row
+ * that gains its lamps later in the drive (the warnings, switched on in Settings) can't start a false check, and no
+ * render has to read the clock. A page that comes up mid-drive (no boot to clear) runs it on load, as the dial's own
+ * sweep does.
+ */
+function useBulbCheck(ignitionOn: boolean): boolean {
+  const [lit, setLit] = useState(ignitionOn)
+  const [wasOn, setWasOn] = useState(ignitionOn)
+  if (ignitionOn !== wasOn) {
+    setWasOn(ignitionOn)
+    if (ignitionOn) setLit(true)
+  }
+  useEffect(() => {
+    if (!lit) return
+    const id = setTimeout(() => setLit(false), BULB_CHECK_MS)
+    return () => clearTimeout(id)
+  }, [lit])
+  return ignitionOn && lit
+}
 
 /** The side columns' readings arrive one after the other, as the shell comes up. */
 function sideVariants(reduced: boolean) {
@@ -259,6 +284,9 @@ export function ClusterScreen() {
   // over that same window (BootScreen's exit), and `useHandover` is the one clock for both.
   const handover = useHandover(power, wallClock)
   const shellCycle = handover ? 1 : 0
+  // The lamps' self-test as the dash shows itself: the boot's `on` phase is the moment it has handed over. The lit
+  // state and its length are the stylesheet's (`.cluster-telltales[data-check]`), over the same window.
+  const bulbCheck = useBulbCheck(power?.phase === 'on')
   // The route's speed limit, and its sign held for one fade after the route stops knowing one: a sign that leaves the
   // way it arrived, in the status bar and on the dial's scale (the dial holds its own mark by the same clock). Both of
   // these are hooks' business and stand above the early returns, so every render path calls them in the same order.
@@ -274,6 +302,9 @@ export function ClusterScreen() {
   const speed = t ? units.speed(t.speed) : 0
   const gear = formatGear(t?.displayedGear ?? 0)
   const rpm = t ? Math.max(0, Math.min(1, t.engineRpm / RPM_MAX)) : 0
+  // The truck's dash dimmer, 0 (all the way down) to 1 (full), as the panel's own lighting. A host that doesn't send
+  // the reading, or a truck that never does, leaves the panel lit fully rather than dark.
+  const backlight = t && Number.isFinite(t.dashboardBacklight) ? clamp(t.dashboardBacklight) : 1
   // The retarder's step while the driver holds one: 0 for off, up to the truck's own steps.
   const retarder = t?.retarderLevel ?? 0
   const cruise = t ? units.speed(t.cruiseControlSpeed) : 0
@@ -371,6 +402,33 @@ export function ClusterScreen() {
   // for "this is the way", on the needle, the cruise mark and the live readings. The route's own fill does on the
   // dark panel, its darker edge on the light one, so it reads on either.
   const accent = routeAccent(appearance, routeColour)
+  const panelStyle = {
+    '--cluster-scale': typeScale,
+    '--accent': accent,
+    '--cluster-backlight': backlight,
+  } as CSSProperties
+
+  // The truck's ignition is off: the electrics are down and the engine with them, so nothing the panel shows is live.
+  // A real cluster goes quiet here rather than holding the last drive up as if it were still running — the panel keeps
+  // its glass, the maker's mark and one line saying why it is dark. An engine stopped with the electrics on is not
+  // this state: that is the dash a driver reads before starting, warning lamps and all, so it stays up.
+  const ignitionOff = t ? !t.electricEnabled && !t.engineEnabled : false
+  if (ignitionOff) {
+    return (
+      <main
+        className="cluster cluster-off"
+        data-appearance={appearance}
+        aria-label={text.settings.clusterScreen}
+        style={panelStyle}
+      >
+        <div className="cluster-standby">
+          <ClusterBrand reduced={reduceMotion} />
+          <span className="cluster-standby-rule" aria-hidden />
+          <p className="cluster-standby-label">{words.engineOff}</p>
+        </div>
+      </main>
+    )
+  }
 
   // The lights the driver switches: the indicators first, then the beams, the running lights and the wipers. Each
   // keeps its place even when it is out, so a blinker lighting up never moves the others.
@@ -402,7 +460,7 @@ export function ClusterScreen() {
       key: 'parkingLight',
       label: words.parkingLight,
       tone: 'ok',
-      icon: <BeamIcon />,
+      icon: <PositionLightIcon />,
       active: t?.parkingLight ?? false,
     },
     {
@@ -509,7 +567,7 @@ export function ClusterScreen() {
       data-appearance={appearance}
       data-alarm={notice?.tone === 'alarm' ? '' : undefined}
       aria-label={text.settings.clusterScreen}
-      style={{ '--cluster-scale': typeScale, '--accent': accent } as CSSProperties}
+      style={panelStyle}
     >
       <AnimatePresence>
         {booting && power && (reduceMotion || !handover) && <ClusterBoot power={power} />}
@@ -528,7 +586,7 @@ export function ClusterScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 0.52, ease: motionEase }}
         >
-          <TelltaleList items={lights} label={words.telltales} />
+          <TelltaleList items={lights} label={words.telltales} check={bulbCheck} />
           {/* What a screen reader hears of the notice. The line itself comes and goes with its words, and a live
               region mounted along with its text is often not announced: this one is always here to be read into. */}
           <p className="cluster-sr-only" aria-live="polite" aria-atomic="true">
@@ -561,7 +619,7 @@ export function ClusterScreen() {
               </>
             ) : null}
           </motion.div>
-          <TelltaleList items={faults} label={words.warnings} />
+          <TelltaleList items={faults} label={words.warnings} check={bulbCheck && cards.warnings} />
           <div className="cluster-status-right">
             <span
               className="cluster-pill cluster-cruise"
@@ -770,6 +828,7 @@ export function ClusterScreen() {
                   max={face.max}
                   step={face.step}
                   minor={face.minor}
+                  cold={coldCoolant || coldOil}
                   reduced={reduceMotion}
                 />
 
@@ -1095,6 +1154,9 @@ interface ClusterDialProps {
   max: number
   step: number
   minor: number
+  /** Whether the engine is still cold: its scale's numbers read blue until the coolant and the oil are up to
+   * temperature, the way the dash's own readings do. */
+  cold: boolean
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
   reduced: boolean
 }
@@ -1111,12 +1173,15 @@ interface ClusterDialProps {
  * re-mounted as the boot's light goes down, which is what puts that sweep where the driver can see it rather than
  * behind the splash.
  */
-const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, step, minor, reduced }: ClusterDialProps) {
+const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, step, minor, cold, reduced }: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
   const shownSpeed = useSmoothed(speedShare, { from: 1, hold: SWEEP_HOLD_MS, sweep: SWEEP_MS })
   const shownRpm = useSmoothed(rpm)
   // The cursor's angle: 270° from the first tick to the last, on the driver's face.
   const angle = DIAL_START + 90 + DIAL_SWEEP_DEGREES * shownSpeed
+  // The numbered mark the cursor has reached: the scale's own read head, lit in the ink so a glance at the face
+  // lands on the block the truck is in as well as the figure at its centre.
+  const live = Math.min(max, Math.max(0, Math.round((shownSpeed * max) / step) * step))
   // The limit's mark: the sign's own clock (LIMIT_LEAVE_MS), so the mark and the sign leave the panel together. A
   // limit past the face's top speed has no place on this face and so isn't marked at all.
   const mark = useLingering(limit > 0 && limit <= max ? limit : null, LIMIT_LEAVE_MS)
@@ -1130,8 +1195,8 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
     return (
       <>
         {/* The scale: every tick hangs inward from the groove, so the marks share one inner edge and grow outwards
-            to the ring. The numbered ones reach the groove itself and carry the ink; the rest are half as long, so
-            the scale reads in blocks from the far side of the cab. */}
+            to the ring. The numbered ones run a third of the way in and carry the ink; the rest are a stub at the
+            groove, so the scale reads in blocks from the far side of the cab rather than as an even comb. */}
         <motion.g
           initial={reduced ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1142,7 +1207,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
               key={tick}
               className={tick % step === 0 ? 'cluster-tick major' : 'cluster-tick'}
               x1="150"
-              y1={tick % step === 0 ? 22 : 27}
+              y1={tick % step === 0 ? 20.5 : 28}
               x2="150"
               y2="33"
               transform={`rotate(${DIAL_TICK_START + (tick / max) * DIAL_SWEEP_DEGREES} 150 150)`}
@@ -1150,13 +1215,16 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           ))}
         </motion.g>
         {/* The numbers come up in the order they run round the face, a frame apart: the face assembles itself rather
-            than appearing whole. Each keeps its element (keyed by its value), so the stagger plays once. */}
+            than appearing whole. Each keeps its element (keyed by its value), so the stagger plays once. The one the
+            cursor has reached is left lit in the ink — the scale's read head, so the face answers a glance without
+            the driver counting round it. */}
         {numbers.map((value, index) => {
           const at = dialPoint(value, SPEED_LABEL_RADIUS, face)
           return (
             <motion.text
               key={value}
-              className="cluster-dial-label"
+              className={cold ? 'cluster-dial-label cluster-cold' : 'cluster-dial-label'}
+              data-live={value === live ? '' : undefined}
               x={at.x}
               y={at.y}
               textAnchor="middle"
@@ -1171,7 +1239,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         })}
       </>
     )
-  }, [max, step, minor, reduced])
+  }, [max, step, minor, cold, reduced, live])
 
   // The face's parts each fade in at their own moment, on the groove's own clock: a remount at the hand-over plays
   // them once per boot. Reduced motion brings the whole face up at rest.
@@ -1182,6 +1250,17 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
 
   return (
     <svg className="cluster-dial-ring" viewBox="0 0 300 300" aria-hidden>
+      {/* The face's glass: a faint pooling of light at the centre, warming towards the accent, so the figure and the
+          scale sit on a lit dial rather than floating on the panel. It stops inside the groove, under the scale's
+          marks, so the arc and the tacho keep to the panel's own dark. */}
+      <defs>
+        <radialGradient id="cluster-dial-face" cx="50%" cy="46%" r="62%">
+          <stop offset="0" stopColor="var(--ink)" stopOpacity="0.06" />
+          <stop offset="0.66" stopColor="var(--accent)" stopOpacity="0.05" />
+          <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="150" cy="150" r={DIAL_FACE_RADIUS} fill="url(#cluster-dial-face)" />
       {/* The bezel's edge: one hairline just outside the groove, where the face turns up towards the tacho, so the
           scale reads as machined into a bezel rather than printed on a flat ring. It takes the place's own
           hairlines (--line), which is what makes it sit under the marks rather than beside them. */}
@@ -1274,9 +1353,9 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         <motion.line
           className="cluster-needle-mark"
           x1="150"
-          y1={150 - 126}
+          y1={150 - 124.5}
           x2="150"
-          y2={150 - 135}
+          y2={150 - 136}
           {...marks(0.08, 0.26)}
         />
       </g>
@@ -1348,9 +1427,17 @@ interface Telltale {
  * A group of telltales: every light keeps its slot whether it is lit or not, so a blinker coming on never moves the
  * row. The cluster has two, the lights the driver switches and the truck's warnings, either side of the route.
  */
-function TelltaleList({ items, label }: { items: Telltale[]; label: string }) {
+/**
+ * A group of telltales: every light keeps its slot whether it is lit or not, so a blinker coming on never moves the
+ * row. The cluster has two, the lights the driver switches and the truck's warnings, either side of the route.
+ *
+ * `check` runs the dash's bulb check over the row: the stylesheet lights every slot for a moment and then hands it back
+ * to the truck's own states, so the row is never claimed to be showing anything it isn't — the reader still hears only
+ * the lamps that are really on.
+ */
+function TelltaleList({ items, label, check }: { items: Telltale[]; label: string; check?: boolean }) {
   return (
-    <ul className="cluster-telltales" aria-label={label}>
+    <ul className="cluster-telltales" data-check={check ? '' : undefined} aria-label={label}>
       {items.map((telltale) => (
         <li
           key={telltale.key}
@@ -1487,6 +1574,7 @@ const DIAL_SWEEP_DEGREES = 270
 /* The face's numbers, set inside the ticks; which numbers they are is the driver's units' (km/h or mph). */
 const SPEED_LABEL_RADIUS = 105
 /* The bezel's edge, a hairline outside the groove and inside the tacho, on the same 270° sweep. */
+const DIAL_FACE_RADIUS = 122
 const DIAL_LIP_RADIUS = 133.5
 const DIAL_LIP_CIRCUMFERENCE = 2 * Math.PI * DIAL_LIP_RADIUS
 /* The self-test a dash runs at power-up, as the electrics come on: the face lit to its far end, held there while the
@@ -1497,6 +1585,10 @@ const SWEEP_MS = 820
 /* How long the speed limit's sign and its mark on the scale take to leave the panel once the route stops knowing a
    limit: long enough to read as a fade, short enough that the mark isn't still there on the next road. */
 const LIMIT_LEAVE_MS = 420
+/* The dash's bulb check, as the boot clears: long enough for every lamp to be seen in its colour, short enough that a
+   real warning isn't held off the glass behind it. `cluster.css` runs the lit state over the same window. */
+const BULB_CHECK_MS = 1500
+
 
 /* The tacho: its ring outside the speedo's, read against a 2,500 rpm scale. */
 const RPM_MAX = 2500
