@@ -93,6 +93,7 @@ export function DiagnosticsApp() {
   const fuel: Reading = {
     value: t.fuel,
     percent: tank?.percent ?? 0,
+    warnPercent: tank?.warnPercent ?? 0,
     state: t.fuelWarning ? 'alarm' : (tank?.state ?? 'ok'),
   }
   const peakHeat = worstRead.coolantPeak === null ? null : coolant(worstRead.coolantPeak)

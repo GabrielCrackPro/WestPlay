@@ -1,10 +1,15 @@
 /** How serious a reading is: fine, worth watching, or a problem. */
 export type State = 'ok' | 'warn' | 'alarm'
 
-/** A reading on its gauge: the value, how far along its range it stands (0 to 1) and how serious it is. */
+/**
+ * A reading on its gauge: the value, how far along its range it stands (0 to 1), how serious it is, and where on that
+ * range it turns worth watching (0 to 1) — the gauge's warning line, so a bar can print the zone the reading is
+ * heading into instead of only colouring the whole of itself when it arrives.
+ */
 export interface Reading {
   value: number
   percent: number
+  warnPercent: number
   state: State
 }
 
@@ -19,12 +24,13 @@ interface Scale {
 
 function scale({ min, max, warn, alarm, low = false }: Scale, value: number): Reading {
   const percent = Math.min(1, Math.max(0, (value - min) / (max - min)))
+  const warnPercent = Math.min(1, Math.max(0, (warn - min) / (max - min)))
   if (low) {
-    if (value <= alarm) return { value, percent, state: 'alarm' }
-    return { value, percent, state: value <= warn ? 'warn' : 'ok' }
+    if (value <= alarm) return { value, percent, warnPercent, state: 'alarm' }
+    return { value, percent, warnPercent, state: value <= warn ? 'warn' : 'ok' }
   }
-  if (value >= alarm) return { value, percent, state: 'alarm' }
-  return { value, percent, state: value >= warn ? 'warn' : 'ok' }
+  if (value >= alarm) return { value, percent, warnPercent, state: 'alarm' }
+  return { value, percent, warnPercent, state: value >= warn ? 'warn' : 'ok' }
 }
 
 /** The coolant: 40 °C cold, 120 °C far too hot, a working diesel in between at 80 to 95. */

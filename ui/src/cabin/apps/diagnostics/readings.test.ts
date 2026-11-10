@@ -28,6 +28,14 @@ describe("the Diagnostics app's readings", () => {
     expect(coolant(112).state).toBe('alarm')
   })
 
+  it('says where on the gauge it turns worth watching', () => {
+    // 40 to 120 °C, turning at 100: three quarters of the way up the gauge.
+    expect(coolant(88).warnPercent).toBeCloseTo(0.75)
+    // Too little is the problem here, so the line is low on the gauge: an eighth of the brake air's 150 psi.
+    expect(brakeAir(120).warnPercent).toBeCloseTo(85 / 150)
+    expect(fuelLevel(0.6).warnPercent).toBeCloseTo(0.15)
+  })
+
   it('turns serious when the brake air runs low, not when it is plentiful', () => {
     expect(brakeAir(120).state).toBe('ok')
     expect(brakeAir(80).state).toBe('warn')

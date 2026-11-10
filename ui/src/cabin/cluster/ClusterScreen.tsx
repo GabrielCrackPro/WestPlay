@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { type CSSProperties, type ReactElement, memo, useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, type ReactElement, memo, useEffect, useRef, useState } from 'react'
 import { formatGameTime, formatGear } from '../../shared/format'
 import { cabClock, type CabinPower, hasTruck, type NowPlayingInfo, subscribeHostMessages } from '../../shared/host'
 import { appIcon, type AppIconRole } from '../../shared/icons'
@@ -16,7 +16,15 @@ import {
 } from '../apps/diagnostics/readings'
 import { tripAverage } from '../apps/diagnostics/trip'
 import { useTrends } from '../apps/diagnostics/useTrends'
-import { receivePhoneNotifications, receivePhoneState, useCaller, usePhone, usePhoneToasts } from '../apps/phone/phone'
+import {
+  receivePhoneNotifications,
+  receivePhoneState,
+  sendPhoneCommand,
+  takeDownNotification,
+  useCaller,
+  usePhone,
+  usePhoneToasts,
+} from '../apps/phone/phone'
 import { BootScreen } from '../boot/BootScreen'
 import { logoSources } from '../boot/brand'
 import { bootLength, bootShown } from '../state/power'
@@ -32,8 +40,10 @@ import { useClock } from '../state/clock'
 import { clusterTextScale } from '../state/textSize'
 import { useUnits } from '../state/units'
 import { useLanguage, useText } from '../state/text'
+import { playCue } from '../state/sound'
+import { NoteCard } from '../../shared/phoneNoteCard'
 import type { Strings } from '../state/strings'
-import type { Figure, SpeedFace } from '../../shared/units'
+import type { Figure } from '../../shared/units'
 import { gameAlerts } from '../shell/gameAlerts'
 import {
   AdblueIcon,
@@ -209,6 +219,8 @@ export function ClusterScreen() {
   const instant = useInstantConsumption()
   // The cab's newest alert or phone notification: the same sources the cabin's stack uses, kept to one line here.
   const notice = useClusterNotice()
+  // The chime as a notice is recorded on the dash: soft for a warning, firmer for an alarm.
+  useNoticeCue(notice)
   // The page's telemetry and truck come from the host (it posts them to this WebView too); the page asks to be
   // told again when it loads.
   useEffect(
@@ -787,7 +799,7 @@ export function ClusterScreen() {
                 right end: the status bar above is the truck's, what the phone is belongs with what it has to say. */}
             <div className="cluster-message">
               {notice ? (
-                <ClusterNoticeBar notice={notice} />
+                <ClusterNoticeBar notice={notice} textScale={typeScale} onDismiss={removeNotice} />
               ) : nowPlaying ? (
                 <motion.div
                   className="cluster-media"
@@ -834,21 +846,12 @@ export function ClusterScreen() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={reduceMotion ? { duration: 0 } : { duration: 0.38, delay: 0.02, ease: motionEase }}
               >
-                <ClusterDial
-                  speedShare={speedShare}
-                  rpm={rpm}
-                  limit={limit}
-                  max={face.max}
-                  step={face.step}
-                  minor={face.minor}
-                  cold={coldCoolant || coldOil}
-                  reduced={reduceMotion}
-                />
-
-                {/* The face reads top to bottom: whose dash this is, the figure, its unit, and the gear in the arc's
-                    open bottom. The brand is an emblem on the face rather than a line in that stack: the speed stays
-                    the thing the centre is for, and the mark reads at a badge's size without crowding it. */}
+                {/* The maker's mark, in the band of air above the figure: what the ring's printed scale left behind.
+                    It fades in with the rest of the face's parts, and the stylesheet sizes it to that band. */}
                 <ClusterBrand reduced={reduceMotion} />
+                <ClusterDial speedShare={speedShare} rpm={rpm} limit={limit} max={face.max} reduced={reduceMotion} />
+                {/* The face reads top to bottom: the mark, the figure, its unit, the road's limit, and the gear in the
+                    ring's open bottom. */}
                 <div className="cluster-speed" aria-hidden>
                   <strong key={Math.round(speed)} className="cluster-speed-value">
                     {speed}
@@ -920,7 +923,12 @@ export function ClusterScreen() {
                   <span className="cluster-glyph" data-warn={fuel?.state === 'alarm' ? '' : undefined} aria-hidden>
                     <FuelIcon />
                   </span>
-                  <div className="cluster-meter" data-low={fuel?.state !== 'ok' ? '' : undefined}>
+                  <div
+                    className="cluster-meter"
+                    data-hot={fuel?.state === 'warn' ? '' : undefined}
+                    data-low={fuel?.state === 'alarm' ? '' : undefined}
+                    {...meterZone(fuel, 'low')}
+                  >
                     <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
                   </div>
                   <strong className="cluster-gauge-value">
@@ -955,7 +963,12 @@ export function ClusterScreen() {
                   {t ? adblueFigure.value : '—'}
                   <small>{adblueFigure.unit}</small>
                 </strong>
-                <div className="cluster-meter" data-low={adblue?.state !== 'ok' ? '' : undefined}>
+                <div
+                  className="cluster-meter"
+                  data-hot={adblue?.state === 'warn' ? '' : undefined}
+                  data-low={adblue?.state === 'alarm' ? '' : undefined}
+                  {...meterZone(adblue, 'low')}
+                >
                   <span style={{ width: `${Math.round((adblue?.percent ?? 0) * 100)}%` }} />
                 </div>
               </section>
@@ -978,8 +991,10 @@ export function ClusterScreen() {
                 </strong>
                 <div
                   className="cluster-meter"
-                  data-hot={coolant?.state !== 'ok' ? '' : undefined}
+                  data-hot={coolant?.state === 'warn' ? '' : undefined}
+                  data-warn={coolant?.state === 'alarm' ? '' : undefined}
                   data-cold={coldCoolant ? '' : undefined}
+                  {...meterZone(coolant, 'high')}
                 >
                   <span style={{ width: `${Math.round((coolant?.percent ?? 0) * 100)}%` }} />
                 </div>
@@ -996,7 +1011,12 @@ export function ClusterScreen() {
                   <span className="cluster-glyph" data-warn={brakeHeat?.state === 'alarm' ? '' : undefined} aria-hidden>
                     <BrakeTemperatureIcon />
                   </span>
-                  <div className="cluster-meter" data-hot={brakeHeat?.state !== 'ok' ? '' : undefined}>
+                  <div
+                    className="cluster-meter"
+                    data-hot={brakeHeat?.state === 'warn' ? '' : undefined}
+                    data-warn={brakeHeat?.state === 'alarm' ? '' : undefined}
+                    {...meterZone(brakeHeat, 'high')}
+                  >
                     <span style={{ width: `${Math.round((brakeHeat?.percent ?? 0) * 100)}%` }} />
                   </div>
                   <strong
@@ -1025,7 +1045,9 @@ export function ClusterScreen() {
               </span>
               <div
                 className="cluster-meter"
-                data-hot={instantReading && instantReading.state !== 'ok' ? '' : undefined}
+                data-hot={instantReading?.state === 'warn' ? '' : undefined}
+                data-warn={instantReading?.state === 'alarm' ? '' : undefined}
+                {...meterZone(instantReading, 'high')}
               >
                 <span style={{ width: `${Math.round((instantReading?.percent ?? 0) * 100)}%` }} />
               </div>
@@ -1056,6 +1078,7 @@ export function ClusterScreen() {
                   className="cluster-meter"
                   data-hot={damageTone === 'warn' ? '' : undefined}
                   data-warn={damageTone === 'danger' ? '' : undefined}
+                  {...meterZone({ warnPercent: DAMAGE_STOP }, 'high')}
                 >
                   <span style={{ width: `${Math.round(damage * 100)}%` }} />
                 </div>
@@ -1085,6 +1108,7 @@ export function ClusterScreen() {
                     className="cluster-meter"
                     data-hot={trailerTone === 'warn' ? '' : undefined}
                     data-warn={trailerTone === 'danger' ? '' : undefined}
+                    {...meterZone({ warnPercent: DAMAGE_STOP }, 'high')}
                   >
                     <span style={{ width: `${Math.round(trailerDamage * 100)}%` }} />
                   </div>
@@ -1151,106 +1175,55 @@ function ClusterPhone() {
 }
 
 /**
- * The truck's brand on the dial's face, under the speed: whose dash this is. The same mark the boot screen and the
- * sidebar show — its makers' trademarks, so the files live outside the repository (`public/brand-logos`) — drawn in
- * the panel's own greys, white on the dark glass and black on the light, and the brand's name as a small wordmark
- * where it has no logo. It is part of the face, not a reading, so the dial's label stays the speed alone.
+ * The truck's brand, whose dash this is: the same mark the boot screen and the sidebar show — its makers' trademarks,
+ * so the files live outside the repository (`public/brand-logos`) — drawn in the panel's own greys, white on the dark
+ * glass and black on the light, and the brand's name as a small wordmark where it has no logo.
+ *
+ * It sits in the band of air above the speed figure, where the scale's numbers used to be: the face has no printed
+ * scale for a mark to sit among any more, so the mark takes the place the scale left, over the reading it belongs to.
+ * Its size is set against that band rather than against the panel's type (cluster.css), because a lone logo in a wide
+ * band of air reads as a speck unless it is sized to fill it. The standby screen shows the same mark alone, centred
+ * on the glass.
  */
-/** What the dial draws, as plain numbers: a face (its top speed and two steps) and the two readings on it. */
+/** What the dial draws, as plain numbers: a face (its top speed) and the two readings on it. */
 interface ClusterDialProps {
   /** How far round the face the truck is, 0 (at rest) to 1 (the face's top speed). */
   speedShare: number
   /** The engine's share of its own scale, 0 to 1. */
   rpm: number
-  /** The limit the route knows, in the face's own units (0 when there is none): marked on the scale. */
+  /** The limit the route knows, in the face's own units (0 when there is none): marked on the ring. */
   limit: number
-  /** The face: its top speed (in the driver's units), the step between its numbers and between its ticks. */
+  /** The face's top speed, in the driver's units: the end of the ring the arc fills towards. */
   max: number
-  step: number
-  minor: number
-  /** Whether the engine is still cold: its scale's numbers read blue until the coolant and the oil are up to
-   * temperature, the way the dash's own readings do. */
-  cold: boolean
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
   reduced: boolean
 }
 
 /**
- * The dial's face: the speed's band and the arc lit in it, the scale with its numbers, the tacho with Scania's bands,
- * and the knob at the head of the arc. It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the
- * two readings towards the truck's a frame at a time, and only this SVG is redrawn while they travel — the panels,
- * the route and the notices carry on at the rate the telemetry actually arrives. Memoised on plain numbers, so a
- * reading that leaves the dial alone costs it nothing.
+ * The dial's face, kept to what a digital cluster needs: the speed as one lit arc round a figure, and the tacho as a
+ * hairline outside it. There is no scale printed on the face — no numbers, no ticks, no comb of dots. Those were a
+ * second reading of the same thing: the figure at the centre already says the speed exactly, and a ring of numbers
+ * beside it made the eye choose between them from across the cab, with the marks between the two crossing the digits.
+ * The arc answers the one question the ring is for — how far up the truck's speed is — and the limit is the only mark
+ * it carries.
  *
- * It opens the way a dash does when the electrics come on: the face lit to the far end of its scale, held while the
- * marks come up, then falling back to the reading as the boot clears (SWEEP_HOLD_MS, SWEEP_MS). The panel is put on
+ * It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the two readings towards the
+ * truck's a frame at a time, and only this SVG is redrawn while they travel — the panels, the route and the notices
+ * carry on at the rate the telemetry actually arrives. Memoised on plain numbers, so a reading that leaves the dial
+ * alone costs it nothing.
+ *
+ * It opens the way a dash does when the electrics come on: the arc lit to the far end of its scale, held while the
+ * face comes up, then falling back to the reading as the boot clears (SWEEP_HOLD_MS, SWEEP_MS). The panel is put on
  * the glass when the boot is over, which is what puts that sweep where the driver can see it rather than behind the
  * splash.
  */
-const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, step, minor, cold, reduced }: ClusterDialProps) {
+const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, reduced }: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
   const shownSpeed = useSmoothed(speedShare, { from: 1, hold: SWEEP_HOLD_MS, sweep: SWEEP_MS })
   const shownRpm = useSmoothed(rpm)
-  // The cursor's angle: 270° from the first tick to the last, on the driver's face.
-  const angle = DIAL_START + 90 + DIAL_SWEEP_DEGREES * shownSpeed
-  // The numbered mark the cursor has reached: the scale's own read head, lit in the ink so a glance at the face
-  // lands on the block the truck is in as well as the figure at its centre.
-  const live = Math.min(max, Math.max(0, Math.round((shownSpeed * max) / step) * step))
   // The limit's mark: the sign's own clock (LIMIT_LEAVE_MS), so the mark and the sign leave the panel together. A
   // limit past the face's top speed has no place on this face and so isn't marked at all.
   const mark = useLingering(limit > 0 && limit <= max ? limit : null, LIMIT_LEAVE_MS)
-
-  // The scale is fixed for the face it was drawn for: its marks and numbers keep their elements between frames, so a
-  // moving reading only ever re-renders the arc, the tacho and the cursor.
-  const scale = useMemo(() => {
-    const face: SpeedFace = { max, step, minor }
-    const ticks = Array.from({ length: Math.round(max / minor) + 1 }, (_, at) => at * minor)
-    const numbers = Array.from({ length: Math.round(max / step) + 1 }, (_, at) => at * step)
-    return (
-      <>
-        {/* The scale: every tick hangs inward from the groove, so the marks share one inner edge and grow outwards
-            to the ring. The numbered ones run a third of the way in and carry the ink; the rest are a stub at the
-            groove, so the scale reads in blocks from the far side of the cab rather than as an even comb. */}
-        <motion.g
-          initial={reduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={reduced ? { duration: 0 } : { duration: 0.46, delay: 0.16, ease: motionEase }}
-        >
-          {ticks.map((tick) => {
-            const turn = `rotate(${DIAL_TICK_START + (tick / max) * DIAL_SWEEP_DEGREES} 150 150)`
-            return tick % step === 0 ? (
-              <line key={tick} className="cluster-tick major" x1="150" y1="34.5" x2="150" y2="29" transform={turn} />
-            ) : (
-              <circle key={tick} className="cluster-tick-dot" cx="150" cy="30" r="1.25" transform={turn} />
-            )
-          })}
-        </motion.g>
-        {/* The numbers come up in the order they run round the face, a frame apart: the face assembles itself rather
-            than appearing whole. Each keeps its element (keyed by its value), so the stagger plays once. The one the
-            cursor has reached is left lit in the ink — the scale's read head, so the face answers a glance without
-            the driver counting round it. */}
-        {numbers.map((value, index) => {
-          const at = dialPoint(value, SPEED_LABEL_RADIUS, face)
-          return (
-            <motion.text
-              key={value}
-              className={cold ? 'cluster-dial-label cluster-cold' : 'cluster-dial-label'}
-              data-live={value === live ? '' : undefined}
-              x={at.x}
-              y={at.y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              initial={reduced ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={reduced ? { duration: 0 } : { duration: 0.28, delay: 0.09 + index * 0.01, ease: motionEase }}
-            >
-              {value}
-            </motion.text>
-          )
-        })}
-      </>
-    )
-  }, [max, step, minor, cold, reduced, live])
 
   // The face's parts each fade in at their own moment, on the groove's own clock: the remount as the boot clears plays
   // them once per boot. Reduced motion brings the whole face up at rest.
@@ -1261,23 +1234,6 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
 
   return (
     <svg className="cluster-dial-ring" viewBox="0 0 300 300" aria-hidden>
-      {/* The face's glass: a faint pooling of light at the centre, warming towards the accent, so the figure and the
-          scale sit on a lit dial rather than floating on the panel. It stops inside the groove, under the scale's
-          marks, so the arc and the tacho keep to the panel's own dark. */}
-      <defs>
-        <radialGradient id="cluster-dial-face" cx="50%" cy="46%" r="62%">
-          <stop offset="0" stopColor="var(--ink)" stopOpacity="0.05" />
-          <stop offset="0.66" stopColor="var(--accent)" stopOpacity="0.05" />
-          <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
-        </radialGradient>
-        {/* The arc's own light, along its run: it leaves the scale cool and arrives warm at the speed, so the head of
-            the arc is the brightest part of the face without a second colour being spent on it. */}
-        <linearGradient id="cluster-dial-arc" gradientUnits="userSpaceOnUse" x1="62" y1="238" x2="228" y2="72">
-          <stop offset="0" stopColor="var(--accent)" stopOpacity="0.6" />
-          <stop offset="1" stopColor="var(--accent)" />
-        </linearGradient>
-      </defs>
-      <circle cx="150" cy="150" r={DIAL_FACE_RADIUS} fill="url(#cluster-dial-face)" />
       <motion.circle
         className="cluster-dial-track"
         cx="150"
@@ -1287,9 +1243,10 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         transform={`rotate(${DIAL_START} 150 150)`}
         {...marks(0.04, 0.3)}
       />
-      {/* The speed, as a lit arc in the track's groove: how far round the face the driver is, drawn in the dash's
-          accent so the one colour on the glass is also the speed. Its length is the smoothed reading, so it is a
-          frame's worth of movement rather than a step. */}
+      {/* The speed, as a lit arc in the track: how far round the face the driver is, drawn in the dash's accent so
+          the one colour on the glass is also the speed. Its length is the smoothed reading, so it is a frame's worth
+          of movement rather than a step. At a standstill the cap goes square: a round cap on a zero-length dash
+          still draws a dot, and a lone accent bead at the scale's start read as a fault light, not as zero. */}
       <motion.circle
         className="cluster-dial-fill"
         cx="150"
@@ -1297,12 +1254,15 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={DIAL_RADIUS}
         strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP * shownSpeed} ${DIAL_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
+        style={{ strokeLinecap: shownSpeed > 0 ? 'round' : 'butt' }}
         {...marks(0.06, 0.3)}
       />
-      {/* The limit where it falls on the scale, drawn over the lit arc so passing it reads as passing it: the sign
-          in the status bar says what the limit is, and this says where it is. It is held for one fade after the route
-          stops knowing a limit, so it leaves with the sign rather than blinking away, and its angle is a transform the
-          stylesheet can transition, so a limit that changes slides round the face instead of jumping. */}
+      {/* The limit where it falls on the ring, drawn over the lit arc so passing it reads as passing it: the sign
+          under the figure says what the limit is, and this says where it is on the truck's own speed. It is a mark
+          across the ring rather than a second scale, as a bar prints its threshold line across itself, with the band
+          past it shading the reserve — the face's own way of showing a limit without printing numbers on it. It is held
+          for one fade after the route stops knowing a limit, so it leaves with the sign rather than blinking away. Its
+          angle is a transform the stylesheet can transition, so a limit that changes slides round the face. */}
       {mark.value !== null && (
         <motion.g
           className="cluster-limit"
@@ -1315,10 +1275,24 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           animate={{ opacity: mark.leaving ? 0 : 1 }}
           transition={reduced ? { duration: 0 } : { duration: 0.42, ease: motionEase }}
         >
-          <line className="cluster-limit-mark" x1="150" y1={150 - 137.5} x2="150" y2={150 - 133} />
+          {/* The face past the limit, as a field under the mark: the same radius, three times the ring's width and a
+              shade fainter, running from the limit to the scale's end. It rides in the mark's group so it fades in and
+              slides round the face with the mark, and it begins at the group's own 12 o'clock — the mark's direction,
+              three quarters of the way along the circle's path — which puts its leading edge on the limit whatever the
+              limit is. */}
+          {mark.value < max && (
+            <circle
+              className="cluster-limit-band"
+              cx="150"
+              cy="150"
+              r={DIAL_RADIUS}
+              strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP * (1 - mark.value / max)} ${DIAL_CIRCUMFERENCE}`}
+              strokeDashoffset={-DIAL_CIRCUMFERENCE * 0.75}
+            />
+          )}
+          <line className="cluster-limit-mark" x1="150" y1={150 - 132} x2="150" y2={150 - 122} />
         </motion.g>
       )}
-      {scale}
       <motion.circle
         className="cluster-dial-rpm-track"
         cx="150"
@@ -1335,41 +1309,22 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={RPM_RADIUS}
         strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * shownRpm} ${RPM_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
+        style={{ strokeLinecap: shownRpm > 0 ? 'round' : 'butt' }}
         {...marks(0.07, 0.3)}
       />
-      {RPM_BANDS.map((band) => (
-        <motion.circle
-          key={band.band}
-          className="cluster-rpm-band"
-          data-band={band.band}
-          cx="150"
-          cy="150"
-          r={RPM_BAND_RADIUS}
-          strokeDasharray={`${RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * (band.to - band.from - RPM_BAND_GAP)} ${RPM_BAND_CIRCUMFERENCE}`}
-          strokeDashoffset={-RPM_BAND_CIRCUMFERENCE * DIAL_SWEEP * (band.from + RPM_BAND_GAP / 2)}
-          transform={`rotate(${DIAL_START} 150 150)`}
-          {...marks(0.12, 0.52)}
-        />
-      ))}
-      {/* The needle rides the ring rather than crossing the face: a knob on the head of the arc, as a modern gauge
-          marks its value. A line from the hub would run through the figure and the scale's numbers, which is the one
-          thing the dial can't afford — the speed and its unit sit at its centre. */}
-      <g className="cluster-needle" style={{ transform: `rotate(${angle}deg)`, transformOrigin: '150px 150px' }}>
-        <motion.circle
-          className="cluster-needle-halo"
-          cx="150"
-          cy={150 - DIAL_RADIUS}
-          r="10.5"
-          {...marks(0.08, 0.26)}
-        />
-        <motion.circle
-          className="cluster-needle-knob"
-          cx="150"
-          cy={150 - DIAL_RADIUS}
-          r="4"
-          {...marks(0.08, 0.26)}
-        />
-      </g>
+      {/* The tacho's redline, printed on its own hairline: the one band a tach needs to read. Scania also marks the
+          auxiliary brake's zone (2,000 to 2,400 rpm) in blue; on a face this quiet a second colour field at the rim
+          pulled the eye off the speed, and the retarder's own steps say when the brake is in use. */}
+      <motion.circle
+        className="cluster-rpm-redline"
+        cx="150"
+        cy="150"
+        r={RPM_RADIUS}
+        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * (1 - RPM_REDLINE)} ${RPM_CIRCUMFERENCE}`}
+        strokeDashoffset={-RPM_CIRCUMFERENCE * DIAL_SWEEP * RPM_REDLINE}
+        transform={`rotate(${DIAL_START} 150 150)`}
+        {...marks(0.12, 0.52)}
+      />
     </svg>
   )
 })
@@ -1477,6 +1432,8 @@ interface ClusterNotice {
   detail?: string
   /** A phone notification's own app icon, when it sent one. */
   icon?: string
+  /** The phone notification this notice shows, when it is a phone notice. */
+  notification?: import('../../shared/host').PhoneNotification
   /** How many are waiting: the newest is the one read, the rest are counted. */
   count: number
 }
@@ -1518,10 +1475,37 @@ function useClusterNotice(): ClusterNotice | null {
       title: notification.title ?? notification.text ?? notification.app,
       detail: notification.title ? notification.text : undefined,
       icon: notification.icon,
+      notification,
       count: toasts.length,
     }
   }
   return alert
+}
+
+/**
+ * The chime as a notice is recorded on the dash: soft for a warning, firmer for an alarm (state/sound.ts).
+ * Dismissing a notice leaves the newest history entry alone, so the line underneath becoming newest says nothing.
+ */
+function useNoticeCue(notice: ClusterNotice | null): void {
+  const lastKey = useRef(notice?.key ?? '')
+  useEffect(() => {
+    if (!notice || notice.key === lastKey.current) return
+    lastKey.current = notice.key
+    if (notice.tone === 'alarm') playCue('alarm')
+    else if (notice.tone === 'warn') playCue('note')
+  }, [notice])
+}
+
+/**
+ * Takes the cluster's current notice away: tells the phone to drop the notification, clears the local toast, and
+ * marks the dash's notice line as dismissed so the exit animation can play before the bar goes empty.
+ */
+export function removeNotice(key: string): void {
+  if (key.startsWith('phone:')) {
+    const id = key.slice(6)
+    sendPhoneCommand({ action: 'dismiss', id })
+    takeDownNotification(id)
+  }
 }
 
 /**
@@ -1546,25 +1530,73 @@ function useClusterAlert(text: Strings): ClusterNotice | null {
     detail: next.detail,
     count: current.length,
   }
-}
-
-/** The notice line above the dial: its mark, what it is, what it says, and how many more are waiting. */
-function ClusterNoticeBar({ notice }: { notice: ClusterNotice }) {
+}/**
+ * The notice line above the dial: the phone's notification card, centred on the glass, as the phone's own shade
+ * shows one — its app tile, its title and text, its time, and its dismissal at its end. It keeps the cluster's
+ * one-line room: the card is the phone's own size, its words are one line and its count is a chip at its end when
+ * there are more.
+ */
+function ClusterNoticeBar({
+  notice,
+  textScale,
+  onDismiss,
+}: {
+  notice: ClusterNotice
+  textScale: number
+  onDismiss: (key: string) => void
+}) {
+  const [dismissing, setDismissing] = useState(false)
+  const handleDismiss = () => {
+    setDismissing(true)
+    setTimeout(() => onDismiss(notice.key), 180)
+  }
   return (
-    <div className="cluster-notice" data-kind={notice.kind} data-tone={notice.tone} aria-hidden>
-      {notice.icon ? (
-        <img className="cluster-notice-app" src={notice.icon} alt="" />
-      ) : (
-        <span className="cluster-notice-mark" aria-hidden>
-          {notice.kind === 'game' ? <WarningIcon /> : <PhoneIcon />}
-        </span>
+    <div
+      className="cluster-notice"
+      data-kind={notice.kind}
+      data-tone={notice.tone}
+      data-dismissing={dismissing ? 'true' : undefined}
+      aria-hidden
+    >
+      {notice.notification && (
+        <>
+          {/* The app's tile: the same shape the phone app gives its group icon, in the app's own hue. */}
+          <span
+            className="phone-note-group-icon"
+            data-hue={`${notice.tone === 'alarm' ? 0 : notice.tone === 'warn' ? 38 : 210}`}
+            aria-hidden
+          >
+            {notice.icon ? (
+              <img src={notice.icon} alt="" />
+            ) : (
+              notice.label.trim().charAt(0).toUpperCase()
+            )}
+          </span>
+          <NoteCard
+            notification={notice.notification}
+            app={notice.label}
+            icon={notice.icon}
+            dismissLabel="Dismiss"
+            onDismiss={handleDismiss}
+            textScale={textScale}
+          />
+        </>
       )}
-      <span className="cluster-notice-label">{notice.label}</span>
-      <b>{notice.title}</b>
-      {notice.detail && <span className="cluster-notice-text">{notice.detail}</span>}
-      {notice.count > 1 && <span className="cluster-notice-count">+{notice.count - 1}</span>}
     </div>
   )
+}
+
+/**
+ * Where a bar prints its gauge's warning line, and which end of the bar the trouble is at (cluster.css,
+ * `.cluster-meter[data-zone]`): the reading's own threshold, so the zone a bar draws is the same one the Diagnostics
+ * app turns amber at. A reading the panel has no data behind draws no zone, rather than painting the whole bar with one.
+ */
+function meterZone(read: { warnPercent: number } | null, side: 'low' | 'high') {
+  if (!read) return {}
+  return {
+    'data-zone': side,
+    style: { '--zone': `${Math.round(read.warnPercent * 100)}%` } as CSSProperties,
+  }
 }
 
 /** Damage at which the dash lights its warning lamp, and its stop lamp (the game's 15% and 50%). */
@@ -1579,13 +1611,7 @@ const DIAL_RADIUS = 127
 const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS
 const DIAL_SWEEP = 0.75
 const DIAL_START = 135
-/* A tick is drawn from the top (12 o'clock), so it starts 270° behind the arc's first angle. */
-const DIAL_TICK_START = DIAL_START - 270
 const DIAL_SWEEP_DEGREES = 270
-/* The face's numbers, set inside the ticks; which numbers they are is the driver's units' (km/h or mph). */
-const SPEED_LABEL_RADIUS = 105
-/* The bezel's edge, a hairline outside the groove and inside the tacho, on the same 270° sweep. */
-const DIAL_FACE_RADIUS = 117
 /* The self-test a dash runs at power-up, as the electrics come on: the face lit to its far end, held there while the
    bezel, the scale and its numbers come up (`hold`), then falling back to the reading over `sweep`. It lands inside the
    dash's first second, since the panel is only put on the glass once the boot is over and the driver is waiting on it. */
@@ -1598,28 +1624,12 @@ const LIMIT_LEAVE_MS = 420
    real warning isn't held off the glass behind it. `cluster.css` runs the lit state over the same window. */
 const BULB_CHECK_MS = 1500
 
-
-/* The tacho: its ring outside the speedo's, read against a 2,500 rpm scale. */
+/* The tacho: its hairline outside the speedo's, read against a 2,500 rpm scale. */
 const RPM_MAX = 2500
 const RPM_RADIUS = 139
 const RPM_CIRCUMFERENCE = 2 * Math.PI * RPM_RADIUS
-/* Its bands, as Scania prints them: the auxiliary brake is strongest from 2,000 to 2,400 rpm, the red field past. */
-const RPM_BAND_RADIUS = 145
-const RPM_BAND_CIRCUMFERENCE = 2 * Math.PI * RPM_BAND_RADIUS
-/* The hairline that splits the two fields: without it the blue and the red meet and read as one band in two
-   colours, where the dash shows two marks. Sized in the sweep, so it stays a hairline as the face is drawn. */
-const RPM_BAND_GAP = 0.01
-const RPM_BANDS = [
-  { band: 'aux', from: 2000 / RPM_MAX, to: 2400 / RPM_MAX },
-  { band: 'red', from: 2400 / RPM_MAX, to: 1 },
-] as const
-
-/** Where a speed on the face is drawn, `radius` from the middle. */
-function dialPoint(value: number, radius: number, face: SpeedFace): { x: number; y: number } {
-  const degrees = DIAL_START + 90 + DIAL_SWEEP_DEGREES * (value / face.max)
-  const radians = (degrees * Math.PI) / 180
-  return { x: 150 + radius * Math.sin(radians), y: 150 - radius * Math.cos(radians) }
-}
+/* Where the red starts, as a share of the scale: Scania's red field begins at 2,400 and runs to the end. */
+const RPM_REDLINE = 2400 / RPM_MAX
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(1, value))

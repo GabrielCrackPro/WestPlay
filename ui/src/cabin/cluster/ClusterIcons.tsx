@@ -326,14 +326,19 @@ export function BeaconIcon() {
   )
 }
 
-/** The wipers: the screen's frame, the arm sweeping across it, the blade it carries and the pivot it turns on. */
+/**
+ * The wipers: the screen's frame with the arm sweeping across it and the blade the arm carries. The arm is short and
+ * heavy and stops well inside the frame, where it used to run corner to corner as a hairline: at the 24px a lamp is
+ * drawn at, a thin diagonal across a box is the one mark in this set that read as something else entirely — a slash,
+ * which is how a panel says "switched off" or "not available". Stopping the arm inside the frame leaves the frame
+ * whole, so the mark reads as a screen with a wiper on it and not as a screen struck through.
+ */
 export function WipersIcon() {
   return (
     <Glyph>
-      <path d="M2.8 5.4h18.4l-1.7 13.2H4.5Z" />
-      <path d="m6.6 17 8-8.4" />
-      <path d="M12.4 6.4l5 4.2" />
-      <circle cx="6.6" cy="17" r="0.9" fill="currentColor" stroke="none" />
+      <path d="M3.4 5.8h17.2l-1.6 12.6H5Z" />
+      <path d="m9.2 15.4 5.2-6" strokeWidth="2.5" />
+      <path d="M8.6 13.4l5.6 1.6" strokeWidth="2.5" />
     </Glyph>
   )
 }

@@ -1,9 +1,10 @@
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
 import { type PhoneCall, type PhoneContact, type PhoneNotification, type PhoneRecent } from '../../../shared/host'
-import { formatRealTime } from '../../../shared/format'
 import { SearchGlyph } from '../../keyboard/glyphs'
+import { formatRealTime } from '../../../shared/format'
 import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
+import { NoteCard } from '../../../shared/phoneNoteCard'
 import {
   appHue,
   contactFor,
@@ -661,12 +662,12 @@ export function PhoneApp() {
                             )}
                           </header>
                           {(open ? group.notes : group.notes.slice(0, 1)).map((notification) => (
-                            <NoteRow
+                            <NoteCard
                               key={notification.id}
                               notification={notification}
-                              dismiss={words.dismiss}
-                              send={words.send}
-                              cancel={words.cancel}
+                              app={group.app}
+                              icon={group.icon}
+                              dismissLabel={words.dismiss}
                               onDismiss={dismissNote}
                             />
                           ))}
@@ -931,96 +932,6 @@ function groupNotes(
     } else groups.push({ package: note.package, app: note.app, icon: note.icon, notes: [note] })
   }
   return groups
-}
-
-/**
- * One notification inside its app's card: its time, its words, its buttons, and its dismissal or reply. The app's own
- * name and mute are the card's, not each notification's, since they are the same for all of them.
- */
-function NoteRow({
-  notification,
-  dismiss,
-  send,
-  cancel,
-  onDismiss,
-}: {
-  notification: PhoneNotification
-  dismiss: string
-  send: string
-  cancel: string
-  onDismiss(id: string): void
-}) {
-  const time = notification.time !== undefined ? formatRealTime(notification.time * 1000) : null
-  const [replying, setReplying] = useState(false)
-  const [reply, setReply] = useState('')
-  const actions = notification.actions ?? []
-  const replyField = `phone-reply-${notification.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`
-  const submit = () => {
-    const text = reply.trim()
-    if (!text) return
-    sendPhoneCommand({ action: 'reply', id: notification.id, text })
-    setReply('')
-    setReplying(false)
-  }
-  return (
-    <div className="phone-note">
-      {(notification.title || time) && (
-        <div className="phone-note-head">
-          {notification.title && <p className="phone-note-title">{notification.title}</p>}
-          {time && <span className="phone-note-time">{time}</span>}
-        </div>
-      )}
-      {notification.text && <p className="phone-note-text">{notification.text}</p>}
-      {actions.length > 0 && (
-        <div className="phone-note-actions">
-          {actions.map((action, index) => (
-            <button
-              key={`${action.label}-${index}`}
-              type="button"
-              className="phone-note-action"
-              onClick={() => {
-                if (action.reply) setReplying((open) => !open)
-                else sendPhoneCommand({ action: 'action', id: notification.id, index })
-              }}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
-      {replying && (
-        <div className="phone-note-reply">
-          <TextField id={replyField} value={reply} onChange={setReply} hint={send} label={send} />
-          <div className="phone-note-reply-buttons">
-            <button type="button" className="phone-note-send" disabled={!reply.trim()} onClick={submit}>
-              {send}
-            </button>
-            <button
-              type="button"
-              className="phone-note-cancel"
-              onClick={() => {
-                setReply('')
-                setReplying(false)
-              }}
-            >
-              {cancel}
-            </button>
-          </div>
-        </div>
-      )}
-      <div className="phone-note-foot">
-        <button
-          type="button"
-          className="phone-note-dismiss"
-          aria-label={`${dismiss}: ${notification.title ?? notification.app}`}
-          onClick={() => onDismiss(notification.id)}
-        >
-          <Cross />
-          <span>{dismiss}</span>
-        </button>
-      </div>
-    </div>
-  )
 }
 
 /** A ringing or answered call, above everything else, with the buttons that end or answer it. */
