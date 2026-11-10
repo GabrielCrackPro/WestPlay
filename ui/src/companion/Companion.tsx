@@ -404,14 +404,14 @@ function SectionList({
   let place = 2
   return (
     <nav ref={list} className="cp-list" aria-label="Cabin Play">
+      {/* The name, then its state on a line of its own: in a narrow dock the state beside the name was cut
+          mid-word by the rail's edge (companion.css .cp-brand). */}
       <header className="cp-brand ob-in" style={n(0)}>
         <img src="/cabinplay.png" alt="" />
-        <span>
-          <b>Cabin Play</b>
-          <span className="cp-state" data-state={state}>
-            <i />
-            {cw.state[state]}
-          </span>
+        <b>Cabin Play</b>
+        <span className="cp-state" data-state={state}>
+          <i />
+          {cw.state[state]}
         </span>
       </header>
       {lit && <i className="cp-lit" style={{ top: lit.top, height: lit.height }} />}

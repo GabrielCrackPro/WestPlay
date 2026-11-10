@@ -1,13 +1,15 @@
 @import '@fontsource-variable/figtree';
 
-/* Cabin Play's companion, redesigned as a night desk: a graphite dock, a warm paper workspace, and the truck's
-   screen standing in the dark beside them. The cabin itself stays dark; this window is the place the driver
-   prepares it, so the working surface is light, printed, and easy to read, while the live screen remains the
-   only thing glowing in the room.
+/* Cabin Play's companion, as a night desk: a graphite dock, a graphite sheet, and the truck's screen standing in
+   the dark beside them. The cabin itself stays dark; this window is the place the driver prepares it, so the
+   screen stays the only thing glowing in the room.
 
-   The layout is three floating objects — dock, sheet, screen — on one deep ground, rather than three flush
-   columns. The palette is asphalt, bone paper, ink, and one safety orange. Everything is drawn from the tokens
-   below so a row here and a row on Customize are the same object. */
+   The layout is three objects — dock, sheet, screen — on one deep ground. The ground is a single warm light
+   behind the screen and nothing else: a grid or an orbit drawn there only competes with the live glass. The
+   palette is asphalt, bone, and one safety orange, and the orange is spent on what is live or chosen (the open
+   section, the arc of a progress bar, the chosen accent), never on decoration: a second orange slab beside a
+   page that already carries the live colour reads as two alarms. Everything is drawn from the tokens below so a
+   row here and a row on Customize are the same object. */
 
 /* ---------- Reset and ground ---------- */
 
@@ -54,9 +56,12 @@ button {
 /* ---------- The window's tokens ---------- */
 
 .cp {
-  --rail: 196px;
-  --page: 360px;
+  --rail: 200px;
+  --page: 376px;
   --dock: 18px;
+  /* The sheet's left edge, from the window: the dock, the gap beside it, and the sheet's width (see the stage
+     below, which is what's left of the window). */
+  --sheet: calc(var(--dock) + var(--rail) + 14px);
 
   --font-display: 'Figtree Variable', 'Instrument Sans Variable', sans-serif;
   --font-ui: 'Instrument Sans Variable', 'Inter Variable', sans-serif;
@@ -166,41 +171,14 @@ button {
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  /* One light, behind the screen, and a floor it stands above. No grid, no orbit: at this size they read as a
+     texture the glass has to fight. */
   background:
-    radial-gradient(50% 52% at 78% 43%, rgb(var(--signal-rgb) / 0.18), transparent 68%),
-    radial-gradient(70% 68% at 64% 112%, rgb(201 245 106 / 0.06), transparent 62%),
-    linear-gradient(180deg, #0b0c0e, #08090b 62%, #060708);
+    radial-gradient(46% 54% at 84% 47%, rgb(var(--signal-rgb) / 0.16), transparent 70%),
+    radial-gradient(80% 60% at 50% 108%, rgb(255 255 255 / 0.035), transparent 70%),
+    linear-gradient(180deg, #0a0b0d, #08090b 58%, #060708);
   pointer-events: none;
   animation: cp-stage-in 1100ms var(--ease) backwards;
-}
-
-/* A measuring grid, only where the light falls: enough to give the room a scale without becoming wallpaper. */
-.cp-stage::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(68% 76% at 77% 48%, #000, transparent 76%);
-  opacity: 0.65;
-}
-
-/* A quiet orbit behind the screen, like the sweep of a dial. */
-.cp-stage::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -170px;
-  width: 620px;
-  height: 620px;
-  border: 1px solid rgb(255 255 255 / 0.055);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 72px rgb(255 255 255 / 0.018),
-    0 0 0 154px rgb(255 255 255 / 0.009);
-  translate: 0 -50%;
 }
 
 @keyframes cp-stage-in {
@@ -214,66 +192,71 @@ button {
   z-index: 1;
 }
 
+/* The screen stands square to the stage, 256x147 at 0.4, its right edge 18px from the window's (the dock's own
+   margin) and its group centred in the stage's height. Anchored at the right rather than pushed by a translate,
+   so a wider window moves the sheet and leaves the screen where a stage object belongs. The mouse still turns it
+   a little (room.css .ts-tilt), which is the whole of the trick — a fixed 11 degrees of yaw only made the live
+   page harder to read, and the screen hung half off the window's edge. */
 .cp .ts[data-pose='aside'] {
-  transform: translate3d(292px, -1svh, 0) scale(0.44) rotateY(-11deg) rotateX(2deg);
-  transform-origin: 50% 52%;
+  right: 18px;
+  left: auto;
+  margin: -184px 0 0;
+  transform: translateY(-25px) scale(0.4);
+  transform-origin: 100% 50%;
 }
 
 .cp .ts[data-pose='aside'] .ts-bezel {
-  padding: 9px;
-  border-radius: 24px;
-  background: linear-gradient(155deg, #2a2b2f, #101113 58%, #08090a);
+  padding: 7px;
+  border-radius: 20px;
+  background: linear-gradient(155deg, #26272b, #111214 60%, #08090b);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
     inset 0 -1px 0 rgb(0 0 0 / 0.8),
-    0 2px 4px rgb(0 0 0 / 0.55),
-    0 26px 54px -18px rgb(0 0 0 / 0.9),
-    0 0 0 1px rgb(255 255 255 / 0.055);
+    0 2px 4px rgb(0 0 0 / 0.5),
+    0 20px 44px -16px rgb(0 0 0 / 0.85),
+    0 0 0 1px rgb(255 255 255 / 0.05);
+  -webkit-box-reflect: below 10px linear-gradient(transparent 78%, rgb(255 255 255 / 0.05));
 }
 
 .cp .ts[data-pose='aside'] .ts-tilt {
-  border-radius: 16px;
+  border-radius: 14px;
 }
 
 .cp .ts[data-pose='aside'] .ts-glass {
-  border-radius: 14px;
+  border-radius: 13px;
   background: #000;
 }
 
 .cp .ts[data-pose='aside'] .ts-light {
-  inset: -24% -20%;
-  filter: blur(28px);
-  transform: translateZ(-120px) scale(1.16);
-  opacity: 0.95;
+  inset: -26% -22%;
+  filter: blur(34px);
+  transform: translateZ(-120px) scale(1.2);
+  opacity: 0.9;
 }
 
 .cp .ts[data-pose='aside'] .ts-banner {
   transform: translateY(-140%) scale(0.9);
 }
 
-/* The screen's own caption, under it: the brand, then where the live screen is now. */
+/* The screen's caption, under it and the width of its bezel: the brand, then what Cabin Play is on it now. It is
+   a caption, not another card — a fourth floating panel beside the dock, the sheet and the screen is one object
+   too many, and the dock already says the same state at the top. */
 .cp-screen-status {
   position: absolute;
-  top: calc(50% + 88px);
-  right: 26px;
+  top: calc(50% + 67px);
+  right: 18px;
   z-index: 2;
   display: flex;
-  width: 270px;
+  width: 256px;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px 14px;
-  border: 1px solid rgb(255 255 255 / 0.09);
-  border-radius: 14px;
-  background: rgb(15 16 18 / 0.72);
-  backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.11),
-    0 16px 30px rgb(0 0 0 / 0.32);
+  align-items: center;
+  gap: 5px;
+  text-align: center;
   animation: cp-status-in 520ms var(--ease) 260ms backwards;
 }
 
 .cp-screen-status span {
-  color: rgb(244 239 229 / 0.4);
+  color: rgb(244 239 229 / 0.32);
   font-family: var(--font-display);
   font-size: 9px;
   font-weight: 750;
@@ -285,11 +268,13 @@ button {
   display: flex;
   min-width: 0;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   overflow: hidden;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  color: rgb(244 239 229 / 0.8);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -353,11 +338,11 @@ button {
   display: flex;
   width: var(--rail);
   flex-direction: column;
-  gap: 12px;
-  padding: 18px 14px;
+  gap: 10px;
+  padding: 16px 12px;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.09);
-  border-radius: 26px;
+  border-radius: 22px;
   background:
     radial-gradient(120% 24% at 14% 0%, rgb(var(--signal-rgb) / 0.12), transparent 72%),
     linear-gradient(180deg, rgb(29 30 33 / 0.94), rgb(13 14 16 / 0.96));
@@ -377,24 +362,23 @@ button {
 }
 
 /* The masthead: the mark, the name, and the state of the live screen. */
+/* The mark and the name on one line, the state on the next, across the whole dock: beside the name, the state
+   ran out of room at the rail's edge and was cut mid-word in every language with a long one. */
 .cp-brand {
-  display: flex;
-  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 11px;
+  column-gap: 10px;
+  row-gap: 8px;
   margin: 0 2px;
-  padding: 2px 4px 16px;
+  padding: 2px 4px 14px;
   border-bottom: 1px solid rgb(255 255 255 / 0.09);
 }
 
-.cp-brand > span {
-  min-width: 0;
-}
-
 .cp-brand img {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   box-shadow:
     0 10px 22px rgb(0 0 0 / 0.5),
     inset 0 1px 0 rgb(255 255 255 / 0.18);
@@ -403,7 +387,7 @@ button {
 .cp-brand b {
   display: block;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1.05;
@@ -411,21 +395,21 @@ button {
 
 .cp-state {
   display: inline-flex;
+  grid-column: 1 / -1;
+  justify-self: start;
   max-width: 100%;
   align-items: center;
   gap: 6px;
-  width: fit-content;
   overflow: hidden;
-  margin-top: 5px;
-  padding: 2px 8px 2px 7px;
+  padding: 3px 8px 3px 7px;
   border: 1px solid rgb(255 255 255 / 0.055);
   border-radius: 99px;
   background: rgb(255 255 255 / 0.055);
   color: var(--text-dim);
-  font-size: 9.5px;
-  font-weight: 650;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -480,11 +464,11 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 46px;
+  min-height: 44px;
   margin-inline: 1px;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 11px;
   background: transparent;
   color: var(--text-dim);
   font-size: 12.5px;
@@ -508,11 +492,11 @@ button {
 
 .cp-row-icon {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   place-items: center;
-  border-radius: 9px;
+  border-radius: 8px;
   background: rgb(255 255 255 / 0.055);
   color: var(--text-faint);
   transition:
@@ -521,8 +505,8 @@ button {
 }
 
 .cp-row-icon svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 .cp-row-text {
@@ -545,7 +529,7 @@ button {
   overflow: hidden;
   max-width: 100%;
   color: var(--text-faint);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
@@ -569,21 +553,33 @@ button {
   }
 }
 
-/* The open section is a safety-orange capsule gliding along the dark dock. */
+/* The open section: warm glass with a safety-orange spine at its edge, gliding from row to row. A filled orange
+   slab here put the loudest colour in the window on the one thing the eye needs least (it is already open) and
+   left nothing for the page's live state; the spine marks the row just as clearly and costs one accent line. */
 .cp-lit {
   position: absolute;
-  right: 14px;
-  left: 14px;
+  right: 12px;
+  left: 12px;
   z-index: 0;
-  border-radius: 14px;
-  background: var(--signal);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.28),
-    0 10px 28px rgb(var(--signal-rgb) / 0.2);
+  border-radius: 11px;
+  background: linear-gradient(90deg, rgb(var(--signal-rgb) / 0.17), rgb(var(--signal-rgb) / 0.06));
+  box-shadow: inset 0 0 0 1px rgb(var(--signal-rgb) / 0.2);
   transition:
     top 560ms var(--spring),
     height 560ms var(--spring);
   animation: cp-lit-in 700ms var(--ease) 160ms backwards;
+}
+
+.cp-lit::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 0;
+  width: 2.5px;
+  border-radius: 99px;
+  background: var(--signal);
+  box-shadow: 0 0 10px rgb(var(--signal-rgb) / 0.55);
 }
 
 @keyframes cp-lit-in {
@@ -593,7 +589,7 @@ button {
 }
 
 .cp-row[data-here] {
-  color: var(--ink);
+  color: var(--text);
 }
 
 .cp-row[data-here]:hover {
@@ -602,12 +598,12 @@ button {
 }
 
 .cp-row[data-here] .cp-row-icon {
-  background: rgb(23 22 20 / 0.08);
-  color: var(--ink);
+  background: rgb(var(--signal-rgb) / 0.18);
+  color: var(--signal);
 }
 
 .cp-row[data-here] .cp-row-value {
-  color: rgb(23 22 20 / 0.58);
+  color: rgb(244 239 229 / 0.52);
 }
 
 /* ---------- The page sheet ---------- */
@@ -633,7 +629,7 @@ button {
   position: absolute;
   top: var(--dock);
   bottom: var(--dock);
-  left: calc(var(--rail) + var(--dock) + 14px);
+  left: var(--sheet);
   z-index: 2;
   display: grid;
   width: var(--page);
@@ -642,26 +638,13 @@ button {
   padding: 0;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 26px;
+  border-radius: 22px;
   background: linear-gradient(158deg, #202124 0%, #17181b 56%, #101114 100%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.08),
     0 30px 70px rgb(0 0 0 / 0.55);
   color: var(--text);
   animation: cp-page-in 440ms var(--ease) backwards;
-}
-
-/* A thin safety-orange sightline at the top of the sheet. */
-.cp .ob-words[data-place='page']::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 24px;
-  left: 24px;
-  z-index: 1;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
-  background: var(--signal);
 }
 
 .cp .ob-words[data-place='page'][data-leaving] {
@@ -679,24 +662,27 @@ button {
   }
 }
 
-/* The section's mark: bone on graphite, with a hard orange shadow, like a stamped label. */
+/* The section's mark: bone on graphite. It carried a hard orange offset shadow, which at 34px read as a
+   misregistered print rather than a stamp, and put a third orange object on the sheet beside the live state. */
 .cp .ob-words[data-place='page'] .ob-tile {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   grid-area: 1 / 1 / 2 / 2;
-  margin: 24px 0 0 20px;
+  margin: 20px 0 0 18px;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 11px;
   background: var(--paper);
-  box-shadow: 5px 5px 0 var(--signal);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.09),
+    inset 0 1px 0 rgb(255 255 255 / 0.7);
   color: var(--ink);
   animation: cp-tile-in 500ms var(--ease) backwards;
 }
 
 .cp .ob-words[data-place='page'] .ob-tile svg {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
 }
 
 @keyframes cp-tile-in {
@@ -710,25 +696,40 @@ button {
 .cp .ob-words[data-place='page'] h1 {
   align-self: center;
   grid-area: 1 / 2 / 2 / 3;
-  margin: 24px 20px 0 14px;
+  margin: 20px 18px 0 12px;
   overflow-wrap: anywhere;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 1.03;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
   text-wrap: balance;
+}
+
+/* A page's title rises letter by letter (room.css .ob-letter), but at the onboarding's 900ms and 22ms of stagger
+   a 26-letter Spanish title took 1.3s to come out of its blur, and every section opened on a soft-focus heading.
+   The page's titles are short and read at once: they arrive in about half a second. */
+.cp .ob-words[data-place='page'] h1 .ob-word span {
+  animation-duration: 380ms;
+  animation-delay: calc(var(--n, 0) * 9ms + 20ms);
+}
+
+/* The Phone page has no line of words under its title, so the rule under the header (the line's own bottom
+   border) went with it and its first card started against the title. */
+.cp .ob-words[data-place='page']:not(:has(.ob-sub)) .ob-content {
+  margin-top: 14px;
+  border-top: 1px solid var(--rule);
 }
 
 .cp .ob-words[data-place='page'] .ob-sub {
   grid-area: 2 / 1 / 3 / 3;
-  margin: 10px 20px 0;
-  padding-bottom: 15px;
+  margin: 10px 18px 0;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--rule);
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.52;
   text-wrap: pretty;
 }
 
@@ -739,11 +740,13 @@ button {
   flex-direction: column;
   gap: 12px;
   margin: 0;
-  padding: 16px 18px 18px;
+  padding: 14px 16px 16px;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
-  mask-image: linear-gradient(to bottom, transparent, #000 6px, #000 calc(100% - 8px), transparent);
+  /* Long enough a fade that a row cut by the sheet's edge reads as "more below" rather than as a mistake: at 8px
+     the Controls page looked as if the window had cropped it mid-sentence. */
+  mask-image: linear-gradient(to bottom, transparent, #000 8px, #000 calc(100% - 14px), transparent);
 }
 
 .cp .ob-words[data-place='page'] .ob-content::-webkit-scrollbar {
@@ -757,7 +760,7 @@ button {
   justify-content: flex-end;
   gap: 8px;
   margin: 0;
-  padding: 13px 20px;
+  padding: 12px 16px;
   border-top: 1px solid var(--rule);
   background: rgb(0 0 0 / 0.2);
 }
@@ -2329,7 +2332,7 @@ button {
 }
 
 .cp .cp-row[data-here]:focus-visible {
-  color: var(--ink);
+  color: var(--text);
 }
 
 /* A wider preview window has more room for the dock and the sheet, and the screen can sit a little larger. */
@@ -2340,13 +2343,13 @@ button {
   }
 
   .cp .ts[data-pose='aside'] {
-    transform: translate3d(360px, -1svh, 0) scale(0.56) rotateY(-11deg) rotateX(2deg);
+    transform: translateY(-25px) scale(0.5);
   }
 
+  /* 320 wide, the same as the scaled bezel, and under it. */
   .cp-screen-status {
-    top: calc(50% + 118px);
-    right: 38px;
-    width: 310px;
+    top: calc(50% + 85px);
+    width: 320px;
   }
 }
 
