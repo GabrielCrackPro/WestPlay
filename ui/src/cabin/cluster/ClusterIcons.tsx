@@ -256,8 +256,10 @@ export function HazardIcon() {
 }
 
 /** A headlamp, dipped or on main: the lamp's lens on the left, standing on its flat back as a lamp seen from the
- * side does, and the light it throws down the road. The two beams are told apart the way a driver tells them apart on
- * the road: the dipped beam slopes down towards the surface, the main beam runs straight out and fans wider. */
+ * side does, and the light it throws down the road. The two beams are told apart the way the dash's own symbols tell
+ * them apart (ISO 7000-0083 and -0082): the dipped beam's rays all slope down to the road on one angle, and the main
+ * beam's run straight out level, each ray as long as the next. Fanning the main beam, as this drew it, made the two
+ * lamps differ by gesture alone and read as the same mark at 24px. */
 export function BeamIcon({ main }: { main?: boolean }) {
   return (
     <Glyph>
@@ -265,30 +267,33 @@ export function BeamIcon({ main }: { main?: boolean }) {
       <path d="M4 7.6h1.6a4.6 4.6 0 0 1 0 9.2H4Z" />
       {main ? (
         <>
-          {/* Straight out and fanning wider */}
-          <path d="m11.4 7.6 9.6-1.6M11.4 10.9h10.4M11.4 14.3h10.4M11.4 17.6l9.6 1.6" />
+          {/* Level, and all of one length */}
+          <path d="M10.6 6.6h10.4M10.6 10.2h10.4M10.6 13.8h10.4M10.6 17.4h10.4" />
         </>
       ) : (
         <>
-          {/* Short, and angled down to the road */}
-          <path d="m11.4 8.6 5 2.2M11.4 12l6.2 2.6M11.4 15.4l4.2 2.2" />
+          {/* Down to the road, every ray on the same slope */}
+          <path d="m10.2 7 8.8 3.6M10.2 10.2l8.8 3.6M10.2 13.4l8.8 3.6M10.2 16.6l8.8 3.6" />
         </>
       )}
     </Glyph>
   )
 }
 
-/** The position lights: a lamp with its light thrown both ways. This is the parking light's and the marker lights'
- * mark, where the headlamp's is a beam down the road — a light that lets the truck be seen from the side, not one
- * that lights the way. */
+/** The position lights, as the dash's symbol draws them (ISO 7000-0456): two lamps back to back, each throwing its
+ * light outward, the mark a driver reads as "the truck can be seen from the side". The game's parking lights are
+ * these side lamps, so this is the light this panel lights for them. The pair is solid where the beam's lens is an
+ * outline: at 24px a lamp this small is its silhouette, and a stroke inside it would only grey it. */
 export function PositionLightIcon() {
   return (
     <Glyph>
-      {/* The lamp */}
-      <path d="M9.6 8.6h4.8a1.8 1.8 0 0 1 1.8 1.8v3.2a1.8 1.8 0 0 1-1.8 1.8H9.6Z" />
-      {/* Its light, thrown to each side */}
-      <path d="M9.6 9.6 5.4 8M9.6 12H4.4M9.6 14.4 5.4 16" />
-      <path d="m14.4 9.6 4.2-1.6M14.4 12h5.2M14.4 14.4l4.2 1.6" />
+      {/* The two lenses: a leaf with its flat side outward and its bulge toward the other, as the symbol draws
+          them, their pointed ends keeping them apart at 24px */}
+      <path d="M7.8 8.5c2.7 1 3.4 4.4 0 7Z" fill="currentColor" stroke="none" />
+      <path d="M16.2 8.5c-2.7 1-3.4 4.4 0 7Z" fill="currentColor" stroke="none" />
+      {/* The light each throws outward */}
+      <path d="M6.8 8.8 3 7.2M6.6 12H2.7M6.8 15.2 3 16.8" />
+      <path d="m17.2 8.8 3.8-1.6M17.4 12h3.9M17.2 15.2l3.8 1.6" />
     </Glyph>
   )
 }

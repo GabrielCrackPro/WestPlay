@@ -84,11 +84,11 @@ import './cluster.css'
  * the cab's newest message has a line of its own over the dial instead of taking the route's place. What plays sits
  * in the dial's open bottom (owner 2026-11-08: "more icons and visuals, less text").
  *
- * The panel comes up rather than switches on: the bezel and both grooves first, then the scale's marks, then the
- * face's numbers a frame apart, then the lit arcs, the cursor and the brand — all on the cabin's own curve, and all
- * cut by the reduced-motion setting with the rest of the cabin. As the boot clears, the panel runs its own bulb check:
- * every telltale it has lights for a moment, then drops back to the truck's real states, as a cluster proves its lamps
- * at power-up.
+ * The panel comes up rather than switches on, and only once the boot is over: the bezel and both grooves first, then
+ * the scale's marks, then the face's numbers a frame apart, then the lit arcs, the cursor and the brand — all on the
+ * cabin's own curve, and all cut by the reduced-motion setting with the rest of the cabin. As it clears, the panel
+ * runs its own bulb check: every telltale it has lights for a moment, then drops back to the truck's real states, as a
+ * cluster proves its lamps at power-up.
  *
  * Colour is the dash's own language: the ink for readings, the accent for what is live, and green, amber, blue and
  * red only for states — so a warning is the one thing on the glass that is coloured.
@@ -154,11 +154,12 @@ function useBulbCheck(ignitionOn: boolean): boolean {
   return ignitionOn && lit
 }
 
-/** The side columns' readings arrive one after the other, as the shell comes up. */
+/** The side columns' readings arrive one after the other, as the shell comes up: a column is read at a glance, so
+ * its panels follow each other closely rather than one at a time. */
 function sideVariants(reduced: boolean) {
   return {
     hidden: {},
-    shown: { transition: reduced ? { staggerChildren: 0 } : { staggerChildren: 0.07 } },
+    shown: { transition: reduced ? { staggerChildren: 0 } : { staggerChildren: 0.045 } },
   }
 }
 
@@ -166,8 +167,8 @@ function riseVariants(reduced: boolean) {
   return reduced
     ? { hidden: { opacity: 1, y: 0 }, shown: { opacity: 1, y: 0, transition: { duration: 0 } } }
     : {
-        hidden: { opacity: 0, y: 9 },
-        shown: { opacity: 1, y: 0, transition: { duration: 0.56, ease: motionEase } },
+        hidden: { opacity: 0, y: 7 },
+        shown: { opacity: 1, y: 0, transition: { duration: 0.36, ease: motionEase } },
       }
 }
 
@@ -233,6 +234,12 @@ export function ClusterScreen() {
           useLive.setState({ gameClock24: message.clock24 })
           syncClock()
         }
+        // The game's language, which the host sends to this page as well as the cabin's (and sends again when the
+        // page loads): the panel's words are the cabin's, and so is the clock's own AM and PM.
+        else if (message.type === 'language') {
+          useLive.setState({ gameLanguage: message.language })
+          syncClock()
+        }
       }),
     [],
   )
@@ -249,9 +256,10 @@ export function ClusterScreen() {
     if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
     else delete document.documentElement.dataset.motion
   }, [reduceMotion])
-  // The page's language, as the cabin page sets it (CabinApp): the dash speaks the cabin's words everywhere it says
-  // one (its notices, its readings' captions, what a reader hears), and the page's own language is what makes text set
-  // in capitals follow that language's rules (Turkish: i to İ, not I) and a screen reader pronounce it.
+  // The page's language, from the game's, which the host tells this page (it is the cabin's language too, the cabin
+  // page reads it off the same profile): the dash speaks the cabin's words everywhere it says one (its notices, its
+  // readings' captions, what a reader hears), and the page's own language is what makes text set in capitals follow
+  // that language's rules (Turkish: i to İ, not I) and a screen reader pronounce it.
   const language = useLanguage()
   useEffect(() => {
     document.documentElement.lang = language
@@ -278,12 +286,15 @@ export function ClusterScreen() {
   // where it is (`ClusterBoot`). An ignition cycle boots both again, and there is no second clock to drift out of step.
   const power = useLive((state) => state.power)
   const booting = power?.phase === 'splash' || power?.phase === 'connecting'
-  // The dash comes up under the boot's light going down: its shell is re-mounted as the boot enters its last part
-  // (HANDOVER_MS), so its entrance and the dial's power-up sweep are what the driver sees as the boot clears — one
-  // motion between the two screens, not a fade to black and a dash that appears behind it. Motion fades the boot out
-  // over that same window (BootScreen's exit), and `useHandover` is the one clock for both.
+  // The dash waits for the boot: it is put on the glass only once the boot is over (the boot's `on` phase, or a page
+  // that never saw one), so every motion it has — the shell's entrance, the sides' readings arriving one after the
+  // other, the dial's power-up sweep and the lamps' self-test and blinking — starts in front of the driver on the
+  // screen the boot has just cleared, instead of playing under the boot's light where nobody can see it. Until then
+  // it is mounted but not painted (below), and it is re-mounted at that moment so its motions begin there.
+  const booted = power === null || power.phase === 'on'
+  // The boot's light still goes down over its own last part (HANDOVER_MS), as it does on the cabin's screen: Motion
+  // fades it out over that window (BootScreen's exit), and `useHandover` is the one clock for both.
   const handover = useHandover(power, wallClock)
-  const shellCycle = handover ? 1 : 0
   // The lamps' self-test as the dash shows itself: the boot's `on` phase is the moment it has handed over. The lit
   // state and its length are the stylesheet's (`.cluster-telltales[data-check]`), over the same window.
   const bulbCheck = useBulbCheck(power?.phase === 'on')
@@ -575,16 +586,18 @@ export function ClusterScreen() {
 
       <motion.div
         className="cluster-shell"
-        key={shellCycle}
-        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        key={booted ? 1 : 0}
+        // Drawn but kept off the glass while the boot is up, so the entrance below is first seen once it is over.
+        style={booted ? undefined : { visibility: 'hidden' }}
+        initial={reduceMotion ? false : { opacity: 0, y: 3 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={reduceMotion ? { duration: 0 } : { duration: 0.48, ease: motionEase }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: motionEase }}
       >
         <motion.header
           className="cluster-status"
-          initial={reduceMotion ? false : { opacity: 0, y: -5 }}
+          initial={reduceMotion ? false : { opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.52, ease: motionEase }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.3, ease: motionEase }}
         >
           <TelltaleList items={lights} label={words.telltales} check={bulbCheck} />
           {/* What a screen reader hears of the notice. The line itself comes and goes with its words, and a live
@@ -603,7 +616,7 @@ export function ClusterScreen() {
             aria-label={routeLabel || undefined}
             initial={reduceMotion ? false : { opacity: 0, y: -3 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.52, delay: 0.12, ease: motionEase }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.3, delay: 0.06, ease: motionEase }}
           >
             {routeLabel ? (
               <>
@@ -630,7 +643,7 @@ export function ClusterScreen() {
               <CruiseIcon />
               <b>{cruise > 0 ? cruise : 0}</b>
             </span>
-            <span className="cluster-pill cluster-clock" aria-label={`${words.time} ${time}`}>
+            <span className="cluster-pill cluster-clock" aria-label={`${words.clock} ${time}`}>
               <ClockIcon />
               <time>{time}</time>
             </span>
@@ -782,7 +795,7 @@ export function ClusterScreen() {
                   aria-label={`${text.nowPlaying}: ${nowPlaying.title}${nowPlaying.artist ? ` · ${nowPlaying.artist}` : ''}`}
                   initial={reduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: nowPlaying.playing ? 1 : 0.55 }}
-                  transition={reduceMotion ? { duration: 0 } : { duration: 0.42, delay: 0.12, ease: motionEase }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.26, delay: 0.06, ease: motionEase }}
                 >
                   {playsFrom ? (
                     <img className="cluster-media-app" src={appIcon(playsFrom, appearance)} alt="" />
@@ -817,9 +830,9 @@ export function ClusterScreen() {
             >
               <motion.div
                 className="cluster-dial-wrap"
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.95 }}
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.68, delay: 0.08, ease: motionEase }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.38, delay: 0.02, ease: motionEase }}
               >
                 <ClusterDial
                   speedShare={speedShare}
@@ -853,7 +866,7 @@ export function ClusterScreen() {
                           ? { duration: 0 }
                           : sign.leaving
                             ? { duration: 0.42, ease: motionEase }
-                            : { duration: 0.46, delay: 0.24, ease: motionEase }
+                            : { duration: 0.34, delay: 0.14, ease: motionEase }
                       }
                     >
                       <b>{sign.value}</b>
@@ -868,7 +881,7 @@ export function ClusterScreen() {
                   aria-label={`${words.gear} ${gear}`}
                   initial={reduceMotion ? false : { opacity: 0, x: '-50%', y: 4 }}
                   animate={{ opacity: 1, x: '-50%', y: 0 }}
-                  transition={reduceMotion ? { duration: 0 } : { duration: 0.46, delay: 0.36, ease: motionEase }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.32, delay: 0.16, ease: motionEase }}
                 >
                   <span key={gear}>{gear}</span>
                 </motion.div>
@@ -1098,30 +1111,31 @@ export function ClusterScreen() {
 
 /**
  * The paired phone, closing the notice line at its right end: the receiver, lit while the phone is there and dim
- * while it isn't, and while it is there, which phone it is and the charge it has — a phone's own battery, red under a
- * fifth of it and green with its bolt while charging, with the level beside it in figures. The name is the sidebar's
- * (the model the phone gives itself, or just "connected"), cut short at a few words: a dash names it, it doesn't read
- * its owner's mind. Sitting with the notices rather than in the status bar keeps that bar the truck's — cruise,
- * limit, clock — and what the phone is beside what it has to say. The way into the Phone app is the cabin's; a call
- * is the notice's own, where it can be answered and read.
+ * while it isn't; while it is there, the charge it has — a phone's own battery, red under a fifth of it and green
+ * with its bolt while charging, with the level beside it in figures; while it isn't, the words that say so. The charge
+ * and not the phone's name: the cabin's sidebar and the Phone app name it, and a name wide enough to be read took the
+ * room the line above the dial needs to stay on the dial's centre (cluster.css, `.cluster-message`). Sitting with the
+ * notices rather than in the status bar keeps that bar the truck's — cruise, limit, clock — and what the phone is
+ * beside what it has to say. The way into the Phone app is the cabin's; a call is the notice's own, where it can be
+ * answered and read.
  */
 function ClusterPhone() {
   const text = useText()
   const words = text.phoneApp
   const phone = usePhone()
-  // The phone's own name, as the cabin's sidebar says it: the model it is, or just "connected" when the phone
-  // hasn't named itself. Not connected, there is no name to show — only that there is no phone.
-  const name = phone.connected ? phone.device?.name || words.connected : words.noPhone
   // The charge, only while the phone is there and only when it has a level to give: an absent battery says "not
   // known", as an empty one would say "empty".
   const level = phone.connected ? phone.device?.battery : undefined
   const charging = phone.connected && phone.device?.charging === true
   const charge = level !== undefined ? words.battery(level) : null
-  const label = [text.apps.phone, name, charge, charging ? words.charging : null].filter(Boolean).join(', ')
+  // What a reader hears: the charge while the phone is there, and the state in the sidebar's words when it isn't.
+  const label = [text.apps.phone, phone.connected ? charge : words.noPhone, charging ? words.charging : null]
+    .filter(Boolean)
+    .join(', ')
   return (
     <span className="cluster-phone" data-on={phone.connected ? '' : undefined} role="img" aria-label={label}>
       <PhoneIcon />
-      {phone.connected && <span className="cluster-phone-name">{name}</span>}
+      {!phone.connected && <span className="cluster-phone-words">{words.noPhone}</span>}
       {level !== undefined && (
         <span
           className="cluster-phone-charge"
@@ -1162,16 +1176,16 @@ interface ClusterDialProps {
 }
 
 /**
- * The dial's face: the bezel's edge, the groove and the lit arc, the scale with its numbers, the tacho with Scania's
- * bands, and the cursor. It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the
+ * The dial's face: the speed's band and the arc lit in it, the scale with its numbers, the tacho with Scania's bands,
+ * and the knob at the head of the arc. It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the
  * two readings towards the truck's a frame at a time, and only this SVG is redrawn while they travel — the panels,
  * the route and the notices carry on at the rate the telemetry actually arrives. Memoised on plain numbers, so a
  * reading that leaves the dial alone costs it nothing.
  *
  * It opens the way a dash does when the electrics come on: the face lit to the far end of its scale, held while the
- * marks come up, then falling back to the reading as the boot clears (SWEEP_HOLD_MS, SWEEP_MS). The panel is
- * re-mounted as the boot's light goes down, which is what puts that sweep where the driver can see it rather than
- * behind the splash.
+ * marks come up, then falling back to the reading as the boot clears (SWEEP_HOLD_MS, SWEEP_MS). The panel is put on
+ * the glass when the boot is over, which is what puts that sweep where the driver can see it rather than behind the
+ * splash.
  */
 const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, step, minor, cold, reduced }: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
@@ -1202,17 +1216,14 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           animate={{ opacity: 1 }}
           transition={reduced ? { duration: 0 } : { duration: 0.46, delay: 0.16, ease: motionEase }}
         >
-          {ticks.map((tick) => (
-            <line
-              key={tick}
-              className={tick % step === 0 ? 'cluster-tick major' : 'cluster-tick'}
-              x1="150"
-              y1={tick % step === 0 ? 20.5 : 28}
-              x2="150"
-              y2="33"
-              transform={`rotate(${DIAL_TICK_START + (tick / max) * DIAL_SWEEP_DEGREES} 150 150)`}
-            />
-          ))}
+          {ticks.map((tick) => {
+            const turn = `rotate(${DIAL_TICK_START + (tick / max) * DIAL_SWEEP_DEGREES} 150 150)`
+            return tick % step === 0 ? (
+              <line key={tick} className="cluster-tick major" x1="150" y1="34.5" x2="150" y2="29" transform={turn} />
+            ) : (
+              <circle key={tick} className="cluster-tick-dot" cx="150" cy="30" r="1.25" transform={turn} />
+            )
+          })}
         </motion.g>
         {/* The numbers come up in the order they run round the face, a frame apart: the face assembles itself rather
             than appearing whole. Each keeps its element (keyed by its value), so the stagger plays once. The one the
@@ -1231,7 +1242,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
               dominantBaseline="central"
               initial={reduced ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={reduced ? { duration: 0 } : { duration: 0.42, delay: 0.2 + index * 0.018, ease: motionEase }}
+              transition={reduced ? { duration: 0 } : { duration: 0.28, delay: 0.09 + index * 0.01, ease: motionEase }}
             >
               {value}
             </motion.text>
@@ -1241,7 +1252,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
     )
   }, [max, step, minor, cold, reduced, live])
 
-  // The face's parts each fade in at their own moment, on the groove's own clock: a remount at the hand-over plays
+  // The face's parts each fade in at their own moment, on the groove's own clock: the remount as the boot clears plays
   // them once per boot. Reduced motion brings the whole face up at rest.
   const marks = (delay: number, duration: number) =>
     reduced
@@ -1255,24 +1266,18 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           marks, so the arc and the tacho keep to the panel's own dark. */}
       <defs>
         <radialGradient id="cluster-dial-face" cx="50%" cy="46%" r="62%">
-          <stop offset="0" stopColor="var(--ink)" stopOpacity="0.06" />
+          <stop offset="0" stopColor="var(--ink)" stopOpacity="0.05" />
           <stop offset="0.66" stopColor="var(--accent)" stopOpacity="0.05" />
           <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
         </radialGradient>
+        {/* The arc's own light, along its run: it leaves the scale cool and arrives warm at the speed, so the head of
+            the arc is the brightest part of the face without a second colour being spent on it. */}
+        <linearGradient id="cluster-dial-arc" gradientUnits="userSpaceOnUse" x1="62" y1="238" x2="228" y2="72">
+          <stop offset="0" stopColor="var(--accent)" stopOpacity="0.6" />
+          <stop offset="1" stopColor="var(--accent)" />
+        </linearGradient>
       </defs>
       <circle cx="150" cy="150" r={DIAL_FACE_RADIUS} fill="url(#cluster-dial-face)" />
-      {/* The bezel's edge: one hairline just outside the groove, where the face turns up towards the tacho, so the
-          scale reads as machined into a bezel rather than printed on a flat ring. It takes the place's own
-          hairlines (--line), which is what makes it sit under the marks rather than beside them. */}
-      <motion.circle
-        className="cluster-dial-lip"
-        cx="150"
-        cy="150"
-        r={DIAL_LIP_RADIUS}
-        strokeDasharray={`${DIAL_LIP_CIRCUMFERENCE * DIAL_SWEEP} ${DIAL_LIP_CIRCUMFERENCE}`}
-        transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.06, 0.52)}
-      />
       <motion.circle
         className="cluster-dial-track"
         cx="150"
@@ -1280,7 +1285,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={DIAL_RADIUS}
         strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP} ${DIAL_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.06, 0.52)}
+        {...marks(0.04, 0.3)}
       />
       {/* The speed, as a lit arc in the track's groove: how far round the face the driver is, drawn in the dash's
           accent so the one colour on the glass is also the speed. Its length is the smoothed reading, so it is a
@@ -1292,7 +1297,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={DIAL_RADIUS}
         strokeDasharray={`${DIAL_CIRCUMFERENCE * DIAL_SWEEP * shownSpeed} ${DIAL_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.18, 0.64)}
+        {...marks(0.06, 0.3)}
       />
       {/* The limit where it falls on the scale, drawn over the lit arc so passing it reads as passing it: the sign
           in the status bar says what the limit is, and this says where it is. It is held for one fade after the route
@@ -1310,7 +1315,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           animate={{ opacity: mark.leaving ? 0 : 1 }}
           transition={reduced ? { duration: 0 } : { duration: 0.42, ease: motionEase }}
         >
-          <line className="cluster-limit-mark" x1="150" y1={150 - 126} x2="150" y2={150 - 135} />
+          <line className="cluster-limit-mark" x1="150" y1={150 - 137.5} x2="150" y2={150 - 133} />
         </motion.g>
       )}
       {scale}
@@ -1321,7 +1326,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={RPM_RADIUS}
         strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP} ${RPM_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.1, 0.52)}
+        {...marks(0.05, 0.3)}
       />
       <motion.circle
         className="cluster-dial-rpm"
@@ -1330,7 +1335,7 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
         r={RPM_RADIUS}
         strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * shownRpm} ${RPM_CIRCUMFERENCE}`}
         transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.22, 0.52)}
+        {...marks(0.07, 0.3)}
       />
       {RPM_BANDS.map((band) => (
         <motion.circle
@@ -1346,16 +1351,22 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, ste
           {...marks(0.12, 0.52)}
         />
       ))}
-      {/* The needle rides the ring rather than crossing the face: a tick across the groove, as a dial's cursor is. A
-          line from the hub would run through the figure and the scale's numbers, which is the one thing the dial
-          can't afford — the speed and its unit sit at its centre. */}
+      {/* The needle rides the ring rather than crossing the face: a knob on the head of the arc, as a modern gauge
+          marks its value. A line from the hub would run through the figure and the scale's numbers, which is the one
+          thing the dial can't afford — the speed and its unit sit at its centre. */}
       <g className="cluster-needle" style={{ transform: `rotate(${angle}deg)`, transformOrigin: '150px 150px' }}>
-        <motion.line
-          className="cluster-needle-mark"
-          x1="150"
-          y1={150 - 124.5}
-          x2="150"
-          y2={150 - 136}
+        <motion.circle
+          className="cluster-needle-halo"
+          cx="150"
+          cy={150 - DIAL_RADIUS}
+          r="10.5"
+          {...marks(0.08, 0.26)}
+        />
+        <motion.circle
+          className="cluster-needle-knob"
+          cx="150"
+          cy={150 - DIAL_RADIUS}
+          r="4"
           {...marks(0.08, 0.26)}
         />
       </g>
@@ -1383,7 +1394,7 @@ function TruckMark({ brandId, brand, reduced }: { brandId: string; brand: string
       aria-hidden
       initial={reduced ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={reduced ? { duration: 0 } : { duration: 0.56, delay: 0.3, ease: motionEase }}
+      transition={reduced ? { duration: 0 } : { duration: 0.4, delay: 0.12, ease: motionEase }}
     >
       {source ? (
         <img key={source.src} src={source.src} alt="" onError={() => setAttempt((current) => current + 1)} />
@@ -1396,7 +1407,7 @@ function TruckMark({ brandId, brand, reduced }: { brandId: string; brand: string
 
 /**
  * The cabin's boot screen, played over the cluster: the panel lights, Cabin Play's mark and the truck's brand
- * arrive, and it goes down as the dial comes up. It is the cabin's boot, told rather than timed — the phase comes from
+ * arrive, and it goes down before the dial comes up. It is the cabin's boot, told rather than timed — the phase comes from
  * the cabin's page (state/power.ts, through the host), so both screens are at the same moment of it.
  *
  * A page that comes up while the cabin is already booting starts where that boot has got to: `elapsed` is how far in
@@ -1564,7 +1575,7 @@ const DAMAGE_STOP = 0.5
 const COLD_C = 60
 
 /** The dial's geometry: a 270° sweep from 7:30 to 4:30, as a truck's speedometer counts. */
-const DIAL_RADIUS = 130
+const DIAL_RADIUS = 127
 const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS
 const DIAL_SWEEP = 0.75
 const DIAL_START = 135
@@ -1574,14 +1585,12 @@ const DIAL_SWEEP_DEGREES = 270
 /* The face's numbers, set inside the ticks; which numbers they are is the driver's units' (km/h or mph). */
 const SPEED_LABEL_RADIUS = 105
 /* The bezel's edge, a hairline outside the groove and inside the tacho, on the same 270° sweep. */
-const DIAL_FACE_RADIUS = 122
-const DIAL_LIP_RADIUS = 133.5
-const DIAL_LIP_CIRCUMFERENCE = 2 * Math.PI * DIAL_LIP_RADIUS
+const DIAL_FACE_RADIUS = 117
 /* The self-test a dash runs at power-up, as the electrics come on: the face lit to its far end, held there while the
-   bezel, the scale and its numbers come up (`hold`), then falling back to the reading over `sweep`. Long enough to be
-   seen and short enough not to hold the reading back. */
-const SWEEP_HOLD_MS = 340
-const SWEEP_MS = 820
+   bezel, the scale and its numbers come up (`hold`), then falling back to the reading over `sweep`. It lands inside the
+   dash's first second, since the panel is only put on the glass once the boot is over and the driver is waiting on it. */
+const SWEEP_HOLD_MS = 200
+const SWEEP_MS = 520
 /* How long the speed limit's sign and its mark on the scale take to leave the panel once the route stops knowing a
    limit: long enough to read as a fade, short enough that the mark isn't still there on the next road. */
 const LIMIT_LEAVE_MS = 420
@@ -1592,10 +1601,10 @@ const BULB_CHECK_MS = 1500
 
 /* The tacho: its ring outside the speedo's, read against a 2,500 rpm scale. */
 const RPM_MAX = 2500
-const RPM_RADIUS = 137
+const RPM_RADIUS = 139
 const RPM_CIRCUMFERENCE = 2 * Math.PI * RPM_RADIUS
 /* Its bands, as Scania prints them: the auxiliary brake is strongest from 2,000 to 2,400 rpm, the red field past. */
-const RPM_BAND_RADIUS = 144
+const RPM_BAND_RADIUS = 145
 const RPM_BAND_CIRCUMFERENCE = 2 * Math.PI * RPM_BAND_RADIUS
 /* The hairline that splits the two fields: without it the blue and the red meet and read as one band in two
    colours, where the dash shows two marks. Sized in the sweep, so it stays a hairline as the face is drawn. */

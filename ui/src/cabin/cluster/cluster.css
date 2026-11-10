@@ -353,39 +353,50 @@ body,
  * never covers the dial. The cabin keeps a stack; the cluster has this one line, so what else is waiting is
  * counted at its end.
  */
-/* The notice row: the cab's message in the middle of the dial's column, the phone's status at its right end. Three
-   columns — two equal sides and the message between them — keep the message over the dial's centre whether or not the
-   phone is charging and whatever its name is long. A message too wide for the row takes the sides' room first and is
-   cut by the row itself, rather than running under the phone. */
+/* The notice row: the cab's message centred over the dial, the phone's status closing it at the right. The message
+   is centred in the row itself — the dial's own centre — rather than in whatever the phone leaves beside it: the rows
+   this drew before laid the phone in the flow, and a long title or a charging phone pushed the message off the dial.
+   The phone is out of that flow at the right end, and the message's width is held back from it by a fixed room, so
+   the two never meet and the message stays over the dial whatever the phone is doing. A message too wide for the room
+   is cut by the row itself. */
 .cluster-message {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* The phone's own width (its widest state, the words that say there is no phone) and the gap it keeps from the
+     message, held on both sides of the centre so the message is cut evenly rather than growing towards the phone. In
+     this row's own units: the panel is drawn at the cabin's type scale, so a room measured in the rendered pixels
+     would hold a third of the row's width back for a chip about a quarter of it. The chip is compact for this reason
+     (see `.cluster-phone`). */
+  --phone-room: 132px;
+
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   min-width: 0;
   height: 27px;
   overflow: hidden;
 }
 
 .cluster-message .cluster-phone {
-  grid-column: 3;
-  justify-self: end;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  /* Held to the room the message is cut back by, so a language whose words run longer than this one's can't reach
+     across the message: the chip gives up the end of its own words instead (`.cluster-phone-words`). */
+  max-width: var(--phone-room);
+  translate: 0 -50%;
   height: 26px;
 }
 
 /* What plays, in the cab's line while the cab has nothing to say: the same slot, centred as the message is. */
 .cluster-message .cluster-media {
-  grid-column: 2;
-  justify-self: center;
-  max-width: 100%;
+  max-width: calc(100% - 2 * var(--phone-room));
 }
 
 .cluster-notice {
   --notice-tone: var(--accent-2);
 
-  grid-column: 2;
-  justify-self: center;
   min-width: 0;
+  max-width: calc(100% - 2 * var(--phone-room));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -625,13 +636,13 @@ body,
   width: 34px;
   height: 34px;
   /* The sign's ring — road sign red across the cab — with a subtle drop shadow for depth on the dark panel. */
-  border: 3px solid #e3141b;
+  border: 2.5px solid #e3141b;
   border-radius: 50%;
   color: var(--ink);
   font-size: var(--type-unit);
   font-weight: 700;
   background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 0.12), transparent 60%);
-  box-shadow: 0 0 8px rgb(227 20 27 / 0.35), inset 0 0 4px rgb(0 0 0 / 0.2);
+  box-shadow: 0 0 6px rgb(227 20 27 / 0.25);
   transition: transform 180ms var(--motion-ease), box-shadow 180ms var(--motion-ease);
 }
 
@@ -665,11 +676,13 @@ body,
 
 /*
  * The paired phone, closing the notice row at its right end, under the status bar: while it is there, the receiver
- * with which phone it is and the charge it has; while it isn't, a dim receiver alone, with no name and no charge —
- * that is the one thing a driver checks before a call. The battery is a phone's own mark (its terminal, the level
- * filled in, red under a fifth of it and green with the bolt that says charging) with the level in figures beside it:
- * the bar for a look, the numbers for the answer. The cabin's sidebar keeps the same status with the way into the
- * app; a call is the notice's own, where it can be answered and read.
+ * and the charge it has; while it isn't, the receiver and the words that say so, greyed but legible — a dash states
+ * what is missing rather than leaving a dim icon to be interpreted. The battery is a phone's own mark (its terminal,
+ * the level filled in, red under a fifth of it and green with the bolt that says charging) with the level in figures
+ * beside it: the bar for a look, the numbers for the answer. Which phone it is isn't part of it: the cabin's sidebar
+ * and the Phone app name it, and a name as wide as that took the width the message over the dial needs to stay on
+ * the dial's centre (see `.cluster-message`). The cabin's sidebar keeps the same status with the way into the app; a
+ * call is the notice's own, where it can be answered and read.
  */
 .cluster-phone {
   display: flex;
@@ -678,7 +691,9 @@ body,
   height: 32px;
   padding: 0 6px 0 4px;
   color: var(--dim);
-  opacity: 0.42;
+  /* Held back, not hidden: the icon and the words that say there is no phone are read at a glance, one step below
+     the live status rather than at the edge of sight. */
+  opacity: 0.68;
   border-radius: 6px;
   transition: opacity 220ms var(--motion-ease), color 220ms var(--motion-ease), background 220ms var(--motion-ease);
 }
@@ -701,10 +716,10 @@ body,
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 35%, transparent));
 }
 
-/* Which phone it is: the model it gives itself, at one line's length. A long one is cut rather than shortening the
-   route's line on the other side of the status bar. */
-.cluster-phone-name {
-  max-width: 124px;
+/* The words that say there is no phone, in the sidebar's own: short enough to sit beside the message without moving
+   it, clear enough that the greyed receiver doesn't have to be read as a symbol. */
+.cluster-phone-words {
+  min-width: 0;
   overflow: hidden;
   color: var(--dim);
   font-size: var(--type-sm);
@@ -713,7 +728,7 @@ body,
   white-space: nowrap;
 }
 
-/* The figure close to the battery it belongs to — nearer that than the name before it. */
+/* The figure close to the battery it belongs to: nearer the bar than the receiver before it. */
 .cluster-phone-level {
   margin-left: -3px;
   color: var(--ink);
@@ -1177,54 +1192,48 @@ body,
   overflow: visible;
 }
 
-/* The bezel's edge: one hairline outside the groove, where the face turns up to the tacho. Round-capped and cut to
-   the scale's own sweep, so it reads as the lip of a machined bezel rather than as a box drawn round the dial. */
-.cluster-dial-lip {
-  fill: none;
-  stroke: var(--line);
-  stroke-width: 1;
-  stroke-linecap: round;
-}
-
-/* The groove the speed's arc runs in: a hair wider than the arc, so the lit part sits inside it, and round-capped
-   like the arc itself, which is what keeps its ends from being cut square where the scale starts at 7:30. */
+/* The groove the speed's arc runs in: the dial's one heavy ring, a band of light rather than a hairline. It is a
+   hair wider than the arc it carries, so the lit part sits inside its own groove, and round-capped like the arc,
+   which keeps its ends from being cut square where the scale starts at 7:30. */
 .cluster-dial-track {
   fill: none;
-  stroke: var(--track);
-  stroke-width: 3.4;
+  stroke: color-mix(in srgb, var(--ink) 9%, transparent);
+  stroke-width: 10.5;
   stroke-linecap: round;
 }
 
-/* The live arc: the track is the scale's groove and this is how much of it the truck has used, drawn in the
-   dash's accent. A hair thinner than the groove, so its edges still read as a groove, and round-capped so the
-   head of the arc meets the needle's tick rather than being cut off square. */
+/* The live arc: the groove is the scale and this is how much of it the truck has used. It runs from the cool end of
+   the accent to the warm one (the gradient in ClusterScreen.tsx), so the head of the arc is the brightest thing on
+   the face and the scale it has passed stays quieter behind it. A hair thinner than the groove, so its edges still
+   read as a groove, and round-capped so the head is a lens rather than a cut end. */
 .cluster-dial-fill {
   fill: none;
-  stroke: var(--accent);
-  stroke-width: 2.6;
+  stroke: url(#cluster-dial-arc);
+  stroke-width: 9;
   stroke-linecap: round;
-  /* The lit arc carries its own light: a soft halo in its colour, so the head of the arc reads at arm's length
-     rather than as a thin line on a dark ring. */
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent));
+  /* The lit arc carries its own light: a soft halo in its colour, so the band reads at arm's length rather than as a
+     stripe on a dark ring. */
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 40%, transparent));
   /* The lit part comes up after its groove rather than with it (Motion, ClusterScreen.tsx), so a dial that mounts
      already reading is built rather than switched on. Its length is not transitioned here: the page eases the
      reading itself a frame at a time (useSmoothed), and a CSS transition on top of that would smooth a value that
      is already moving. */
 }
 
-/* The scale's marks: every one round-capped and hung from the groove, the numbered ones reaching it and the rest
-   half as long. They arrive together, just after the groove, so the face assembles from its rings inward. */
-.cluster-tick {
-  stroke: color-mix(in srgb, var(--dim) 42%, transparent);
-  stroke-width: 1.4;
-  stroke-linecap: round;
+/* The scale's graduations, cut to what a digital face needs: a short mark where a number falls, and a dot between
+   them. The ring carries the reading, the numbers name it, and a comb of fine ticks — what this drew before — read
+   as texture at arm's length rather than as a scale. They arrive together, just after the groove, so the face
+   assembles from its rings inward. */
+.cluster-tick-dot {
+  fill: color-mix(in srgb, var(--dim) 50%, transparent);
 }
 
-/* The numbered marks are the scale's blocks: longer, heavier and in the dim ink, so the face reads 20 / 40 / 60
-   across the cab and only the numbered ones are counted. */
+/* The numbered marks are the scale's blocks: a short stroke reaching the groove, in the dim ink, so the face reads
+   20 / 40 / 60 across the cab without a comb between them. */
 .cluster-tick.major {
-  stroke: var(--dim);
-  stroke-width: 2.1;
+  stroke: color-mix(in srgb, var(--dim) 80%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 /* The face's numbers, every 20 km/h, inside the ticks: a speedo is read by eye, not counted out from the first
@@ -1237,18 +1246,19 @@ body,
   fill: var(--dim);
   /* Set above the unit type: the scale is read across the cab, and at the figure's 104 units the old unit size made
      the numbers the smallest thing on the face. There is room at 45° a number — "120" still clears its neighbours. */
-  font-size: calc(var(--type-unit) * 1.3);
-  font-weight: 600;
+  font-size: calc(var(--type-unit) * 1.45);
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
   transition: fill 380ms var(--motion-ease);
 }
 
-/* The number the cursor has reached: the one part of the scale in the ink, so a glance at the face finds the truck's
-   block without counting. It steps from one number to the next as the arc passes each, and the fill's transition is
-   what makes that step a lit hand-over rather than a flicker. */
+/* The number the cursor has reached: the one part of the scale in the arc's own accent, so a glance at the face
+   finds the truck's block without counting, and the accent on the glass means one thing only. It steps from one
+   number to the next as the arc passes each, and the fill's transition is what makes that step a lit hand-over
+   rather than a flicker. */
 .cluster-dial-label[data-live] {
-  fill: var(--ink);
-  font-weight: 700;
+  fill: var(--accent);
+  font-weight: 650;
 }
 
 .cluster-dial-label.cluster-cold {
@@ -1261,15 +1271,15 @@ body,
    dash's is, so the bands stay the only colour on the face. */
 .cluster-dial-rpm-track {
   fill: none;
-  stroke: var(--track);
-  stroke-width: 2.6;
+  stroke: color-mix(in srgb, var(--ink) 8%, transparent);
+  stroke-width: 2.2;
   stroke-linecap: round;
 }
 
 .cluster-dial-rpm {
   fill: none;
-  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
-  stroke-width: 2.6;
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 2.2;
   stroke-linecap: round;
 }
 
@@ -1288,12 +1298,12 @@ body,
   stroke: var(--danger);
 }
 
-/* The speed limit on the scale: the road sign's own red (dashboard/glance.css), one short tick across the groove where
-   the limit falls, drawn over the lit arc so the driver sees the arc reach it and pass it. It takes the groove's own
-   span, as the cursor does, and stays out of the tacho's rings. */
+/* The speed limit on the scale: the road sign's own red (dashboard/glance.css), a tick in the gap between the
+   speed's band and the tacho. Off the band, so the cursor arriving at the limit never lands on top of it, and close
+   enough to the band to read as the place its arc will reach. */
 .cluster-limit-mark {
   stroke: #e3141b;
-  stroke-width: 2.2;
+  stroke-width: 2.4;
   stroke-linecap: round;
   /* A hair of red light round the mark, as the sign in the status bar carries: the limit is the one red thing on
      the scale, and a red tick that only glowed in the bar would be easy to miss on the face. */
@@ -1319,18 +1329,19 @@ body,
   transform-box: view-box;
 }
 
-/* Drawn in the accent, over the arc it heads: the capsule runs from just inside the scale's numbered marks (r 124.5)
-   to just short of the RPM ring (r 136), so it crosses the groove and the head of the arc rather than sitting beside
-   them, and a halo in its own colour gives the moving end of the arc its presence — the pointer is felt as it moves
-   rather than looked for. It arrives first, before the face finishes coming up: it is the mark that does the power-up
-   sweep, so it has to be there when the hold ends (SWEEP_HOLD_MS, in the page) rather than materialising mid-sweep. */
-.cluster-needle-mark {
-  stroke: var(--accent);
-  /* Heavier than the arc it heads, so the cursor reads as the pointer on the ring rather than as one more tick: a
-     capsule across the groove, wider than the groove and a little longer, with the arc running into its side. */
-  stroke-width: 3.8;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
+/* A knob on the head of the arc, in the panel's own ink: the brightest point of a lit band, with the arc's colour
+   thrown round it, so the pointer reads as a light riding the ring rather than as a tick crossing it. Its halo is the
+   accent at a low wash, blurred enough to be light on the glass and not a second ring. It arrives first, before the
+   face finishes coming up: it is the mark that does the power-up sweep, so it has to be there when the hold ends
+   (SWEEP_HOLD_MS, in the page) rather than materialising mid-sweep. */
+.cluster-needle-halo {
+  fill: color-mix(in srgb, var(--accent) 35%, transparent);
+  filter: blur(3px);
+}
+
+.cluster-needle-knob {
+  fill: var(--ink);
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.35));
 }
 
 /* The figure, at the dial's centre, with its unit, the road's limit and the truck's brand under it: the one number the
@@ -1400,8 +1411,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38%;
-  height: 11.5%;
+  width: 26%;
+  height: 9.5%;
 }
 
 .cluster-brand img {
@@ -1439,7 +1450,9 @@ body,
   place-items: center;
   min-width: 44px;
   height: 36px;
-  color: var(--accent);
+  /* The ink, as the figure above it: the gear is a reading like the speed, and the accent on the glass means the
+     arc and the block it has reached — three lit things at the bottom of the face read as three readings. */
+  color: var(--ink);
   font-size: var(--type-lg);
   font-weight: 600;
 }

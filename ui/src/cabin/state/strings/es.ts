@@ -715,6 +715,7 @@ export const SPANISH_STRINGS: Strings = {
     used: 'Consumido',
     average: 'Media',
     time: 'Tiempo',
+    clock: 'Hora',
     reset: 'Reiniciar',
     noTelemetry: 'Inicia el juego para ver valores',
     overview: 'Resumen',

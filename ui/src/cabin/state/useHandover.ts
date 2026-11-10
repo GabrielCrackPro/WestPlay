@@ -3,10 +3,10 @@ import { handoverAt, type PowerPhase } from './power'
 
 /**
  * Whether the boot has reached its hand-over: its last part (HANDOVER_MS), when its light goes down. What the boot
- * hands over to mounts then — the cabin's first screen, and the cluster's shell on the other display — so it is drawn
- * as the boot's screen fades out (Motion's exit, BootScreen.tsx): CarPlay arriving as the light goes down, one motion,
- * rather
- * than the boot fading to black and a screen appearing after it.
+ * hands over to mounts then — the cabin's first screen — so it is drawn as the boot's screen fades out (Motion's exit,
+ * BootScreen.tsx): CarPlay arriving as the light goes down, one motion, rather than the boot fading to black and a
+ * screen appearing after it. The cluster's page takes only the moment from it, to drop the boot as this screen does:
+ * its dash comes up once the boot is over (cluster/ClusterScreen.tsx).
  *
  * `power` is on `clock`'s time: each page counts the boot on its own clock (the cabin's page clock, `performance.now`;
  * the cluster's, the machine's `Date.now`). `clock` must be the same function on every render (a module's own, not

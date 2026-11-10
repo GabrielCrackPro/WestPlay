@@ -699,6 +699,7 @@ export const ENGLISH_STRINGS: Strings = {
     used: 'Used',
     average: 'Average',
     time: 'Time',
+    clock: 'Time',
     reset: 'Reset',
     noTelemetry: 'Start the game for readings',
     overview: 'Overview',

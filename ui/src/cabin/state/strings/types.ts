@@ -710,6 +710,8 @@ export interface Strings {
     used: string
     average: string
     time: string
+    /** The clock's own name (the dash's time of day, as against the trip's time): "Time", "Hora", "Saat". */
+    clock: string
     reset: string
     noTelemetry: string
     overview: string

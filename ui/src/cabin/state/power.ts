@@ -45,10 +45,10 @@ export function bootLength(phase: 'splash' | 'connecting'): number {
 }
 
 /** The boot's last part (ms), when its light goes down and what it hands over to comes up under it: the cabin's first
- * screen and the cluster's shell both mount as it begins, so the two screens hand over as one motion, and
- * `boot.css` fades the boot's screen out over the same 500ms (Motion's exit, BootScreen.tsx). The two numbers are one
- * window — keep
- * them together. */
+ * screen mounts as it begins, so the boot hands over as one motion, and `boot.css` fades the boot's screen out over the
+ * same 500ms (Motion's exit, BootScreen.tsx). The cluster's page holds its dash off the glass until the boot is over
+ * (cluster/ClusterScreen.tsx), so its own motions start on the cleared screen instead. The two numbers are one window —
+ * keep them together. */
 export const HANDOVER_MS = 500
 
 /** When (on the clock that counts it) the boot hands over: its last `HANDOVER_MS`, or `null` when there is no boot to

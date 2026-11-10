@@ -699,6 +699,7 @@ export const TURKISH_STRINGS: Strings = {
     used: 'Tüketilen',
     average: 'Ortalama',
     time: 'Süre',
+    clock: 'Saat',
     reset: 'Sıfırla',
     noTelemetry: 'Değerler için oyunu başlat',
     overview: 'Genel bakış',
