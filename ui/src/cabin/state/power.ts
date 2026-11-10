@@ -35,8 +35,12 @@ export interface PowerState {
 export type PowerEvent =
   { type: 'electrics'; on: boolean; at: number; truckScreen?: boolean } | { type: 'tick'; at: number }
 
-export const SPLASH_MS = 2400
-export const CONNECTING_MS = 2600
+/* The boot's two acts (boot/BootScreen.tsx), and its length: the panel's light coming up with the truck's mark on it,
+   then Cabin Play's mark landing under it as the app connects. The second act is the longer of the two because it is
+   the one the driver is waiting for, and the whole boot is kept to a few seconds: it is a screen starting in a cab,
+   not an app to watch. */
+export const SPLASH_MS = 1500
+export const CONNECTING_MS = 2100
 
 /** How long the boot runs from its first phase: the truck's brand and then Cabin Play's mark, or the mark alone when
  * the boot starts mid-drive (`CONNECTING_MS`). */

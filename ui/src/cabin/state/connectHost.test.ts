@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HostMessage, PageMessage, Telemetry } from '../../shared/host'
+import { CONNECTING_MS, SPLASH_MS } from './power'
 
 /** A stand-in for the page's storage: this suite runs in Node, where `localStorage` isn't there, and the cabin's
  * settings are saved through it (store.ts's persist). */
@@ -244,9 +245,9 @@ describe('connectHost', () => {
     expect(phases().at(-1)).toEqual({ type: 'power', phase: 'splash', since: wall - (pageClock - 1600) })
 
     // The second part of the boot, and the screen on: the cluster stops drawing the boot when it hears the last.
-    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 2400 })
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 600 + SPLASH_MS })
     expect(phases().at(-1)).toMatchObject({ phase: 'connecting' })
-    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 2400 + 2600 })
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 600 + SPLASH_MS + CONNECTING_MS })
     expect(phases().at(-1)).toMatchObject({ phase: 'on' })
 
     // Disconnected: no more reports.

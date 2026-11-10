@@ -1,7 +1,7 @@
 import { type CSSProperties, useState } from 'react'
 import { motion } from 'motion/react'
 import { motionEase, seconds, useMotionReduced } from '../motion'
-import { HANDOVER_MS, bootLength, type PowerPhase } from '../state/power'
+import { CONNECTING_MS, HANDOVER_MS, SPLASH_MS, bootLength, type PowerPhase } from '../state/power'
 import { routeAccent } from '../maps/routeLook'
 import { postToHost } from '../../shared/host'
 import { useCabin, useLive } from '../state/store'
@@ -17,9 +17,10 @@ import './boot.css'
  * and name arrive under it, and the light goes down as CarPlay fades up. The brand also gets an explicit contain box
  * so files that carry only a viewBox never collapse to nothing inside the sweep.
  *
- * The power phases (state/power.ts) are only its clock: `splash` then `connecting` on a screen of the truck's own,
- * `connecting` alone when the app or plugin starts mid-drive. Nothing on the screen changes with them — one formation,
- * one entrance, from the electrics to CarPlay.
+ * The power phases (state/power.ts) are its clock, and they are the two acts of one formation: `splash` is the panel's
+ * light coming up with the truck's own mark on it — whose screen this is — and `connecting` is Cabin Play's mark
+ * landing under it as the app connects, which is what the screen is booting into. A boot that starts mid-drive (or on
+ * a tablet, which boots no truck) is the second act alone: the app's mark on a panel that is already lit.
  *
  * It is the same screen on both of the truck's displays (the cabin's page and the cluster's), so the two are one boot.
  * `elapsed` is how far into it this page came in: the page that loads while the other is already booting picks the
@@ -56,13 +57,15 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
   const joinedFade = age > boot - handover
   const startOpacity = fadeLeft / handover
 
-  // When each part of the composition arrives: shares of the boot, so the cabin's and the cluster's shorter boot
-  // keep the same shape. The mark lands after the light has risen, so the screen reads as lighting first and forming
-  // on top of it; the brand line comes in with the mark's own light rather than a beat after it, so the truck's name
-  // and Cabin Play feel like one screen waking rather than two things arriving one after the other.
-  const markAt = boot * (withBrand ? 0.3 : 0.18)
-  const wordAt = boot * (withBrand ? 0.345 : 0.215)
-  const brandAt = withBrand ? markAt - boot * 0.02 : markAt
+  // When each part of the composition arrives: the light first, the truck's mark as it comes up, and Cabin Play's
+  // mark at the moment the boot changes phase — the `connecting` phase, which is the app connecting. Both of the
+  // screen's shapes are shares of the boot, so the cabin's boot and the cluster's shorter one keep one formation.
+  // Held in the phases' own terms: the mark lands exactly where `splash` ends, so the composition has a reason to
+  // change when it does rather than a beat picked to fill time.
+  const splashShare = SPLASH_MS / (SPLASH_MS + CONNECTING_MS)
+  const brandAt = boot * 0.1
+  const markAt = withBrand ? boot * splashShare : boot * 0.08
+  const wordAt = markAt + boot * 0.045
 
   return (
     <motion.div
@@ -71,10 +74,17 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
       style={{ '--boot-accent': routeAccent('dark', routeColour) } as CSSProperties}
       initial={joinedFade && !reduced ? { opacity: startOpacity } : false}
       animate={joinedFade && !reduced ? { opacity: startOpacity } : { opacity: 1 }}
+      // The marks leave first, under a light that is still up, and then the light goes down over the screen that is
+      // already coming up behind it. Not a cross-fade: two screens dissolving into each other show one's marks over the
+      // other's. Not a cut to black either: the screen is already there when the light starts to fall. Even, not on the
+      // cabin's spring, which would spend most of the window in its first third and tear the screen in under a flash.
       exit={
         reduced
           ? { opacity: 0, transition: { duration: 0 } }
-          : { opacity: 0, transition: { duration: fadeLeft, ease: motionEase } }
+          : {
+              opacity: [startOpacity, startOpacity, 0],
+              transition: { duration: fadeLeft, times: [0, 0.3, 1], ease: 'linear' },
+            }
       }
       aria-hidden
     >
@@ -82,10 +92,10 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
           show. Everything is mounted here, so its animation starts the moment the panel lights. */}
       {phase !== 'off' && (
         <>
-          {/* The panel's light coming up: the backlight rises across the first part of the boot, breathes once as
-                  the mark lands, and settles while the rest of the screen forms. It goes down on the hand-over with the
-                  rest of the boot (the fade at the boot's last HANDOVER_MS). A little of the route's accent sits in it,
-                  so the cab's two screens power on wearing the same colour. */}
+          {/* The panel's light coming up: the backlight rises over the first twentieth of the boot — the glass
+                  lighting, not a glow arriving — holds, and goes down on the hand-over with the rest of the boot (the
+                  fade at the boot's last HANDOVER_MS). A little of the route's accent sits in it, so the cab's two
+                  screens power on wearing the same colour. */}
           <motion.span
             className="boot-glow"
             initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 1.09 }}
@@ -93,8 +103,8 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
               reduced
                 ? { opacity: 1, scale: 1 }
                 : {
-                    opacity: [0, 1, 0.93, 1, 1, 1],
-                    scale: [1.09, 1, 1.02, 1.008, 1, 0],
+                    opacity: [0, 1, 0.965, 1, 1, 1],
+                    scale: [1.06, 1, 1.004, 1, 1, 0],
                   }
             }
             transition={
@@ -102,7 +112,7 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
                 ? { duration: 0 }
                 : {
                     duration: boot,
-                    times: [0, 0.12, 0.2, 0.4, 0.92, 1],
+                    times: [0, 0.05, 0.24, 0.42, 0.93, 1],
                     ease: motionEase,
                   }
             }
@@ -111,12 +121,12 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
           {/* The backlight sweep as the panel comes up: a broad, soft band of the cab's light travels the full
                   height of the screen, so the glass reads as lighting rather than a highlight passing over a static
                   field. Above the glow, below the mark; gone by the time the mark has formed. */}
-          {!reduced && !arrived(boot * 0.16) && (
+          {!reduced && !arrived(boot * 0.12) && (
             <motion.span
               className="boot-scan"
               initial={false}
               animate={{ opacity: [0, 0.8, 0], y: ['-50%', '-12%', '50%'] }}
-              transition={{ duration: boot * 0.22, times: [0, 0.08, 1], ease: motionEase }}
+              transition={{ duration: boot * 0.16, times: [0, 0.08, 1], ease: motionEase }}
               aria-hidden
             />
           )}
@@ -168,15 +178,27 @@ function BootMark({
   const { boot, reduced, at, arrived } = beat
   const markDone = reduced || arrived(markAt)
   const wordDone = reduced || arrived(wordAt)
-  const haloAt = markAt + boot * 0.05
-  const sheenAt = markAt + boot * 0.09
+  const haloAt = markAt + boot * 0.02
+  const sheenAt = markAt + boot * 0.06
   return (
     <motion.div
       className="boot-intro"
       data-brand={withBrand || undefined}
       initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.985 }}
       animate={reduced ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
-      transition={reduced ? { duration: 0 } : { duration: boot * 0.26, ease: motionEase }}
+      // The composition leaves on its own and before the light does: it is off the glass while the panel is still
+      // black, so the screen comes up on an empty panel rather than through the boot's marks (BootScreen's exit).
+      exit={
+        reduced
+          ? { opacity: 0, transition: { duration: 0 } }
+          : {
+              opacity: 0,
+              y: -10,
+              scale: 1.01,
+              transition: { duration: (HANDOVER_MS / 1000) * 0.3, ease: motionEase },
+            }
+      }
+      transition={reduced ? { duration: 0 } : { duration: boot * 0.12, ease: motionEase }}
     >
       {withBrand && <BrandLine beat={beat} />}
       <span className="boot-pair">
@@ -189,7 +211,7 @@ function BootMark({
               className="boot-intro-halo"
               initial={{ opacity: 0, scale: 0.72 }}
               animate={{ opacity: [0, 0.62, 0.22, 0], scale: [0.72, 0.88, 1.2, 1.46] }}
-              transition={{ duration: boot * 0.32, delay: at(haloAt), times: [0, 0.22, 0.62, 1], ease: motionEase }}
+              transition={{ duration: boot * 0.18, delay: at(haloAt), times: [0, 0.22, 0.62, 1], ease: motionEase }}
               aria-hidden
             />
           )}
@@ -207,7 +229,9 @@ function BootMark({
                   }
             }
             transition={
-              markDone ? { duration: 0 } : { duration: 0.72, delay: at(markAt), times: [0, 0.6, 1], ease: motionEase }
+              markDone
+                ? { duration: 0 }
+                : { duration: boot * 0.16, delay: at(markAt), times: [0, 0.6, 1], ease: motionEase }
             }
           />
           {/* The glass over the tile catching the light once, as the screen settles into the new look. */}
@@ -216,7 +240,7 @@ function BootMark({
               className="boot-intro-sheen"
               initial={{ opacity: 0, backgroundPosition: '160% 0' }}
               animate={{ opacity: [0, 1, 0], backgroundPosition: ['160% 0', '120.4% 0', '-60% 0'] }}
-              transition={{ duration: 0.9, delay: at(sheenAt), times: [0, 0.18, 1], ease: motionEase }}
+              transition={{ duration: boot * 0.16, delay: at(sheenAt), times: [0, 0.18, 1], ease: motionEase }}
               aria-hidden
             />
           )}
@@ -241,7 +265,7 @@ function BootMark({
             filter: 'blur(0px)',
             textShadow: '0 0 18px rgb(255 255 255 / 0.12)',
           }}
-          transition={wordDone ? { duration: 0 } : { duration: 0.9, delay: at(wordAt), ease: motionEase }}
+          transition={wordDone ? { duration: 0 } : { duration: boot * 0.2, delay: at(wordAt), ease: motionEase }}
         >
           Cabin Play
         </motion.span>
@@ -265,13 +289,13 @@ function BrandLine({ beat }: { beat: Beat }) {
   // The brand line enters with the mark's own light (the shared brandAt out of BootScreen), so the truck's name reads
   // as part of the same waking rather than a separate arrival a beat earlier.
   const done = reduced || arrived(brandAt)
-  const sheenAt = brandAt + boot * 0.12
+  const sheenAt = brandAt + boot * 0.13
   return (
     <motion.span
       className="boot-brand"
       initial={done ? false : { opacity: 0, y: 14, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={done ? { duration: 0 } : { duration: boot * 0.28, delay: at(brandAt), ease: motionEase }}
+      transition={done ? { duration: 0 } : { duration: boot * 0.16, delay: at(brandAt), ease: motionEase }}
     >
       {attempt < sources.length ? (
         // The brand and its own sheen: the same file twice, the second a narrow band of light crossing it (boot.css),
@@ -306,7 +330,7 @@ function BrandLine({ beat }: { beat: Beat }) {
             transition={
               done
                 ? { duration: 0 }
-                : { duration: boot * 0.36, delay: at(brandAt), times: [0, 0.24, 0.44, 1], ease: motionEase }
+                : { duration: boot * 0.14, delay: at(brandAt), times: [0, 0.24, 0.44, 1], ease: motionEase }
             }
             onError={() => setAttempt((current) => current + 1)}
           />
@@ -321,7 +345,7 @@ function BrandLine({ beat }: { beat: Beat }) {
                 opacity: [0, 1, 1, 0],
                 maskPosition: ['145% 0', '122.2% 0', '8.2% 0', '-45% 0'],
               }}
-              transition={{ duration: 0.95, delay: at(sheenAt), times: [0, 0.12, 0.72, 1], ease: motionEase }}
+              transition={{ duration: boot * 0.17, delay: at(sheenAt), times: [0, 0.12, 0.72, 1], ease: motionEase }}
             />
           )}
         </span>
@@ -349,7 +373,7 @@ function BrandLine({ beat }: { beat: Beat }) {
           transition={
             done
               ? { duration: 0 }
-              : { duration: boot * 0.36, delay: at(brandAt), times: [0, 0.45, 1], ease: motionEase }
+              : { duration: boot * 0.16, delay: at(brandAt), times: [0, 0.45, 1], ease: motionEase }
           }
         >
           {truck.brand}
