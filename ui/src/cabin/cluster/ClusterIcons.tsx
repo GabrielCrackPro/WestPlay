@@ -227,23 +227,63 @@ export function ParkingBrakeIcon() {
   )
 }
 
-/** The hazard lights: the warning triangle. */
+/** The hazard lights: the warning triangle with exclamation. */
 export function HazardIcon() {
   return (
     <Glyph>
-      <path d="M12 3.5 22 20H2Z" />
-      <path d="M12 9v4.5M12 17v.01" />
+      {/* Triangle outline */}
+      <path d="M12 3.5 22 20H2Z" strokeWidth="2" />
+      {/* Exclamation line */}
+      <path d="M12 8.5v5" strokeWidth="2.5" />
+      {/* Exclamation dot */}
+      <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
 
-/** A headlamp's beam, dipped or on main: the lamp and the light thrown down the road. */
-export function BeamIcon({ main }: { main?: boolean }) {
+/** A headlamp's beam, dipped or on main: the lamp and the light thrown down the road. The rays lean with
+ * `shift` (the steering, -1..1) — a left turn throws the dip cones toward the curb on the left, a right turn toward
+ * the right, the way a truck's headlamps actually cut. The lean is a few grid units so it reads at a glance without
+ * making the lamp look broken parked up.
+ */
+export function BeamIcon({ main, shift = 0 }: { main?: boolean; shift?: number }) {
+  // The lean: a left turn (negative steering) pushes the rays left, a right turn pushes them right — capped at 4
+  // grid units so parked-up beams still read as straight.
+  const lean = Math.max(-4, Math.min(4, shift * 4))
+  // Build ray paths with explicit string concatenation to avoid template-literal parsing issues.
+  const mainRays = [
+    'M14 ' + (5 + lean * 0.15) + ' h3',
+    'M12.5 ' + (8 + lean * 0.3) + ' h5',
+    'M12.5 ' + (12 + lean * 0.5) + ' h5',
+    'M12.5 ' + (16 + lean * 0.3) + ' h5',
+    'M14 ' + (18.5 - lean * 0.15) + ' h3',
+  ]
+  const dipRays = [
+    'M14.5 ' + (9 + lean * 0.4) + ' h2.5',
+    'M14 ' + (12 + lean * 0.6) + ' h3.5',
+    'M14.5 ' + (15 + lean * 0.4) + ' h2.5',
+  ]
   return (
     <Glyph>
-      <g transform="translate(1.5)">
-        <path d="M3 8.5h6.8l2.2 2v3l-2.2 2H3Z" />
-        <path d={main ? 'M14 5.5h3M13 8.5h5M13 12h5M13 15.5h5M14 18.5h3' : 'M14.5 9h2M14.5 12h3.5M14.5 15h2'} />
+      <g transform="translate(1.2)">
+        {/* The lamp housing */}
+        <path d="M3 8.5h7l2.2 2v3.2l-2.2 2H3Z" />
+        {/* The glass */}
+        <path d="M4.2 9.5h4.6l1.4 1.2v1.6l-1.4 1.2H4.2Z" fill="currentColor" stroke="none" opacity="0.3" />
+        {/* The beam rays, leaning with the steering */}
+        {main ? (
+          <>
+            {mainRays.map((d, i) => (
+              <path key={i} d={d} />
+            ))}
+          </>
+        ) : (
+          <>
+            {dipRays.map((d, i) => (
+              <path key={i} d={d} />
+            ))}
+          </>
+        )}
       </g>
     </Glyph>
   )
@@ -251,13 +291,17 @@ export function BeamIcon({ main }: { main?: boolean }) {
 
 /** A direction indicator, turned the way it points: a solid arrow, as the dash lights it. */
 export function IndicatorIcon({ direction }: { direction: 'left' | 'right' }) {
-  const path = (
+  const arrow = (
     <>
+      {/* Solid arrow head */}
       <path d="M12.5 4.5 4.5 12l8 7.5Z" fill="currentColor" stroke="none" />
-      <path d="M13.5 12h6" />
+      {/* Arrow stem */}
+      <path d="M13 12a1 1 0 1 1 2 0" fill="none" stroke="currentColor" strokeWidth="2" />
+      {/* Small base line */}
+      <path d="M13.5 12h6" stroke="currentColor" strokeWidth="1.5" opacity="0.7" />
     </>
   )
-  return <Glyph>{direction === 'left' ? path : <g transform="translate(24 0) scale(-1 1)">{path}</g>}</Glyph>
+  return <Glyph>{direction === 'left' ? arrow : <g transform="translate(24 0) scale(-1 1)">{arrow}</g>}</Glyph>
 }
 
 /** The beacon on the roof: its bar and the light it throws. The rays are drawn inside the grid rather than out to its
@@ -265,8 +309,18 @@ export function IndicatorIcon({ direction }: { direction: 'left' | 'right' }) {
 export function BeaconIcon() {
   return (
     <Glyph>
+      {/* Beacon base/bar */}
       <path d="M7 18.5h10M8 18.5v-2a4 4 0 0 1 8 0v2" />
-      <path d="M12 7V4.5M5.5 9 3.5 7M18.5 9l2-2M4.1 14H2.6M19.9 14h1.5" />
+      {/* Center dome */}
+      <circle cx="12" cy="15" r="2.5" fill="currentColor" stroke="none" opacity="0.4" />
+      {/* Light rays */}
+      <path d="M12 7V4.5" />
+      <path d="M5.5 9 3.5 7" />
+      <path d="M18.5 9l2-2" />
+      <path d="M4.1 14H2.6" />
+      <path d="M19.9 14h1.5" />
+      {/* Small highlight */}
+      <circle cx="12" cy="13" r="0.8" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
@@ -296,21 +350,26 @@ export function MusicIcon() {
 export function PhoneIcon() {
   return (
     <Glyph>
+      {/* Handset body */}
       <path d="M6.2 3.6h2.9l1.4 4.1-2 1.5a12.5 12.5 0 0 0 6.3 6.3l1.5-2 4.1 1.4v2.9a2.2 2.2 0 0 1-2.4 2.2A17.6 17.6 0 0 1 4 6a2.2 2.2 0 0 1 2.2-2.4Z" />
+      {/* Earpiece detail */}
+      <path d="M7 5h2" strokeWidth="1.5" opacity="0.5" />
+      {/* Mouthpiece detail */}
+      <path d="M16 15.5h2" strokeWidth="1.5" opacity="0.5" />
     </Glyph>
   )
 }
 
-/** A warning: a ring with its mark, for an alert with no symbol of its own. It used to be a second triangle with an
- * exclamation — the same mark as the hazard lamp, one place along the same row of lights — so an alert and the
- * hazards on were told apart only by the roundness of a corner. The ring is the one shape the row doesn't already
- * spend on the hazards. */
+/** A warning: a ring with exclamation, for an alert with no symbol of its own. */
 export function WarningIcon() {
   return (
     <Glyph>
+      {/* Outer ring */}
       <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5v5.5" />
-      <path d="M12 16.5v.01" />
+      {/* Exclamation line */}
+      <path d="M12 8v5" strokeWidth="2.5" />
+      {/* Exclamation dot */}
+      <circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
@@ -320,9 +379,16 @@ export function CruiseIcon() {
   return (
     <Glyph>
       <g transform="translate(-0.25 1.5)">
-        <path d="M3.5 16.5a8.5 8.5 0 1 1 17 0" />
-        <path d="m12 16.5 3.6-4.8" />
-        <path d="M17.5 4.5v3.5H21" />
+        {/* Outer dial */}
+        <circle cx="12" cy="11.5" r="8.5" />
+        {/* Inner ring for depth */}
+        <circle cx="12" cy="11.5" r="6.5" fill="none" opacity="0.3" />
+        {/* Needle pointing to set speed */}
+        <path d="M12 11.5 14.5 7.5" strokeWidth="2" />
+        {/* Speed set marker on right */}
+        <path d="M17 5v3.5H20" strokeWidth="2" />
+        {/* Center dot */}
+        <circle cx="12" cy="11.5" r="1.2" fill="currentColor" stroke="none" />
       </g>
     </Glyph>
   )
@@ -332,9 +398,14 @@ export function CruiseIcon() {
 export function RetarderIcon() {
   return (
     <Glyph>
+      {/* Main cog */}
       <circle cx="12" cy="9" r="4" />
+      {/* Cog teeth */}
       <path d="M12 2.5v2M12 13.5v2M5.5 9h-2M18.5 9h2M7.4 4.4 6 3M16.6 4.4 18 3M7.4 13.6 6 15M16.6 13.6 18 15" />
-      <path d="m9.5 18 2.5 2.5 2.5-2.5" />
+      {/* Inner hub */}
+      <circle cx="12" cy="9" r="1.5" fill="currentColor" stroke="none" opacity="0.4" />
+      {/* Step indicator arrow */}
+      <path d="m9.5 18 2.5 2.5 2.5-2.5" strokeWidth="2" />
     </Glyph>
   )
 }
@@ -350,6 +421,36 @@ export function TrailerIcon() {
         <circle cx="6" cy="18.6" r="1.9" />
         <circle cx="11.6" cy="18.6" r="1.9" />
       </g>
+    </Glyph>
+  )
+}
+
+/** The left blind-spot sensor: a side mirror with a warning dot, as the dash's left BS lamp draws it — lit
+ * while the sensor sees a vehicle in the left blind spot. */
+export function BlindLeftIcon() {
+  return (
+    <Glyph>
+      {/* Mirror housing */}
+      <path d="M6.5 11.5c0-3.6 2.2-6.5 5.5-6.5S17 7.9 17 11.5c0 1.9-1 3.5-2.5 3.5H7.5a3.5 3.5 0 0 0 0 7h7a3.5 3.5 0 0 0 2.5-3.5" />
+      {/* Warning dot: amber when active */}
+      <circle cx="12" cy="8.5" r="2" fill="currentColor" stroke="none" />
+      {/* Lamp border */}
+      <circle cx="12" cy="8.5" r="3.2" strokeWidth="1.5" />
+    </Glyph>
+  )
+}
+
+/** The right blind-spot sensor: a side mirror with a warning dot, as the dash's right BS lamp draws it — lit
+ * while the sensor sees a vehicle in the right blind spot. */
+export function BlindRightIcon() {
+  return (
+    <Glyph>
+      {/* Mirror housing */}
+      <path d="M17.5 11.5c0-3.6-2.2-6.5-5.5-6.5S7 7.9 7 11.5c0 1.9 1 3.5 2.5 3.5h7.5a3.5 3.5 0 0 1 0 7h-7a3.5 3.5 0 0 1-2.5-3.5" />
+      {/* Warning dot: amber when active */}
+      <circle cx="12" cy="8.5" r="2" fill="currentColor" stroke="none" />
+      {/* Lamp border */}
+      <circle cx="12" cy="8.5" r="3.2" strokeWidth="1.5" />
     </Glyph>
   )
 }
