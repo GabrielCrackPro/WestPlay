@@ -126,16 +126,53 @@
   display: block;
 }
 
+/*
+ * The badge's flare and its base rule, under the mark itself. The flare is an oval of the panel's light that the badge
+ * is opened into (BootScreen's BrandLine throws it as the mark widens and lets it go); the rule is a hairline drawn
+ * out from the badge's centre as it opens and then held, so the mark stands on something and Cabin Play's own mark
+ * lands under a line rather than in the air.
+ */
+.boot-brand-bloom {
+  position: absolute;
+  inset: -30% -6%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.26), rgb(255 255 255 / 0.06) 58%, transparent 78%);
+}
+
+.boot-brand-rule {
+  position: absolute;
+  right: 0;
+  bottom: calc(-12px * var(--text-scale, 1));
+  left: 0;
+  z-index: 0;
+  height: 1px;
+  pointer-events: none;
+  transform-origin: center;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.55) 22%,
+    rgb(255 255 255 / 0.55) 78%,
+    transparent
+  );
+}
+
 .boot-brand-art {
   position: relative;
   display: inline-block;
+  z-index: 1;
   line-height: 0;
 }
 
+/* The mark opens from its own centre (the transform origin is the box's, not the artwork's): a bar of light across
+   the middle of the badge, widening both ways until it is the mark. */
 .boot-brand-logo {
   width: calc(560px * var(--text-scale, 1));
   height: calc(190px * var(--text-scale, 1));
   object-fit: contain;
+  transform-origin: center;
 }
 
 .boot-brand-sheen {

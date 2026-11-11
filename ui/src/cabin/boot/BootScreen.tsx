@@ -12,10 +12,14 @@ const BRAND_FILTER = 'brightness(0) invert(1) drop-shadow(0 10px 40px rgb(255 25
 
 import './boot.css'
 
+/** The badge before it opens: a bar of the panel's light a few pixels tall, throwing its glow wide. */
+const BRAND_CLOSED = 'brightness(0) invert(1) blur(11px) drop-shadow(0 0 46px rgb(255 255 255 / 0.8))'
+
 /****
- * The boot, as one screen (boot.css): the panel's light comes up, the truck's brand is lit on it, Cabin Play's mark
- * and name arrive under it, and the light goes down as CarPlay fades up. The brand also gets an explicit contain box
- * so files that carry only a viewBox never collapse to nothing inside the sweep.
+ * The boot, as one screen (boot.css): the panel's light comes up, the truck's brand opens on it — a bar of that
+ * light widening into the maker's mark (BrandLine) — Cabin Play's mark and name arrive under it, and the light goes
+ * down as CarPlay fades up. The brand also gets an explicit contain box so files that carry only a viewBox never
+ * collapse to nothing inside the sweep.
  *
  * The power phases (state/power.ts) are its clock, and they are the two acts of one formation: `splash` is the panel's
  * light coming up with the truck's own mark on it — whose screen this is — and `connecting` is Cabin Play's mark
@@ -63,9 +67,12 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
   // Held in the phases' own terms: the mark lands exactly where `splash` ends, so the composition has a reason to
   // change when it does rather than a beat picked to fill time.
   const splashShare = SPLASH_MS / (SPLASH_MS + CONNECTING_MS)
-  const brandAt = boot * 0.1
+  // The badge opens as the backlight reaches its hold (the glow is up by 0.05 of the boot), and Cabin Play's mark
+  // lands at the phase change. The badge is the boot's first and largest move: the screen says whose it is before it
+  // says what is booting on it.
+  const brandAt = boot * 0.075
   const markAt = withBrand ? boot * splashShare : boot * 0.08
-  const wordAt = markAt + boot * 0.045
+  const wordAt = markAt + boot * 0.05
 
   return (
     <motion.div
@@ -120,13 +127,19 @@ export function BootScreen({ phase, elapsed = 0 }: { phase: Exclude<PowerPhase, 
           />
           {/* The backlight sweep as the panel comes up: a broad, soft band of the cab's light travels the full
                   height of the screen, so the glass reads as lighting rather than a highlight passing over a static
-                  field. Above the glow, below the mark; gone by the time the mark has formed. */}
-          {!reduced && !arrived(boot * 0.12) && (
+                  field. Above the glow, below the mark, and travelling with the badge's opening: the same pass lights
+                  the glass and the maker's mark, rather than two effects a beat apart. */}
+          {!reduced && !arrived(brandAt) && (
             <motion.span
               className="boot-scan"
               initial={false}
               animate={{ opacity: [0, 0.8, 0], y: ['-50%', '-12%', '50%'] }}
-              transition={{ duration: boot * 0.16, times: [0, 0.08, 1], ease: motionEase }}
+              transition={{
+                duration: boot * 0.17,
+                delay: at(brandAt - boot * 0.01),
+                times: [0, 0.08, 1],
+                ease: motionEase,
+              }}
               aria-hidden
             />
           )}
@@ -184,7 +197,7 @@ function BootMark({
     <motion.div
       className="boot-intro"
       data-brand={withBrand || undefined}
-      initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.985 }}
+      initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.99 }}
       animate={reduced ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1 }}
       // The composition leaves on its own and before the light does: it is off the glass while the panel is still
       // black, so the screen comes up on an empty panel rather than through the boot's marks (BootScreen's exit).
@@ -198,7 +211,7 @@ function BootMark({
               transition: { duration: (HANDOVER_MS / 1000) * 0.3, ease: motionEase },
             }
       }
-      transition={reduced ? { duration: 0 } : { duration: boot * 0.12, ease: motionEase }}
+      transition={reduced ? { duration: 0 } : { duration: boot * 0.08, ease: motionEase }}
     >
       {withBrand && <BrandLine beat={beat} />}
       <span className="boot-pair">
@@ -215,23 +228,27 @@ function BootMark({
               aria-hidden
             />
           )}
+          {/* Cabin Play's mark, landing under the badge once the panel has taken it: small and calm when a truck's
+              own mark is above it, and the whole of the panel when there is no truck to name. No blur — the badge's
+              opening is the boot's one big move, and a second soft arrival beside it reads as a second loading. */}
           <motion.img
             src="/cabinplay-amoled.svg"
             alt=""
-            initial={markDone ? false : { opacity: 0, scale: 0.8, filter: 'blur(12px)' }}
+            initial={markDone ? false : { opacity: 0, scale: withBrand ? 0.9 : 0.72 }}
             animate={
               markDone
-                ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
-                : {
-                    opacity: [0, 1, 1],
-                    scale: [0.8, 1.035, 1],
-                    filter: ['blur(12px)', 'blur(0px)', 'blur(0px)'],
-                  }
+                ? { opacity: 1, scale: 1 }
+                : { opacity: [0, 1, 1], scale: withBrand ? [0.9, 1.03, 1] : [0.72, 1.045, 1] }
             }
             transition={
               markDone
                 ? { duration: 0 }
-                : { duration: boot * 0.16, delay: at(markAt), times: [0, 0.6, 1], ease: motionEase }
+                : {
+                    duration: boot * (withBrand ? 0.12 : 0.17),
+                    delay: at(markAt),
+                    times: [0, 0.62, 1],
+                    ease: motionEase,
+                  }
             }
           />
           {/* The glass over the tile catching the light once, as the screen settles into the new look. */}
@@ -247,25 +264,15 @@ function BootMark({
         </span>
         <motion.span
           className="boot-intro-wordmark"
+          // The name settles up under the mark with its tracking coming in, which is the same read as the badge's
+          // opening at a smaller size: the letters are placed rather than flooded with light a second time.
           initial={
             wordDone
               ? false
-              : {
-                  opacity: 0,
-                  y: 18,
-                  letterSpacing: '0.015em',
-                  filter: 'blur(10px)',
-                  textShadow: '0 0 30px rgb(255 255 255 / 0.35)',
-                }
+              : { opacity: 0, y: 16, letterSpacing: '0.03em', textShadow: '0 0 28px rgb(255 255 255 / 0.3)' }
           }
-          animate={{
-            opacity: 1,
-            y: 0,
-            letterSpacing: '-0.01em',
-            filter: 'blur(0px)',
-            textShadow: '0 0 18px rgb(255 255 255 / 0.12)',
-          }}
-          transition={wordDone ? { duration: 0 } : { duration: boot * 0.2, delay: at(wordAt), ease: motionEase }}
+          animate={{ opacity: 1, y: 0, letterSpacing: '-0.01em', textShadow: '0 0 18px rgb(255 255 255 / 0.12)' }}
+          transition={wordDone ? { duration: 0 } : { duration: boot * 0.18, delay: at(wordAt), ease: motionEase }}
         >
           Cabin Play
         </motion.span>
@@ -275,9 +282,14 @@ function BootMark({
 }
 
 /**
- * The truck brand, a line under Cabin Play's name rather than a screen of its own. Logos are their makers'
- * trademarks, so they live outside the repository (`public/brand-logos`, git-ignored); when a brand has none,
- * its name is shown as a small wordmark instead.
+ * The truck's badge: the boot's first thing and its largest move. It is opened by the panel's light rather than faded
+ * onto it — the maker's mark starts as a bar of that light a few pixels tall, widens into the mark, and settles out of
+ * its own flare into the panel's white, with a hairline drawn out under it and then one band of light crossing it
+ * once it is lit. The screen says whose it is before it says what is booting on it, so Cabin Play's own mark is the
+ * smaller line beneath.
+ *
+ * Logos are their makers' trademarks, so they live outside the repository (`public/brand-logos`, git-ignored); when a
+ * brand has none, its name is opened the same way as a wordmark instead.
  */
 function BrandLine({ beat }: { beat: Beat }) {
   const truck = useLive((state) => state.truck)
@@ -286,52 +298,71 @@ function BrandLine({ beat }: { beat: Beat }) {
   // For the host's startup log: the moment the brand is on the page.
   if (!truck) return null
   const sources = logoSources(truck.brandId, truck.brand, { mono: true })
-  // The brand line enters with the mark's own light (the shared brandAt out of BootScreen), so the truck's name reads
-  // as part of the same waking rather than a separate arrival a beat earlier.
+  // The badge opens on the shared brandAt out of BootScreen, so its light is the panel's own. Fifteen hundredths of
+  // the boot, front-loaded on the cabin's spring: the mark is mostly there within a tenth of a second, and the rest of
+  // the window is the settle that keeps it from being a cut.
   const done = reduced || arrived(brandAt)
-  const sheenAt = brandAt + boot * 0.13
+  const opensFor = { duration: boot * 0.15, delay: at(brandAt), ease: motionEase }
+  const ruleAt = brandAt + boot * 0.02
+  const ruleDone = reduced || arrived(ruleAt)
+  const sheenAt = brandAt + boot * 0.14
   return (
-    <motion.span
-      className="boot-brand"
-      initial={done ? false : { opacity: 0, y: 14, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={done ? { duration: 0 } : { duration: boot * 0.16, delay: at(brandAt), ease: motionEase }}
-    >
+    <span className="boot-brand">
+      {/* The flare the badge opens into: thrown as the bar of light widens, gone before the mark has settled, so the
+          panel is lit once and then left alone. */}
+      {!reduced && !arrived(brandAt) && (
+        <motion.span
+          className="boot-brand-bloom"
+          initial={{ opacity: 0, scaleX: 0.55, scaleY: 0.7 }}
+          animate={{ opacity: [0, 0.9, 0.42, 0], scaleX: [0.55, 1, 1.04, 1.08], scaleY: [0.7, 1, 1.04, 1.08] }}
+          transition={{ duration: boot * 0.2, delay: at(brandAt), times: [0, 0.34, 0.62, 1], ease: motionEase }}
+          aria-hidden
+        />
+      )}
+      {/* A hairline drawn out from under the badge as it opens and then held faintly: it gives the mark a base, and
+          is the line Cabin Play's own mark lands under a moment later. Held rather than spent, because a page that
+          joined the boot late arrives at the composition whole. */}
+      <motion.span
+        className="boot-brand-rule"
+        initial={ruleDone ? { opacity: 0.3, scaleX: 1 } : { opacity: 0, scaleX: 0 }}
+        animate={ruleDone ? { opacity: 0.3, scaleX: 1 } : { opacity: [0, 0.45, 0.3], scaleX: [0, 1, 1] }}
+        transition={
+          ruleDone
+            ? { duration: 0 }
+            : { duration: boot * 0.34, delay: at(ruleAt), times: [0, 0.55, 1], ease: motionEase }
+        }
+        aria-hidden
+      />
       {attempt < sources.length ? (
         // The brand and its own sheen: the same file twice, the second a narrow band of light crossing it (boot.css),
-        // so the brand reads as lit by the panel rather than pasted onto it.
+        // so the brand reads as lit by the panel rather than pasted onto it. The pass comes after the opening, on a
+        // badge that is already lit.
         <span className="boot-brand-art">
+          {/* The badge itself, opened by the light: squashed to a bar of it and blurred wide as it starts, then
+              widened into the mark, which has to shed the blur and the flare to read as the maker's mark and not a
+              glow of it. The settle overshoots by a fiftieth of the height, which is the weight it lands with. */}
           <motion.img
             key={sources[attempt].src}
             className="boot-brand-logo"
             src={sources[attempt].src}
             alt=""
-            initial={
-              done
-                ? false
-                : {
-                    scale: 0.985,
-                    filter: 'brightness(0) invert(1) blur(12px) drop-shadow(0 0 0 transparent)',
-                  }
-            }
+            initial={done ? false : { opacity: 0, scaleX: 0.94, scaleY: 0.05, filter: BRAND_CLOSED }}
             animate={
               done
-                ? { scale: 1, filter: BRAND_FILTER }
+                ? { opacity: 1, scaleX: 1, scaleY: 1, filter: BRAND_FILTER }
                 : {
-                    scale: [0.985, 1.01, 1, 1],
+                    opacity: [0, 0.75, 1, 1],
+                    scaleX: [0.94, 1.005, 1, 1],
+                    scaleY: [0.05, 1.02, 1, 1],
                     filter: [
-                      'brightness(0) invert(1) blur(12px) drop-shadow(0 0 0 transparent)',
-                      'brightness(0) invert(1) blur(0px) drop-shadow(0 0 30px rgb(255 255 255 / 0.6))',
-                      'brightness(0) invert(1) blur(0px) drop-shadow(0 0 14px rgb(255 255 255 / 0.28))',
+                      BRAND_CLOSED,
+                      'brightness(0) invert(1) blur(1px) drop-shadow(0 0 30px rgb(255 255 255 / 0.6))',
+                      'brightness(0) invert(1) blur(0px) drop-shadow(0 0 16px rgb(255 255 255 / 0.32))',
                       BRAND_FILTER,
                     ],
                   }
             }
-            transition={
-              done
-                ? { duration: 0 }
-                : { duration: boot * 0.14, delay: at(brandAt), times: [0, 0.24, 0.44, 1], ease: motionEase }
-            }
+            transition={done ? { duration: 0 } : { ...opensFor, times: [0, 0.46, 0.68, 1] }}
             onError={() => setAttempt((current) => current + 1)}
           />
           {!reduced && !arrived(sheenAt) && (
@@ -350,35 +381,34 @@ function BrandLine({ beat }: { beat: Beat }) {
           )}
         </span>
       ) : (
+        // A brand with no logo file is named the same way the mark opens: the name comes out of a bar of the panel's
+        // light, its tracking closing as it settles — the same read as the badge, in the type the panel has.
         <motion.span
           className="boot-brand-wordmark"
           initial={
             done
               ? false
+              : { opacity: 0, scaleY: 0.14, letterSpacing: '0.36em', textShadow: '0 0 30px rgb(255 255 255 / 0.7)' }
+          }
+          animate={
+            done
+              ? { opacity: 1, scaleY: 1, letterSpacing: '0.18em', textShadow: '0 0 14px rgb(255 255 255 / 0.12)' }
               : {
-                  letterSpacing: '0.34em',
-                  filter: 'blur(9px)',
-                  textShadow: '0 0 30px rgb(255 255 255 / 0.55)',
+                  opacity: [0, 0.8, 1],
+                  scaleY: [0.14, 1.02, 1],
+                  letterSpacing: ['0.36em', '0.2em', '0.18em'],
+                  textShadow: [
+                    '0 0 30px rgb(255 255 255 / 0.7)',
+                    '0 0 20px rgb(255 255 255 / 0.32)',
+                    '0 0 14px rgb(255 255 255 / 0.12)',
+                  ],
                 }
           }
-          animate={{
-            letterSpacing: ['0.34em', '0.2em', '0.18em'],
-            filter: ['blur(9px)', 'blur(0px)', 'blur(0px)'],
-            textShadow: [
-              '0 0 30px rgb(255 255 255 / 0.55)',
-              '0 0 20px rgb(255 255 255 / 0.3)',
-              '0 0 14px rgb(255 255 255 / 0.12)',
-            ],
-          }}
-          transition={
-            done
-              ? { duration: 0 }
-              : { duration: boot * 0.16, delay: at(brandAt), times: [0, 0.45, 1], ease: motionEase }
-          }
+          transition={done ? { duration: 0 } : { ...opensFor, times: [0, 0.6, 1] }}
         >
           {truck.brand}
         </motion.span>
       )}
-    </motion.span>
+    </span>
   )
 }
