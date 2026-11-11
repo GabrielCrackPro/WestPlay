@@ -29,7 +29,7 @@ import { BootScreen } from '../boot/BootScreen'
 import { logoSources } from '../boot/brand'
 import { bootLength, bootShown } from '../state/power'
 import { useHandover } from '../state/useHandover'
-import { motionEase, useMotionReduced } from '../motion'
+import { motionEase, seconds, useMotionReduced } from '../motion'
 import { resolveAppearance } from '../state/appearance'
 import { useNightDim } from '../state/nightDim'
 import { syncClock, useCabin, useLive } from '../state/store'
@@ -333,10 +333,6 @@ export function ClusterScreen() {
 
   const t = telemetry
   const speed = t ? units.speed(t.speed) : 0
-  // Over the road's limit, which is the figure's own state and nothing else's: the sign under it states the limit the
-  // road has and stays the sign it is, so the only thing that changes on the face is the number being read. A route
-  // that has stopped knowing a limit keeps its sign for one fade, and the figure with it.
-  const over = sign.value !== null && speed > sign.value
   const gear = formatGear(t?.displayedGear ?? 0)
   const rpm = t ? Math.max(0, Math.min(1, t.engineRpm / RPM_MAX)) : 0
   // The truck's dash dimmer, 0 (all the way down) to 1 (full), as the panel's own lighting. A host that doesn't send
@@ -901,13 +897,7 @@ export function ClusterScreen() {
                 {/* The face reads top to bottom: the mark, the figure, its unit, the road's limit, and the gear in the
                     ring's open bottom. */}
                 <div className="cluster-speed" aria-hidden>
-                  <strong
-                    key={Math.round(speed)}
-                    className="cluster-speed-value"
-                    data-over={over ? '' : undefined}
-                  >
-                    {speed}
-                  </strong>
+                  <SpeedFigure speed={speed} limit={sign.value} reduced={reduceMotion} />
                   <span>{units.labels.speed}</span>
                   <motion.span
                     className="cluster-limitsign"
@@ -1262,6 +1252,88 @@ interface ClusterDialProps {
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
   reduced: boolean
 }
+
+/**
+ * The speed figure, rolling from one kilometre to the next the way the counter on a mechanical dash does: the places
+ * that change slide one step, in the direction their own number moved, and the places that don't stay still.
+ *
+ * It is a row of places rather than one number so the roll is only ever as big as the change: the units wheel turns as
+ * the truck climbs and the tens hold, which is what a counter looks like, where moving the whole figure a step for
+ * every kilometre would shake all three digits and read as a fault. The reading itself is never eased — the figure is
+ * the speed the truck is at, not a smoothed copy of it — only its arrival is.
+ *
+ * The figure is also the only thing on the face that changes when the road's limit changes: the sign below states the
+ * limit and stays the sign it is, so the number being read taking the limit's red is the whole of it.
+ */
+const SpeedFigure = memo(function SpeedFigure({
+  speed,
+  limit,
+  reduced,
+}: {
+  speed: number
+  /** The limit the route knows, in the face's own units, or null when it knows none. */
+  limit: number | null
+  /** The app's Reduce Motion setting: the figure is put in place rather than rolling into it. */
+  reduced: boolean
+}) {
+  // The places from the right, so a new leading digit is a place of its own: a place is a wheel on the counter and
+  // keeps its number as the figure grows, where keying from the left would hand "100"'s tens to "99"'s units.
+  const places = String(Math.max(0, speed)).split('')
+  return (
+    <strong className="cluster-speed-value" data-over={limit !== null && speed > limit ? '' : undefined}>
+      {places.map((place, index) => (
+        <SpeedPlace key={places.length - index} digit={Number(place)} reduced={reduced} />
+      ))}
+    </strong>
+  )
+})
+
+/** One place of the speed figure: the digit it is on, and the one it is coming from for the length of the roll. */
+const SpeedPlace = memo(function SpeedPlace({ digit, reduced }: { digit: number; reduced: boolean }) {
+  // The digit being replaced, held for the roll. Taken in the render that sees the new digit rather than from an
+  // effect — React's own "derive state from a prop" pattern — so the browser is handed the roll as one frame and never
+  // paints the old digit sitting under the new one.
+  const [last, setLast] = useState(digit)
+  const [roll, setRoll] = useState<{ from: number; to: number } | null>(null)
+  if (last !== digit) {
+    setLast(digit)
+    setRoll(reduced ? null : { from: last, to: digit })
+  }
+  const direction = roll === null || roll.to > roll.from ? 1 : -1
+  // Motion moves both digits of the roll: one spring for the step out and the step in, so the wheel is a single
+  // motion rather than two, and the opacity is a short tween beside it — the fade crossing over as the step runs,
+  // rather than a digit arriving out of the dark.
+  const rollOn = {
+    y: { type: 'spring' as const, stiffness: SPEED_ROLL_STIFFNESS, damping: SPEED_ROLL_DAMPING },
+    opacity: { duration: seconds(SPEED_ROLL_FADE_MS), ease: motionEase },
+  }
+  return (
+    <span className="cluster-speed-place">
+      {roll && (
+        <motion.span
+          key={`from-${roll.from}`}
+          initial={{ y: 0, opacity: 1 }}
+          animate={{ y: -direction * SPEED_ROLL_PX, opacity: 0 }}
+          transition={rollOn}
+        >
+          {roll.from}
+        </motion.span>
+      )}
+      <motion.span
+        key={`to-${digit}`}
+        // The arriving digit comes up from below rather than from nothing: it is already two fifths read as it starts
+        // to move, so a wheel turning quickly is a digit passing through, not a place blinking on the face.
+        initial={roll ? { y: direction * SPEED_ROLL_PX, opacity: 0.4 } : false}
+        animate={{ y: 0, opacity: 1 }}
+        transition={rollOn}
+        // Once the roll is over the digit it came from is gone from the panel, and the next one starts from here.
+        onAnimationComplete={() => setRoll((current) => (current?.to === digit ? null : current))}
+      >
+        {digit}
+      </motion.span>
+    </span>
+  )
+})
 
 /**
  * The dial's face, kept to what a digital cluster needs: the speed as one lit arc round a figure, and the tacho as a
@@ -1714,6 +1786,22 @@ const CRUISE_LEAVE_MS = 320
 /* The dash's bulb check, as the boot clears: long enough for every lamp to be seen in its colour, short enough that a
    real warning isn't held off the glass behind it. `cluster.css` runs the lit state over the same window. */
 const BULB_CHECK_MS = 1500
+/* The speed figure's roll: each place that changes turns like a wheel on a counter, the digit it was on stepping out
+   and the one it is on stepping in, both in the direction its own number moved. Motion springs the step rather than a
+   tween easing it — damped a shade under critical, so the digit decelerates into its place and settles there as a
+   drum does instead of stopping dead on it. The figure is never far from where it should be: the number is the
+   truck's speed, and only its arrival is softened.
+
+   A spring is written as mass, stiffness and damping rather than a duration and an easing, so the timing is what the
+   wheel does rather than a length of time it is handed: at 380 and 35 it is critically damped to within a tenth and
+   comes to rest in about a quarter of a second, overshooting by well under a pixel of the twelve it travels. The fade
+   is shorter than the step, so a turning wheel is solid almost as soon as it starts. The step is small on purpose: the
+   figure is the reading, so the roll is a nudge against it rather than a number travelling across the face, and it
+   keeps clear of the unit set under it. */
+const SPEED_ROLL_STIFFNESS = 380
+const SPEED_ROLL_DAMPING = 35
+const SPEED_ROLL_FADE_MS = 150
+const SPEED_ROLL_PX = 12
 
 /* The tacho: its hairline outside the speedo's, read against a 2,500 rpm scale. */
 const RPM_MAX = 2500

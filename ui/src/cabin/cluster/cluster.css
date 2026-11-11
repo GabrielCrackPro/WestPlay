@@ -1791,26 +1791,44 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
-/* Each whole kilometre arrives with a small settle, so the number reads as live rather than redrawn. */
-.cluster-speed-value {
-  animation: speed-in 180ms var(--motion-ease) both;
+/*
+ * The figure as a row of places rather than one run of digits, so that a change of speed moves only the places that
+ * changed: each is its own wheel on the counter (SpeedPlace, ClusterScreen), and the row still reads as one number —
+ * the digits are tabular and tracked as they were, and the row is centred as a block in the reading.
+ * The selector carries the element's own name because `.cluster-speed strong` above is the more specific of the two,
+ * so a bare class here would lose to its `display: block` and the digits would stack.
+ */
+.cluster-speed strong.cluster-speed-value {
+  display: flex;
+  align-items: center;
 }
 
 /*
- * Over the road's limit the figure takes the limit's red, as the sign under it does: the number the driver is
- * already reading says what the sign says, so being over is seen without a second glance at the sign below.
- * The colour arrives with the figure rather than fading behind it — the element is keyed by the whole kilometre, so
- * the new number is a new element, and a transition on it would have nothing to run from.
+ * One place of the figure. Both digits of a roll are drawn in the same cell of the grid, so the one arriving takes
+ * the place of the one leaving without the figure ever being a digit short, and the cell is only ever as wide as one
+ * digit: the number does not shuffle sideways as its wheels turn.
+ */
+.cluster-speed-place {
+  display: grid;
+  place-items: center;
+}
+
+.cluster-speed-place > span {
+  grid-area: 1 / 1;
+}
+
+/*
+ * Over the road's limit the figure takes the limit's red: the number the driver is already reading says what the sign
+ * below states, so being over is seen without a second glance at the sign. It comes over rather than snapping — the
+ * same number changing its colour — whether the road's limit has dropped under a steady speed or the figure has
+ * rolled past it.
  */
 .cluster-speed strong[data-over] {
   color: var(--limit);
 }
 
-@keyframes speed-in {
-  from {
-    opacity: 0.78;
-    transform: translateY(2px);
-  }
+.cluster-speed-value {
+  transition: color 200ms var(--motion-ease);
 }
 
 /* The unit, in the panel's own unit type: the readings down both sides print "720 L" and "1420 km" with a unit at
