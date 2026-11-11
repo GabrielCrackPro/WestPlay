@@ -594,6 +594,33 @@ export const TURKISH_STRINGS: Strings = {
     clusterGaugePercent: 'Yüzdeler',
     clusterGaugeFooter:
       'Depo ve AdBlue, içindekinin ne kadarının kaldığını gösterir; yanlarındaki çubuklar boştan dolar. Sıcaklıklar, tüketim ve aşınma kendi birimlerini korur.',
+    clusterReadings: 'Motor Okumaları',
+    clusterReadingsFooter:
+      'Motor kartının altındaki üç okuma; her biri Diagnostik uygulamasının zaten ölçtüğü bir gösterge. Başka bir yuvadaki okuma, burada seçilenle yer değiştirir.',
+    clusterReadingSlot: (slot) => `${slot}. Okuma`,
+    clusterReadingInstant: 'Anlık tüketim',
+    clusterDial: 'Gösterge',
+    clusterDialFooter:
+      'Devir saati, hız halkasının dışında ince bir çizgi olarak; kamyonun üretici işareti ise hızın üstündeki bantta.',
+    clusterTacho: 'Devir saati',
+    clusterBrandMark: 'Marka işareti',
+    clusterAccent: 'Vurgu rengi',
+    clusterAccentFooter:
+      'Yanan yay, ibre ve canlı okumalar. Rotayı izle, Haritalar’da çizgisi için seçilen rengi kullanır.',
+    clusterAccentRoute: 'Rotayı izle',
+    clusterAccentPlay: 'Cabin Play',
+    clusterAccentNeutral: 'Nötr',
+    clusterLayout: 'Yerleşim',
+    clusterLayoutFooter:
+      'Bir kartı göstergenin iki yanına, bir başkasının üstüne ya da altına sürükleyin. Tab ile seçilen bir kart oklarla taşınır: kendi sütununda yukarı ve aşağı, göstergenin öbür yanına sola ve sağa. Uyarı lambaları üstteki çubukta kalır; deponun kendi okumaları sağ tarafı doldurur.',
+    clusterLayoutFixed: 'Her zaman burada',
+    clusterPresets: 'Ön ayarlar',
+    presetClusterStandard: 'Standart',
+    presetClusterHours: 'Önce saatler',
+    presetClusterTank: 'Depo solda',
+    clusterSideLeft: 'Sol',
+    clusterSideRight: 'Sağ',
+    resetCluster: 'Gösterge panelini sıfırla',
     saveLayout: 'Mevcut Yerleşimi Kaydet',
     layoutName: 'Yerleşim Adı',
     yourLayouts: 'Yerleşimleriniz',

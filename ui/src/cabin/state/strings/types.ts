@@ -589,6 +589,34 @@ export interface Strings {
     clusterGauges: string
     clusterGaugePercent: string
     clusterGaugeFooter: string
+    /** The engine card's three readings: the slots, what they can show, and the instant consumption's own name. */
+    clusterReadings: string
+    clusterReadingsFooter: string
+    clusterReadingSlot: (slot: number) => string
+    clusterReadingInstant: string
+    /** The dial's own marks — the tacho's ring and the maker's mark — and the accent its live marks are drawn in. */
+    clusterDial: string
+    clusterDialFooter: string
+    clusterTacho: string
+    clusterBrandMark: string
+    clusterAccent: string
+    clusterAccentFooter: string
+    clusterAccentRoute: string
+    clusterAccentPlay: string
+    clusterAccentNeutral: string
+    /** The cluster's layout: its two columns, the ready-made ones, and the sides a card can be on. */
+    clusterLayout: string
+    clusterLayoutFooter: string
+    /** What the right column carries whatever the layout (the tank's companions), as the preview draws it. */
+    clusterLayoutFixed: string
+    clusterPresets: string
+    presetClusterStandard: string
+    presetClusterHours: string
+    presetClusterTank: string
+    clusterSideLeft: string
+    clusterSideRight: string
+    /** The Instrument Cluster page's own reset, back to how a new dash comes. */
+    resetCluster: string
     /** The player's own Dashboard layouts: naming the current one, saving it, and removing it again. */
     saveLayout: string
     layoutName: string

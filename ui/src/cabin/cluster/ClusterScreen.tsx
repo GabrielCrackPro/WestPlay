@@ -32,8 +32,8 @@ import { useHandover } from '../state/useHandover'
 import { motionEase, seconds, useMotionReduced } from '../motion'
 import { resolveAppearance } from '../state/appearance'
 import { useNightDim } from '../state/nightDim'
-import { syncClock, useCabin, useLive } from '../state/store'
-import { routeAccent } from '../maps/routeLook'
+import { type ClusterReading, type ClusterSideCard, syncClock, useCabin, useLive } from '../state/store'
+import { clusterAccent } from './accent'
 import { ManeuverGlyph } from '../maps/ManeuverGlyph'
 import { guidanceOf, NOW_WITHIN, type Step } from '../maps/guidance'
 import { useClock } from '../state/clock'
@@ -202,6 +202,14 @@ export function ClusterScreen() {
   const cards = useCabin((state) => state.clusterCards)
   // The level gauges as the settings ask (Settings › Instrument Cluster): the share of the tank, or its litres.
   const gaugePercent = useCabin((state) => state.clusterGaugePercent)
+  // The panel's own look (Settings › Instrument Cluster): its accent, the tacho's ring, the maker's mark, and the
+  // three readings the engine card draws.
+  const accentChoice = useCabin((state) => state.clusterAccent)
+  const tacho = useCabin((state) => state.clusterTacho)
+  const showBrand = useCabin((state) => state.clusterBrand)
+  const readingSlots = useCabin((state) => state.clusterReadings)
+  // The cards either side of the dial, and the order they run down each column (Settings › Instrument Cluster).
+  const layout = useCabin((state) => state.clusterLayout)
   const reduceMotion = useMotionReduced()
   // The player's Text Size, taken at the panel's own scale (state/textSize.ts): the dash is drawn in the room the
   // step leaves it and zoomed to the texture, so the whole panel answers the setting without ever clipping.
@@ -452,10 +460,65 @@ export function ClusterScreen() {
   // The mark beside the track: the app it plays from, in the icon set the screen's own grid draws (the game's radio
   // and a stream from an app the cabin doesn't know have no mark of its own, so the note stands in).
   const playsFrom = nowPlaying?.app ? (PLAYS_FROM[nowPlaying.app] ?? null) : null
-  // The dash's accent is the map's route colour (Settings › Maps › Route): the one colour the driver already chose
-  // for "this is the way", on the needle, the cruise mark and the live readings. The route's own fill does on the
-  // dark panel, its darker edge on the light one, so it reads on either.
-  const accent = routeAccent(appearance, routeColour)
+  // The dash's accent (Settings › Instrument Cluster): by default the map's route colour, the one colour the driver
+  // already chose for "this is the way", on the needle, the cruise mark and the live readings — or a fixed colour for
+  // a dash that is its own thing. The route's own fill does on the dark panel, its darker edge on the light one, so it
+  // reads on either.
+  const accent = clusterAccent(accentChoice, appearance, routeColour)
+  // The engine card's three readings, as the settings chose them: every one a gauge the Diagnostics app already keeps,
+  // drawn with its own icon, figure, unit and warning line, so a reading moved onto the dash reads exactly as it does
+  // in the app. Only the two temperatures carry the dash's cold blue, as the oil's always did.
+  const instantShown = instantFigure ?? units.consumptionFigure(0, text.decimal)
+  const readingViews: Record<
+    ClusterReading,
+    { label: string; icon: ReactElement; value: Figure; warn: boolean; cold?: boolean }
+  > = {
+    oilTemperature: {
+      label: words.oilTemperature,
+      icon: <OilTemperatureIcon />,
+      value: oilFigure,
+      // A reading there is none of (no game, or the engine off) isn't a warning: only one that is out of its range is.
+      warn: (oilTemp?.state ?? 'ok') !== 'ok',
+      cold: coldOil,
+    },
+    coolant: {
+      label: words.coolant,
+      icon: <CoolantIcon />,
+      value: coolantFigure,
+      warn: (coolant?.state ?? 'ok') !== 'ok',
+      cold: coldCoolant,
+    },
+    brakeAir: {
+      label: words.brakeAir,
+      icon: <BrakeAirIcon />,
+      value: airFigure,
+      warn: (air?.state ?? 'ok') !== 'ok',
+    },
+    battery: {
+      label: words.battery,
+      icon: <BatteryIcon />,
+      value: { value: (t?.batteryVoltage ?? 0).toFixed(1).replace('.', text.decimal), unit: words.volts },
+      warn: (volts?.state ?? 'ok') !== 'ok',
+    },
+    adblue: {
+      label: words.adblue,
+      icon: <AdblueIcon />,
+      value: adblueValue,
+      warn: (adblue?.state ?? 'ok') !== 'ok',
+    },
+    brakeTemperature: {
+      label: words.brakeTemperature,
+      icon: <BrakeTemperatureIcon />,
+      value: heatFigure,
+      warn: (brakeHeat?.state ?? 'ok') !== 'ok',
+    },
+    consumption: {
+      label: words.instant,
+      icon: <GaugeIcon />,
+      value: instantShown,
+      warn: (instantReading?.state ?? 'ok') !== 'ok',
+    },
+  }
   const panelStyle = {
     '--cluster-scale': typeScale,
     '--accent': accent,
@@ -616,6 +679,155 @@ export function ClusterScreen() {
     faults.push({ key: 'damage', label: words.damage, tone: damageTone, icon: <WarningIcon />, active: true })
   }
 
+  // Each side card's panel, as the dash draws it: the two columns are filled from the player's layout (Settings ›
+  // Instrument Cluster), so a card moved to the other side is drawn there with the same face and the same entrance,
+  // and a card in the order but turned off is simply not drawn. The tank's companions — the AdBlue and the coolant,
+  // the brake heat, the instant reading and the wear — belong to the right column and keep their place there.
+  const panels: Record<ClusterSideCard, ReactElement> = {
+    trip: (
+      <motion.section
+        key="trip"
+        className="cluster-panel cluster-trip"
+        aria-label={`${words.trip} ${t ? tripFigure.value : 0} ${tripFigure.unit}`}
+        variants={riseVariants(reduceMotion)}
+      >
+        <div className="cluster-trip-top">
+          <span className="cluster-glyph" aria-hidden>
+            <TripIcon />
+          </span>
+          <strong className="cluster-trip-value">
+            {t ? tripFigure.value : '—'}
+            <small>{tripFigure.unit}</small>
+          </strong>
+        </div>
+        <div className="cluster-pairs">
+          <span className="cluster-pair" aria-label={`${words.average} ${averageFigure.value} ${averageFigure.unit}`}>
+            <GaugeIcon />
+            <b>{t ? averageFigure.value : '—'}</b>
+            <small>{averageFigure.unit}</small>
+          </span>
+          {/* The trip's time on the move, not the range: the tank's range is already on the fuel panel's foot, and a
+              figure the dash shows twice is a slot it can't show something else in. The trip computer counts these
+              seconds for nothing else (`trip.moving`, diagnostics/trip.ts). */}
+          <span className="cluster-pair" aria-label={t ? `${words.time} ${driving.value} ${driving.unit}` : undefined}>
+            <ClockIcon />
+            <b>{t ? driving.value : '—'}</b>
+            <small>{t ? driving.unit : ''}</small>
+          </span>
+        </div>
+        <div className="cluster-odo" aria-label={`${words.odometer} ${t ? odoFigure.value : 0} ${odoFigure.unit}`}>
+          <OdometerIcon />
+          <b>{t ? odoFigure.value : '—'}</b>
+          <small>{odoFigure.unit}</small>
+        </div>
+      </motion.section>
+    ),
+    engine: (
+      <motion.section
+        key="engine"
+        className="cluster-panel cluster-engine"
+        aria-label={words.engine}
+        variants={riseVariants(reduceMotion)}
+      >
+        {readingSlots.map((reading) => {
+          const view = readingViews[reading]
+          return (
+            <div
+              key={reading}
+              className="cluster-readout"
+              data-warn={view.warn ? '' : undefined}
+              data-cold={view.cold ? '' : undefined}
+              aria-label={`${view.label} ${t ? view.value.value : 0} ${view.value.unit}`}
+            >
+              <span className="cluster-glyph" aria-hidden>
+                {view.icon}
+              </span>
+              <b>{t ? view.value.value : '—'}</b>
+              <small>{view.value.unit}</small>
+            </div>
+          )
+        })}
+      </motion.section>
+    ),
+    hours: (
+      <motion.section
+        key="hours"
+        className="cluster-panel cluster-hours"
+        aria-label={words.driverHours}
+        variants={riseVariants(reduceMotion)}
+      >
+        <div
+          className="cluster-hours-row"
+          data-due={rest >= 0 && rest <= 60 ? '' : undefined}
+          aria-label={`${words.restStop} ${rest >= 0 ? minutes(rest, words) : words.noRest}`}
+        >
+          <span className="cluster-glyph" aria-hidden>
+            <RestIcon />
+          </span>
+          <strong>{rest >= 0 ? minutes(rest, words) : '—'}</strong>
+          <span className="cluster-dot" aria-hidden />
+        </div>
+        <div
+          className="cluster-hours-row"
+          data-due={breaking >= 0 && breaking <= 60 ? '' : undefined}
+          aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? minutes(breaking, words) : words.noRest}`}
+        >
+          <span className="cluster-glyph" aria-hidden>
+            <BreakIcon />
+          </span>
+          <strong>{breaking >= 0 ? minutes(breaking, words) : '—'}</strong>
+          <span className="cluster-dot" aria-hidden />
+        </div>
+      </motion.section>
+    ),
+    fuel: (
+      <motion.section
+        key="fuel"
+        className="cluster-panel cluster-fuel"
+        aria-label={words.fuel}
+        variants={riseVariants(reduceMotion)}
+      >
+        <div className="cluster-gauge-row">
+          <span className="cluster-glyph" data-warn={fuel?.state === 'alarm' ? '' : undefined} aria-hidden>
+            <FuelIcon />
+          </span>
+          <div
+            className="cluster-meter"
+            data-scale="level"
+            data-hot={fuel?.state === 'warn' ? '' : undefined}
+            data-low={fuel?.state === 'alarm' ? '' : undefined}
+            {...meterZone(fuel, 'low')}
+          >
+            <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
+          </div>
+          <strong
+            className="cluster-gauge-value"
+            data-hot={fuel?.state === 'warn' ? '' : undefined}
+            data-warn={fuel?.state === 'alarm' ? '' : undefined}
+          >
+            {t ? fuelValue.value : '—'}
+            <small>{fuelValue.unit}</small>
+          </strong>
+        </div>
+        <div
+          className="cluster-gauge-foot"
+          aria-label={`${words.range} ${t ? rangeFigure.value : 0} ${rangeFigure.unit} · ${words.used} ${t ? usedFigure.value : 0} ${usedFigure.unit}`}
+        >
+          <span className="cluster-foot-pair" aria-hidden>
+            <RangeIcon />
+            <b>{t ? rangeFigure.value : '—'}</b>
+            <small>{rangeFigure.unit}</small>
+          </span>
+          <span className="cluster-foot-pair" aria-hidden>
+            <DropIcon />
+            <b>{t ? usedFigure.value : '—'}</b>
+            <small>{usedFigure.unit}</small>
+          </span>
+        </div>
+      </motion.section>
+    ),
+  }
+
   return (
     <main
       className="cluster"
@@ -705,126 +917,7 @@ export function ClusterScreen() {
             animate="shown"
             variants={sideVariants(reduceMotion)}
           >
-            {cards.trip && (
-              <motion.section
-                className="cluster-panel cluster-trip"
-                aria-label={`${words.trip} ${t ? tripFigure.value : 0} ${tripFigure.unit}`}
-                variants={riseVariants(reduceMotion)}
-              >
-                <div className="cluster-trip-top">
-                  <span className="cluster-glyph" aria-hidden>
-                    <TripIcon />
-                  </span>
-                  <strong className="cluster-trip-value">
-                    {t ? tripFigure.value : '—'}
-                    <small>{tripFigure.unit}</small>
-                  </strong>
-                </div>
-                <div className="cluster-pairs">
-                  <span
-                    className="cluster-pair"
-                    aria-label={`${words.average} ${averageFigure.value} ${averageFigure.unit}`}
-                  >
-                    <GaugeIcon />
-                    <b>{t ? averageFigure.value : '—'}</b>
-                    <small>{averageFigure.unit}</small>
-                  </span>
-                  {/* The trip's time on the move, not the range: the tank's range is already on the fuel panel's foot,
-                      and a figure the dash shows twice is a slot it can't show something else in. The trip computer
-                      counts these seconds for nothing else (`trip.moving`, diagnostics/trip.ts). */}
-                  <span
-                    className="cluster-pair"
-                    aria-label={t ? `${words.time} ${driving.value} ${driving.unit}` : undefined}
-                  >
-                    <ClockIcon />
-                    <b>{t ? driving.value : '—'}</b>
-                    <small>{t ? driving.unit : ''}</small>
-                  </span>
-                </div>
-                <div
-                  className="cluster-odo"
-                  aria-label={`${words.odometer} ${t ? odoFigure.value : 0} ${odoFigure.unit}`}
-                >
-                  <OdometerIcon />
-                  <b>{t ? odoFigure.value : '—'}</b>
-                  <small>{odoFigure.unit}</small>
-                </div>
-              </motion.section>
-            )}
-
-            {cards.engine && (
-              <motion.section
-                className="cluster-panel cluster-engine"
-                aria-label={words.engine}
-                variants={riseVariants(reduceMotion)}
-              >
-                <div
-                  className="cluster-readout"
-                  data-warn={oilTemp?.state !== 'ok' ? '' : undefined}
-                  data-cold={coldOil ? '' : undefined}
-                  aria-label={`${words.oilTemperature} ${t ? oilFigure.value : 0} ${oilFigure.unit}`}
-                >
-                  <span className="cluster-glyph" aria-hidden>
-                    <OilTemperatureIcon />
-                  </span>
-                  <b>{t ? oilFigure.value : '—'}</b>
-                  <small>{oilFigure.unit}</small>
-                </div>
-                <div
-                  className="cluster-readout"
-                  data-warn={air?.state !== 'ok' ? '' : undefined}
-                  aria-label={`${words.brakeAir} ${t ? airFigure.value : 0} ${airFigure.unit}`}
-                >
-                  <span className="cluster-glyph" aria-hidden>
-                    <BrakeAirIcon />
-                  </span>
-                  <b>{t ? airFigure.value : '—'}</b>
-                  <small>{airFigure.unit}</small>
-                </div>
-                <div
-                  className="cluster-readout"
-                  data-warn={volts?.state !== 'ok' ? '' : undefined}
-                  aria-label={`${words.battery} ${t ? t.batteryVoltage.toFixed(1).replace('.', text.decimal) : 0} ${words.volts}`}
-                >
-                  <span className="cluster-glyph" aria-hidden>
-                    <BatteryIcon />
-                  </span>
-                  <b>{t ? t.batteryVoltage.toFixed(1).replace('.', text.decimal) : '—'}</b>
-                  <small>{words.volts}</small>
-                </div>
-              </motion.section>
-            )}
-
-            {cards.hours && (
-              <motion.section
-                className="cluster-panel cluster-hours"
-                aria-label={words.driverHours}
-                variants={riseVariants(reduceMotion)}
-              >
-                <div
-                  className="cluster-hours-row"
-                  data-due={rest >= 0 && rest <= 60 ? '' : undefined}
-                  aria-label={`${words.restStop} ${rest >= 0 ? minutes(rest, words) : words.noRest}`}
-                >
-                  <span className="cluster-glyph" aria-hidden>
-                    <RestIcon />
-                  </span>
-                  <strong>{rest >= 0 ? minutes(rest, words) : '—'}</strong>
-                  <span className="cluster-dot" aria-hidden />
-                </div>
-                <div
-                  className="cluster-hours-row"
-                  data-due={breaking >= 0 && breaking <= 60 ? '' : undefined}
-                  aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? minutes(breaking, words) : words.noRest}`}
-                >
-                  <span className="cluster-glyph" aria-hidden>
-                    <BreakIcon />
-                  </span>
-                  <strong>{breaking >= 0 ? minutes(breaking, words) : '—'}</strong>
-                  <span className="cluster-dot" aria-hidden />
-                </div>
-              </motion.section>
-            )}
+            {layout.left.filter((card) => cards[card]).map((card) => panels[card])}
           </motion.aside>
 
           <section className="cluster-centre">
@@ -885,13 +978,14 @@ export function ClusterScreen() {
               >
                 {/* The maker's mark, in the band of air above the figure: what the ring's printed scale left behind.
                     It fades in with the rest of the face's parts, and the stylesheet sizes it to that band. */}
-                <ClusterBrand reduced={reduceMotion} />
+                {showBrand && <ClusterBrand reduced={reduceMotion} />}
                 <ClusterDial
                   speedShare={speedShare}
                   rpm={rpm}
                   limit={limit}
                   cruise={cruise}
                   max={face.max}
+                  tacho={tacho}
                   reduced={reduceMotion}
                 />
                 {/* The face reads top to bottom: the mark, the figure, its unit, the road's limit, and the gear in the
@@ -952,55 +1046,12 @@ export function ClusterScreen() {
 
           <motion.aside
             className="cluster-side cluster-side-right"
+            data-extra={layout.right.filter((card) => cards[card]).length > 1 ? '' : undefined}
             initial={reduceMotion ? false : 'hidden'}
             animate="shown"
             variants={sideVariants(reduceMotion)}
           >
-            {cards.fuel && (
-              <motion.section
-                className="cluster-panel cluster-fuel"
-                aria-label={words.fuel}
-                variants={riseVariants(reduceMotion)}
-              >
-                <div className="cluster-gauge-row">
-                  <span className="cluster-glyph" data-warn={fuel?.state === 'alarm' ? '' : undefined} aria-hidden>
-                    <FuelIcon />
-                  </span>
-                  <div
-                    className="cluster-meter"
-                    data-scale="level"
-                    data-hot={fuel?.state === 'warn' ? '' : undefined}
-                    data-low={fuel?.state === 'alarm' ? '' : undefined}
-                    {...meterZone(fuel, 'low')}
-                  >
-                    <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
-                  </div>
-                  <strong
-                    className="cluster-gauge-value"
-                    data-hot={fuel?.state === 'warn' ? '' : undefined}
-                    data-warn={fuel?.state === 'alarm' ? '' : undefined}
-                  >
-                    {t ? fuelValue.value : '—'}
-                    <small>{fuelValue.unit}</small>
-                  </strong>
-                </div>
-                <div
-                  className="cluster-gauge-foot"
-                  aria-label={`${words.range} ${t ? rangeFigure.value : 0} ${rangeFigure.unit} · ${words.used} ${t ? usedFigure.value : 0} ${usedFigure.unit}`}
-                >
-                  <span className="cluster-foot-pair" aria-hidden>
-                    <RangeIcon />
-                    <b>{t ? rangeFigure.value : '—'}</b>
-                    <small>{rangeFigure.unit}</small>
-                  </span>
-                  <span className="cluster-foot-pair" aria-hidden>
-                    <DropIcon />
-                    <b>{t ? usedFigure.value : '—'}</b>
-                    <small>{usedFigure.unit}</small>
-                  </span>
-                </div>
-              </motion.section>
-            )}
+            {layout.right.filter((card) => cards[card]).map((card) => panels[card])}
 
             <motion.div className="cluster-pair-gauges" variants={riseVariants(reduceMotion)}>
               <section className="cluster-panel cluster-mini" aria-label={words.adblue}>
@@ -1249,6 +1300,8 @@ interface ClusterDialProps {
   cruise: number
   /** The face's top speed, in the driver's units: the end of the ring the arc fills towards. */
   max: number
+  /** Whether the tacho's ring is drawn outside the speed's (Settings › Instrument Cluster). */
+  tacho: boolean
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
   reduced: boolean
 }
@@ -1353,7 +1406,15 @@ const SpeedPlace = memo(function SpeedPlace({ digit, reduced }: { digit: number;
  * the glass when the boot is over, which is what puts that sweep where the driver can see it rather than behind the
  * splash.
  */
-const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, cruise, max, reduced }: ClusterDialProps) {
+const ClusterDial = memo(function ClusterDial({
+  speedShare,
+  rpm,
+  limit,
+  cruise,
+  max,
+  tacho,
+  reduced,
+}: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
   const shownSpeed = useSmoothed(speedShare, { from: 1, hold: SWEEP_HOLD_MS, sweep: SWEEP_MS })
   const shownRpm = useSmoothed(rpm)
@@ -1453,38 +1514,44 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, cruise, 
           <line className="cluster-limit-mark" x1="150" y1={150 - 132} x2="150" y2={150 - 122} />
         </motion.g>
       )}
-      <motion.circle
-        className="cluster-dial-rpm-track"
-        cx="150"
-        cy="150"
-        r={RPM_RADIUS}
-        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP} ${RPM_CIRCUMFERENCE}`}
-        transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.05, 0.3)}
-      />
-      <motion.circle
-        className="cluster-dial-rpm"
-        cx="150"
-        cy="150"
-        r={RPM_RADIUS}
-        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * shownRpm} ${RPM_CIRCUMFERENCE}`}
-        transform={`rotate(${DIAL_START} 150 150)`}
-        style={{ strokeLinecap: shownRpm > 0 ? 'round' : 'butt' }}
-        {...marks(0.07, 0.3)}
-      />
-      {/* The tacho's redline, printed on its own hairline: the one band a tach needs to read. Scania also marks the
-          auxiliary brake's zone (2,000 to 2,400 rpm) in blue; on a face this quiet a second colour field at the rim
-          pulled the eye off the speed, and the retarder's own steps say when the brake is in use. */}
-      <motion.circle
-        className="cluster-rpm-redline"
-        cx="150"
-        cy="150"
-        r={RPM_RADIUS}
-        strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * (1 - RPM_REDLINE)} ${RPM_CIRCUMFERENCE}`}
-        strokeDashoffset={-RPM_CIRCUMFERENCE * DIAL_SWEEP * RPM_REDLINE}
-        transform={`rotate(${DIAL_START} 150 150)`}
-        {...marks(0.12, 0.52)}
-      />
+      {/* The tacho, off when the settings say so: the speed's ring then stands alone on the face, which is the
+          quieter dash some drivers want on a screen this small. */}
+      {tacho && (
+        <>
+          <motion.circle
+            className="cluster-dial-rpm-track"
+            cx="150"
+            cy="150"
+            r={RPM_RADIUS}
+            strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP} ${RPM_CIRCUMFERENCE}`}
+            transform={`rotate(${DIAL_START} 150 150)`}
+            {...marks(0.05, 0.3)}
+          />
+          <motion.circle
+            className="cluster-dial-rpm"
+            cx="150"
+            cy="150"
+            r={RPM_RADIUS}
+            strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * shownRpm} ${RPM_CIRCUMFERENCE}`}
+            transform={`rotate(${DIAL_START} 150 150)`}
+            style={{ strokeLinecap: shownRpm > 0 ? 'round' : 'butt' }}
+            {...marks(0.07, 0.3)}
+          />
+          {/* The tacho's redline, printed on its own hairline: the one band a tach needs to read. Scania also marks
+              the auxiliary brake's zone (2,000 to 2,400 rpm) in blue; on a face this quiet a second colour field at
+              the rim pulled the eye off the speed, and the retarder's own steps say when the brake is in use. */}
+          <motion.circle
+            className="cluster-rpm-redline"
+            cx="150"
+            cy="150"
+            r={RPM_RADIUS}
+            strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * (1 - RPM_REDLINE)} ${RPM_CIRCUMFERENCE}`}
+            strokeDashoffset={-RPM_CIRCUMFERENCE * DIAL_SWEEP * RPM_REDLINE}
+            transform={`rotate(${DIAL_START} 150 150)`}
+            {...marks(0.12, 0.52)}
+          />
+        </>
+      )}
     </svg>
   )
 })
@@ -1690,7 +1757,7 @@ function useClusterAlert(text: Strings): ClusterNotice | null {
     detail: next.detail,
     count: current.length,
   }
-}/**
+} /**
  * The notice line above the dial: the phone's notification card, centred on the glass, as the phone's own shade
  * shows one — its app tile, its title and text, its time, and its dismissal at its end. It keeps the cluster's
  * one-line room: the card is the phone's own size, its words are one line and its count is a chip at its end when
@@ -1726,11 +1793,7 @@ function ClusterNoticeBar({
             data-hue={`${notice.tone === 'alarm' ? 0 : notice.tone === 'warn' ? 38 : 210}`}
             aria-hidden
           >
-            {notice.icon ? (
-              <img src={notice.icon} alt="" />
-            ) : (
-              notice.label.trim().charAt(0).toUpperCase()
-            )}
+            {notice.icon ? <img src={notice.icon} alt="" /> : notice.label.trim().charAt(0).toUpperCase()}
           </span>
           <NoteCard
             notification={notice.notification}

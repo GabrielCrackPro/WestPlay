@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, type PointerEvent, type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import { SearchGlyph } from '../../keyboard/glyphs'
 import { useKeyboard } from '../../keyboard/store'
 import { wakePhrase } from '../../voice/wake'
@@ -25,12 +25,32 @@ import {
   type MapRouteWeight,
 } from '../../maps/routeLook'
 import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearbyStop'
+import { CLUSTER_ACCENTS, type ClusterAccent } from '../../cluster/accent'
+import {
+  AdblueIcon,
+  BrakeTemperatureIcon,
+  CoolantIcon,
+  DropIcon,
+  FuelIcon,
+  GaugeIcon,
+  RestIcon,
+  TripIcon,
+  WarningIcon,
+} from '../../cluster/ClusterIcons'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
 import { useUnits } from '../../state/units'
 import {
   CLUSTER_CARDS,
+  CLUSTER_LAYOUTS,
+  CLUSTER_LAYOUT_PRESETS,
+  CLUSTER_READINGS,
+  type ClusterLayout,
+  type ClusterLayoutPreset,
+  type ClusterReading,
+  type ClusterSide,
+  type ClusterSideCard,
   DASHBOARD_LAYOUTS,
   DASHBOARD_LAYOUT_NAME_LENGTH,
   DASHBOARD_PRESETS,
@@ -972,29 +992,59 @@ function OverviewPage() {
 }
 
 /**
- * The instrument cluster WestPlay replaces on the trucks it is built for, in three parts: whether it is drawn at
- * all, what it carries, and how its gauges read.
+ * The instrument cluster WestPlay replaces on the trucks it is built for, in four parts: whether it is drawn at all,
+ * what it carries, how it looks, and how its gauges read.
  *
  * Each card is listed with what it shows under its name, because a dash is not a screen of widgets a driver can
- * look at while the switch is flipped: "Engine" alone doesn't say that oil temperature, brake air and the battery
- * leave the dash with it. The readings that are always drawn are said in the cards' note, so nothing is quietly
- * missing. The gauges' page is the one place the level readings' figure is chosen — a share of the tank, or its
- * litres — and it applies to the dash and to nothing else (the Diagnostics app keeps its own units).
+ * look at while the switch is flipped: "Engine" alone doesn't say that its readings leave the dash with it. The
+ * readings that are always drawn are said in the cards' note, so nothing is quietly missing.
+ *
+ * The engine card's three readings are the player's choice (three slots, every one a gauge the Diagnostics app already
+ * keeps), and the dial's own marks — the tacho's ring, the maker's mark, the accent — are here too: the panel is drawn
+ * on the truck's screen, not in this window, so this page is the only place they can be chosen. The gauges' page is
+ * the one place the level readings' figure is chosen — a share of the tank, or its litres — and it applies to the dash
+ * and to nothing else (the Diagnostics app keeps its own units).
  */
 function ClusterPage() {
   const text = useText()
+  const words = text.diagnostics
   const shown = useCabin((state) => state.clusterShown)
   const setShown = useCabin((state) => state.setClusterShown)
   const cards = useCabin((state) => state.clusterCards)
   const setCard = useCabin((state) => state.setClusterCard)
   const gaugePercent = useCabin((state) => state.clusterGaugePercent)
   const setGaugePercent = useCabin((state) => state.setClusterGaugePercent)
+  const accent = useCabin((state) => state.clusterAccent)
+  const setAccent = useCabin((state) => state.setClusterAccent)
+  const tacho = useCabin((state) => state.clusterTacho)
+  const setTacho = useCabin((state) => state.setClusterTacho)
+  const brand = useCabin((state) => state.clusterBrand)
+  const setBrand = useCabin((state) => state.setClusterBrand)
+  const readings = useCabin((state) => state.clusterReadings)
+  const setReading = useCabin((state) => state.setClusterReading)
+  const reset = useCabin((state) => state.resetCluster)
   const names: Record<ClusterCard, { name: string; detail: string }> = {
-    trip: { name: text.diagnostics.trip, detail: text.settings.clusterCardTrip },
-    fuel: { name: text.diagnostics.fuel, detail: text.settings.clusterCardFuel },
-    engine: { name: text.diagnostics.engine, detail: text.settings.clusterCardEngine },
-    hours: { name: text.diagnostics.driverHours, detail: text.settings.clusterCardHours },
-    warnings: { name: text.diagnostics.warnings, detail: text.settings.clusterCardWarnings },
+    trip: { name: words.trip, detail: text.settings.clusterCardTrip },
+    fuel: { name: words.fuel, detail: text.settings.clusterCardFuel },
+    engine: { name: words.engine, detail: text.settings.clusterCardEngine },
+    hours: { name: words.driverHours, detail: text.settings.clusterCardHours },
+    warnings: { name: words.warnings, detail: text.settings.clusterCardWarnings },
+  }
+  // The readings a slot can hold, by the names the Diagnostics app gives them: one list for every slot, so the same
+  // gauge is called the same thing whichever slot it is in.
+  const readingNames: Record<ClusterReading, string> = {
+    oilTemperature: words.oilTemperature,
+    coolant: words.coolant,
+    brakeAir: words.brakeAir,
+    battery: words.battery,
+    adblue: words.adblue,
+    brakeTemperature: words.brakeTemperature,
+    consumption: text.settings.clusterReadingInstant,
+  }
+  const accentNames: Record<ClusterAccent, string> = {
+    route: text.settings.clusterAccentRoute,
+    play: text.settings.clusterAccentPlay,
+    neutral: text.settings.clusterAccentNeutral,
   }
   return (
     <Page title={text.settings.clusterScreen}>
@@ -1014,12 +1064,370 @@ function ClusterPage() {
           ))}
         </Group>
       )}
+      {shown && <ClusterLayoutEditor />}
+      {/* The engine card's three readings, a slot at a time. A reading already in another slot swaps with the one
+          picked, so the card always shows three different gauges — the footer on the first slot says so. */}
+      {shown &&
+        cards.engine &&
+        readings.map((reading, slot) => (
+          <ChoiceRows<ClusterReading>
+            key={slot}
+            header={text.settings.clusterReadingSlot(slot + 1)}
+            footer={slot === 0 ? text.settings.clusterReadingsFooter : undefined}
+            radio={text.settings.clusterReadings}
+            value={reading}
+            options={CLUSTER_READINGS.map((id) => ({ id, label: readingNames[id] }))}
+            onPick={(id) => setReading(slot, id)}
+          />
+        ))}
+      {shown && (
+        <Group header={text.settings.clusterDial} footer={text.settings.clusterDialFooter}>
+          <SwitchRow label={text.settings.clusterTacho} on={tacho} onToggle={setTacho} />
+          <SwitchRow label={text.settings.clusterBrandMark} on={brand} onToggle={setBrand} />
+        </Group>
+      )}
+      {shown && (
+        <ChoiceRows<ClusterAccent>
+          header={text.settings.clusterAccent}
+          footer={text.settings.clusterAccentFooter}
+          radio={text.settings.clusterAccent}
+          value={accent}
+          options={CLUSTER_ACCENTS.map((id) => ({ id, label: accentNames[id] }))}
+          onPick={setAccent}
+        />
+      )}
       {shown && (
         <Group header={text.settings.clusterGauges} footer={text.settings.clusterGaugeFooter}>
           <SwitchRow label={text.settings.clusterGaugePercent} on={gaugePercent} onToggle={setGaugePercent} />
         </Group>
       )}
+      <Group>
+        <button type="button" className="settings-row settings-action" onClick={reset}>
+          {text.settings.resetCluster}
+        </button>
+      </Group>
     </Page>
+  )
+}
+
+/**
+ * The cluster's layout editor (Settings › Instrument Cluster): the two columns either side of the dial, live, with each
+ * card in its place. A card is dragged to a side and a place in it — before or after the card it is dropped on, or at
+ * the foot of a column left empty — and the same moves are offered as rows below for the keyboard, so nothing here
+ * needs a pointer. A card that is turned off still holds its place in the layout, drawn dimmed, ready for its switch.
+ */
+function ClusterLayoutEditor() {
+  const text = useText()
+  const words = text.diagnostics
+  const layout = useCabin((state) => state.clusterLayout)
+  const cards = useCabin((state) => state.clusterCards)
+  const applyLayout = useCabin((state) => state.applyClusterLayout)
+  const units = useUnits()
+  const placeCard = useCabin((state) => state.placeClusterCard)
+  const moveCardTo = useCabin((state) => state.moveClusterCardTo)
+  const moveCard = useCabin((state) => state.moveClusterCard)
+  const names: Record<ClusterSideCard, string> = {
+    trip: words.trip,
+    engine: words.engine,
+    hours: words.driverHours,
+    fuel: words.fuel,
+  }
+  const presetNames: Record<ClusterLayoutPreset, string> = {
+    standard: text.settings.presetClusterStandard,
+    hours: text.settings.presetClusterHours,
+    tank: text.settings.presetClusterTank,
+  }
+  const activePreset =
+    CLUSTER_LAYOUT_PRESETS.find((preset) => matchesClusterLayout(CLUSTER_LAYOUTS[preset], layout)) ?? null
+  const [drag, setDrag] = useState<ClusterCardDrag | null>(null)
+  const press = useRef<ClusterCardPress | null>(null)
+
+  const startDrag = (event: PointerEvent<HTMLDivElement>, card: ClusterSideCard) => {
+    if (event.button !== 0) return
+    // Keep the press's moves and release, even when the cursor leaves the card.
+    event.currentTarget.setPointerCapture(event.pointerId)
+    press.current = { card, pointerId: event.pointerId, x: event.clientX, y: event.clientY, dragging: false }
+  }
+
+  // The pointer's own drag, as the Dashboard's editor takes it: no native HTML5 drag, which WebView2 hands to the OS
+  // and can lose the cabin's press.
+  useEffect(() => {
+    const move = (event: globalThis.PointerEvent) => {
+      const held = press.current
+      if (!held || held.pointerId !== event.pointerId) return
+      if (!held.dragging) {
+        if (Math.hypot(event.clientX - held.x, event.clientY - held.y) < 8) return
+        held.dragging = true
+        setDrag({ card: held.card, over: null, side: null, after: false })
+      }
+      event.preventDefault()
+      const hit = clusterCardUnder(event.clientX, event.clientY)
+      // Over the card in hand itself: nothing to drop on yet, so neither a card nor a column is marked.
+      const side =
+        hit && hit.card === held.card ? null : (hit?.side ?? clusterColumnUnder(event.clientX, event.clientY))
+      setDrag((current) => {
+        if (!current) return current
+        const hitCard = hit && hit.card !== held.card ? hit : null
+        const over = hitCard?.card ?? null
+        const after = hitCard?.after ?? false
+        return current.over === over && current.after === after && current.side === side
+          ? current
+          : { ...current, over, after, side }
+      })
+    }
+    const up = (event: globalThis.PointerEvent) => {
+      const held = press.current
+      if (!held || held.pointerId !== event.pointerId) return
+      press.current = null
+      if (held.dragging) {
+        const hit = clusterCardUnder(event.clientX, event.clientY)
+        if (hit && hit.card === held.card) {
+          // Let go over itself: it stays where it was.
+        } else if (hit) {
+          moveCardTo(held.card, hit.card, hit.after)
+        } else {
+          const side = clusterColumnUnder(event.clientX, event.clientY)
+          if (side !== null) placeCard(held.card, side)
+        }
+      }
+      setDrag(null)
+    }
+    const cancel = (event: globalThis.PointerEvent) => {
+      const held = press.current
+      if (!held || held.pointerId !== event.pointerId) return
+      press.current = null
+      setDrag(null)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+      press.current = null
+    }
+  }, [moveCardTo, placeCard])
+
+  // One column of the preview, as the dash's own stands: the cards on that side in the player's order, each one taken
+  // by the pointer or moved by the arrow keys — up and down its column, left and right across the dial. A card turned
+  // off in the settings keeps its place, dimmed, ready for its switch. The tank's companions close the right column,
+  // where they always are.
+  const column = (side: ClusterSide) => (
+    <div
+      key={side}
+      className="cluster-layout-column"
+      data-cluster-column={side}
+      data-drop={drag?.over === null && drag?.side === side ? 'end' : undefined}
+      role="group"
+      aria-label={side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight}
+    >
+      {layout[side].map((card, place) => (
+        <div
+          key={card}
+          tabIndex={0}
+          className="cluster-layout-card"
+          data-cluster-card={card}
+          data-cluster-side={side}
+          data-off={cards[card] ? undefined : ''}
+          data-dragging={drag?.card === card ? '' : undefined}
+          data-drop={drag?.over === card ? (drag.after ? 'after' : 'before') : undefined}
+          // The card's share of the column, as the panel's own height: the engine's three readings stand taller than
+          // the tank's gauge, and the preview says so before the dash does.
+          style={{ '--card-weight': PREVIEW_WEIGHT[card] } as CSSProperties}
+          aria-label={`${names[card]}, ${
+            side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight
+          } ${place + 1} / ${layout[side].length}`}
+          aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+          onPointerDown={(event) => startDrag(event, card)}
+          onKeyDown={(event) => {
+            const key = event.key
+            if (key === 'ArrowUp') moveCard(card, -1)
+            else if (key === 'ArrowDown') moveCard(card, 1)
+            else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+              const target: ClusterSide = key === 'ArrowLeft' ? 'left' : 'right'
+              if (target === side) return
+              // Across the dial, the card keeps its place in the column: the same number of cards stay above it.
+              placeCard(card, target, place)
+            } else return
+            event.preventDefault()
+            // A card moved to the other column is a new element there: the focus goes across with it.
+            focusClusterCard(card)
+          }}
+        >
+          <span className="cluster-layout-card-head">
+            <span className="cluster-layout-card-glyph" aria-hidden>
+              {PREVIEW_ICON[card]}
+            </span>
+            <span className="cluster-layout-card-name">{names[card]}</span>
+          </span>
+          <span className="cluster-layout-bars" data-card={card} aria-hidden>
+            {PREVIEW_BARS[card].map((width, index) => (
+              <i key={index} style={{ width: `${width}%` }} />
+            ))}
+          </span>
+        </div>
+      ))}
+      {side === 'right' && <ClusterLayoutFixed />}
+    </div>
+  )
+
+  return (
+    <Group header={text.settings.clusterLayout} footer={text.settings.clusterLayoutFooter}>
+      <div className="cluster-layout-editor">
+        <div className="dashboard-layout-presets" role="group" aria-label={text.settings.clusterPresets}>
+          {CLUSTER_LAYOUT_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className="dashboard-layout-preset"
+              aria-pressed={preset === activePreset}
+              onClick={() => applyLayout(CLUSTER_LAYOUTS[preset])}
+            >
+              <ClusterLayoutShot layout={CLUSTER_LAYOUTS[preset]} />
+              <span className="dashboard-preset-copy">
+                <span className="dashboard-preset-name">{presetNames[preset]}</span>
+                {preset === activePreset && (
+                  <span className="dashboard-preset-check" aria-hidden>
+                    <CheckGlyph />
+                  </span>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+        {/* The dash itself, in miniature: its status bar, the two columns and the dial between them. The columns are
+              the layout — a card is put where it is to sit, and the picture is the setting. */}
+        <div className="cluster-layout-preview" role="group" data-own-drag aria-label={text.settings.clusterLayout}>
+          <div className="cluster-layout-rail" aria-hidden>
+            <span className="cluster-layout-lamps">
+              {[0, 1, 2, 3, 4].map((lamp) => (
+                <i key={lamp} />
+              ))}
+            </span>
+            <span className="cluster-layout-route" />
+            <span className="cluster-layout-time">14:22</span>
+          </div>
+          {column('left')}
+          <div className="cluster-layout-dial" aria-hidden>
+            <b className="cluster-layout-speed">87</b>
+            <span className="cluster-layout-unit">{units.labels.speed}</span>
+          </div>
+          {column('right')}
+        </div>
+      </div>
+    </Group>
+  )
+}
+
+/** A card's share of the preview's column: the panels' own heights, near enough — the engine's three readings stand
+ * tallest, the tank's gauge shortest — so the picture says how full a side is before the dash does. */
+const PREVIEW_WEIGHT: Record<ClusterSideCard, number> = {
+  trip: 1.5,
+  engine: 1.9,
+  hours: 1.15,
+  fuel: 1,
+}
+
+/** The mark each card wears in the preview: the same marks the dash draws on its panels. */
+const PREVIEW_ICON: Record<ClusterSideCard, ReactElement> = {
+  trip: <TripIcon />,
+  engine: <GaugeIcon />,
+  hours: <RestIcon />,
+  fuel: <FuelIcon />,
+}
+
+/** The shape of each panel's content, as bars: the trip's figure and its two pairs, the engine's three readings, the
+ * driver's two clocks, and the tank's gauge and foot. Enough to know the panels apart at a glance. */
+const PREVIEW_BARS: Record<ClusterSideCard, readonly number[]> = {
+  trip: [100, 62, 44],
+  engine: [88, 64, 74],
+  hours: [58, 46],
+  fuel: [96, 40],
+}
+
+/** The readings that keep the right side whatever the layout: the tank's companions, drawn under its cards so the
+ * editor shows what shares that column. They are the dash's own, not the player's to move. */
+const FIXED_READINGS = [AdblueIcon, CoolantIcon, BrakeTemperatureIcon, DropIcon, WarningIcon]
+
+function ClusterLayoutFixed() {
+  const text = useText()
+  return (
+    <div className="cluster-layout-fixed" role="note" aria-label={text.settings.clusterLayoutFixed}>
+      <span className="cluster-layout-fixed-name">{text.settings.clusterLayoutFixed}</span>
+      {FIXED_READINGS.map((Icon, index) => (
+        <span className="cluster-layout-fixed-row" key={index}>
+          <Icon />
+          <i />
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** Focus a preview card by name once the layout has been drawn: a card moved across the dial is a new element in the
+ * other column, and the focus goes with it. */
+function focusClusterCard(card: ClusterSideCard): void {
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>(`[data-cluster-card="${card}"]`)?.focus()
+  })
+}
+
+/** A card being picked up in the layout preview, before it is moved far enough to be a drag. */
+interface ClusterCardPress {
+  card: ClusterSideCard
+  pointerId: number
+  x: number
+  y: number
+  dragging: boolean
+}
+
+/** A card being dragged: the card it would drop beside, and the side it is over. */
+interface ClusterCardDrag {
+  card: ClusterSideCard
+  over: ClusterSideCard | null
+  side: ClusterSide | null
+  after: boolean
+}
+
+/** The preview card under a point, and which half of it the point is on: a drop goes before or after it. */
+function clusterCardUnder(x: number, y: number): { card: ClusterSideCard; side: ClusterSide; after: boolean } | null {
+  const element = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-cluster-card]')
+  const card = element?.dataset.clusterCard as ClusterSideCard | undefined
+  const side = element?.dataset.clusterSide as ClusterSide | undefined
+  if (!element || !card || !side) return null
+  const box = element.getBoundingClientRect()
+  return { card, side, after: y > box.top + box.height / 2 }
+}
+
+/** The side of the preview a point is over (`null`: neither column). */
+function clusterColumnUnder(x: number, y: number): ClusterSide | null {
+  const element = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-cluster-column]')
+  const side = element?.dataset.clusterColumn
+  return side === 'left' || side === 'right' ? side : null
+}
+
+/** Whether the panel is already showing exactly this layout: its preset's button says so. */
+function matchesClusterLayout(layout: ClusterLayout, other: ClusterLayout): boolean {
+  return layout.left.join() === other.left.join() && layout.right.join() === other.right.join()
+}
+
+/** A preset's picture: the two columns of the dash's own size, each card a bar, and the dial between them. */
+function ClusterLayoutShot({ layout }: { layout: ClusterLayout }) {
+  return (
+    <span className="cluster-layout-shot" aria-hidden>
+      <span className="cluster-layout-shot-column">
+        {layout.left.map((card) => (
+          <i key={card} />
+        ))}
+      </span>
+      <span className="cluster-layout-shot-dial" />
+      <span className="cluster-layout-shot-column">
+        {layout.right.map((card) => (
+          <i key={card} />
+        ))}
+      </span>
+    </span>
   )
 }
 

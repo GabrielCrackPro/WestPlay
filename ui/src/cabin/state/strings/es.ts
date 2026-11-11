@@ -609,6 +609,33 @@ export const SPANISH_STRINGS: Strings = {
     clusterGaugePercent: 'Porcentajes',
     clusterGaugeFooter:
       'El depósito y el AdBlue muestran qué parte de su capacidad queda, junto a barras que empiezan vacías. Las temperaturas, el consumo y el desgaste mantienen sus cifras.',
+    clusterReadings: 'Lecturas del motor',
+    clusterReadingsFooter:
+      'Las tres lecturas bajo la tarjeta del motor, cada una un indicador que la app Diagnóstico ya mide. Una lectura que ya está en otra casilla intercambia su sitio con la elegida aquí.',
+    clusterReadingSlot: (slot) => `Lectura ${slot}`,
+    clusterReadingInstant: 'Consumo instantáneo',
+    clusterDial: 'Esfera',
+    clusterDialFooter:
+      'El cuentarrevoluciones como una línea fina fuera del anillo de la velocidad, y la marca del fabricante del camión en la banda sobre la velocidad.',
+    clusterTacho: 'Cuentarrevoluciones',
+    clusterBrandMark: 'Marca del fabricante',
+    clusterAccent: 'Color de acento',
+    clusterAccentFooter:
+      'El arco encendido, la aguja y las lecturas activas. Seguir la ruta usa el color elegido para su línea en Mapas.',
+    clusterAccentRoute: 'Seguir la ruta',
+    clusterAccentPlay: 'Cabin Play',
+    clusterAccentNeutral: 'Neutro',
+    clusterLayout: 'Diseño',
+    clusterLayoutFooter:
+      'Arrastra una tarjeta a cualquier lado de la esfera, por encima o por debajo de otra. Con Tab, una tarjeta se mueve con las flechas: arriba y abajo por su columna, izquierda y derecha a través de la esfera. Los testigos de aviso se quedan en la barra superior, y las lecturas del depósito llenan el lado derecho.',
+    clusterLayoutFixed: 'Siempre aquí',
+    clusterPresets: 'Preajustes',
+    presetClusterStandard: 'Estándar',
+    presetClusterHours: 'Horas primero',
+    presetClusterTank: 'Depósito a la izquierda',
+    clusterSideLeft: 'Izquierda',
+    clusterSideRight: 'Derecha',
+    resetCluster: 'Restablecer cuadro de instrumentos',
     saveLayout: 'Guardar diseño actual',
     layoutName: 'Nombre del diseño',
     yourLayouts: 'Tus diseños',

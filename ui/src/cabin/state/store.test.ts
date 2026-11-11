@@ -193,6 +193,101 @@ describe('the saved Settings choices', () => {
     })
   })
 
+  it('swap a reading already on the cluster’s engine card into the slot it is picked for', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    // The card starts oil, air, battery: asking for the battery in the first slot trades it with the oil.
+    useCabin.getState().setClusterReading(0, 'battery')
+    expect(useCabin.getState().clusterReadings).toEqual(['battery', 'brakeAir', 'oilTemperature'])
+  })
+
+  it('keep a saved engine card whole when a reading is missing or unknown', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({ clusterAccent: 'neutral', clusterReadings: ['coolant', 'battery', 'nope'] }),
+    )
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().clusterAccent).toBe('neutral')
+    expect(useCabin.getState().clusterReadings).toEqual(['coolant', 'battery', 'oilTemperature'])
+  })
+
+  it('put the Instrument Cluster page back to a new dash’s choices', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({
+        clusterShown: false,
+        clusterAccent: 'neutral',
+        clusterTacho: false,
+        clusterBrand: false,
+        clusterReadings: ['coolant'],
+      }),
+    )
+    const { useCabin } = await import('./store')
+    useCabin.getState().resetCluster()
+    expect(useCabin.getState()).toMatchObject({
+      clusterShown: true,
+      clusterAccent: 'route',
+      clusterTacho: true,
+      clusterBrand: true,
+      clusterReadings: ['oilTemperature', 'brakeAir', 'battery'],
+      clusterLayout: { left: ['trip', 'engine', 'hours'], right: ['fuel'] },
+    })
+  })
+
+  it('put a cluster card at a place in a column, as the arrow keys do', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    useCabin.getState().placeClusterCard('hours', 'right', 0)
+    expect(useCabin.getState().clusterLayout).toEqual({
+      left: ['trip', 'engine'],
+      right: ['hours', 'fuel'],
+    })
+  })
+
+  it('move a cluster card to the other side of the dial', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    useCabin.getState().placeClusterCard('trip', 'right')
+    expect(useCabin.getState().clusterLayout).toEqual({ left: ['engine', 'hours'], right: ['fuel', 'trip'] })
+  })
+
+  it('move a cluster card up its own column, and nowhere past either end', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    useCabin.getState().moveClusterCard('hours', -1)
+    expect(useCabin.getState().clusterLayout.left).toEqual(['trip', 'hours', 'engine'])
+    useCabin.getState().moveClusterCard('trip', -1)
+    expect(useCabin.getState().clusterLayout.left).toEqual(['trip', 'hours', 'engine'])
+  })
+
+  it('drop a cluster card before another on either side', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { useCabin } = await import('./store')
+    useCabin.getState().moveClusterCardTo('fuel', 'trip', false)
+    expect(useCabin.getState().clusterLayout).toEqual({
+      left: ['fuel', 'trip', 'engine', 'hours'],
+      right: [],
+    })
+    useCabin.getState().moveClusterCardTo('trip', 'hours', true)
+    expect(useCabin.getState().clusterLayout).toEqual({
+      left: ['fuel', 'engine', 'hours', 'trip'],
+      right: [],
+    })
+  })
+
+  it('apply a ready-made cluster layout', async () => {
+    vi.stubGlobal('localStorage', savedStorage({}))
+    const { CLUSTER_LAYOUTS, useCabin } = await import('./store')
+    useCabin.getState().applyClusterLayout(CLUSTER_LAYOUTS.tank)
+    expect(useCabin.getState().clusterLayout).toEqual({ left: ['fuel', 'trip', 'engine'], right: ['hours'] })
+  })
+
+  it('keep a saved cluster layout whole: one of each card, and a missing one back in its column', async () => {
+    vi.stubGlobal('localStorage', savedStorage({ clusterLayout: { left: ['fuel', 'fuel', 'nope'], right: ['trip'] } }))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().clusterLayout).toEqual({ left: ['fuel', 'engine', 'hours'], right: ['trip'] })
+  })
+
   it('drop a Dashboard widget beside another in its order', async () => {
     vi.stubGlobal('localStorage', savedStorage({}))
     const { useCabin } = await import('./store')

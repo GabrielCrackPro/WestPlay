@@ -594,6 +594,33 @@ export const ENGLISH_STRINGS: Strings = {
     clusterGaugePercent: 'Percentages',
     clusterGaugeFooter:
       'The tank and the AdBlue read their share of what they hold, beside bars drawn from empty. Temperatures, consumption and wear keep their own figures.',
+    clusterReadings: 'Engine Readings',
+    clusterReadingsFooter:
+      'The three readings under the engine card, each one a gauge the Diagnostics app keeps. A reading already in another slot trades places with the one picked here.',
+    clusterReadingSlot: (slot) => `Reading ${slot}`,
+    clusterReadingInstant: 'Instant consumption',
+    clusterDial: 'Dial',
+    clusterDialFooter:
+      'The tachometer as a hairline outside the speed’s ring, and the truck’s maker’s mark in the band above the speed.',
+    clusterTacho: 'Tachometer',
+    clusterBrandMark: 'Brand Mark',
+    clusterAccent: 'Accent Colour',
+    clusterAccentFooter:
+      'The lit arc, the needle and the readings that are live. Following the route uses the colour chosen for its line in Maps.',
+    clusterAccentRoute: 'Follow Route',
+    clusterAccentPlay: 'Cabin Play',
+    clusterAccentNeutral: 'Neutral',
+    clusterLayout: 'Layout',
+    clusterLayoutFooter:
+      'Drag a card to either side of the dial, above or below another. With Tab, a card moves with the arrow keys: up and down its column, left and right across the dial. The warning lamps stay in the bar above, and the tank’s own readings fill the right side.',
+    clusterLayoutFixed: 'Always here',
+    clusterPresets: 'Presets',
+    presetClusterStandard: 'Standard',
+    presetClusterHours: 'Hours First',
+    presetClusterTank: 'Tank Left',
+    clusterSideLeft: 'Left',
+    clusterSideRight: 'Right',
+    resetCluster: 'Reset Instrument Cluster',
     saveLayout: 'Save Current Layout',
     layoutName: 'Layout Name',
     yourLayouts: 'Your Layouts',

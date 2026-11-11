@@ -82,6 +82,7 @@ import {
   type Route,
   routeKey,
 } from './navigation'
+import { CLUSTER_ACCENTS, type ClusterAccent } from '../cluster/accent'
 import { isIconStyle, setIcons, useLooks } from './looks'
 import { playVoiceAudio } from '../voice/audio'
 import { receiveVoice, receiveVoiceHotkey } from '../voice/voice'
@@ -134,6 +135,61 @@ const STARTER_CLUSTER_CARDS: Record<ClusterCard, boolean> = {
   hours: true,
   warnings: true,
 }
+
+/** The readings the cluster's engine card can show: three of the truck's gauges, in the player's own order
+ * (Settings › Instrument Cluster). Every one is a reading the Diagnostics app already keeps, so the dash and the app
+ * can't disagree about when something is wrong. */
+export type ClusterReading =
+  'oilTemperature' | 'coolant' | 'brakeAir' | 'battery' | 'adblue' | 'brakeTemperature' | 'consumption'
+
+export const CLUSTER_READINGS: readonly ClusterReading[] = [
+  'oilTemperature',
+  'coolant',
+  'brakeAir',
+  'battery',
+  'adblue',
+  'brakeTemperature',
+  'consumption',
+]
+
+/** The engine card's slots: three readings, as many as the dash has room for. */
+export const CLUSTER_READING_SLOTS = 3
+
+/** The cluster's cards that sit in one of its two side columns (Settings › Instrument Cluster): the trip computer,
+ * the engine's readings, the driver's hours and the tank. The warning lamps stay in the status bar, where a driver
+ * reads them first, and the dial is always the middle. */
+export type ClusterSideCard = 'trip' | 'engine' | 'hours' | 'fuel'
+
+export const CLUSTER_SIDE_CARDS: readonly ClusterSideCard[] = ['trip', 'engine', 'hours', 'fuel']
+
+/** The cluster's two columns, by their side of the dial. */
+export type ClusterSide = 'left' | 'right'
+
+/** Which cards sit either side of the dial, and the order they run down each column. */
+export interface ClusterLayout {
+  left: ClusterSideCard[]
+  right: ClusterSideCard[]
+}
+
+/** A ready-made layout (Settings › Instrument Cluster): the dash as tuned, the driver's clocks read first, and the
+ * tank moved beside the trip computer. Each is drawn to fit the dash's own height: the right column carries one card
+ * beside the tank's readings, which fill it, and the rest keep the left. */
+export type ClusterLayoutPreset = 'standard' | 'hours' | 'tank'
+
+export const CLUSTER_LAYOUT_PRESETS: readonly ClusterLayoutPreset[] = ['standard', 'hours', 'tank']
+
+export const CLUSTER_LAYOUTS: Record<ClusterLayoutPreset, ClusterLayout> = {
+  standard: { left: ['trip', 'engine', 'hours'], right: ['fuel'] },
+  hours: { left: ['hours', 'trip', 'engine'], right: ['fuel'] },
+  tank: { left: ['fuel', 'trip', 'engine'], right: ['hours'] },
+}
+
+/** The dash's own layout: the trip, the engine and the driver's hours down the left, the tank on the right. */
+const STARTER_CLUSTER_LAYOUT: ClusterLayout = CLUSTER_LAYOUTS.standard
+
+/** The readings a dash new from the box draws: the three the card carried before the slots were the player's to
+ * choose. */
+const STARTER_CLUSTER_READINGS: readonly ClusterReading[] = ['oilTemperature', 'brakeAir', 'battery']
 
 /** A ready-made Dashboard column: its order, the widgets shown, and each one's size. */
 export interface DashboardLayout {
@@ -206,6 +262,18 @@ interface CabinState {
    * percentage — instead of the litres in it (Settings › Instrument Cluster). A temperature or a rate has no
    * share of a scale to give: those keep their own figures either way. */
   clusterGaugePercent: boolean
+  /** The accent the cluster draws its live marks in (Settings › Instrument Cluster): the route's own colour, Cabin
+   * Play's, or the panel's ink. */
+  clusterAccent: ClusterAccent
+  /** Whether the cluster draws the tacho as a hairline outside the speed's ring (Settings › Instrument Cluster). */
+  clusterTacho: boolean
+  /** Whether the cluster draws the truck's maker's mark above the speed (Settings › Instrument Cluster). */
+  clusterBrand: boolean
+  /** The three readings on the cluster's engine card, in the order the card draws them (Settings › Instrument
+   * Cluster). */
+  clusterReadings: ClusterReading[]
+  /** Which cards sit either side of the dial, and in what order (Settings › Instrument Cluster). */
+  clusterLayout: ClusterLayout
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
   /** The driver's units (Settings › Appearance › Units): the game's own regional setting, or one chosen here.
@@ -311,6 +379,23 @@ interface CabinState {
   setClusterCard(card: ClusterCard, shown: boolean): void
   /** Reads the cluster's level gauges as percentages, or as the units they hold. */
   setClusterGaugePercent(on: boolean): void
+  setClusterAccent(accent: ClusterAccent): void
+  /** Shows or hides the tacho's ring round the speed's. */
+  setClusterTacho(on: boolean): void
+  /** Shows or hides the truck's maker's mark on the dial. */
+  setClusterBrand(on: boolean): void
+  /** Puts a reading in one of the engine card's slots: a reading already in another slot trades places with it. */
+  setClusterReading(slot: number, reading: ClusterReading): void
+  /** Moves a card up (`by` -1) or down (+1) its own column. */
+  moveClusterCard(card: ClusterSideCard, by: number): void
+  /** Puts a card in a column: at `index` there, or at the foot of it (a drop on the empty glass). */
+  placeClusterCard(card: ClusterSideCard, side: ClusterSide, index?: number): void
+  /** Drops a card before another in the order, or after it (`after`), on whichever side that card is. */
+  moveClusterCardTo(card: ClusterSideCard, target: ClusterSideCard, after: boolean): void
+  /** Applies one of the ready-made layouts. */
+  applyClusterLayout(layout: ClusterLayout): void
+  /** The Instrument Cluster page's choices back to how a new dash comes. */
+  resetCluster(): void
   setClock(clock: Clock): void
   setUnits(units: UnitsChoice): void
   setClockFormat(clockFormat: ClockChoice): void
@@ -397,6 +482,11 @@ type Persisted = Pick<
   | 'clusterShown'
   | 'clusterCards'
   | 'clusterGaugePercent'
+  | 'clusterAccent'
+  | 'clusterTacho'
+  | 'clusterBrand'
+  | 'clusterReadings'
+  | 'clusterLayout'
   | 'clock'
   | 'units'
   | 'clockFormat'
@@ -548,6 +638,11 @@ export const useCabin = create<CabinState>()(
       // The tank and the AdBlue as a share of what they hold: a level reads better as a percentage than as the
       // litres in it (owner 2026-11-11). Either way is a switch in Settings.
       clusterGaugePercent: true,
+      clusterAccent: 'route',
+      clusterTacho: true,
+      clusterBrand: true,
+      clusterReadings: [...STARTER_CLUSTER_READINGS],
+      clusterLayout: copyClusterLayout(STARTER_CLUSTER_LAYOUT),
       clock: 'real',
       units: 'game',
       clockFormat: 'game',
@@ -612,6 +707,64 @@ export const useCabin = create<CabinState>()(
       setClusterShown: (clusterShown) => set({ clusterShown }),
       setClusterCard: (card, shown) => set((state) => ({ clusterCards: { ...state.clusterCards, [card]: shown } })),
       setClusterGaugePercent: (clusterGaugePercent) => set({ clusterGaugePercent }),
+      setClusterAccent: (clusterAccent) => set({ clusterAccent }),
+      setClusterTacho: (clusterTacho) => set({ clusterTacho }),
+      setClusterBrand: (clusterBrand) => set({ clusterBrand }),
+      setClusterReading: (slot, reading) =>
+        set((state) => {
+          const readings = [...state.clusterReadings]
+          if (slot < 0 || slot >= CLUSTER_READING_SLOTS || readings[slot] === reading) return {}
+          const other = readings.indexOf(reading)
+          // A reading can only be in one slot: taking one already on the card swaps the two, so the card always shows
+          // three different gauges and no slot is left empty.
+          if (other >= 0) readings[other] = readings[slot]
+          readings[slot] = reading
+          return { clusterReadings: readings }
+        }),
+      moveClusterCard: (card, by) =>
+        set((state) => {
+          const side = clusterSideOf(state.clusterLayout, card)
+          const column = [...state.clusterLayout[side]]
+          const from = column.indexOf(card)
+          const to = from + by
+          if (from < 0 || to < 0 || to >= column.length) return {}
+          column.splice(from, 1)
+          column.splice(to, 0, card)
+          return { clusterLayout: { ...state.clusterLayout, [side]: column } }
+        }),
+      placeClusterCard: (card, side, index) =>
+        set((state) => {
+          const layout = clusterLayoutWithout(state.clusterLayout, card)
+          const column = [...layout[side]]
+          const at = index === undefined ? column.length : Math.max(0, Math.min(column.length, index))
+          column.splice(at, 0, card)
+          return { clusterLayout: { ...layout, [side]: column } }
+        }),
+      moveClusterCardTo: (card, target, after) =>
+        set((state) => {
+          if (card === target) return {}
+          // The target's column is where the card goes, whichever column it came from: a drag across the dial is one
+          // move, not a move and a reorder.
+          const side = clusterSideOf(state.clusterLayout, target)
+          const layout = clusterLayoutWithout(state.clusterLayout, card)
+          const column = [...layout[side]]
+          const at = column.indexOf(target)
+          if (at < 0) return {}
+          column.splice(at + (after ? 1 : 0), 0, card)
+          return { clusterLayout: { ...layout, [side]: column } }
+        }),
+      applyClusterLayout: (layout) => set({ clusterLayout: copyClusterLayout(layout) }),
+      resetCluster: () =>
+        set({
+          clusterShown: true,
+          clusterCards: { ...STARTER_CLUSTER_CARDS },
+          clusterGaugePercent: true,
+          clusterAccent: 'route',
+          clusterTacho: true,
+          clusterBrand: true,
+          clusterReadings: [...STARTER_CLUSTER_READINGS],
+          clusterLayout: copyClusterLayout(STARTER_CLUSTER_LAYOUT),
+        }),
       setClock: (clock) => set({ clock }),
       setUnits: (units) => {
         set({ units })
@@ -785,8 +938,10 @@ export const useCabin = create<CabinState>()(
       // default column is four now (the players who never chose their own get it). 5: the cab keeps the screen and app
       // it was in only when the companion's switch says to (2026-11-04). 6: Phone comes first on Home (2026-11-05), a
       // saved order moved once to match. 7: the Dashboard's Overview screen and its cards, on by default. 8: the
-      // instrument cluster's switch and cards, on by default.
-      version: 8,
+      // instrument cluster's switch and cards, on by default. 9: the cluster's accent, its dial's tacho and maker's
+      // mark, and the engine card's three readings (2026-11-11), all of which a saved dash takes the new defaults for.
+      // 10: the cluster's layout, its cards either side of the dial (the same day), the dash's own when none was saved.
+      version: 10,
       migrate: (stored, version) => {
         const kept = (stored ?? {}) as Partial<Persisted>
         let next = kept
@@ -823,6 +978,11 @@ export const useCabin = create<CabinState>()(
         clusterShown: state.clusterShown,
         clusterCards: state.clusterCards,
         clusterGaugePercent: state.clusterGaugePercent,
+        clusterAccent: state.clusterAccent,
+        clusterTacho: state.clusterTacho,
+        clusterBrand: state.clusterBrand,
+        clusterReadings: state.clusterReadings,
+        clusterLayout: state.clusterLayout,
         clock: state.clock,
         units: state.units,
         clockFormat: state.clockFormat,
@@ -930,6 +1090,26 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
       boolean
     >
   }
+  if (CLUSTER_ACCENTS.includes(stored.clusterAccent as ClusterAccent)) {
+    result.clusterAccent = stored.clusterAccent as ClusterAccent
+  }
+  if (typeof stored.clusterTacho === 'boolean') result.clusterTacho = stored.clusterTacho
+  if (typeof stored.clusterBrand === 'boolean') result.clusterBrand = stored.clusterBrand
+  if (Array.isArray(stored.clusterReadings)) {
+    const chosen: ClusterReading[] = []
+    for (const reading of stored.clusterReadings) {
+      if (CLUSTER_READINGS.includes(reading) && !chosen.includes(reading) && chosen.length < CLUSTER_READING_SLOTS) {
+        chosen.push(reading)
+      }
+    }
+    // A card saved short a slot (or holding a reading WestPlay no longer has) keeps its own readings and takes the
+    // rest from the dash's own three, so the engine card is never a reading short.
+    for (const reading of STARTER_CLUSTER_READINGS) {
+      if (chosen.length < CLUSTER_READING_SLOTS && !chosen.includes(reading)) chosen.push(reading)
+    }
+    result.clusterReadings = chosen
+  }
+  if (stored.clusterLayout !== undefined) result.clusterLayout = clusterLayoutOf(stored.clusterLayout)
   if (stored.clock === 'game' || stored.clock === 'real') result.clock = stored.clock
   if (stored.units === 'game' || UNIT_SYSTEMS.includes(stored.units as UnitSystem)) {
     result.units = stored.units
@@ -990,6 +1170,52 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))
   }
   return result
+}
+
+/** The column a card is in; one a saved layout lost counts as left. */
+function clusterSideOf(layout: ClusterLayout, card: ClusterSideCard): ClusterSide {
+  return layout.right.includes(card) ? 'right' : 'left'
+}
+
+/** The layout with a card taken out of either column, ready to be put where it was meant to go. */
+function clusterLayoutWithout(layout: ClusterLayout, card: ClusterSideCard): ClusterLayout {
+  return {
+    left: layout.left.filter((each) => each !== card),
+    right: layout.right.filter((each) => each !== card),
+  }
+}
+
+/** A copy, so a preset's own arrays are never written through by a move. */
+function copyClusterLayout(layout: ClusterLayout): ClusterLayout {
+  return { left: [...layout.left], right: [...layout.right] }
+}
+
+/**
+ * A saved layout made whole: a card once (a copy or a name WestPlay doesn't know is dropped), and a card the layout
+ * lost — an older version's dash, or an edited file — back in the column it has always been in, so the dial is never
+ * a side short. Where a card sits among its column's others is the player's, and kept as saved.
+ */
+function clusterLayoutOf(saved: unknown): ClusterLayout {
+  const layout: ClusterLayout = { left: [], right: [] }
+  if (typeof saved === 'object' && saved !== null) {
+    for (const side of ['left', 'right'] as const) {
+      const column = (saved as Partial<Record<ClusterSide, unknown>>)[side]
+      if (!Array.isArray(column)) continue
+      for (const card of column) {
+        const kept = card as ClusterSideCard
+        if (CLUSTER_SIDE_CARDS.includes(kept) && !layout.left.includes(kept) && !layout.right.includes(kept)) {
+          layout[side].push(kept)
+        }
+      }
+    }
+  }
+  for (const card of STARTER_CLUSTER_LAYOUT.left) {
+    if (!layout.left.includes(card) && !layout.right.includes(card)) layout.left.push(card)
+  }
+  for (const card of STARTER_CLUSTER_LAYOUT.right) {
+    if (!layout.left.includes(card) && !layout.right.includes(card)) layout.right.push(card)
+  }
+  return layout
 }
 
 /** Saved layouts from storage, made whole: named, unique, and with every widget in its order and sizes that parse. */
