@@ -598,6 +598,17 @@ export const SPANISH_STRINGS: Strings = {
     clusterCards: 'Mostrar en el cuadro',
     clusterFooter:
       'El cuadro digital de WestPlay, en lugar del propio del camión en los Scania S y R. La velocidad y la marcha siempre están.',
+    clusterCardsFooter:
+      'El cuadro, la ruta de arriba y las lecturas sin tarjeta propia siempre se dibujan. Una tarjeta desactivada deja su sitio a las demás.',
+    clusterCardTrip: 'Distancia desde que arrancó el motor, la media, el tiempo en marcha y el cuentakilómetros.',
+    clusterCardFuel: 'Nivel del depósito, la distancia que queda con él y lo gastado en el viaje.',
+    clusterCardEngine: 'Temperatura del aceite, presión del aire de frenos y voltaje de la batería.',
+    clusterCardHours: 'El próximo descanso y la pausa obligatoria, como los cuenta el juego.',
+    clusterCardWarnings: 'Los testigos del camión: frenos, aire, combustible, AdBlue, batería y presión de aceite.',
+    clusterGauges: 'Indicadores',
+    clusterGaugePercent: 'Porcentajes',
+    clusterGaugeFooter:
+      'El depósito y el AdBlue muestran qué parte de su capacidad queda, junto a barras que empiezan vacías. Las temperaturas, el consumo y el desgaste mantienen sus cifras.',
     saveLayout: 'Guardar diseño actual',
     layoutName: 'Nombre del diseño',
     yourLayouts: 'Tus diseños',

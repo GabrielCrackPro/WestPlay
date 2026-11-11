@@ -578,6 +578,17 @@ export interface Strings {
     clusterSwitch: string
     clusterCards: string
     clusterFooter: string
+    /** The cards a turned-off switch leaves out, said one by one under their names. */
+    clusterCardsFooter: string
+    clusterCardTrip: string
+    clusterCardFuel: string
+    clusterCardEngine: string
+    clusterCardHours: string
+    clusterCardWarnings: string
+    /** The cluster's gauges: a level read as a percentage of what it holds, or as its own units. */
+    clusterGauges: string
+    clusterGaugePercent: string
+    clusterGaugeFooter: string
     /** The player's own Dashboard layouts: naming the current one, saving it, and removing it again. */
     saveLayout: string
     layoutName: string

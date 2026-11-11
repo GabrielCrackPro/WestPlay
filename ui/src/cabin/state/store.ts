@@ -202,6 +202,10 @@ interface CabinState {
    * Dashboard). Only the trucks it is built for show one. */
   clusterShown: boolean
   clusterCards: Record<ClusterCard, boolean>
+  /** Whether the cluster's level gauges read the share of the tank they hold — the fuel and the AdBlue, as a
+   * percentage — instead of the litres in it (Settings › Instrument Cluster). A temperature or a rate has no
+   * share of a scale to give: those keep their own figures either way. */
+  clusterGaugePercent: boolean
   /** The sidebar's clock: the player's own time, or the game's (Settings, Dashboard). */
   clock: Clock
   /** The driver's units (Settings › Appearance › Units): the game's own regional setting, or one chosen here.
@@ -305,6 +309,8 @@ interface CabinState {
   setClusterShown(shown: boolean): void
   /** Shows or hides one of the instrument cluster's cards. */
   setClusterCard(card: ClusterCard, shown: boolean): void
+  /** Reads the cluster's level gauges as percentages, or as the units they hold. */
+  setClusterGaugePercent(on: boolean): void
   setClock(clock: Clock): void
   setUnits(units: UnitsChoice): void
   setClockFormat(clockFormat: ClockChoice): void
@@ -390,6 +396,7 @@ type Persisted = Pick<
   | 'overviewCards'
   | 'clusterShown'
   | 'clusterCards'
+  | 'clusterGaugePercent'
   | 'clock'
   | 'units'
   | 'clockFormat'
@@ -538,6 +545,9 @@ export const useCabin = create<CabinState>()(
       overviewCards: { ...STARTER_OVERVIEW_CARDS },
       clusterShown: true,
       clusterCards: { ...STARTER_CLUSTER_CARDS },
+      // The tank and the AdBlue as a share of what they hold: a level reads better as a percentage than as the
+      // litres in it (owner 2026-11-11). Either way is a switch in Settings.
+      clusterGaugePercent: true,
       clock: 'real',
       units: 'game',
       clockFormat: 'game',
@@ -601,6 +611,7 @@ export const useCabin = create<CabinState>()(
       setOverviewCard: (card, shown) => set((state) => ({ overviewCards: { ...state.overviewCards, [card]: shown } })),
       setClusterShown: (clusterShown) => set({ clusterShown }),
       setClusterCard: (card, shown) => set((state) => ({ clusterCards: { ...state.clusterCards, [card]: shown } })),
+      setClusterGaugePercent: (clusterGaugePercent) => set({ clusterGaugePercent }),
       setClock: (clock) => set({ clock }),
       setUnits: (units) => {
         set({ units })
@@ -811,6 +822,7 @@ export const useCabin = create<CabinState>()(
         overviewCards: state.overviewCards,
         clusterShown: state.clusterShown,
         clusterCards: state.clusterCards,
+        clusterGaugePercent: state.clusterGaugePercent,
         clock: state.clock,
         units: state.units,
         clockFormat: state.clockFormat,
@@ -910,6 +922,7 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     >
   }
   if (typeof stored.clusterShown === 'boolean') result.clusterShown = stored.clusterShown
+  if (typeof stored.clusterGaugePercent === 'boolean') result.clusterGaugePercent = stored.clusterGaugePercent
   if (typeof stored.clusterCards === 'object' && stored.clusterCards !== null) {
     const cards = stored.clusterCards as Partial<Record<ClusterCard, unknown>>
     result.clusterCards = Object.fromEntries(CLUSTER_CARDS.map((card) => [card, cards[card] !== false])) as Record<

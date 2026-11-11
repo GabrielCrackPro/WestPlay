@@ -583,6 +583,17 @@ export const TURKISH_STRINGS: Strings = {
     clusterCards: 'Panelde göster',
     clusterFooter:
       'Scania S ve R’de kamyonun kendi yerine WestPlay’in dijital gösterge paneli. Hız ve vites her zaman görünür.',
+    clusterCardsFooter:
+      'Gösterge, üstündeki rota ve kendi kartı olmayan göstergeler her zaman çizilir. Kapatılan kart yerini diğerlerine bırakır.',
+    clusterCardTrip: 'Motor çalıştığından beri mesafe, ortalaması, hareket süresi ve kilometre sayacı.',
+    clusterCardFuel: 'Depo seviyesi, kalan menzil ve yolculukta yanan yakıt.',
+    clusterCardEngine: 'Yağ sıcaklığı, fren havası basıncı ve akü voltajı.',
+    clusterCardHours: 'Sonraki dinlenme ve zorunlu mola, oyunun saydığı gibi.',
+    clusterCardWarnings: 'Kamyonun uyarı lambaları: fren, hava, yakıt, AdBlue, akü ve yağ basıncı.',
+    clusterGauges: 'Göstergeler',
+    clusterGaugePercent: 'Yüzdeler',
+    clusterGaugeFooter:
+      'Depo ve AdBlue, içindekinin ne kadarının kaldığını gösterir; yanlarındaki çubuklar boştan dolar. Sıcaklıklar, tüketim ve aşınma kendi birimlerini korur.',
     saveLayout: 'Mevcut Yerleşimi Kaydet',
     layoutName: 'Yerleşim Adı',
     yourLayouts: 'Yerleşimleriniz',

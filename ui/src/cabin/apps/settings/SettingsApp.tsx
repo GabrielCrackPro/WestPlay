@@ -971,19 +971,30 @@ function OverviewPage() {
   )
 }
 
-/** The instrument cluster WestPlay replaces on the trucks it is built for: offered or not, and its cards. */
+/**
+ * The instrument cluster WestPlay replaces on the trucks it is built for, in three parts: whether it is drawn at
+ * all, what it carries, and how its gauges read.
+ *
+ * Each card is listed with what it shows under its name, because a dash is not a screen of widgets a driver can
+ * look at while the switch is flipped: "Engine" alone doesn't say that oil temperature, brake air and the battery
+ * leave the dash with it. The readings that are always drawn are said in the cards' note, so nothing is quietly
+ * missing. The gauges' page is the one place the level readings' figure is chosen — a share of the tank, or its
+ * litres — and it applies to the dash and to nothing else (the Diagnostics app keeps its own units).
+ */
 function ClusterPage() {
   const text = useText()
   const shown = useCabin((state) => state.clusterShown)
   const setShown = useCabin((state) => state.setClusterShown)
   const cards = useCabin((state) => state.clusterCards)
   const setCard = useCabin((state) => state.setClusterCard)
-  const names: Record<ClusterCard, string> = {
-    trip: text.diagnostics.trip,
-    fuel: text.diagnostics.fuel,
-    engine: text.diagnostics.engine,
-    hours: text.diagnostics.driverHours,
-    warnings: text.diagnostics.warnings,
+  const gaugePercent = useCabin((state) => state.clusterGaugePercent)
+  const setGaugePercent = useCabin((state) => state.setClusterGaugePercent)
+  const names: Record<ClusterCard, { name: string; detail: string }> = {
+    trip: { name: text.diagnostics.trip, detail: text.settings.clusterCardTrip },
+    fuel: { name: text.diagnostics.fuel, detail: text.settings.clusterCardFuel },
+    engine: { name: text.diagnostics.engine, detail: text.settings.clusterCardEngine },
+    hours: { name: text.diagnostics.driverHours, detail: text.settings.clusterCardHours },
+    warnings: { name: text.diagnostics.warnings, detail: text.settings.clusterCardWarnings },
   }
   return (
     <Page title={text.settings.clusterScreen}>
@@ -991,10 +1002,21 @@ function ClusterPage() {
         <SwitchRow label={text.settings.clusterSwitch} on={shown} onToggle={setShown} />
       </Group>
       {shown && (
-        <Group header={text.settings.clusterCards}>
+        <Group header={text.settings.clusterCards} footer={text.settings.clusterCardsFooter}>
           {CLUSTER_CARDS.map((card) => (
-            <SwitchRow key={card} label={names[card]} on={cards[card]} onToggle={(on) => setCard(card, on)} />
+            <SwitchRow
+              key={card}
+              label={names[card].name}
+              detail={names[card].detail}
+              on={cards[card]}
+              onToggle={(on) => setCard(card, on)}
+            />
           ))}
+        </Group>
+      )}
+      {shown && (
+        <Group header={text.settings.clusterGauges} footer={text.settings.clusterGaugeFooter}>
+          <SwitchRow label={text.settings.clusterGaugePercent} on={gaugePercent} onToggle={setGaugePercent} />
         </Group>
       )}
     </Page>

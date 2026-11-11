@@ -157,12 +157,15 @@ export function Group({
 
 interface RowLabel {
   label: string
+  /** A line under the label saying what the row is for: the cluster's cards, where a switch is worth knowing
+   *  before it is turned off. */
+  detail?: string
   /** A coloured tile with a white glyph before the label (rows on the list have one). */
   tile?: string
   icon?: ReactNode
 }
 
-function RowStart({ label, tile, icon }: RowLabel) {
+function RowStart({ label, detail, tile, icon }: RowLabel) {
   return (
     <>
       {tile && (
@@ -170,7 +173,14 @@ function RowStart({ label, tile, icon }: RowLabel) {
           {icon}
         </span>
       )}
-      <span className="settings-label">{label}</span>
+      {detail ? (
+        <span className="settings-copy">
+          <span className="settings-label">{label}</span>
+          <span className="settings-detail">{detail}</span>
+        </span>
+      ) : (
+        <span className="settings-label">{label}</span>
+      )}
     </>
   )
 }

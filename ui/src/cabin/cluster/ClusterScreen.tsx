@@ -35,7 +35,7 @@ import { useNightDim } from '../state/nightDim'
 import { syncClock, useCabin, useLive } from '../state/store'
 import { routeAccent } from '../maps/routeLook'
 import { ManeuverGlyph } from '../maps/ManeuverGlyph'
-import { guidanceOf } from '../maps/guidance'
+import { guidanceOf, NOW_WITHIN, type Step } from '../maps/guidance'
 import { useClock } from '../state/clock'
 import { clusterTextScale } from '../state/textSize'
 import { useUnits } from '../state/units'
@@ -78,6 +78,7 @@ import {
 } from './ClusterIcons'
 import { useInstantConsumption } from './useInstant'
 import { useLingering } from './useLingering'
+import { useShownAppearance } from './useShownAppearance'
 import { useSmoothed } from './useSmoothed'
 import './cluster.css'
 
@@ -199,6 +200,8 @@ export function ClusterScreen() {
   const clockShift = useLive((state) => state.clockShift)
   const shown = useCabin((state) => state.clusterShown)
   const cards = useCabin((state) => state.clusterCards)
+  // The level gauges as the settings ask (Settings › Instrument Cluster): the share of the tank, or its litres.
+  const gaugePercent = useCabin((state) => state.clusterGaugePercent)
   const reduceMotion = useMotionReduced()
   // The player's Text Size, taken at the panel's own scale (state/textSize.ts): the dash is drawn in the room the
   // step leaves it and zoomed to the texture, so the whole panel answers the setting without ever clipping.
@@ -315,6 +318,13 @@ export function ClusterScreen() {
   // these are hooks' business and stand above the early returns, so every render path calls them in the same order.
   const limit = telemetry ? units.limit(telemetry.navigationSpeedLimit) : 0
   const sign = useLingering(limit > 0 ? limit : null, LIMIT_LEAVE_MS)
+  // The look the cabin asks for, and the look the panel draws in: the two differ only while the panel is coming to a
+  // new one, over the cabin's own change of appearance (useShownAppearance). Called here with the hooks above.
+  const wanted = resolveAppearance(mode, {
+    gameTime: telemetry ? cabClock(telemetry, clockShift) : null,
+    lowBeam: telemetry?.lowBeam ?? false,
+  })
+  const { appearance, appearing } = useShownAppearance(wanted, reduceMotion)
 
   // Switched off in Settings: the game's own cluster shows through the transparent texture.
   if (!shown) return null
@@ -323,6 +333,10 @@ export function ClusterScreen() {
 
   const t = telemetry
   const speed = t ? units.speed(t.speed) : 0
+  // Over the road's limit, which is the figure's own state and nothing else's: the sign under it states the limit the
+  // road has and stays the sign it is, so the only thing that changes on the face is the number being read. A route
+  // that has stopped knowing a limit keeps its sign for one fade, and the figure with it.
+  const over = sign.value !== null && speed > sign.value
   const gear = formatGear(t?.displayedGear ?? 0)
   const rpm = t ? Math.max(0, Math.min(1, t.engineRpm / RPM_MAX)) : 0
   // The truck's dash dimmer, 0 (all the way down) to 1 (full), as the panel's own lighting. A host that doesn't send
@@ -382,6 +396,15 @@ export function ClusterScreen() {
   const fuelFigure = units.volumeFigure(t?.fuel ?? 0, text.decimal)
   const usedFigure = units.volumeFigure(trip.fuel, text.decimal)
   const adblueFigure = units.volumeFigure(t?.adblue ?? 0, text.decimal)
+  // The figures the two level gauges print. A level is a share of what its tank holds, which is what the bar beside
+  // it draws, so the settings can read it as that share — the one reading a driver can put against the bar without
+  // working out the tank's capacity. Only the two quantities have a share to give: a temperature or a rate is a
+  // point on a scale, not a part of it, and keeps its own figure either way. A truck whose tank the game doesn't
+  // measure keeps its litres rather than claiming an empty tank.
+  const fuelValue: Figure =
+    gaugePercent && fuelShare !== null ? { value: String(Math.round(fuelShare * 100)), unit: '%' } : fuelFigure
+  const adblueValue: Figure =
+    gaugePercent && adblue !== null ? { value: String(Math.round(adblue.percent * 100)), unit: '%' } : adblueFigure
   const oilFigure = units.temperatureFigure(t?.oilTemperature ?? 0, text.decimal)
   const airFigure = units.pressureFigure(t?.brakeAirPressure ?? 0, text.decimal)
   const heatFigure = units.temperatureFigure(t?.brakeTemperature ?? 0, text.decimal)
@@ -403,21 +426,33 @@ export function ClusterScreen() {
   // The turn the route takes next, from the cab's own guidance (maps/guidance.ts) — the same step, and therefore the
   // same glyph, that the map's guidance card draws, so the dash and the screen can't point two ways. It needs the
   // route's turns: an empty list means the host hasn't read them yet, and the line keeps its route mark until it has.
-  const step =
+  const guidance =
     route && route.maneuvers.length > 0
-      ? (guidanceOf(route.distances, route.maneuvers, routeNext, t?.navigationDistance ?? 0)?.step ?? null)
+      ? guidanceOf(route.distances, route.maneuvers, routeNext, t?.navigationDistance ?? 0)
       : null
+  const step = guidance?.step ?? null
+  // How far to that turn, so the arrow has a scale and not only a shape: the arrow alone says which way, never
+  // whether the road there is 20 m or two kilometres off. It is "Now" inside the junction (the same 30 m the map's
+  // own card counts it at, guidance.ts) and the driver's units until then. Arriving is the one step whose distance
+  // the line already has — it is the distance left to the destination — so the arrival mark carries the flag and the
+  // trip's own figures rather than the same number twice.
+  const turnDistance =
+    guidance === null || guidance.step.kind === 'arrive'
+      ? null
+      : guidance.distance < NOW_WITHIN
+        ? text.now
+        : units.distance(guidance.distance, text.decimal)
+  // What a reader hears of the line, in the order a driver reads it: the step and how far, the destination, the
+  // distance left, and when the route gets there. The arrow itself is a drawing with no name, so the words of the
+  // step are said here rather than left to the glyph.
   const routeLabel = [
+    step ? [stepWords(step, text), turnDistance].filter(Boolean).join(' · ') : '',
     destination,
     routeDistance !== null ? units.distance(routeDistance, text.decimal) : '',
     routeArrival !== null ? `${text.arrival} ${formatGameTime(routeArrival)}` : '',
   ]
     .filter(Boolean)
     .join(' · ')
-  const appearance = resolveAppearance(mode, {
-    gameTime: t ? cabClock(t, clockShift) : null,
-    lowBeam: t?.lowBeam ?? false,
-  })
   // The mark beside the track: the app it plays from, in the icon set the screen's own grid draws (the game's radio
   // and a stream from an app the cabin doesn't know have no mark of its own, so the note stands in).
   const playsFrom = nowPlaying?.app ? (PLAYS_FROM[nowPlaying.app] ?? null) : null
@@ -441,6 +476,7 @@ export function ClusterScreen() {
       <main
         className="cluster cluster-off"
         data-appearance={appearance}
+        data-appearing={appearing ? '' : undefined}
         aria-label={text.settings.clusterScreen}
         style={panelStyle}
       >
@@ -588,6 +624,7 @@ export function ClusterScreen() {
     <main
       className="cluster"
       data-appearance={appearance}
+      data-appearing={appearing ? '' : undefined}
       data-alarm={notice?.tone === 'alarm' ? '' : undefined}
       aria-label={text.settings.clusterScreen}
       style={panelStyle}
@@ -622,7 +659,7 @@ export function ClusterScreen() {
               : ''}
           </p>
           {/* The route keeps its place whether or not the cab has something to say: a message must not cost the
-              driver the distance and the ETA. It only has to fit between the lights. */}
+              driver the next turn, the distance or the ETA. It only has to fit between the lights. */}
           <motion.div
             className="cluster-route"
             aria-label={routeLabel || undefined}
@@ -632,9 +669,12 @@ export function ClusterScreen() {
           >
             {routeLabel ? (
               <>
-                {step ? <ManeuverGlyph step={step} size={20} /> : <RangeIcon />}
-                {destination && <b>{destination}</b>}
-                {routeDistance !== null && <span>{units.distance(routeDistance, text.decimal)}</span>}
+                {step ? <ManeuverGlyph step={step} size={22} /> : <RangeIcon />}
+                {turnDistance !== null && <b className="cluster-route-turn">{turnDistance}</b>}
+                {destination && <b className="cluster-route-dest">{destination}</b>}
+                {routeDistance !== null && (
+                  <span className="cluster-route-left">{units.distance(routeDistance, text.decimal)}</span>
+                )}
                 {routeArrival !== null && (
                   <span className="cluster-route-eta">
                     <ClockIcon />
@@ -830,8 +870,9 @@ export function ClusterScreen() {
 
             {/* The face reads the limit with the speed it applies to: the sign hangs under the figure's own unit, so
                 "80" under "87 km/h" is one reading rather than two a glance has to put together across the panel.
-                The whole face is hidden from the reader (the section above says the speed and the limit as words), so
-                the sign needs no name of its own here. */}
+                The sign is always drawn, lit or not — it holds its slot so the reading never moves as a zone begins
+                or ends (cluster.css, `.cluster-limitsign`) — and the whole face is hidden from the reader (the
+                section above says the speed and the limit as words), so the sign needs no name of its own here. */}
             <section
               className="cluster-dial"
               aria-label={
@@ -849,32 +890,44 @@ export function ClusterScreen() {
                 {/* The maker's mark, in the band of air above the figure: what the ring's printed scale left behind.
                     It fades in with the rest of the face's parts, and the stylesheet sizes it to that band. */}
                 <ClusterBrand reduced={reduceMotion} />
-                <ClusterDial speedShare={speedShare} rpm={rpm} limit={limit} max={face.max} reduced={reduceMotion} />
+                <ClusterDial
+                  speedShare={speedShare}
+                  rpm={rpm}
+                  limit={limit}
+                  cruise={cruise}
+                  max={face.max}
+                  reduced={reduceMotion}
+                />
                 {/* The face reads top to bottom: the mark, the figure, its unit, the road's limit, and the gear in the
                     ring's open bottom. */}
                 <div className="cluster-speed" aria-hidden>
-                  <strong key={Math.round(speed)} className="cluster-speed-value">
+                  <strong
+                    key={Math.round(speed)}
+                    className="cluster-speed-value"
+                    data-over={over ? '' : undefined}
+                  >
                     {speed}
                   </strong>
                   <span>{units.labels.speed}</span>
-                  {sign.value !== null && (
-                    <motion.span
-                      className="cluster-limitsign"
-                      data-over={speed > sign.value ? '' : undefined}
-                      data-leaving={sign.leaving ? '' : undefined}
-                      initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: sign.leaving ? 0 : 1, scale: 1 }}
-                      transition={
-                        reduceMotion
-                          ? { duration: 0 }
-                          : sign.leaving
-                            ? { duration: 0.42, ease: motionEase }
-                            : { duration: 0.34, delay: 0.14, ease: motionEase }
-                      }
-                    >
-                      <b>{sign.value}</b>
-                    </motion.span>
-                  )}
+                  <motion.span
+                    className="cluster-limitsign"
+                    data-empty={sign.value === null ? '' : undefined}
+                    data-leaving={sign.leaving ? '' : undefined}
+                    initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+                    animate={{
+                      opacity: sign.value === null || sign.leaving ? 0 : 1,
+                      scale: sign.value === null ? 0.8 : 1,
+                    }}
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : sign.leaving
+                          ? { duration: 0.42, ease: motionEase }
+                          : { duration: 0.34, delay: 0.14, ease: motionEase }
+                    }
+                  >
+                    <b>{sign.value ?? ''}</b>
+                  </motion.span>
                 </div>
                 {/* The needle never sweeps the bottom of the face (the arc's gap is there), so the gear keeps the
                     open bottom under the figure. Keyed by the gear, so each change settles into place the way a
@@ -925,15 +978,20 @@ export function ClusterScreen() {
                   </span>
                   <div
                     className="cluster-meter"
+                    data-scale="level"
                     data-hot={fuel?.state === 'warn' ? '' : undefined}
                     data-low={fuel?.state === 'alarm' ? '' : undefined}
                     {...meterZone(fuel, 'low')}
                   >
                     <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
                   </div>
-                  <strong className="cluster-gauge-value">
-                    {t ? fuelFigure.value : '—'}
-                    <small>{fuelFigure.unit}</small>
+                  <strong
+                    className="cluster-gauge-value"
+                    data-hot={fuel?.state === 'warn' ? '' : undefined}
+                    data-warn={fuel?.state === 'alarm' ? '' : undefined}
+                  >
+                    {t ? fuelValue.value : '—'}
+                    <small>{fuelValue.unit}</small>
                   </strong>
                 </div>
                 <div
@@ -959,12 +1017,16 @@ export function ClusterScreen() {
                 <span className="cluster-glyph" data-warn={adblue?.state === 'alarm' ? '' : undefined} aria-hidden>
                   <AdblueIcon />
                 </span>
-                <strong>
-                  {t ? adblueFigure.value : '—'}
-                  <small>{adblueFigure.unit}</small>
+                <strong
+                  data-hot={adblue?.state === 'warn' ? '' : undefined}
+                  data-warn={adblue?.state === 'alarm' ? '' : undefined}
+                >
+                  {t ? adblueValue.value : '—'}
+                  <small>{adblueValue.unit}</small>
                 </strong>
                 <div
                   className="cluster-meter"
+                  data-scale="level"
                   data-hot={adblue?.state === 'warn' ? '' : undefined}
                   data-low={adblue?.state === 'alarm' ? '' : undefined}
                   {...meterZone(adblue, 'low')}
@@ -1191,8 +1253,10 @@ interface ClusterDialProps {
   speedShare: number
   /** The engine's share of its own scale, 0 to 1. */
   rpm: number
-  /** The limit the route knows, in the face's own units (0 when there is none): marked on the ring. */
+  /** The limit the route knows, in the face's own units (0 when there is none): marked across the ring. */
   limit: number
+  /** The speed the cruise is holding, in the face's own units (0 when it holds none): marked inside the ring. */
+  cruise: number
   /** The face's top speed, in the driver's units: the end of the ring the arc fills towards. */
   max: number
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
@@ -1204,8 +1268,8 @@ interface ClusterDialProps {
  * hairline outside it. There is no scale printed on the face — no numbers, no ticks, no comb of dots. Those were a
  * second reading of the same thing: the figure at the centre already says the speed exactly, and a ring of numbers
  * beside it made the eye choose between them from across the cab, with the marks between the two crossing the digits.
- * The arc answers the one question the ring is for — how far up the truck's speed is — and the limit is the only mark
- * it carries.
+ * The arc answers the one question the ring is for — how far up the truck's speed is — and the ring carries just two
+ * marks: the road's limit across it, and the speed the cruise is holding inside it.
  *
  * It is a component of its own because it keeps a clock of its own: `useSmoothed` carries the two readings towards the
  * truck's a frame at a time, and only this SVG is redrawn while they travel — the panels, the route and the notices
@@ -1217,13 +1281,16 @@ interface ClusterDialProps {
  * the glass when the boot is over, which is what puts that sweep where the driver can see it rather than behind the
  * splash.
  */
-const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, reduced }: ClusterDialProps) {
+const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, cruise, max, reduced }: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
   const shownSpeed = useSmoothed(speedShare, { from: 1, hold: SWEEP_HOLD_MS, sweep: SWEEP_MS })
   const shownRpm = useSmoothed(rpm)
   // The limit's mark: the sign's own clock (LIMIT_LEAVE_MS), so the mark and the sign leave the panel together. A
   // limit past the face's top speed has no place on this face and so isn't marked at all.
   const mark = useLingering(limit > 0 && limit <= max ? limit : null, LIMIT_LEAVE_MS)
+  // The cruise's mark, by the same rules: the speed it holds, kept for one fade after the cruise is switched off,
+  // and no mark at all for a set speed past the face's top (there is nowhere on this face to put it).
+  const cruiseMark = useLingering(cruise > 0 && cruise <= max ? cruise : null, CRUISE_LEAVE_MS)
 
   // The face's parts each fade in at their own moment, on the groove's own clock: the remount as the boot clears plays
   // them once per boot. Reduced motion brings the whole face up at rest.
@@ -1257,6 +1324,27 @@ const ClusterDial = memo(function ClusterDial({ speedShare, rpm, limit, max, red
         style={{ strokeLinecap: shownSpeed > 0 ? 'round' : 'butt' }}
         {...marks(0.06, 0.3)}
       />
+      {/* The speed the cruise is holding, as a notch inside the ring where that speed falls: the arc says how fast
+          the truck is going, and this says the speed it is being held at, so the two read against each other without
+          leaving the face. It points in from the ring rather than crossing it, because the one mark that crosses the
+          ring is the road's limit; and it is drawn under the limit's group, so the road's mark stays on top if the two
+          ever fall together. Its angle is a transform the stylesheet transitions, so a set speed changed by a step
+          slides round the face, and it is held for one fade after the cruise is off, as the limit's mark is. */}
+      {cruiseMark.value !== null && (
+        <motion.g
+          className="cluster-dial-cruise"
+          data-leaving={cruiseMark.leaving ? '' : undefined}
+          style={{
+            transform: `rotate(${DIAL_START + 90 + DIAL_SWEEP_DEGREES * (cruiseMark.value / max)}deg)`,
+            transformOrigin: '150px 150px',
+          }}
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: cruiseMark.leaving ? 0 : 1 }}
+          transition={reduced ? { duration: 0 } : { duration: 0.42, ease: motionEase }}
+        >
+          <line className="cluster-dial-cruise-mark" x1="150" y1={150 - 126} x2="150" y2={150 - 114} />
+        </motion.g>
+      )}
       {/* The limit where it falls on the ring, drawn over the lit arc so passing it reads as passing it: the sign
           under the figure says what the limit is, and this says where it is on the truck's own speed. It is a mark
           across the ring rather than a second scale, as a bar prints its threshold line across itself, with the band
@@ -1620,6 +1708,9 @@ const SWEEP_MS = 520
 /* How long the speed limit's sign and its mark on the scale take to leave the panel once the route stops knowing a
    limit: long enough to read as a fade, short enough that the mark isn't still there on the next road. */
 const LIMIT_LEAVE_MS = 420
+/* How long the cruise's mark takes to leave the face once the cruise is switched off: one fade, and a little shorter
+   than the limit's — the driver has just pressed the button, so there is nothing in its going to be read. */
+const CRUISE_LEAVE_MS = 320
 /* The dash's bulb check, as the boot clears: long enough for every lamp to be seen in its colour, short enough that a
    real warning isn't held off the glass behind it. `cluster.css` runs the lit state over the same window. */
 const BULB_CHECK_MS = 1500
@@ -1642,6 +1733,14 @@ function driveTime(seconds: number, words: Strings['diagnostics']): Figure {
   const whole = Math.max(0, Math.round(seconds / 60))
   if (whole < 60) return { value: String(whole), unit: words.minutes }
   return { value: `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`, unit: words.hours }
+}
+
+/** What a step is, in the cab's own words (the same words the map's guidance card says, GuidanceCard): a turn, a
+ *  roundabout's exit, or arriving. The cluster draws the step as its arrow, so this is for the reader's label. */
+function stepWords(step: Step, text: Strings): string {
+  if (step.kind === 'arrive') return text.arrive
+  const { turn, exit } = step.maneuver
+  return turn === 'roundabout' ? text.roundabout(exit ?? 1) : text.turns[turn]
 }
 
 function minutes(value: number, words: Strings['diagnostics']): string {

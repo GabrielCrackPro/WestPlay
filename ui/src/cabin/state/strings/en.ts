@@ -583,6 +583,17 @@ export const ENGLISH_STRINGS: Strings = {
     clusterCards: 'Show on the Cluster',
     clusterFooter:
       'WestPlay’s digital cluster, in place of the truck’s own on the Scania S and R. Its speed and gear are always there.',
+    clusterCardsFooter:
+      'The dial, the route above it and the readings with no card of their own are always drawn. A card turned off leaves its room to the others.',
+    clusterCardTrip: 'Distance since the engine started, the average, the time moving and the odometer.',
+    clusterCardFuel: 'Tank level, the distance left on it and what the trip has burned.',
+    clusterCardEngine: 'Oil temperature, brake air pressure and battery voltage.',
+    clusterCardHours: 'The next rest stop and the mandatory break, as the game counts them.',
+    clusterCardWarnings: 'The truck’s warning lamps: brakes, air, fuel, AdBlue, battery and oil pressure.',
+    clusterGauges: 'Gauges',
+    clusterGaugePercent: 'Percentages',
+    clusterGaugeFooter:
+      'The tank and the AdBlue read their share of what they hold, beside bars drawn from empty. Temperatures, consumption and wear keep their own figures.',
     saveLayout: 'Save Current Layout',
     layoutName: 'Layout Name',
     yourLayouts: 'Your Layouts',

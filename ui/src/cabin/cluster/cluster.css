@@ -45,6 +45,119 @@ body,
 }
 
 /*
+ * The look's colours, registered so the browser can carry them from one look to the other: a custom property it hasn't
+ * been told the shape of is a token it swaps out, not a value it can move through. Registered, each is a colour, and
+ * because every reading, hairline, bar, telltale, glow and gradient in this sheet is built on these few handles, one
+ * transition on the panel (`.cluster[data-appearing]`, below) carries the whole display at once. The initial values
+ * are the dark look's — the look the panel opens in — and only stand where a rule reads one of these outside the
+ * panel, which none does. A browser without `@property` drops these rules and keeps the panel snapping between looks
+ * as it did before; nothing reads the registration itself.
+ */
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #05090e;
+}
+
+@property --surface-top {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0a0f16;
+}
+
+@property --glow-warm {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(40 92 112 / 0.22);
+}
+
+@property --glow-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(90 215 198 / 0.045);
+}
+
+@property --ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f1f6f9;
+}
+
+@property --dim {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8b9ba8;
+}
+
+@property --line {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.09);
+}
+
+@property --track {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.11);
+}
+
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5ad7c6;
+}
+
+@property --accent-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5b9dff;
+}
+
+@property --ok {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #66d69b;
+}
+
+@property --warn {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffbe55;
+}
+
+@property --danger {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff6a61;
+}
+
+@property --urea {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #62a8ff;
+}
+
+@property --cold {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6fb6ff;
+}
+
+@property --bar {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(232 242 247 / 0.66);
+}
+
+/* The panel's brightness, a number rather than a colour: the looks set a different floor under the dimmer (a lit
+   panel reads darker on a dark look, dimmer on a light one), so it is carried with the rest. */
+@property --panel-dim {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+/*
  * The instrument cluster, laid out at 1280 x 480 as the Scania Smart Dash: the lights on the left of the top line,
  * the route in the space between them, the warnings on its right and the clock at its end; the trip, the engine and
  * the driver's clocks on the left; the newest cab message on a line of its own over the dial, the dial, and one
@@ -70,12 +183,23 @@ body,
   --danger: #ff6a61;
   --urea: #62a8ff;
   --cold: #6fb6ff;
+  /* The road's own red: the sign's ring and its figure, the mark across the ring, and the speed figure while the
+     truck is over the limit. One colour, so the whole "over the limit" state reads as one thing. */
+  --limit: #e3141b;
   /* The panel's own lighting, as the truck's dimmer leaves it (--cluster-backlight is set from the dashboard's own
      reading, cluster/ClusterScreen.tsx): one pull on the brightness of everything the panel lights, never below a
      readable floor. The telltales and the notice line are deliberately not part of it — see the rule below. */
   --panel-dim: calc(0.35 + 0.65 * var(--cluster-backlight, 1));
   /* A gauge's fill, before any state gives it a colour: the dash's bars are white, not the accent. */
   --bar: rgb(232 242 247 / 0.66);
+  /* The panel's own surface, in three parts: the top of the glass, and the two washes over it — the warm one it
+     lifts from at the bottom and the accent's own faint tint in the middle. They are properties rather than a
+     gradient written into each look, because a change of look has to be able to carry them: a gradient can't be
+     animated, but the colours it is built from can, so the panel's whole surface comes across with the rest. The
+     shape stays the same in both looks for that reason. */
+  --surface-top: #0a0f16;
+  --glow-warm: rgb(40 92 112 / 0.22);
+  --glow-accent: rgb(90 215 198 / 0.045);
 
   position: relative;
   box-sizing: border-box;
@@ -88,9 +212,9 @@ body,
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(65% 120% at 50% 120%, rgb(40 92 112 / 0.22), transparent 65%),
-    radial-gradient(45% 65% at 50% 45%, rgb(90 215 198 / 0.045), transparent 65%),
-    linear-gradient(180deg, #0a0f16, var(--bg));
+    radial-gradient(65% 120% at 50% 120%, var(--glow-warm), transparent 65%),
+    radial-gradient(45% 65% at 50% 45%, var(--glow-accent), transparent 65%),
+    linear-gradient(180deg, var(--surface-top), var(--bg));
   color: var(--ink);
   font-family: 'Instrument Sans Variable', 'Inter Variable', sans-serif;
   font-variant-numeric: tabular-nums;
@@ -117,9 +241,46 @@ body,
   --cold: #1a5fbf;
   --panel-dim: calc(0.55 + 0.45 * var(--cluster-backlight, 1));
   --bar: rgb(14 25 33 / 0.55);
-  background:
-    radial-gradient(75% 120% at 50% 125%, rgb(255 255 255 / 0.98), transparent 55%),
-    linear-gradient(180deg, #fafcfe, var(--bg));
+  --surface-top: #fafcfe;
+  /* The light glass lifts from a white glow and carries no tint of the accent: the same two washes, one of them
+     taken out rather than the layer dropped, so the panel keeps one shape as the look changes. */
+  --glow-warm: rgb(255 255 255 / 0.98);
+  --glow-accent: transparent;
+}
+
+/*
+ * The change of look, as the cabin makes it (shell/transitions.css, `.shell.appearing`): the panel's surfaces come
+ * to their new colour first, then its lines, then its ink, each over 420ms on the cabin's own curve — so the display
+ * the driver is looking at changes on the same beat as the screen beside it instead of flipping between looks while
+ * the cabin fades. The page puts `data-appearing` on the panel for that one breath (useShownAppearance): it is on
+ * before the look changes and taken off after, so the accent's own changes (a new route colour) stay instant the rest
+ * of the time, and the driver's dimmer keeps moving the panel as directly as it always has.
+ */
+.cluster[data-appearing] {
+  transition:
+    --surface-top 420ms var(--motion-ease) 40ms,
+    --glow-warm 420ms var(--motion-ease) 40ms,
+    --glow-accent 420ms var(--motion-ease) 40ms,
+    --bg 420ms var(--motion-ease) 40ms,
+    --bar 420ms var(--motion-ease) 40ms,
+    --panel-dim 420ms var(--motion-ease) 40ms,
+    --line 420ms var(--motion-ease) 80ms,
+    --track 420ms var(--motion-ease) 80ms,
+    --accent 420ms var(--motion-ease) 120ms,
+    --accent-2 420ms var(--motion-ease) 120ms,
+    --ok 420ms var(--motion-ease) 120ms,
+    --warn 420ms var(--motion-ease) 120ms,
+    --danger 420ms var(--motion-ease) 120ms,
+    --urea 420ms var(--motion-ease) 120ms,
+    --cold 420ms var(--motion-ease) 120ms,
+    --ink 420ms var(--motion-ease) 160ms,
+    --dim 420ms var(--motion-ease) 160ms;
+}
+
+/* The brand's mark flips with the look — white line art on the dark panel, black on the light one — so it breathes
+   with the rest. It is a filter rather than a colour, so it needs a transition of its own. */
+.cluster[data-appearing] .cluster-brand img {
+  transition: filter 420ms var(--motion-ease) 60ms;
 }
 
 /* --- The icons' weight --------------------------------------------------------------------------- */
@@ -149,9 +310,13 @@ body,
 .cluster-phone svg,
 .cluster-pill svg,
 .cluster-readout .cluster-glyph svg,
-.cluster-retarder svg,
-.cluster-route > svg {
+.cluster-retarder svg {
   stroke-width: 1.95;
+}
+
+/* The route's arrow, drawn one step larger than the row's marks (22px): the same hairline at its new size. */
+.cluster-route > svg {
+  stroke-width: 2.15;
 }
 
 .cluster-brake-head .cluster-glyph svg {
@@ -754,14 +919,29 @@ body,
   white-space: nowrap;
 }
 
-/* The route's own line, centred in the space the lights and the clock leave: kept whether or not it has words. */
+/*
+ * The route's own line, centred in the space the lights and the clock leave: kept whether or not it has words.
+ *
+ * It reads in two groups, in the order a driver needs them: where the road turns next and how far (the arrow and
+ * the figure right of it, both in the route's own colour — the one thing on this line that is acted on now), then
+ * the trip (the destination, the distance left and the hour the route gets there). The destination used to be the
+ * loudest thing here, set in ink while the distance left was grey: a glance across the cab took in where the truck
+ * was going and not how far it still had to go. Now the figure the driver acts on is the largest, the trip's own
+ * numbers are ink, and the arrival keeps the grey — it is the one of the three that is read, not acted on.
+ *
+ * The row is a single line and the panel is only so wide between the lamp rows, so the destination is the one piece
+ * that gives: it is cut with an ellipsis when a language's names run long, and the row clips rather than ever
+ * reaching under the warnings. The distances are set in tabular figures, as the dial's speed is, so a figure
+ * counting down does not shuffle the line sideways with it.
+ */
 .cluster-route {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+  overflow: hidden;
   color: var(--dim);
   font-size: var(--type-sm);
   font-weight: 550;
@@ -769,13 +949,28 @@ body,
 
 .cluster-route > svg {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   color: var(--accent);
 }
 
-.cluster-route b {
-  max-width: 230px;
+/* How far to the next turn: with the arrow, the half of the step a driver acts on. It takes the accent because it
+   is the route's, not a state's, and a step of type above the trip's figures because it is the line's live half. */
+.cluster-route-turn {
+  flex: none;
+  color: var(--accent);
+  font-size: var(--type-md);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Where the truck is going. It is set off from the turn's group by a few more pixels than the line's own gap, so
+   the arrow and its distance read as one thing and the trip as another. */
+.cluster-route-dest {
+  max-width: 200px;
+  margin-left: 5px;
   overflow: hidden;
   color: var(--ink);
   font-weight: 600;
@@ -783,14 +978,21 @@ body,
   white-space: nowrap;
 }
 
-.cluster-route > span {
+/* The distance still to run, and the hour the route arrives at. */
+.cluster-route-left {
+  flex: none;
+  color: var(--ink);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .cluster-route-eta {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .cluster-route-eta svg {
@@ -838,6 +1040,18 @@ body,
   stroke-width: 2;
 }
 
+/* The pill's slot is held when cruise is off, so the clock doesn't jump when it comes on, and nothing at all is drawn
+   until the truck has a speed set: the pill used to read "0" for the whole drive — a number the truck was not
+   holding, next to the clock as if it were one of the truck's own states. */
+.cluster-cruise {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity 220ms var(--motion-ease),
+    transform 220ms var(--motion-ease);
+}
+
 .cluster-cruise b {
   min-width: 2.4ch;
   text-align: right;
@@ -883,53 +1097,48 @@ body,
   font-weight: 550;
 }
 
-/* The speed limit the truck's navigation knows, as a road sign: white, ringed in red, red over the limit. It hangs
-   under the figure's unit rather than in the status line, so the speed and the road's limit are one reading: the
-   number, its unit, and the sign it is measured against, top to bottom in the middle of the face. Drawn flat — a
-   hairline ring and a numeral, no sheen and no light around it at rest — because this is the panel's red, printed on
-   the panel, and a sign that glowed whenever a limit was known made the limit look like a warning. The glow is kept
-   for the one state that is one: being over it. */
-.cluster-limitsign {
+/* The speed limit the truck's navigation knows, as a road sign: white, ringed in red. It hangs under the figure's
+   unit rather than in the status line, so the speed and the road's limit are one reading: the number, its unit, and
+   the sign it is measured against, top to bottom in the middle of the face. Drawn flat — a hairline ring and a
+   numeral, no sheen and no light around it — because this is the panel's red, printed on the panel, and a sign that
+   glowed whenever a limit was known made the limit look like a warning. It stays flat while the truck is over it too
+   (owner 2026-11-11: "cluster speed limit should not turn red if passed"): the sign states the limit the road has,
+   and being over it is the figure's own state, in this same red, above it.
+ *
+ * It is drawn at the size a driver reads it from the seat, not as a mark to be found: a 50px disc with a 22px figure,
+ * where it was a 34px one with the panel's 14px unit type (owner 2026-11-11: "make the cluster speed limit bigger so
+ * its easier to read, now is hard to see the number when driving"). The selector carries `.cluster-speed` because the
+ * unit's own rule below (`.cluster-speed > span`) is more specific than a bare class, and would otherwise hold the
+ * sign's figure at the unit's small, dim, tracked type.
+ *
+ * The sign keeps its slot in the reading whether or not the route knows a limit (`.cluster-speed`), so a zone is a
+ * sign lighting up on the face, never the speed figure stepping up it. */
+.cluster-speed > .cluster-limitsign {
   flex: none;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 2px solid #e3141b;
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--limit);
   border-radius: 50%;
   color: var(--ink);
-  font-size: var(--type-unit);
+  font-size: 22px;
   font-weight: 700;
-  transition: transform 180ms var(--motion-ease), box-shadow 180ms var(--motion-ease);
+  letter-spacing: 0;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Over the limit the sign is the one thing on the face that lights, and it lifts a hair as well. */
-.cluster-limitsign[data-over] {
-  box-shadow: 0 0 14px rgb(227 20 27 / 0.55);
-  transform: scale(1.04);
+/* No sign to show: the slot still holds the height it would take (visibility, not display), so nothing around it
+   moves; the sign is simply not drawn. */
+.cluster-limitsign[data-empty] {
+  visibility: hidden;
 }
 
 /* The route has stopped knowing a limit: the sign leaves over one fade instead of blinking out of the status bar,
    and the dial's mark on the scale goes with it (useLingering, in the page). Motion owns that fade now
    (ClusterScreen.tsx), so the leaving state no longer needs a rule of its own. */
-
-/* Over the limit the sign's figure breathes as well as reddening: a red numeral at the end of the status bar is
-   something the eye can pass over, and the dash's other states (a low tank, the truck's alarm) already move. The
-   entrance stays on the sign itself, so this only ever runs while the truck is actually over. */
-.cluster-limitsign[data-over] b {
-  color: #e3141b;
-  animation: limit-over 1.5s ease-in-out infinite;
-}
-
-.cluster-limitsign b {
-  transition: color 200ms var(--motion-ease);
-}
-
-@keyframes limit-over {
-  50% {
-    opacity: 0.45;
-  }
-}
 
 /*
  * The paired phone, closing the notice row at its right end, under the status bar: while it is there, the receiver
@@ -1516,10 +1725,10 @@ body,
 
 /* The limit: the road sign's own red (dashboard/glance.css), a short mark across the speed's ring where the limit
    falls, so the driver sees both how fast they are going and where the limit lies on the same line. It is a mark
-   across a scale rather than a scale of its own, as a bar prints its threshold line across itself; no glow, so it is
-   one red thing on the face — the sign under the figure says what the limit is, this says where it is. */
+   across a scale rather than a scale of its own, as a bar prints its threshold line across itself; no glow, so it
+   stays a mark rather than a lamp — the sign under the figure says what the limit is, this says where it is. */
 .cluster-limit-mark {
-  stroke: #e3141b;
+  stroke: var(--limit);
   stroke-width: 2;
   stroke-linecap: round;
 }
@@ -1532,9 +1741,30 @@ body,
   transition: transform 360ms var(--motion-ease);
 }
 
+/*
+ * The speed the cruise is holding: a notch inside the speed's ring where that speed falls, in the accent the cruise
+ * pill's own mark wears, so the two are one reading. It points in from the ring and never crosses it — the crossing
+ * mark is the road's limit — so the face says both "held at" and "not above" without a second scale printed on it.
+ * The group carries the notch's angle as a transition, so a set speed that changes slides round the face as a limit's
+ * mark does, and Motion gives it the one fade it has (in at once, out over 320 ms).
+ */
+.cluster-dial-cruise {
+  transform-box: view-box;
+  transition: transform 360ms var(--motion-ease);
+}
+
+.cluster-dial-cruise-mark {
+  stroke: var(--accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
 /* The figure, at the ring's centre, with its unit and the road's limit under it: the one number the dash always
-   shows. The block is nudged down a little, because the unit and the sign hang below the figure — without the nudge
-   the figure reads high in the ring — and the sign is what the height under the unit is paid for. */
+   shows. The three are one centred block, and the sign's place is in it at every moment — the sign is always in the
+   stack, drawn or not (`.cluster-limitsign[data-empty]`) — so the figure keeps its height on the face as a limit
+   comes and goes, instead of stepping up the dial when a sign arrives and back down when it leaves. The block is
+   centred as it is, with no nudge of its own: what stands above the ring's middle is the room the unit and the sign
+   below it take, and the figure is read against the middle of the face with them. */
 .cluster-speed {
   position: absolute;
   inset: 0;
@@ -1542,8 +1772,7 @@ body,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transform: translateY(12px);
+  gap: 5px;
 }
 
 .cluster-speed strong {
@@ -1565,6 +1794,16 @@ body,
 /* Each whole kilometre arrives with a small settle, so the number reads as live rather than redrawn. */
 .cluster-speed-value {
   animation: speed-in 180ms var(--motion-ease) both;
+}
+
+/*
+ * Over the road's limit the figure takes the limit's red, as the sign under it does: the number the driver is
+ * already reading says what the sign says, so being over is seen without a second glance at the sign below.
+ * The colour arrives with the figure rather than fading behind it — the element is keyed by the whole kilometre, so
+ * the new number is a new element, and a transition on it would have nothing to run from.
+ */
+.cluster-speed strong[data-over] {
+  color: var(--limit);
 }
 
 @keyframes speed-in {
@@ -1593,8 +1832,9 @@ body,
  * mark at the same weight: a wordmark (Volvo's, Iveco's) runs nearly the box's width, a square one (Scania's griffin,
  * the star) stands the box's height. That is what keeps a lone logo from reading as a speck in the air above a
  * 136px figure. Fractions of the face, not pixels, so it keeps its place as Text Size grows the readings around it;
- * the box stops short of the figure, so the limit sign appearing under it (which lifts the whole reading) never closes
- * the gap. The logo files are line art in white (the boot screen's AMOLED marks), so the dark panel keeps them white
+ * the box stops short of the figure, and the figure keeps its height whatever the road's limit is doing (the sign's
+ * slot is always held, `.cluster-speed`), so nothing ever closes the gap between the mark and the reading under it.
+ * The logo files are line art in white (the boot screen's AMOLED marks), so the dark panel keeps them white
  * and the light one turns them black; the opacity is what sets them back into the panel as grey ink — low enough that
  * the figure stays what the eye finds first. A brand with no logo shows its name in small caps in the same place.
  *
@@ -1602,7 +1842,7 @@ body,
  */
 .cluster-brand {
   position: absolute;
-  top: 15%;
+  top: 12.5%;
   left: 50%;
   translate: -50% 0;
   /* Flex, not grid: the badge's size is the box's (a percentage of the face), and only a flex item resolves
@@ -1612,7 +1852,7 @@ body,
   align-items: center;
   justify-content: center;
   width: 38%;
-  height: 10.5%;
+  height: 9%;
 }
 
 .cluster-brand img {
@@ -1742,7 +1982,7 @@ body,
      `data-zone` for the end of the bar the trouble is at. */
   --zone: none;
   --zone-tint: color-mix(in srgb, var(--danger) 18%, transparent);
-  --zone-mark: color-mix(in srgb, var(--danger) 60%, transparent);
+  --zone-mark: color-mix(in srgb, var(--danger) 72%, transparent);
 
   position: relative;
   flex: 1;
@@ -1791,17 +2031,37 @@ body,
   background: linear-gradient(90deg, transparent var(--zone), var(--zone-tint) var(--zone));
 }
 
-/* The line itself, across the bar and over the fill, in the colour of the state the reading is heading into. */
+/*
+ * The line itself, across the bar and over the fill, in the colour of the state the reading is heading into: two
+ * pixels rather than a hairline, centred on the threshold's own place. A gauge read at arm's length through the
+ * game's glass had a 1px line the eye could pass over, which left a bar's reserve a tint and nothing to cross.
+ */
 .cluster-meter[data-zone]::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: var(--zone);
-  width: 1px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
   background: var(--zone-mark);
   pointer-events: none;
   z-index: 2;
+}
+
+/*
+ * A level gauge's own scale: the quarter marks printed on the track, under the reading. A fill says how much is
+ * left; the marks say how much that is without a figure to work out — the part already used covers its own marks,
+ * as the pointer over a printed scale does. They belong to the two level gauges only (fuel and AdBlue): a
+ * temperature or a rate is a point on its scale, not a quantity of something, and quartering it would say nothing.
+ */
+.cluster-meter[data-scale='level'] {
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ink) 20%, transparent) 0 1px,
+    transparent 1px 25%
+  );
 }
 
 /*
@@ -1988,6 +2248,16 @@ body,
   font-size: var(--type-lg);
   font-weight: 550;
   line-height: 1;
+}
+
+/* The reading in its gauge's state, as the bars' own figures are: a level worth watching is amber and one that is
+   a problem is red, so the number says what the bar and the mark beside it say. */
+.cluster-mini strong[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-mini strong[data-warn] {
+  color: var(--danger);
 }
 
 .cluster-mini .cluster-meter {
