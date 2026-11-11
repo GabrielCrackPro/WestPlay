@@ -540,9 +540,24 @@ export function ClusterScreen() {
         style={panelStyle}
       >
         <div className="cluster-standby">
+          {/* The mark is not a second badge here: it keeps the one the dial drew and slides from the face to the
+              centre of the dark glass (TruckMark's layoutId). The hairline and the line under it follow it in. */}
           <ClusterBrand reduced={reduceMotion} />
-          <span className="cluster-standby-rule" aria-hidden />
-          <p className="cluster-standby-label">{words.engineOff}</p>
+          <motion.span
+            className="cluster-standby-rule"
+            aria-hidden
+            initial={reduceMotion ? false : { opacity: 0, scaleX: 0.4 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.45, delay: 0.16, ease: motionEase }}
+          />
+          <motion.p
+            className="cluster-standby-label"
+            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.4, delay: 0.24, ease: motionEase }}
+          >
+            {words.engineOff}
+          </motion.p>
         </div>
       </main>
     )
@@ -1574,9 +1589,19 @@ function TruckMark({ brandId, brand, reduced }: { brandId: string; brand: string
     <motion.div
       className="cluster-brand"
       aria-hidden
+      // One maker's mark on the panel, in both the dial's air and the standby glass: the same layoutId lets Motion
+      // carry it from the face to the centre when the ignition goes off, and back when it comes on.
+      layoutId={reduced ? undefined : 'cluster-brand'}
       initial={reduced ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={reduced ? { duration: 0 } : { duration: 0.4, delay: 0.12, ease: motionEase }}
+      transition={
+        reduced
+          ? { duration: 0 }
+          : {
+              layout: { type: 'spring', stiffness: 320, damping: 34, mass: 0.8 },
+              opacity: { duration: 0.26, ease: motionEase },
+            }
+      }
     >
       {source ? (
         <img key={source.src} src={source.src} alt="" onError={() => setAttempt((current) => current + 1)} />

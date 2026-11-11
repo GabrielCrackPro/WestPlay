@@ -1,10 +1,20 @@
-import { type CSSProperties, type PointerEvent, type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent,
+  type ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { createPortal } from 'react-dom'
 import { SearchGlyph } from '../../keyboard/glyphs'
 import { useKeyboard } from '../../keyboard/store'
 import { wakePhrase } from '../../voice/wake'
 import { TextField } from '../../keyboard/TextField'
 import { EqualizerGraph, TrackRow } from './equalizer'
-import { ChoiceRows, Group, NavRow, OrderButtons, Page, SwitchOrderRow, SwitchRow } from './rows'
+import { ChoiceRows, Group, NavRow, Page, SwitchOrderRow, SwitchRow } from './rows'
 import { setIcons, useLooks, useWallpapers } from '../../state/looks'
 import { fileUrl, type IconSet, type IconStyle } from '../../../shared/customize'
 import type { ClockChoice } from '../../../shared/clock'
@@ -25,27 +35,50 @@ import {
   type MapRouteWeight,
 } from '../../maps/routeLook'
 import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearbyStop'
-import { CLUSTER_ACCENTS, type ClusterAccent } from '../../cluster/accent'
+import { CLUSTER_ACCENTS, type ClusterAccent, clusterAccent } from '../../cluster/accent'
 import {
   AdblueIcon,
+  BatteryIcon,
+  BrakeAirIcon,
   BrakeTemperatureIcon,
+  BreakIcon,
   CoolantIcon,
   DropIcon,
   FuelIcon,
   GaugeIcon,
+  OilTemperatureIcon,
+  RangeIcon,
   RestIcon,
   TripIcon,
   WarningIcon,
 } from '../../cluster/ClusterIcons'
+import { useInstantConsumption } from '../../cluster/useInstant'
+import {
+  adblue as adblueReading,
+  battery as batteryReading,
+  brakeAir as brakeAirReading,
+  brakeTemperature as brakeTemperatureReading,
+  consumption as consumptionReading,
+  coolant as coolantReading,
+  oil as oilReading,
+  warned,
+} from '../../apps/diagnostics/readings'
+import { tripAverage } from '../../apps/diagnostics/trip'
+import { useTrends } from '../../apps/diagnostics/useTrends'
+import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from '../../dashboard/widgetState'
+import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
+import { weatherView } from '../../dashboard/weather'
+import type { Figure } from '../../../shared/units'
+import { formatGameTime } from '../../../shared/format'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import { type Appearance, resolveAppearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
 import { useUnits } from '../../state/units'
 import {
-  CLUSTER_CARDS,
   CLUSTER_LAYOUTS,
   CLUSTER_LAYOUT_PRESETS,
   CLUSTER_READINGS,
+  CLUSTER_SIDE_CARDS,
   type ClusterLayout,
   type ClusterLayoutPreset,
   type ClusterReading,
@@ -672,6 +705,7 @@ function DashboardPage() {
   const removeLayout = useCabin((state) => state.removeDashboardLayout)
   const [drag, setDrag] = useState<WidgetDrag | null>(null)
   const press = useRef<WidgetPress | null>(null)
+  const resize = useRef<WidgetResize | null>(null)
   const suppressClick = useRef(false)
   const [namingLayout, setNamingLayout] = useState(false)
   const [layoutName, setLayoutName] = useState('')
@@ -690,7 +724,6 @@ function DashboardPage() {
     standard: text.settings.widgetStandard,
     expanded: text.settings.widgetExpanded,
   }
-  const shown = order.filter((widget) => widgets[widget])
   const presetNames: Record<DashboardLayoutPreset, string> = {
     focus: text.settings.presetFocus,
     media: text.settings.presetMedia,
@@ -701,6 +734,43 @@ function DashboardPage() {
     ? null
     : (DASHBOARD_PRESETS.find((preset) => matchesDashboardLayout(DASHBOARD_LAYOUTS[preset], order, widgets, sizes)) ??
       null)
+
+  // The card's lower edge resizes it: the pointer's own drag again, stepped through the three sizes as it goes, so the
+  // card grows and shrinks under the hand rather than through a row of size buttons beside the picture.
+  const startResize = (event: PointerEvent<HTMLSpanElement>, widget: DashboardWidget) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    // A release outside the grip can still land as a click on the card: it is not a tap to switch the card.
+    suppressClick.current = true
+    resize.current = { widget, pointerId: event.pointerId, y: event.clientY, size: sizes[widget] }
+  }
+
+  useEffect(() => {
+    const move = (event: globalThis.PointerEvent) => {
+      const held = resize.current
+      if (!held || held.pointerId !== event.pointerId) return
+      event.preventDefault()
+      const from = DASHBOARD_WIDGET_SIZES.indexOf(held.size)
+      const stepped = from + Math.round((event.clientY - held.y) / 26)
+      const next = DASHBOARD_WIDGET_SIZES[Math.min(DASHBOARD_WIDGET_SIZES.length - 1, Math.max(0, stepped))]
+      if (next && useCabin.getState().dashboardWidgetSizes[held.widget] !== next) setSize(held.widget, next)
+    }
+    const end = (event: globalThis.PointerEvent) => {
+      const held = resize.current
+      if (!held || held.pointerId !== event.pointerId) return
+      resize.current = null
+      window.setTimeout(() => (suppressClick.current = false), 300)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      resize.current = null
+    }
+  }, [setSize])
 
   const startWidgetDrag = (event: PointerEvent<HTMLDivElement>, widget: DashboardWidget) => {
     if (event.button !== 0) return
@@ -773,8 +843,9 @@ function DashboardPage() {
 
   return (
     <Page title={text.settings.dashboard}>
-      {/* The column as the Dashboard draws it: drag a card to move it, and each row below chooses its share of the
-          room. The preview is the player's own order; dragging turns Auto Order off so that order is the one used. */}
+      {/* The column as the Dashboard draws it, and the layout's editor: a tap puts a card on the Dashboard or takes it
+          off, a drag moves it, and its lower edge sets its share of the room. The preview is the player's own order;
+          dragging turns Auto Order off so that order is the one used. */}
       <Group header={text.settings.widgetLayout} footer={text.settings.widgetLayoutFooter}>
         <div className="dashboard-layout-editor">
           <div className="dashboard-layout-presets" role="group" aria-label={text.settings.widgetPresets}>
@@ -884,17 +955,27 @@ function DashboardPage() {
               <span className="dashboard-preview-destination" />
               <span className="dashboard-preview-puck" />
             </div>
-            <div className={drag ? 'dashboard-preview-column dragging' : 'dashboard-preview-column'} role="list">
-              {shown.map((widget) => {
+            {/* Every widget keeps its card in the column, off ones dimmed: the picture is the layout, so a tap on a
+                card takes it off the Dashboard or puts it back, a drag moves it, and its lower edge sets its size. */}
+            <div
+              className={drag ? 'dashboard-preview-column dragging' : 'dashboard-preview-column'}
+              role="group"
+              aria-label={text.settings.widgets}
+            >
+              {order.map((widget) => {
                 const dragging = drag?.widget === widget
                 const dropping = drag?.over === widget && drag.widget !== widget
                 return (
                   <div
                     key={widget}
-                    role="listitem"
+                    role="button"
                     data-widget={widget}
                     data-size={sizes[widget]}
-                    aria-label={`${names[widget]}, ${sizeNames[sizes[widget]]}`}
+                    data-off={widgets[widget] ? undefined : ''}
+                    aria-pressed={widgets[widget]}
+                    aria-label={`${names[widget]}, ${sizeNames[sizes[widget]]}, ${
+                      widgets[widget] ? text.diagnostics.on : text.diagnostics.off
+                    }`}
                     title={`${names[widget]} — ${sizeNames[sizes[widget]]}`}
                     className={[
                       'dashboard-preview-widget',
@@ -903,11 +984,36 @@ function DashboardPage() {
                     ]
                       .filter(Boolean)
                       .join(' ')}
+                    tabIndex={0}
+                    aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space"
                     onPointerDown={(event) => startWidgetDrag(event, widget)}
-                    onClick={(event) => {
-                      if (!suppressClick.current) return
+                    onKeyDown={(event) => {
+                      const key = event.key
+                      if (key === 'ArrowUp' || key === 'ArrowDown') {
+                        event.preventDefault()
+                        // Moving a card by its keys is editing the order: Auto Order would put it back by the drive's needs.
+                        if (autoOrder) setAutoOrder(false)
+                        moveWidget(widget, key === 'ArrowUp' ? -1 : 1)
+                        // The card's place changes with its element's, so the focus goes with it.
+                        focusDashboardWidget(widget)
+                        return
+                      }
+                      if (key === 'ArrowLeft' || key === 'ArrowRight') {
+                        event.preventDefault()
+                        const at = DASHBOARD_WIDGET_SIZES.indexOf(sizes[widget])
+                        const stepped = at + (key === 'ArrowLeft' ? -1 : 1)
+                        const next =
+                          DASHBOARD_WIDGET_SIZES[Math.min(DASHBOARD_WIDGET_SIZES.length - 1, Math.max(0, stepped))]
+                        if (next) setSize(widget, next)
+                        return
+                      }
+                      if (key !== 'Enter' && key !== ' ') return
                       event.preventDefault()
-                      event.stopPropagation()
+                      setWidget(widget, !widgets[widget])
+                    }}
+                    onClick={() => {
+                      // The click that ends a drag is not a tap on the card.
+                      if (!suppressClick.current) setWidget(widget, !widgets[widget])
                     }}
                   >
                     <span className="dashboard-preview-icon" aria-hidden>
@@ -915,31 +1021,18 @@ function DashboardPage() {
                     </span>
                     <span className="dashboard-preview-name">{names[widget]}</span>
                     <span className="dashboard-preview-grip" aria-hidden />
+                    <span
+                      className="dashboard-preview-resize"
+                      aria-hidden
+                      onPointerDown={(event) => startResize(event, widget)}
+                      onClick={(event) => event.stopPropagation()}
+                    />
                   </div>
                 )
               })}
-              {!shown.length && <p className="dashboard-preview-empty">{text.settings.noWidgets}</p>}
             </div>
           </div>
         </div>
-      </Group>
-      {/* One row per widget: its switch, its place in the player's order while Auto Order is off, and its size. */}
-      <Group header={text.settings.widgets}>
-        {order.map((widget, index) => (
-          <WidgetLayoutRow
-            key={widget}
-            label={names[widget]}
-            on={widgets[widget]}
-            onToggle={(on) => setWidget(widget, on)}
-            size={sizes[widget]}
-            onSize={(size) => setSize(widget, size)}
-            place={
-              autoOrder
-                ? undefined
-                : { first: index === 0, last: index === order.length - 1, onMove: (by) => moveWidget(widget, by) }
-            }
-          />
-        ))}
       </Group>
       <Group footer={text.settings.autoOrderFooter}>
         <SwitchRow label={text.settings.autoOrder} on={autoOrder} onToggle={setAutoOrder} />
@@ -957,6 +1050,10 @@ function DashboardPage() {
   )
 }
 
+/** The Overview's grid as the screen fills it: the speed (drawn first), the trip, the weather, then the truck, the rest
+ * clocks and what plays. The order is what makes the picture pack like the screen when a card is taken off. */
+const OVERVIEW_PREVIEW_ORDER: readonly OverviewCard[] = ['trip', 'weather', 'truck', 'hours', 'media']
+
 /** The Dashboard's Overview: its second screen, offered or not, opened on, and which of its cards it shows. */
 function OverviewPage() {
   const text = useText()
@@ -966,6 +1063,23 @@ function OverviewPage() {
   const setOpenOn = useCabin((state) => state.setOverviewDefault)
   const cards = useCabin((state) => state.overviewCards)
   const setCard = useCabin((state) => state.setOverviewCard)
+  const reset = useCabin((state) => state.resetOverview)
+  const units = useUnits()
+  // A card taken off leaves the grid and one put back leaves the tray: the focus goes with it to the same card's
+  // other control, so the switch can be worked again without walking back through the page.
+  const editor = useRef<HTMLDivElement | null>(null)
+  const pendingFocus = useRef<OverviewCard | null>(null)
+  // The speed is the one card the player can't take off: it is the reason the screen is read at a glance.
+  const speed = useLive((state) => (state.telemetry ? units.speed(state.telemetry.speed) : 0))
+  // The cards' own figures, read as the Dashboard's widgets read them, so the picture carries the drive rather than
+  // a sketch of it: where the job goes, what is in the tank, the next rest, what plays, and the sky.
+  const destination = useDestinationView()
+  const diagnostics = useDiagnosticsView()
+  const hours = useDriverHoursView()
+  const track = useNowPlayingTrack()
+  const weather = useLive((state) => state.weather)
+  const wipers = useLive((state) => state.telemetry?.wipers ?? false)
+  const weatherNow = weather ? weatherView(weather, 0, null, text, wipers) : null
   // The cards, by the names their pages use (the truck's readings are the Diagnostics page's).
   const names: Record<OverviewCard, string> = {
     trip: text.destination,
@@ -974,6 +1088,33 @@ function OverviewPage() {
     media: text.nowPlaying,
     weather: text.apps.weather,
   }
+  // Each card keeps its Dashboard widget's mark, so the miniature is read the way the Overview is.
+  const glyphs: Record<OverviewCard, DashboardWidget> = {
+    trip: 'destination',
+    truck: 'diagnostics',
+    hours: 'driverHours',
+    media: 'nowPlaying',
+    weather: 'weather',
+  }
+  // The one figure each card is read for, in the widget's own words; a dash where the game has nothing to say.
+  const figures: Record<OverviewCard, string> = {
+    trip: destination !== EMPTY ? destination.detail || destination.title : '—',
+    truck: diagnostics?.fuel ?? '—',
+    hours: hours?.rest ?? '—',
+    media: track?.title ?? '—',
+    weather: weatherNow?.condition ?? '—',
+  }
+  // The screen's own order, so a card taken off leaves the same gap here as it does there: the grid packs the rest
+  // with dense flow (Glance.tsx), and the picture must pack them the same way.
+  const laid = OVERVIEW_PREVIEW_ORDER.filter((card) => cards[card])
+  const putAway = OVERVIEW_CARDS.filter((card) => !cards[card])
+  useEffect(() => {
+    const card = pendingFocus.current
+    if (!card) return
+    pendingFocus.current = null
+    editor.current?.querySelector<HTMLElement>(`[data-overview-card="${card}"]`)?.focus()
+    // Run after the commit that moved the card between the grid and the tray, which is what `cards` says.
+  }, [cards])
   return (
     <Page title={text.diagnostics.overview}>
       <Group footer={text.settings.overviewFooter}>
@@ -981,12 +1122,82 @@ function OverviewPage() {
         {shown && <SwitchRow label={text.settings.openOverview} on={openOn} onToggle={setOpenOn} />}
       </Group>
       {shown && (
-        <Group header={text.settings.overviewCards}>
-          {OVERVIEW_CARDS.map((card) => (
-            <SwitchRow key={card} label={names[card]} on={cards[card]} onToggle={(on) => setCard(card, on)} />
-          ))}
+        <Group header={text.settings.overviewCards} footer={text.settings.overviewCardsFooter}>
+          {/* The grid itself, in miniature: the drive's readings packed as the screen packs them, each live. A tap takes
+              a card off; it waits under the picture, so the switch is one tap away and the grid stays truthful. */}
+          <div className="overview-layout-editor" ref={editor}>
+            <div
+              className="overview-layout-preview"
+              role="group"
+              aria-label={text.settings.overviewCards}
+              data-own-drag
+            >
+              <div
+                className="overview-preview-card overview-preview-speed"
+                role="note"
+                aria-label={`${Math.round(speed)} ${units.labels.speed}`}
+              >
+                <span className="overview-preview-speed-value">{Math.round(speed)}</span>
+                <span className="overview-preview-speed-unit">{units.labels.speed}</span>
+              </div>
+              {laid.map((card) => (
+                <button
+                  key={card}
+                  type="button"
+                  className={`overview-preview-card overview-preview-${card}`}
+                  data-overview-card={card}
+                  aria-pressed="true"
+                  aria-label={`${names[card]}, ${figures[card]}, ${text.diagnostics.on}`}
+                  title={figures[card]}
+                  onClick={() => {
+                    pendingFocus.current = card
+                    setCard(card, false)
+                  }}
+                >
+                  <span className="overview-preview-head">
+                    <span className="overview-preview-icon" aria-hidden>
+                      <WidgetGlyph widget={glyphs[card]} />
+                    </span>
+                    <span className="overview-preview-name">{names[card]}</span>
+                  </span>
+                  <span className="overview-preview-figure">{figures[card]}</span>
+                </button>
+              ))}
+            </div>
+            {putAway.length > 0 && (
+              <div className="overview-preview-tray" role="group" aria-label={text.settings.overviewHidden}>
+                <span className="overview-preview-tray-label" aria-hidden>
+                  {text.settings.overviewHidden}
+                </span>
+                {putAway.map((card) => (
+                  <button
+                    key={card}
+                    type="button"
+                    className="overview-preview-tray-card"
+                    data-overview-card={card}
+                    aria-pressed="false"
+                    aria-label={`${names[card]}, ${text.diagnostics.off}`}
+                    onClick={() => {
+                      pendingFocus.current = card
+                      setCard(card, true)
+                    }}
+                  >
+                    <span className="overview-preview-icon" aria-hidden>
+                      <WidgetGlyph widget={glyphs[card]} />
+                    </span>
+                    <span>{names[card]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </Group>
       )}
+      <Group>
+        <button type="button" className="settings-row settings-action" onClick={reset}>
+          {text.settings.resetOverview}
+        </button>
+      </Group>
     </Page>
   )
 }
@@ -995,23 +1206,20 @@ function OverviewPage() {
  * The instrument cluster WestPlay replaces on the trucks it is built for, in four parts: whether it is drawn at all,
  * what it carries, how it looks, and how its gauges read.
  *
- * Each card is listed with what it shows under its name, because a dash is not a screen of widgets a driver can
- * look at while the switch is flipped: "Engine" alone doesn't say that its readings leave the dash with it. The
- * readings that are always drawn are said in the cards' note, so nothing is quietly missing.
+ * The cards are the panel itself, in miniature: a drag sets their side and their place, a tap takes one off the dash
+ * into the tray under the picture (or puts it back), and the lamps in the picture are the warnings switch. The engine
+ * card's readings are chosen on the card: a press on a reading opens the seven gauges the Diagnostics app already
+ * keeps, with the figure each reads now.
  *
- * The engine card's three readings are the player's choice (three slots, every one a gauge the Diagnostics app already
- * keeps), and the dial's own marks — the tacho's ring, the maker's mark, the accent — are here too: the panel is drawn
+ * The dial's own marks — the tacho's ring, the maker's mark, the accent — are here too: the panel is drawn
  * on the truck's screen, not in this window, so this page is the only place they can be chosen. The gauges' page is
  * the one place the level readings' figure is chosen — a share of the tank, or its litres — and it applies to the dash
  * and to nothing else (the Diagnostics app keeps its own units).
  */
 function ClusterPage() {
   const text = useText()
-  const words = text.diagnostics
   const shown = useCabin((state) => state.clusterShown)
   const setShown = useCabin((state) => state.setClusterShown)
-  const cards = useCabin((state) => state.clusterCards)
-  const setCard = useCabin((state) => state.setClusterCard)
   const gaugePercent = useCabin((state) => state.clusterGaugePercent)
   const setGaugePercent = useCabin((state) => state.setClusterGaugePercent)
   const accent = useCabin((state) => state.clusterAccent)
@@ -1020,27 +1228,9 @@ function ClusterPage() {
   const setTacho = useCabin((state) => state.setClusterTacho)
   const brand = useCabin((state) => state.clusterBrand)
   const setBrand = useCabin((state) => state.setClusterBrand)
-  const readings = useCabin((state) => state.clusterReadings)
-  const setReading = useCabin((state) => state.setClusterReading)
   const reset = useCabin((state) => state.resetCluster)
-  const names: Record<ClusterCard, { name: string; detail: string }> = {
-    trip: { name: words.trip, detail: text.settings.clusterCardTrip },
-    fuel: { name: words.fuel, detail: text.settings.clusterCardFuel },
-    engine: { name: words.engine, detail: text.settings.clusterCardEngine },
-    hours: { name: words.driverHours, detail: text.settings.clusterCardHours },
-    warnings: { name: words.warnings, detail: text.settings.clusterCardWarnings },
-  }
-  // The readings a slot can hold, by the names the Diagnostics app gives them: one list for every slot, so the same
-  // gauge is called the same thing whichever slot it is in.
-  const readingNames: Record<ClusterReading, string> = {
-    oilTemperature: words.oilTemperature,
-    coolant: words.coolant,
-    brakeAir: words.brakeAir,
-    battery: words.battery,
-    adblue: words.adblue,
-    brakeTemperature: words.brakeTemperature,
-    consumption: text.settings.clusterReadingInstant,
-  }
+  // The readings as the truck reads them now, for the card's picker and the layout's own picture.
+  const views = useClusterReadings()
   const accentNames: Record<ClusterAccent, string> = {
     route: text.settings.clusterAccentRoute,
     play: text.settings.clusterAccentPlay,
@@ -1051,35 +1241,7 @@ function ClusterPage() {
       <Group footer={text.settings.clusterFooter}>
         <SwitchRow label={text.settings.clusterSwitch} on={shown} onToggle={setShown} />
       </Group>
-      {shown && (
-        <Group header={text.settings.clusterCards} footer={text.settings.clusterCardsFooter}>
-          {CLUSTER_CARDS.map((card) => (
-            <SwitchRow
-              key={card}
-              label={names[card].name}
-              detail={names[card].detail}
-              on={cards[card]}
-              onToggle={(on) => setCard(card, on)}
-            />
-          ))}
-        </Group>
-      )}
-      {shown && <ClusterLayoutEditor />}
-      {/* The engine card's three readings, a slot at a time. A reading already in another slot swaps with the one
-          picked, so the card always shows three different gauges — the footer on the first slot says so. */}
-      {shown &&
-        cards.engine &&
-        readings.map((reading, slot) => (
-          <ChoiceRows<ClusterReading>
-            key={slot}
-            header={text.settings.clusterReadingSlot(slot + 1)}
-            footer={slot === 0 ? text.settings.clusterReadingsFooter : undefined}
-            radio={text.settings.clusterReadings}
-            value={reading}
-            options={CLUSTER_READINGS.map((id) => ({ id, label: readingNames[id] }))}
-            onPick={(id) => setReading(slot, id)}
-          />
-        ))}
+      {shown && <ClusterLayoutEditor views={views} />}
       {shown && (
         <Group header={text.settings.clusterDial} footer={text.settings.clusterDialFooter}>
           <SwitchRow label={text.settings.clusterTacho} on={tacho} onToggle={setTacho} />
@@ -1113,24 +1275,66 @@ function ClusterPage() {
 /**
  * The cluster's layout editor (Settings › Instrument Cluster): the two columns either side of the dial, live, with each
  * card in its place. A card is dragged to a side and a place in it — before or after the card it is dropped on, or at
- * the foot of a column left empty — and the same moves are offered as rows below for the keyboard, so nothing here
- * needs a pointer. A card that is turned off still holds its place in the layout, drawn dimmed, ready for its switch.
+ * the foot of a column left empty — and the same moves are the card's own arrow keys, so nothing here needs a pointer.
+ * A tap takes a card off the dash — the column closes up as it does on the truck, and the card waits in a tray under
+ * the picture — and another tap puts it back at its saved place.
  */
-function ClusterLayoutEditor() {
+function ClusterLayoutEditor({ views }: { views: Record<ClusterReading, ClusterReadingView> }) {
   const text = useText()
   const words = text.diagnostics
   const layout = useCabin((state) => state.clusterLayout)
   const cards = useCabin((state) => state.clusterCards)
+  const setCard = useCabin((state) => state.setClusterCard)
+  const readingSlots = useCabin((state) => state.clusterReadings)
+  const setReading = useCabin((state) => state.setClusterReading)
   const applyLayout = useCabin((state) => state.applyClusterLayout)
   const units = useUnits()
   const placeCard = useCabin((state) => state.placeClusterCard)
   const moveCardTo = useCabin((state) => state.moveClusterCardTo)
-  const moveCard = useCabin((state) => state.moveClusterCard)
+  // The panel's look, drawn in the miniature as the dash draws it: the accent the needle and the live figures take,
+  // the tacho's hairline round the face, and the maker's mark over the speed.
+  const accentChoice = useCabin((state) => state.clusterAccent)
+  const tacho = useCabin((state) => state.clusterTacho)
+  const brand = useCabin((state) => state.clusterBrand)
+  const gaugePercent = useCabin((state) => state.clusterGaugePercent)
+  const routeColour = useCabin((state) => state.mapRoute)
+  const appearance = useWantedAppearance()
+  const accent = clusterAccent(accentChoice, appearance, routeColour)
+  // The truck as it is on the road, so the picture is read with the figures the driver will see there: the speed in
+  // the dial, the trip and the tank on their cards, and the engine's readings as the Diagnostics app gauges them.
+  const truck = useLive((state) => state.truck)
+  const t = useLive((state) => state.telemetry)
+  const clockShift = useLive((state) => state.clockShift)
+  const { trip } = useTrends()
+  const capacity = truck?.fuelCapacity ?? 0
+  const fuelShare = capacity > 0 && t ? Math.min(1, Math.max(0, t.fuel / capacity)) : null
+  const fuelFigure: Figure =
+    gaugePercent && fuelShare !== null
+      ? { value: String(Math.round(fuelShare * 100)), unit: '%' }
+      : units.volumeFigure(t?.fuel ?? 0, text.decimal)
+  const tripFigure = units.distanceFigure(trip.distance, text.decimal)
+  const averageFigure = units.consumptionFigure(
+    trip.distance > 0.05 ? tripAverage(trip) : (t?.fuelAverage ?? 0),
+    text.decimal,
+  )
+  const rangeFigure = units.longFigure(t?.fuelRange ?? 0, text.decimal)
+  const rest = t?.restStop ?? -1
+  const breaking = t?.mandatoryBreak ?? -1
+  const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
+  const speed = t ? units.speed(t.speed) : 0
   const names: Record<ClusterSideCard, string> = {
     trip: words.trip,
     engine: words.engine,
     hours: words.driverHours,
     fuel: words.fuel,
+  }
+  // What each card carries, for the hover and the reader: the cards have no names beside them in the picture.
+  const cardDetail: Record<ClusterCard, string> = {
+    trip: text.settings.clusterCardTrip,
+    fuel: text.settings.clusterCardFuel,
+    engine: text.settings.clusterCardEngine,
+    hours: text.settings.clusterCardHours,
+    warnings: text.settings.clusterCardWarnings,
   }
   const presetNames: Record<ClusterLayoutPreset, string> = {
     standard: text.settings.presetClusterStandard,
@@ -1141,6 +1345,84 @@ function ClusterLayoutEditor() {
     CLUSTER_LAYOUT_PRESETS.find((preset) => matchesClusterLayout(CLUSTER_LAYOUTS[preset], layout)) ?? null
   const [drag, setDrag] = useState<ClusterCardDrag | null>(null)
   const press = useRef<ClusterCardPress | null>(null)
+  // A drag ends with the browser's click on the card it started on: that click must not switch the card off.
+  const suppressTap = useRef(false)
+  // Which engine slot's readings are being chosen, and the reading that opened the choice: a press beside the panel
+  // takes it away, and the reading takes the focus back when it does.
+  const [picking, setPicking] = useState<number | null>(null)
+  const pickerOpener = useRef<HTMLButtonElement | null>(null)
+  const picker = useRef<HTMLDivElement | null>(null)
+  // The Settings window itself, not the miniature: the choice is drawn on the screen around the dash so all seven
+  // gauges and their figures are seen, rather than squeezed into the picture's 320px. It is taken when the panel
+  // opens, since a ref cannot be read while rendering.
+  const [pickerHost, setPickerHost] = useState<HTMLElement | null>(null)
+
+  const openPicker = (button: HTMLButtonElement, slot: number) => {
+    pickerOpener.current = button
+    setPickerHost(button.closest<HTMLElement>('.settings-app'))
+    setPicking(slot)
+  }
+
+  const closePicker = () => {
+    setPicking(null)
+    pickerOpener.current?.focus()
+  }
+
+  // The choice is a menu, so its rows take the arrow keys, Home and End, and a letter jumps to a gauge's name: the
+  // Tab trap keeps the focus in the panel, and these make the panel walkable without counting tabs.
+  const onChoiceKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const choices = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button'))
+    if (choices.length === 0) return
+    const at = choices.indexOf(document.activeElement as HTMLButtonElement)
+    const key = event.key
+    if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Home' || key === 'End') {
+      let next = at
+      if (key === 'Home') next = 0
+      else if (key === 'End') next = choices.length - 1
+      else if (key === 'ArrowDown') next = at < 0 ? 0 : (at + 1) % choices.length
+      else next = at < 0 ? choices.length - 1 : (at - 1 + choices.length) % choices.length
+      event.preventDefault()
+      choices[next].focus()
+      return
+    }
+    if (key.length !== 1 || key === ' ') return
+    const letter = key.toLocaleLowerCase()
+    const name = (choice: HTMLButtonElement) => choice.textContent?.trim().toLocaleLowerCase() ?? ''
+    const list = [...choices.slice(at + 1), ...choices.slice(0, at + 1)]
+    const match = list.find((choice) => name(choice).startsWith(letter))
+    if (!match) return
+    event.preventDefault()
+    match.focus()
+  }
+
+  useEffect(() => {
+    if (picking === null) return
+    const panel = picker.current
+    panel?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus()
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setPicking(null)
+        pickerOpener.current?.focus()
+        return
+      }
+      if (event.key !== 'Tab' || !panel) return
+      // The choice is the only thing on the screen while it is open: the tab key stays among its gauges.
+      const choices = panel.querySelectorAll<HTMLElement>('button')
+      const first = choices[0]
+      const last = choices[choices.length - 1]
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [picking])
 
   const startDrag = (event: PointerEvent<HTMLDivElement>, card: ClusterSideCard) => {
     if (event.button !== 0) return
@@ -1189,6 +1471,8 @@ function ClusterLayoutEditor() {
           const side = clusterColumnUnder(event.clientX, event.clientY)
           if (side !== null) placeCard(held.card, side)
         }
+        suppressTap.current = true
+        window.setTimeout(() => (suppressTap.current = false), 300)
       }
       setDrag(null)
     }
@@ -1209,68 +1493,208 @@ function ClusterLayoutEditor() {
     }
   }, [moveCardTo, placeCard])
 
-  // One column of the preview, as the dash's own stands: the cards on that side in the player's order, each one taken
-  // by the pointer or moved by the arrow keys — up and down its column, left and right across the dial. A card turned
-  // off in the settings keeps its place, dimmed, ready for its switch. The tank's companions close the right column,
-  // where they always are.
-  const column = (side: ClusterSide) => (
-    <div
-      key={side}
-      className="cluster-layout-column"
-      data-cluster-column={side}
-      data-drop={drag?.over === null && drag?.side === side ? 'end' : undefined}
-      role="group"
-      aria-label={side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight}
-    >
-      {layout[side].map((card, place) => (
-        <div
-          key={card}
-          tabIndex={0}
-          className="cluster-layout-card"
-          data-cluster-card={card}
-          data-cluster-side={side}
-          data-off={cards[card] ? undefined : ''}
-          data-dragging={drag?.card === card ? '' : undefined}
-          data-drop={drag?.over === card ? (drag.after ? 'after' : 'before') : undefined}
-          // The card's share of the column, as the panel's own height: the engine's three readings stand taller than
-          // the tank's gauge, and the preview says so before the dash does.
-          style={{ '--card-weight': PREVIEW_WEIGHT[card] } as CSSProperties}
-          aria-label={`${names[card]}, ${
-            side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight
-          } ${place + 1} / ${layout[side].length}`}
-          aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
-          onPointerDown={(event) => startDrag(event, card)}
-          onKeyDown={(event) => {
-            const key = event.key
-            if (key === 'ArrowUp') moveCard(card, -1)
-            else if (key === 'ArrowDown') moveCard(card, 1)
-            else if (key === 'ArrowLeft' || key === 'ArrowRight') {
-              const target: ClusterSide = key === 'ArrowLeft' ? 'left' : 'right'
-              if (target === side) return
-              // Across the dial, the card keeps its place in the column: the same number of cards stay above it.
-              placeCard(card, target, place)
-            } else return
-            event.preventDefault()
-            // A card moved to the other column is a new element there: the focus goes across with it.
-            focusClusterCard(card)
+  // What each card shows in the miniature, from the truck's own figures rather than from a sketch: the distance and
+  // the average, the three chosen readings with their marks and their warning colours, the driver's two clocks, and
+  // the tank's level over the range left on it. No truck between games leaves the figures as the dashes the dash
+  // itself shows, so the picture never claims a reading it hasn't got.
+  const cardBody = (card: ClusterSideCard) => {
+    if (card === 'trip')
+      return (
+        <>
+          <span className="cluster-layout-value">
+            <b>{t ? tripFigure.value : '—'}</b>
+            <small>{tripFigure.unit}</small>
+          </span>
+          <span className="cluster-layout-pair">
+            <GaugeIcon />
+            <b>{t ? averageFigure.value : '—'}</b>
+            <small>{averageFigure.unit}</small>
+          </span>
+        </>
+      )
+    if (card === 'engine')
+      return readingSlots.map((reading, slot) => (
+        <button
+          key={reading}
+          type="button"
+          className="cluster-layout-reading"
+          data-warn={views[reading].warn ? '' : undefined}
+          aria-haspopup="dialog"
+          aria-expanded={picking === slot}
+          aria-label={`${text.settings.clusterReadingSlot(slot + 1)}: ${views[reading].label} ${
+            views[reading].figure.value
+          } ${views[reading].figure.unit}`}
+          title={views[reading].label}
+          // The reading is the card's own control: a press here chooses a gauge rather than taking the card off the dash.
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation()
+            openPicker(event.currentTarget, slot)
           }}
         >
-          <span className="cluster-layout-card-head">
-            <span className="cluster-layout-card-glyph" aria-hidden>
-              {PREVIEW_ICON[card]}
-            </span>
-            <span className="cluster-layout-card-name">{names[card]}</span>
+          <span className="cluster-layout-reading-icon" aria-hidden>
+            {READING_ICON[reading]}
           </span>
-          <span className="cluster-layout-bars" data-card={card} aria-hidden>
-            {PREVIEW_BARS[card].map((width, index) => (
-              <i key={index} style={{ width: `${width}%` }} />
-            ))}
+          <b>{views[reading].figure.value}</b>
+          <small>{views[reading].figure.unit}</small>
+          <span className="cluster-layout-reading-chevron" aria-hidden>
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="m2.5 4.5 3.5 3.5 3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
-        </div>
-      ))}
-      {side === 'right' && <ClusterLayoutFixed />}
-    </div>
-  )
+        </button>
+      ))
+    if (card === 'hours')
+      return (
+        <>
+          <span
+            className="cluster-layout-pair"
+            aria-label={`${words.restStop} ${rest >= 0 ? hoursText(rest, words) : words.noRest}`}
+          >
+            <RestIcon />
+            <b>{rest >= 0 ? hoursText(rest, words) : '—'}</b>
+          </span>
+          <span
+            className="cluster-layout-pair"
+            aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? hoursText(breaking, words) : words.noRest}`}
+          >
+            <BreakIcon />
+            <b>{breaking >= 0 ? hoursText(breaking, words) : '—'}</b>
+          </span>
+        </>
+      )
+    return (
+      <>
+        <span className="cluster-layout-value">
+          <b>{t ? fuelFigure.value : '—'}</b>
+          <small>{fuelFigure.unit}</small>
+        </span>
+        <span className="cluster-layout-gauge" aria-hidden>
+          <i style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
+        </span>
+        <span className="cluster-layout-pair">
+          <RangeIcon />
+          <b>{t ? rangeFigure.value : '—'}</b>
+          <small>{rangeFigure.unit}</small>
+        </span>
+      </>
+    )
+  }
+
+  // One column of the preview, as the dash's own stands: only the cards turned on, in the player's order, each one
+  // taken by the pointer or moved by the arrow keys — up and down its column, left and right across the dial. A tap
+  // takes a card off the glass and the column closes up, as it does on the truck; the card waits in the tray under the
+  // picture. The tank's companions close the right column, where they always are.
+  const column = (side: ClusterSide) => {
+    const shown = layout[side].filter((card) => cards[card])
+    return (
+      <div
+        key={side}
+        className="cluster-layout-column"
+        data-cluster-column={side}
+        // Four cards on the left, or three beside the tank's fixed readings, leave each panel too short for its
+        // figures: the column tightens its cards instead.
+        data-compact={shown.length > (side === 'right' ? 2 : 3) ? '' : undefined}
+        data-drop={drag?.over === null && drag?.side === side ? 'end' : undefined}
+        role="group"
+        aria-label={side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight}
+      >
+        {shown.map((card, place) => {
+          const engine = card === 'engine'
+          const label = `${names[card]}, ${
+            side === 'left' ? text.settings.clusterSideLeft : text.settings.clusterSideRight
+          } ${place + 1} / ${shown.length}, ${text.diagnostics.on}`
+          // Up and down the column, left and right across the dial: the card's own keys, whether the card is the
+          // toggle itself or, for the engine, the name that carries the toggle above the readings.
+          const keyStep = (event: ReactKeyboardEvent<HTMLElement>, toggle: boolean) => {
+            const key = event.key
+            if (key === 'ArrowUp' || key === 'ArrowDown') {
+              // The step is to the next card on the glass, not the next in the saved order: a card taken off has no
+              // place to pass here, and its hidden slot is not a step the key should spend.
+              const neighbour = shown[shown.indexOf(card) + (key === 'ArrowUp' ? -1 : 1)]
+              if (neighbour) moveCardTo(card, neighbour, key === 'ArrowDown')
+            } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+              const target: ClusterSide = key === 'ArrowLeft' ? 'left' : 'right'
+              if (target === side) return
+              // Across the dial, the card keeps its place in the column: the same number of cards stay above it. The
+              // chosen card is the one to sit before, so a card waiting off the glass in that column does not shift it.
+              const anchor = layout[target].filter((id) => cards[id])[place]
+              if (anchor) placeCard(card, target, layout[target].indexOf(anchor))
+              else placeCard(card, target)
+            } else if (toggle && (key === 'Enter' || key === ' ')) setCard(card, false)
+            else return
+            event.preventDefault()
+            // A card moved to the other column, or taken off it, is a new element: the focus goes with it.
+            focusClusterCard(card)
+          }
+          return (
+            <div
+              key={card}
+              className="cluster-layout-card"
+              data-cluster-card={card}
+              data-cluster-side={side}
+              data-dragging={drag?.card === card ? '' : undefined}
+              data-drop={drag?.over === card ? (drag.after ? 'after' : 'before') : undefined}
+              // The card's share of the column, as the panel's own height: the engine's three readings stand taller than
+              // the tank's gauge, and the preview says so before the dash does.
+              style={{ '--card-weight': PREVIEW_WEIGHT[card] } as CSSProperties}
+              // The engine's readings are the card's own controls, so its toggle is the name above them and its body is
+              // a group; every other card is the toggle, as a button is.
+              role={engine ? 'group' : 'button'}
+              tabIndex={engine ? undefined : 0}
+              aria-pressed={engine ? undefined : cards[card]}
+              aria-label={engine ? undefined : label}
+              aria-keyshortcuts={engine ? undefined : 'ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space'}
+              title={cardDetail[card]}
+              onPointerDown={(event) => startDrag(event, card)}
+              onKeyDown={engine ? undefined : (event) => keyStep(event, true)}
+              onClick={() => {
+                // The click that ends a drag is not a tap on the card.
+                if (suppressTap.current) return
+                setCard(card, false)
+                focusClusterCard(card)
+              }}
+            >
+              {engine ? (
+                <button
+                  type="button"
+                  className="cluster-layout-card-head cluster-layout-card-toggle"
+                  aria-pressed={cards[card]}
+                  aria-label={label}
+                  aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Enter Space"
+                  onKeyDown={(event) => keyStep(event, false)}
+                  onClick={(event) => {
+                    // The head is the engine card's switch; the press is not also a tap on the card under it.
+                    event.stopPropagation()
+                    if (suppressTap.current) return
+                    setCard(card, false)
+                    focusClusterCard(card)
+                  }}
+                >
+                  <span className="cluster-layout-card-glyph" aria-hidden>
+                    {PREVIEW_ICON[card]}
+                  </span>
+                  <span className="cluster-layout-card-name">{names[card]}</span>
+                </button>
+              ) : (
+                <span className="cluster-layout-card-head">
+                  <span className="cluster-layout-card-glyph" aria-hidden>
+                    {PREVIEW_ICON[card]}
+                  </span>
+                  <span className="cluster-layout-card-name">{names[card]}</span>
+                </span>
+              )}
+              <span className="cluster-layout-body">{cardBody(card)}</span>
+            </div>
+          )
+        })}
+        {side === 'right' && <ClusterLayoutFixed />}
+      </div>
+    )
+  }
+
+  // The cards taken off the panel, under the picture: still part of the setting, one tap from the glass.
+  const off = CLUSTER_SIDE_CARDS.filter((card) => !cards[card])
 
   return (
     <Group header={text.settings.clusterLayout} footer={text.settings.clusterLayoutFooter}>
@@ -1297,27 +1721,220 @@ function ClusterLayoutEditor() {
           ))}
         </div>
         {/* The dash itself, in miniature: its status bar, the two columns and the dial between them. The columns are
-              the layout — a card is put where it is to sit, and the picture is the setting. */}
-        <div className="cluster-layout-preview" role="group" data-own-drag aria-label={text.settings.clusterLayout}>
-          <div className="cluster-layout-rail" aria-hidden>
-            <span className="cluster-layout-lamps">
+              the layout — a card is put where it is to sit, and the picture is the setting. It reads the truck as it
+              is, so the accent, the tacho and the brand are the ones the driver gets, not swatches beside them. */}
+        <div
+          className="cluster-layout-preview"
+          data-tacho={tacho ? '' : undefined}
+          role="group"
+          data-own-drag
+          aria-label={text.settings.clusterLayout}
+          style={{ '--accent': accent } as CSSProperties}
+        >
+          <div className="cluster-layout-rail">
+            {/* The lamps themselves are the warnings card's switch, where the dash keeps them: a tap dims them in the
+                picture and takes the card's marks off the panel. */}
+            <button
+              type="button"
+              className="cluster-layout-lamps"
+              aria-pressed={cards.warnings}
+              aria-label={`${words.warnings}: ${cards.warnings ? text.diagnostics.on : text.diagnostics.off}`}
+              title={cardDetail.warnings}
+              data-off={cards.warnings ? undefined : ''}
+              onClick={() => setCard('warnings', !cards.warnings)}
+            >
               {[0, 1, 2, 3, 4].map((lamp) => (
                 <i key={lamp} />
               ))}
+            </button>
+            <span className="cluster-layout-route" aria-hidden />
+            <span className="cluster-layout-time" aria-hidden>
+              {time}
             </span>
-            <span className="cluster-layout-route" />
-            <span className="cluster-layout-time">14:22</span>
           </div>
           {column('left')}
           <div className="cluster-layout-dial" aria-hidden>
-            <b className="cluster-layout-speed">87</b>
+            {brand && truck && <span className="cluster-layout-brand">{truck.brand}</span>}
+            <b className="cluster-layout-speed">{speed}</b>
             <span className="cluster-layout-unit">{units.labels.speed}</span>
           </div>
           {column('right')}
         </div>
+        {off.length > 0 && (
+          <div className="cluster-layout-tray" role="group" aria-label={text.settings.clusterHidden}>
+            <span className="cluster-layout-tray-label" aria-hidden>
+              {text.settings.clusterHidden}
+            </span>
+            {off.map((card) => (
+              <button
+                key={card}
+                type="button"
+                className="cluster-layout-tray-card"
+                data-cluster-card={card}
+                aria-pressed="false"
+                aria-label={`${names[card]}, ${text.diagnostics.off}`}
+                title={cardDetail[card]}
+                onClick={() => {
+                  setCard(card, true)
+                  focusClusterCard(card)
+                }}
+              >
+                <span className="cluster-layout-tray-icon" aria-hidden>
+                  {PREVIEW_ICON[card]}
+                </span>
+                <span>{names[card]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {/* The engine's readings, chosen where they are read: a press on one dims the Settings window, the seven
+            gauges the Diagnostics app keeps are listed on it with their live figures, and the one in the slot is
+            ticked. The panel belongs to the screen, not the picture, so nothing is clipped by the miniature. */}
+        {picking !== null &&
+          pickerHost &&
+          createPortal(
+            <div className="cluster-reading-layer">
+              <div className="cluster-reading-scrim" onClick={closePicker} />
+              <div
+                className="cluster-reading-picker"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${text.settings.clusterReadings}: ${text.settings.clusterReadingSlot(picking + 1)}`}
+                ref={picker}
+              >
+                <div className="cluster-reading-picker-head">
+                  <span className="cluster-reading-picker-kicker">{text.settings.clusterReadings}</span>
+                  <div className="cluster-reading-picker-title">
+                    <b>{text.settings.clusterReadingSlot(picking + 1)}</b>
+                    <span>{views[readingSlots[picking]].label}</span>
+                  </div>
+                </div>
+                <div
+                  className="cluster-reading-choices"
+                  role="menu"
+                  aria-label={text.settings.clusterReadings}
+                  onKeyDown={onChoiceKey}
+                >
+                  {CLUSTER_READINGS.map((id) => {
+                    const on = readingSlots[picking] === id
+                    const figure = views[id].figure
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={on}
+                        data-warn={views[id].warn ? '' : undefined}
+                        className="cluster-reading-choice"
+                        onClick={() => {
+                          setReading(picking, id)
+                          closePicker()
+                        }}
+                      >
+                        <span className="cluster-reading-choice-icon" aria-hidden>
+                          {READING_ICON[id]}
+                        </span>
+                        <span className="cluster-reading-choice-name">{views[id].label}</span>
+                        <span className="cluster-reading-choice-figure">
+                          {figure.unit ? `${figure.value} ${figure.unit}` : figure.value}
+                        </span>
+                        {on && (
+                          <span className="cluster-reading-choice-check" aria-hidden>
+                            <CheckGlyph />
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="cluster-reading-picker-note">{text.settings.clusterReadingsFooter}</p>
+              </div>
+            </div>,
+            pickerHost,
+          )}
       </div>
     </Group>
   )
+}
+
+/** One reading of the engine card as the truck reads it now: its name, its figure in the driver's units, and whether
+ * it is out of range. */
+interface ClusterReadingView {
+  label: string
+  figure: Figure
+  warn: boolean
+}
+
+/** No truck to read (the settings opened between games): the dash itself shows a dash, with no unit to claim. */
+const NO_READING: Figure = { value: '—', unit: '' }
+
+/**
+ * The engine card's seven readings, read as the cluster reads them: the same gauges and the same warning lines the
+ * Diagnostics app uses, in the driver's units. The pickers name each gauge with the figure it reads now, and the
+ * layout's miniature draws the three in its slots with the warning colour the dash lights.
+ */
+function useClusterReadings(): Record<ClusterReading, ClusterReadingView> {
+  const text = useText()
+  const words = text.diagnostics
+  const units = useUnits()
+  const t = useLive((state) => state.telemetry)
+  const gaugePercent = useCabin((state) => state.clusterGaugePercent)
+  const instant = useInstantConsumption()
+  const adblue = t ? adblueReading(t.adblue) : null
+  const coolant = t ? coolantReading(t.coolantTemperature) : null
+  const oil = t ? oilReading(t.oilTemperature) : null
+  const air = t ? warned(brakeAirReading(t.brakeAirPressure), t.brakeAirWarning) : null
+  const volts = t ? warned(batteryReading(t.batteryVoltage), t.batteryWarning) : null
+  const heat = t ? brakeTemperatureReading(t.brakeTemperature) : null
+  const burning = instant === null ? null : consumptionReading(instant)
+  const adblueFigure: Figure =
+    gaugePercent && adblue !== null
+      ? { value: String(Math.round(adblue.percent * 100)), unit: '%' }
+      : units.volumeFigure(t?.adblue ?? 0, text.decimal)
+  return {
+    oilTemperature: {
+      label: words.oilTemperature,
+      figure: t ? units.temperatureFigure(t.oilTemperature, text.decimal) : NO_READING,
+      warn: (oil?.state ?? 'ok') !== 'ok',
+    },
+    coolant: {
+      label: words.coolant,
+      figure: t ? units.temperatureFigure(t.coolantTemperature, text.decimal) : NO_READING,
+      warn: (coolant?.state ?? 'ok') !== 'ok',
+    },
+    brakeAir: {
+      label: words.brakeAir,
+      figure: t ? units.pressureFigure(t.brakeAirPressure, text.decimal) : NO_READING,
+      warn: (air?.state ?? 'ok') !== 'ok',
+    },
+    battery: {
+      label: words.battery,
+      figure: t ? { value: t.batteryVoltage.toFixed(1).replace('.', text.decimal), unit: words.volts } : NO_READING,
+      warn: (volts?.state ?? 'ok') !== 'ok',
+    },
+    adblue: {
+      label: words.adblue,
+      figure: t ? adblueFigure : NO_READING,
+      warn: (adblue?.state ?? 'ok') !== 'ok',
+    },
+    brakeTemperature: {
+      label: words.brakeTemperature,
+      figure: t ? units.temperatureFigure(t.brakeTemperature, text.decimal) : NO_READING,
+      warn: (heat?.state ?? 'ok') !== 'ok',
+    },
+    consumption: {
+      label: text.settings.clusterReadingInstant,
+      figure: instant === null ? NO_READING : units.consumptionFigure(instant, text.decimal),
+      warn: (burning?.state ?? 'ok') !== 'ok',
+    },
+  }
+}
+
+/** A driver-hours clock as the cluster says it: "4:05 h" past the hour, or "58 min" under it. */
+function hoursText(value: number, words: ReturnType<typeof useText>['diagnostics']): string {
+  const whole = Math.max(0, Math.round(value))
+  if (whole < 60) return `${whole} ${words.minutes}`
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')} ${words.hours}`
 }
 
 /** A card's share of the preview's column: the panels' own heights, near enough — the engine's three readings stand
@@ -1325,8 +1942,10 @@ function ClusterLayoutEditor() {
 const PREVIEW_WEIGHT: Record<ClusterSideCard, number> = {
   trip: 1.5,
   engine: 1.9,
-  hours: 1.15,
-  fuel: 1,
+  // The two short cards carry their figures now, not three bars: their share is the room a figure and a pair take,
+  // which is a little more than a sketch of them did.
+  hours: 1.45,
+  fuel: 1.35,
 }
 
 /** The mark each card wears in the preview: the same marks the dash draws on its panels. */
@@ -1337,27 +1956,37 @@ const PREVIEW_ICON: Record<ClusterSideCard, ReactElement> = {
   fuel: <FuelIcon />,
 }
 
-/** The shape of each panel's content, as bars: the trip's figure and its two pairs, the engine's three readings, the
- * driver's two clocks, and the tank's gauge and foot. Enough to know the panels apart at a glance. */
-const PREVIEW_BARS: Record<ClusterSideCard, readonly number[]> = {
-  trip: [100, 62, 44],
-  engine: [88, 64, 74],
-  hours: [58, 46],
-  fuel: [96, 40],
+/** The reading each engine slot draws: the same marks the dash gives the gauges, whichever slot they are in. */
+const READING_ICON: Record<ClusterReading, ReactElement> = {
+  oilTemperature: <OilTemperatureIcon />,
+  coolant: <CoolantIcon />,
+  brakeAir: <BrakeAirIcon />,
+  battery: <BatteryIcon />,
+  adblue: <AdblueIcon />,
+  brakeTemperature: <BrakeTemperatureIcon />,
+  consumption: <GaugeIcon />,
 }
 
 /** The readings that keep the right side whatever the layout: the tank's companions, drawn under its cards so the
  * editor shows what shares that column. They are the dash's own, not the player's to move. */
-const FIXED_READINGS = [AdblueIcon, CoolantIcon, BrakeTemperatureIcon, DropIcon, WarningIcon]
-
 function ClusterLayoutFixed() {
   const text = useText()
+  const words = text.diagnostics
+  // Named for the reader and for a hover, since the block has only the icons' room: what is always here is a fact
+  // about the column, and a row of unlabelled marks would leave it a guess.
+  const fixed = [
+    { icon: <AdblueIcon />, name: words.adblue },
+    { icon: <CoolantIcon />, name: words.coolant },
+    { icon: <BrakeTemperatureIcon />, name: words.brakeTemperature },
+    { icon: <DropIcon />, name: words.instant },
+    { icon: <WarningIcon />, name: words.wear },
+  ]
   return (
     <div className="cluster-layout-fixed" role="note" aria-label={text.settings.clusterLayoutFixed}>
       <span className="cluster-layout-fixed-name">{text.settings.clusterLayoutFixed}</span>
-      {FIXED_READINGS.map((Icon, index) => (
-        <span className="cluster-layout-fixed-row" key={index}>
-          <Icon />
+      {fixed.map(({ icon, name }) => (
+        <span className="cluster-layout-fixed-row" key={name} title={name} aria-label={name}>
+          {icon}
           <i />
         </span>
       ))}
@@ -1369,7 +1998,10 @@ function ClusterLayoutFixed() {
  * other column, and the focus goes with it. */
 function focusClusterCard(card: ClusterSideCard): void {
   requestAnimationFrame(() => {
-    document.querySelector<HTMLElement>(`[data-cluster-card="${card}"]`)?.focus()
+    const element = document.querySelector<HTMLElement>(`[data-cluster-card="${card}"]`)
+    // The engine card's toggle is its name above the readings; every other card is the focusable element itself.
+    const target = element?.querySelector<HTMLElement>('button') ?? element
+    target?.focus()
   })
 }
 
@@ -1606,6 +2238,22 @@ interface WidgetDrag {
   after: boolean
 }
 
+/** A card's lower edge held by the pointer: the size it had when taken, and where the hand started. */
+interface WidgetResize {
+  widget: DashboardWidget
+  pointerId: number
+  y: number
+  size: DashboardWidgetSize
+}
+
+/** Focus a preview card by name once the order has been redrawn: a card moved by its keys is a new element in the
+ * column, and the focus goes with it. */
+function focusDashboardWidget(widget: DashboardWidget): void {
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>(`.dashboard-preview-widget[data-widget="${widget}"]`)?.focus()
+  })
+}
+
 /** The preview card under a point, and which half of it the point is on: a drop goes before or after it. */
 function widgetUnder(x: number, y: number): { widget: DashboardWidget; after: boolean } | null {
   const element = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-widget]')
@@ -1647,10 +2295,6 @@ function DeletePresetGlyph() {
   )
 }
 
-/**
- * A widget's row in the layout editor: its switch and (while Auto Order is off) its arrows, with the three sizes
- * under them. The size stays with a widget that's turned off, ready for when it comes back.
- */
 /** Whether the Dashboard is showing exactly this preset's order, widgets and sizes. */
 function matchesDashboardLayout(
   layout: DashboardLayout,
@@ -1661,62 +2305,6 @@ function matchesDashboardLayout(
   return (
     layout.order.every((widget, index) => order[index] === widget) &&
     layout.order.every((widget) => layout.widgets[widget] === widgets[widget] && layout.sizes[widget] === sizes[widget])
-  )
-}
-
-function WidgetLayoutRow({
-  label,
-  on,
-  onToggle,
-  size,
-  onSize,
-  place,
-}: {
-  label: string
-  on: boolean
-  onToggle(on: boolean): void
-  size: DashboardWidgetSize
-  onSize(size: DashboardWidgetSize): void
-  place?: { first: boolean; last: boolean; onMove(by: number): void }
-}) {
-  const text = useText()
-  const sizeNames: Record<DashboardWidgetSize, string> = {
-    compact: text.settings.widgetCompact,
-    standard: text.settings.widgetStandard,
-    expanded: text.settings.widgetExpanded,
-  }
-  return (
-    <div className="settings-widget-row">
-      <div className="settings-widget-main">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          className="settings-manage-toggle"
-          onClick={() => onToggle(!on)}
-        >
-          <span className="settings-label">{label}</span>
-          <span className={on ? 'apple-switch on' : 'apple-switch'} aria-hidden>
-            <span className="apple-switch-thumb" />
-          </span>
-        </button>
-        {place && <OrderButtons label={label} first={place.first} last={place.last} onMove={place.onMove} />}
-      </div>
-      <div className="settings-widget-sizes">
-        <span className="settings-widget-size-label">{text.settings.widgetSize}</span>
-        <span
-          className="settings-widget-size-options"
-          role="group"
-          aria-label={`${text.settings.widgetSize}: ${label}`}
-        >
-          {DASHBOARD_WIDGET_SIZES.map((choice) => (
-            <button key={choice} type="button" aria-pressed={choice === size} onClick={() => onSize(choice)}>
-              {sizeNames[choice]}
-            </button>
-          ))}
-        </span>
-      </div>
-    </div>
   )
 }
 

@@ -47,6 +47,7 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
     { label: s.overviewScreen, page: 'overview', section: s.dashboard },
     { label: s.openOverview, page: 'overview', section: s.dashboard },
     { label: s.overviewCards, page: 'overview', section: s.dashboard },
+    { label: s.resetOverview, page: 'overview', section: s.dashboard },
     { label: s.clusterScreen, page: 'cluster', section: s.cabSection },
     { label: s.clusterSwitch, page: 'cluster', section: s.clusterScreen },
     { label: s.clusterCards, page: 'cluster', section: s.clusterScreen },

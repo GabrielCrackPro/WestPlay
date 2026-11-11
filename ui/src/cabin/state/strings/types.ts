@@ -567,19 +567,23 @@ export interface Strings {
     widgetCompact: string
     widgetStandard: string
     widgetExpanded: string
-    noWidgets: string
     /** The Dashboard's Overview screen: turning it on, opening the Dashboard on it, and its cards. */
     overviewScreen: string
     openOverview: string
     overviewCards: string
+    overviewCardsFooter: string
+    /** The cards taken off the Overview, kept under the picture so a tap can put them back. */
+    overviewHidden: string
+    /** The Overview page's own reset, back to how a new Dashboard comes. */
+    resetOverview: string
     overviewFooter: string
     /** The truck's instrument cluster, replaced by WestPlay on the trucks it is built for. */
     clusterScreen: string
     clusterSwitch: string
     clusterCards: string
+    /** The cards taken off the cluster, kept under the picture so a tap can put them back. */
+    clusterHidden: string
     clusterFooter: string
-    /** The cards a turned-off switch leaves out, said one by one under their names. */
-    clusterCardsFooter: string
     clusterCardTrip: string
     clusterCardFuel: string
     clusterCardEngine: string

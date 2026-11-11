@@ -563,7 +563,7 @@ export const TURKISH_STRINGS: Strings = {
     widgets: 'Widget’lar',
     widgetLayout: 'Yerleşim',
     widgetLayoutFooter:
-      'Sütunu yeniden sıralamak için bir kartı sürükle veya bir hazır yerleşim seç. İkisi de Otomatik Sıralama’yı kapatır; hazır yerleşim ayrıca boyutları ve hangi widget’ların görüneceğini ayarlar.',
+      'Bir kartı Panoda göstermek veya kaldırmak için dokun; sütunu yeniden sıralamak için sürükle ya da boyutunu değiştirmek için alt kenarını sürükle. Tab ile seçilen kartta yukarı ve aşağı oklar kartı taşır, yan oklar boyutunu ayarlar. Sürükleme Otomatik Sıralama’yı kapatır; hazır yerleşim ayrıca boyutları ve hangi widget’ların görüneceğini ayarlar.',
     widgetPresets: 'Hazır Yerleşimler',
     presetFocus: 'Odak',
     presetMedia: 'Medya',
@@ -572,19 +572,21 @@ export const TURKISH_STRINGS: Strings = {
     widgetCompact: 'Kompakt',
     widgetStandard: 'Standart',
     widgetExpanded: 'Geniş',
-    noWidgets: 'Açık widget yok',
     overviewScreen: 'Genel bakış ekranı',
     openOverview: 'Panoyu genel bakışta aç',
     overviewCards: 'Genel bakışta göster',
+    overviewCardsFooter:
+      'Resimdeki bir karta dokunarak onu genel bakışta tutabilir veya çıkarabilirsiniz; kalan kartları ızgara, ekranda olduğu gibi yerleştirir. Hız her zaman oradadır.',
+    overviewHidden: 'Genel bakışta kapalı',
+    resetOverview: 'Genel bakışı sıfırla',
     overviewFooter:
       'Panonun ikinci ekranı: yolculuğun göstergeleri haritanın yanında tek ızgarada. Panonun köşesindeki düğme ekranı çevirir.',
     clusterScreen: 'Gösterge paneli',
     clusterSwitch: 'Paneli değiştir',
     clusterCards: 'Panelde göster',
+    clusterHidden: 'Panelde kapalı',
     clusterFooter:
       'Scania S ve R’de kamyonun kendi yerine WestPlay’in dijital gösterge paneli. Hız ve vites her zaman görünür.',
-    clusterCardsFooter:
-      'Gösterge, üstündeki rota ve kendi kartı olmayan göstergeler her zaman çizilir. Kapatılan kart yerini diğerlerine bırakır.',
     clusterCardTrip: 'Motor çalıştığından beri mesafe, ortalaması, hareket süresi ve kilometre sayacı.',
     clusterCardFuel: 'Depo seviyesi, kalan menzil ve yolculukta yanan yakıt.',
     clusterCardEngine: 'Yağ sıcaklığı, fren havası basıncı ve akü voltajı.',
@@ -596,7 +598,7 @@ export const TURKISH_STRINGS: Strings = {
       'Depo ve AdBlue, içindekinin ne kadarının kaldığını gösterir; yanlarındaki çubuklar boştan dolar. Sıcaklıklar, tüketim ve aşınma kendi birimlerini korur.',
     clusterReadings: 'Motor Okumaları',
     clusterReadingsFooter:
-      'Motor kartının altındaki üç okuma; her biri Diagnostik uygulamasının zaten ölçtüğü bir gösterge. Başka bir yuvadaki okuma, burada seçilenle yer değiştirir.',
+      'O yuvadaki göstergeyi seçmek için motor kartındaki bir okumaya dokunun; her biri Diagnostik uygulamasının ölçtüğü bir göstergedir. Başka bir yuvadaki okuma, seçilenle yer değiştirir.',
     clusterReadingSlot: (slot) => `${slot}. Okuma`,
     clusterReadingInstant: 'Anlık tüketim',
     clusterDial: 'Gösterge',
@@ -612,7 +614,7 @@ export const TURKISH_STRINGS: Strings = {
     clusterAccentNeutral: 'Nötr',
     clusterLayout: 'Yerleşim',
     clusterLayoutFooter:
-      'Bir kartı göstergenin iki yanına, bir başkasının üstüne ya da altına sürükleyin. Tab ile seçilen bir kart oklarla taşınır: kendi sütununda yukarı ve aşağı, göstergenin öbür yanına sola ve sağa. Uyarı lambaları üstteki çubukta kalır; deponun kendi okumaları sağ tarafı doldurur.',
+      'Bir kartı göstergenin iki yanına, bir başkasının üstüne ya da altına sürükleyin. Panodan kaldırmak için dokunun — sütun kapanır ve kart, geri konana kadar resmin altında bekler — üstteki uyarı lambalarını göstermek ya da gizlemek için lambalara dokunun. Tab ile seçilen bir kart oklarla taşınır: kendi sütununda yukarı ve aşağı, göstergenin öbür yanına sola ve sağa. Deponun kendi okumaları sağ tarafı doldurur.',
     clusterLayoutFixed: 'Her zaman burada',
     clusterPresets: 'Ön ayarlar',
     presetClusterStandard: 'Standart',

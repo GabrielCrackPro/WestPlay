@@ -1410,6 +1410,7 @@
 }
 
 .dashboard-preview-widget {
+  position: relative;
   flex: 1 1 0;
   min-height: 32px;
   display: flex;
@@ -1475,8 +1476,55 @@
   min-height: 50px;
 }
 
+/* A widget off the Dashboard stays in the column, dimmed and outlined as a place waiting to be filled: the picture is
+   the layout, so tapping the card is how it comes back. */
+.dashboard-preview-widget[data-off] {
+  opacity: 0.4;
+  filter: grayscale(1);
+  outline: 1px dashed rgb(255 255 255 / 0.3);
+  outline-offset: -3px;
+}
+
 .dashboard-preview-widget:hover {
   filter: brightness(1.08);
+}
+
+.dashboard-preview-widget[data-off]:hover {
+  opacity: 0.7;
+  filter: grayscale(0.35) brightness(1.08);
+}
+
+/* The card's lower edge resizes it: a grip that shows when the card is looked at or tabbed to, and a drag that steps
+   through the three sizes as the hand moves. */
+.dashboard-preview-resize {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.dashboard-preview-resize::after {
+  content: '';
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.42);
+  opacity: 0;
+  transition: opacity 160ms var(--motion-ease);
+}
+
+.dashboard-preview-widget:hover .dashboard-preview-resize::after,
+.dashboard-preview-widget:focus-visible .dashboard-preview-resize::after {
+  opacity: 1;
+}
+
+.appearance-light .dashboard-preview-resize::after {
+  background: rgb(0 0 0 / 0.3);
 }
 
 .dashboard-preview-widget.dragging {
@@ -1534,15 +1582,6 @@
   white-space: nowrap;
 }
 
-.dashboard-preview-empty {
-  margin: auto;
-  padding: 12px;
-  color: rgb(255 255 255 / 0.55);
-  font-size: calc(15px * var(--text-scale, 1));
-  line-height: 1.3;
-  text-align: center;
-}
-
 .appearance-light .dashboard-preview-widget {
   color: #14161a;
   background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.64));
@@ -1560,81 +1599,21 @@
   opacity: 0.38;
 }
 
-/* A widget's row in the editor: its switch and arrows, then the three sizes under them. */
-.settings-widget-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 14px 10px 0;
+.dashboard-preview-widget:focus-visible,
+.dashboard-preview-widget[data-off]:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+  /* An off card keeps its colour while it is the card in hand, so its ring and its size read at a glance. */
+  filter: none;
 }
 
-.settings-widget-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.appearance-light .dashboard-preview-widget[data-off] {
+  outline-color: rgb(0 0 0 / 0.26);
 }
 
-.settings-widget-main .settings-manage-toggle {
-  flex: 1;
-  min-width: 0;
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding-left: 22px;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-
-.settings-widget-sizes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px 14px;
-  padding: 0 4px 0 22px;
-}
-
-.settings-widget-size-label {
-  flex: 1;
-  min-width: 80px;
-  color: var(--apple-label-secondary);
-  font-size: calc(17px * var(--text-scale, 1));
-}
-
-.settings-widget-size-options {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 13px;
-  background: var(--apple-fill-quaternary);
-}
-
-.shell .settings-widget-size-options button {
-  min-width: 72px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 10px;
-  color: var(--apple-label-secondary);
-  font-size: calc(15px * var(--text-scale, 1));
-  white-space: nowrap;
-  transition:
-    background-color 160ms var(--motion-ease),
-    color 160ms var(--motion-ease),
-    box-shadow 160ms var(--motion-ease);
-}
-
-.shell .settings-widget-size-options button:hover {
-  color: var(--apple-label);
-}
-
-.shell .settings-widget-size-options button[aria-pressed='true'] {
-  color: var(--apple-label);
-  background: var(--apple-card);
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.12),
-    0 2px 8px rgb(0 0 0 / 0.12);
+.appearance-light .dashboard-preview-widget[data-off]:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
 }
 
 /* More under the page's foot than shows (SettingsApp.tsx `useMoreBelow`): a small glass chevron at the bottom,
@@ -1771,6 +1750,77 @@ html[data-motion='reduced'] .settings-more {
   padding: 18px;
 }
 
+/* The cards taken off the panel, under the picture: still part of the setting, one tap from the glass. */
+.cluster-layout-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 2px;
+}
+
+.cluster-layout-tray-label {
+  margin-right: 2px;
+  color: rgb(255 255 255 / 0.5);
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.appearance-light .cluster-layout-tray-label {
+  color: rgb(0 0 0 / 0.48);
+}
+
+.shell .cluster-layout-tray-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px 5px 7px;
+  border: 1px dashed rgb(255 255 255 / 0.28);
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.62);
+  background: rgb(255 255 255 / 0.07);
+  font-size: calc(10px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.cluster-layout-tray-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  opacity: 0.72;
+}
+
+.cluster-layout-tray-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.shell .cluster-layout-tray-card:hover {
+  color: rgb(255 255 255 / 0.82);
+  border-color: rgb(255 255 255 / 0.42);
+}
+
+.shell .cluster-layout-tray-card:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+}
+
+.appearance-light .shell .cluster-layout-tray-card {
+  color: rgb(0 0 0 / 0.6);
+  border-color: rgb(0 0 0 / 0.22);
+  background: rgb(0 0 0 / 0.04);
+}
+
+.appearance-light .shell .cluster-layout-tray-card:hover {
+  color: rgb(0 0 0 / 0.82);
+  border-color: rgb(0 0 0 / 0.36);
+}
+
 .cluster-layout-shot {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
@@ -1823,11 +1873,14 @@ html[data-motion='reduced'] .settings-more {
 /* The preview: the dash itself, in miniature — its status bar, the two columns and the dial between them. Each card
    takes its share of the column as its panel takes it on the dash, so a side that is full looks full here first. */
 .cluster-layout-preview {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
   grid-template-rows: 22px minmax(0, 1fr);
   gap: 8px 12px;
-  height: 280px;
+  /* Tall enough for the figures the cards now carry: a trip's distance and its pair, three engine readings, two
+     clocks and the tank's gauge all need more than the bars they replaced did. */
+  height: 320px;
   padding: 12px;
   border-radius: 24px;
   background: #0b1118;
@@ -1854,9 +1907,28 @@ html[data-motion='reduced'] .settings-more {
   padding: 0 2px;
 }
 
-.cluster-layout-lamps {
+/* The lamps in the bar are the warnings card's own switch, drawn where the dash keeps them. */
+.shell .cluster-layout-lamps {
   display: flex;
   gap: 3px;
+  padding: 6px 7px;
+  margin: -6px -7px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.cluster-layout-lamps:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.appearance-light .cluster-layout-lamps:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+
+.cluster-layout-lamps:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 1px;
 }
 
 .cluster-layout-lamps i {
@@ -1864,6 +1936,11 @@ html[data-motion='reduced'] .settings-more {
   height: 6px;
   border-radius: 50%;
   background: rgb(255 255 255 / 0.22);
+}
+
+/* The warnings card off: the bar above the dial holds its marks for the lamps without claiming they are lit. */
+.cluster-layout-lamps[data-off] i {
+  opacity: 0.35;
 }
 
 .appearance-light .cluster-layout-lamps i {
@@ -1875,7 +1952,7 @@ html[data-motion='reduced'] .settings-more {
   max-width: 120px;
   height: 3px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--accent, #fff) 55%, transparent);
 }
 
 .appearance-light .cluster-layout-route {
@@ -1910,6 +1987,87 @@ html[data-motion='reduced'] .settings-more {
 .cluster-layout-column[data-drop='end'] {
   background: color-mix(in srgb, var(--apple-blue) 12%, transparent);
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--apple-blue) 70%, transparent);
+}
+
+/* Four cards on the left, or three beside the tank's fixed readings: each panel is a quarter of the glass or less,
+   too little for a name row and the figures at full size. The column tightens — smaller marks and type, closer gaps —
+   so every card stays whole rather than the last one being clipped. */
+.cluster-layout-column[data-compact] {
+  gap: 4px;
+  padding: 4px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-card {
+  gap: 3px;
+  padding: 5px 7px;
+  border-radius: 8px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-card-head {
+  gap: 5px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-card-glyph,
+.cluster-layout-column[data-compact] .cluster-layout-card-glyph svg {
+  width: 13px;
+  height: 13px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-card-name {
+  font-size: calc(10px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-body {
+  gap: 2px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-value b {
+  font-size: calc(13px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-value small {
+  font-size: calc(8px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-pair {
+  gap: 3px;
+  font-size: calc(8.5px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-pair svg {
+  width: 9px;
+  height: 9px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-pair small {
+  font-size: calc(7.5px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-reading {
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  font-size: calc(10px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-reading-icon,
+.cluster-layout-column[data-compact] .cluster-layout-reading-icon svg {
+  width: 10px;
+  height: 10px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-reading small {
+  font-size: calc(8px * var(--text-scale, 1));
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-reading-chevron,
+.cluster-layout-column[data-compact] .cluster-layout-reading-chevron svg {
+  width: 8px;
+  height: 8px;
+}
+
+.cluster-layout-column[data-compact] .cluster-layout-gauge {
+  height: 4px;
 }
 
 /* A card is a panel of the dash in small: its mark and name at the top, the shape of its readings under them, and the
@@ -1953,10 +2111,6 @@ html[data-motion='reduced'] .settings-more {
 .cluster-layout-card:focus-visible {
   outline: 2px solid var(--apple-blue);
   outline-offset: 2px;
-}
-
-.cluster-layout-card[data-off] {
-  opacity: 0.4;
 }
 
 .cluster-layout-card[data-dragging] {
@@ -2008,33 +2162,198 @@ html[data-motion='reduced'] .settings-more {
   white-space: nowrap;
 }
 
-.cluster-layout-bars {
+/* The engine card's head is its switch, since the readings under it are controls of their own: the name row takes the
+   whole card off the dash, and the readings open the choice for their slot. */
+.shell .cluster-layout-card-toggle {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+}
+
+.shell .cluster-layout-card-toggle:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The card's own reading, as the panel prints it: the figure in its large hand with the unit beside it, a pair or two
+   under it, and the tank's bar. The figures are the truck's, so the picture is judged with the numbers the driver will
+   see on the glass rather than with a sketch of them. */
+.cluster-layout-body {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cluster-layout-value {
+  display: flex;
+  align-items: baseline;
   gap: 3px;
+  min-width: 0;
+  line-height: 1;
 }
 
-.cluster-layout-bars i {
-  display: block;
-  height: 5px;
-  border-radius: 2px;
-  background: rgb(255 255 255 / 0.22);
+.cluster-layout-value b {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.appearance-light .cluster-layout-bars i {
-  background: rgb(0 0 0 / 0.16);
+.cluster-layout-value small {
+  color: rgb(255 255 255 / 0.55);
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 650;
 }
 
-/* The trip's figure is its tall top line, and the tank's gauge is its fat one: the shapes the panels are read by. */
-.cluster-layout-bars[data-card='trip'] i:first-child,
-.cluster-layout-bars[data-card='fuel'] i:first-child {
+.cluster-layout-pair {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.72);
+  font-size: calc(10px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.cluster-layout-pair svg {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  opacity: 0.72;
+}
+
+.cluster-layout-pair small {
+  overflow: hidden;
+  font-size: calc(8.5px * var(--text-scale, 1));
+  opacity: 0.62;
+  text-overflow: ellipsis;
+}
+
+/* A reading in the engine's card: its mark, its figure and unit, and the dash's amber when it is out of range. */
+.cluster-layout-reading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(11px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.cluster-layout-reading b {
+  font-weight: 650;
+}
+
+.cluster-layout-reading small {
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.5);
+  font-size: calc(8.5px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.cluster-layout-reading-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+}
+
+.cluster-layout-reading-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Each reading is its own control on the card: a press opens the seven gauges for that slot, and the live figure is
+   the choice's own preview. */
+.shell .cluster-layout-reading {
+  width: 100%;
+  margin: -1px -3px;
+  padding: 1px 3px;
+  border-radius: 5px;
+  color: inherit;
+  text-align: left;
+}
+
+.shell .cluster-layout-reading:hover,
+.shell .cluster-layout-reading[aria-expanded='true'] {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.appearance-light .cluster-layout-reading:hover,
+.appearance-light .cluster-layout-reading[aria-expanded='true'] {
+  background: rgb(0 0 0 / 0.07);
+}
+
+.shell .cluster-layout-reading:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 1px;
+}
+
+.cluster-layout-reading-chevron {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 9px;
   height: 9px;
+  margin-left: auto;
+  opacity: 0.4;
+}
+
+.cluster-layout-reading-chevron svg {
+  width: 9px;
+  height: 9px;
+}
+
+.cluster-layout-reading[data-warn] {
+  color: var(--apple-orange);
+}
+
+.cluster-layout-reading[data-warn] small {
+  color: currentColor;
+  opacity: 0.72;
+}
+
+.cluster-layout-gauge {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.cluster-layout-gauge i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent, #fff);
+}
+
+.appearance-light .cluster-layout-value small,
+.appearance-light .cluster-layout-pair,
+.appearance-light .cluster-layout-reading small {
+  color: rgb(0 0 0 / 0.52);
+}
+
+.appearance-light .cluster-layout-gauge {
+  background: rgb(0 0 0 / 0.12);
 }
 
 /* The tank's companions, which keep the right side whatever the layout: dim marks under its cards, so the editor
    says what shares the column. */
 .cluster-layout-fixed {
-  flex: 2.2 1 0;
+  flex: 2 1 0;
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -2092,6 +2411,7 @@ html[data-motion='reduced'] .settings-more {
 
 /* The dial at the middle: its ring, the speed it reads and the unit under it. */
 .cluster-layout-dial {
+  position: relative;
   align-self: center;
   justify-self: center;
   display: flex;
@@ -2102,11 +2422,24 @@ html[data-motion='reduced'] .settings-more {
   width: 96px;
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 2px solid rgb(255 255 255 / 0.18);
+  border: 2px solid color-mix(in srgb, var(--accent, #fff) 62%, rgb(255 255 255 / 0.16));
+}
+
+/* The tacho's hairline, as the dash draws it outside the speed's ring. */
+.cluster-layout-preview[data-tacho] .cluster-layout-dial::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.16);
 }
 
 .appearance-light .cluster-layout-dial {
-  border-color: rgb(0 0 0 / 0.16);
+  border-color: color-mix(in srgb, var(--accent, #000) 62%, rgb(0 0 0 / 0.14));
+}
+
+.appearance-light .cluster-layout-preview[data-tacho] .cluster-layout-dial::after {
+  border-color: rgb(0 0 0 / 0.12);
 }
 
 .cluster-layout-speed {
@@ -2130,4 +2463,454 @@ html[data-motion='reduced'] .settings-more {
 
 .appearance-light .cluster-layout-unit {
   color: rgb(0 0 0 / 0.45);
+}
+
+/* The maker's mark in the band above the speed, drawn as a wordmark: the logo files are the panel's, and a sketch of
+   them here would be a second mark to keep. */
+.cluster-layout-brand {
+  max-width: 78px;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.58);
+  font-size: calc(7.5px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.appearance-light .cluster-layout-brand {
+  color: rgb(0 0 0 / 0.5);
+}
+
+/* The engine card's reading choice (Settings › Cluster): a panel on the Settings screen itself, over a dimmed
+   window, rather than inside the miniature, where seven gauges and their figures would be clipped. The slot and
+   the reading it holds head the list; each gauge carries the figure it reads now, and the one in the slot is
+   ticked. */
+.cluster-reading-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.cluster-reading-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.42);
+}
+
+.appearance-light .cluster-reading-scrim {
+  background: rgb(0 0 0 / 0.26);
+}
+
+.cluster-reading-picker {
+  position: relative;
+  z-index: 1;
+  width: min(360px, 100%);
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  color: #fff;
+  background: #1d2229;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 18px 48px rgb(0 0 0 / 0.45);
+  animation: cluster-reading-in 160ms var(--motion-ease) both;
+}
+
+@keyframes cluster-reading-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+.appearance-light .cluster-reading-picker {
+  color: #14161a;
+  background: #f7f7fa;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 18px 48px rgb(0 0 0 / 0.2);
+}
+
+.cluster-reading-picker-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px 4px;
+}
+
+.cluster-reading-picker-kicker {
+  color: rgb(255 255 255 / 0.5);
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.appearance-light .cluster-reading-picker-kicker {
+  color: rgb(0 0 0 / 0.48);
+}
+
+.cluster-reading-picker-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cluster-reading-picker-title b {
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 700;
+}
+
+.cluster-reading-picker-title span {
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.55);
+  font-size: calc(11px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appearance-light .cluster-reading-picker-title span {
+  color: rgb(0 0 0 / 0.52);
+}
+
+.cluster-reading-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.shell .cluster-reading-choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 9px;
+  color: inherit;
+  text-align: left;
+  font-size: calc(12px * var(--text-scale, 1));
+}
+
+.shell .cluster-reading-choice:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.shell .cluster-reading-choice[aria-checked='true'] {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.appearance-light .cluster-reading-choice:hover {
+  background: rgb(0 0 0 / 0.06);
+}
+
+.appearance-light .cluster-reading-choice[aria-checked='true'] {
+  background: rgb(0 0 0 / 0.08);
+}
+
+.shell .cluster-reading-choice:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: -2px;
+}
+
+.cluster-reading-choice-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  opacity: 0.75;
+}
+
+.cluster-reading-choice-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.cluster-reading-choice-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-reading-choice-figure {
+  flex: none;
+  color: rgb(255 255 255 / 0.55);
+  font-size: calc(11px * var(--text-scale, 1));
+  font-variant-numeric: tabular-nums;
+}
+
+.appearance-light .cluster-reading-choice-figure {
+  color: rgb(0 0 0 / 0.52);
+}
+
+/* A gauge out of range keeps the dash's amber in the choice, so the list says what the card says. */
+.shell .cluster-reading-choice[data-warn] {
+  color: var(--apple-orange);
+}
+
+.shell .cluster-reading-choice[data-warn] .cluster-reading-choice-icon {
+  opacity: 1;
+}
+
+.shell .cluster-reading-choice[data-warn] .cluster-reading-choice-figure {
+  color: currentColor;
+}
+
+.cluster-reading-choice-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  color: var(--apple-blue);
+}
+
+.cluster-reading-choice-check svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cluster-reading-picker-note {
+  margin: 2px 2px 0;
+  color: rgb(255 255 255 / 0.5);
+  font-size: calc(10px * var(--text-scale, 1));
+  line-height: 1.35;
+}
+
+.appearance-light .cluster-reading-picker-note {
+  color: rgb(0 0 0 / 0.5);
+}
+
+/* The Overview's card grid, in miniature (Settings › Overview): the second Dashboard screen's cards, packed as the
+   screen packs them — speed, trip and weather over truck, rest clocks and what plays. Each card carries the figure its
+   widget reads now and is its own switch; a card taken off leaves the grid as it leaves the screen, and waits in the
+   tray under the picture, one tap from coming back. */
+.overview-layout-editor {
+  padding: 18px;
+}
+
+.overview-layout-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 62px);
+  /* The screen's own packing (Glance.tsx): an off card leaves no hole behind it. */
+  grid-auto-flow: dense;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 18px;
+  background: #0b1118;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 12px 30px rgb(0 0 0 / 0.12);
+}
+
+.appearance-light .overview-layout-preview {
+  background: #dce8f4;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    0 12px 30px rgb(0 0 0 / 0.08);
+}
+
+.shell .overview-preview-card {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 7px 9px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.1));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
+  font-size: calc(11px * var(--text-scale, 1));
+  text-align: left;
+  transition:
+    opacity 160ms var(--motion-ease),
+    filter 160ms var(--motion-ease);
+}
+
+.appearance-light .shell .overview-preview-card {
+  color: #10151a;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.7));
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 2px 6px rgb(0 0 0 / 0.06);
+}
+
+.shell .overview-preview-card:hover {
+  filter: brightness(1.08);
+}
+
+.shell .overview-preview-card:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+}
+
+/* The trip and Now Playing take two columns on the screen; here too. The cards place themselves in the screen's order,
+   so the grid fills exactly as Glance's does. */
+.shell .overview-preview-trip,
+.shell .overview-preview-media {
+  grid-column: span 2;
+}
+
+.shell .overview-preview-speed {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  cursor: default;
+}
+
+.overview-preview-speed-value {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.overview-preview-speed-unit {
+  color: rgb(255 255 255 / 0.55);
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.appearance-light .overview-preview-speed-unit {
+  color: rgb(0 0 0 / 0.5);
+}
+
+.overview-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.overview-preview-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  opacity: 0.72;
+}
+
+.overview-preview-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.overview-preview-name {
+  flex: 1;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(9.5px * var(--text-scale, 1));
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The figure the card is read for, in the widget's own words: the trip's distance, the tank's litres, the next rest,
+   the track, the sky. Tabular so a changing number does not shift its card. */
+.overview-preview-figure {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: calc(12.5px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The cards taken off, under the picture: still part of the setting, one tap from the grid. */
+.overview-preview-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 2px;
+}
+
+.overview-preview-tray-label {
+  margin-right: 2px;
+  color: rgb(255 255 255 / 0.5);
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.appearance-light .overview-preview-tray-label {
+  color: rgb(0 0 0 / 0.48);
+}
+
+.shell .overview-preview-tray-card {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px 5px 7px;
+  border: 1px dashed rgb(255 255 255 / 0.28);
+  border-radius: 999px;
+  color: rgb(255 255 255 / 0.62);
+  background: rgb(255 255 255 / 0.07);
+  font-size: calc(10px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.shell .overview-preview-tray-card .overview-preview-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.shell .overview-preview-tray-card .overview-preview-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.shell .overview-preview-tray-card:hover {
+  color: rgb(255 255 255 / 0.82);
+  border-color: rgb(255 255 255 / 0.42);
+}
+
+.shell .overview-preview-tray-card:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
+}
+
+.appearance-light .shell .overview-preview-tray-card {
+  color: rgb(0 0 0 / 0.6);
+  border-color: rgb(0 0 0 / 0.22);
+  background: rgb(0 0 0 / 0.04);
+}
+
+.appearance-light .shell .overview-preview-tray-card:hover {
+  color: rgb(0 0 0 / 0.82);
+  border-color: rgb(0 0 0 / 0.36);
 }

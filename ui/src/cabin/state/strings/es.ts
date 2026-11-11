@@ -578,7 +578,7 @@ export const SPANISH_STRINGS: Strings = {
     widgets: 'Widgets',
     widgetLayout: 'Diseño',
     widgetLayoutFooter:
-      'Arrastra una tarjeta para reordenar la columna o empieza con un preajuste. Ambos desactivan el Orden automático; el preajuste también ajusta tamaños y qué widgets se muestran.',
+      'Toca una tarjeta para mostrarla en el Panel o quitarla; arrástrala para reordenar la columna o su borde inferior para cambiar su tamaño. Con Tab, las flechas arriba y abajo mueven la tarjeta y las laterales ajustan su tamaño. Al arrastrar se desactiva el Orden automático; un preajuste también ajusta tamaños y qué widgets se muestran.',
     widgetPresets: 'Preajustes',
     presetFocus: 'Enfoque',
     presetMedia: 'Multimedia',
@@ -587,19 +587,21 @@ export const SPANISH_STRINGS: Strings = {
     widgetCompact: 'Compacto',
     widgetStandard: 'Estándar',
     widgetExpanded: 'Grande',
-    noWidgets: 'No hay widgets activados',
     overviewScreen: 'Pantalla de resumen',
     openOverview: 'Abrir el panel en Resumen',
     overviewCards: 'Mostrar en el resumen',
+    overviewCardsFooter:
+      'Toca una tarjeta de la imagen para mantenerla en el resumen o quitarla; la cuadrícula coloca las que quedan como lo hace la pantalla. La velocidad siempre está ahí.',
+    overviewHidden: 'Fuera del resumen',
+    resetOverview: 'Restablecer resumen',
     overviewFooter:
       'Una segunda pantalla del panel: las lecturas del viaje en una cuadrícula, junto al mapa. El botón en la esquina del panel las alterna.',
     clusterScreen: 'Cuadro de instrumentos',
     clusterSwitch: 'Sustituir el cuadro',
     clusterCards: 'Mostrar en el cuadro',
+    clusterHidden: 'Fuera del cuadro',
     clusterFooter:
       'El cuadro digital de WestPlay, en lugar del propio del camión en los Scania S y R. La velocidad y la marcha siempre están.',
-    clusterCardsFooter:
-      'El cuadro, la ruta de arriba y las lecturas sin tarjeta propia siempre se dibujan. Una tarjeta desactivada deja su sitio a las demás.',
     clusterCardTrip: 'Distancia desde que arrancó el motor, la media, el tiempo en marcha y el cuentakilómetros.',
     clusterCardFuel: 'Nivel del depósito, la distancia que queda con él y lo gastado en el viaje.',
     clusterCardEngine: 'Temperatura del aceite, presión del aire de frenos y voltaje de la batería.',
@@ -611,7 +613,7 @@ export const SPANISH_STRINGS: Strings = {
       'El depósito y el AdBlue muestran qué parte de su capacidad queda, junto a barras que empiezan vacías. Las temperaturas, el consumo y el desgaste mantienen sus cifras.',
     clusterReadings: 'Lecturas del motor',
     clusterReadingsFooter:
-      'Las tres lecturas bajo la tarjeta del motor, cada una un indicador que la app Diagnóstico ya mide. Una lectura que ya está en otra casilla intercambia su sitio con la elegida aquí.',
+      'Toca una lectura en la tarjeta del motor para elegir el indicador de esa casilla; cada uno lo mide la app Diagnóstico. Una lectura que ya está en otra casilla intercambia su sitio con la elegida.',
     clusterReadingSlot: (slot) => `Lectura ${slot}`,
     clusterReadingInstant: 'Consumo instantáneo',
     clusterDial: 'Esfera',
@@ -627,7 +629,7 @@ export const SPANISH_STRINGS: Strings = {
     clusterAccentNeutral: 'Neutro',
     clusterLayout: 'Diseño',
     clusterLayoutFooter:
-      'Arrastra una tarjeta a cualquier lado de la esfera, por encima o por debajo de otra. Con Tab, una tarjeta se mueve con las flechas: arriba y abajo por su columna, izquierda y derecha a través de la esfera. Los testigos de aviso se quedan en la barra superior, y las lecturas del depósito llenan el lado derecho.',
+      'Arrastra una tarjeta a cualquier lado de la esfera, por encima o por debajo de otra. Tócala para quitarla del cuadro —la columna se cierra y la tarjeta espera bajo la imagen hasta que la devuelvas—, y toca los testigos de aviso de arriba para mostrarlos o no. Con Tab, una tarjeta se mueve con las flechas: arriba y abajo por su columna, izquierda y derecha a través de la esfera. Las lecturas del depósito llenan el lado derecho.',
     clusterLayoutFixed: 'Siempre aquí',
     clusterPresets: 'Preajustes',
     presetClusterStandard: 'Estándar',

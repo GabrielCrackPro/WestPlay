@@ -374,6 +374,8 @@ interface CabinState {
   setOverviewDefault(on: boolean): void
   /** Shows or hides one of the Overview's cards. */
   setOverviewCard(card: OverviewCard, shown: boolean): void
+  /** The Overview page's choices back to how a new Dashboard comes. */
+  resetOverview(): void
   setClusterShown(shown: boolean): void
   /** Shows or hides one of the instrument cluster's cards. */
   setClusterCard(card: ClusterCard, shown: boolean): void
@@ -704,6 +706,12 @@ export const useCabin = create<CabinState>()(
       setOverviewShown: (overviewShown) => set({ overviewShown }),
       setOverviewDefault: (overviewDefault) => set({ overviewDefault }),
       setOverviewCard: (card, shown) => set((state) => ({ overviewCards: { ...state.overviewCards, [card]: shown } })),
+      resetOverview: () =>
+        set({
+          overviewShown: true,
+          overviewDefault: false,
+          overviewCards: { ...STARTER_OVERVIEW_CARDS },
+        }),
       setClusterShown: (clusterShown) => set({ clusterShown }),
       setClusterCard: (card, shown) => set((state) => ({ clusterCards: { ...state.clusterCards, [card]: shown } })),
       setClusterGaugePercent: (clusterGaugePercent) => set({ clusterGaugePercent }),

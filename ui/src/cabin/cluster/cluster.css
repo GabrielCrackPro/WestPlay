@@ -2400,11 +2400,13 @@ body,
   opacity: 0.32;
 }
 
-/* A hairline under the mark, drawn as the panel's own hairlines are. */
+/* A hairline under the mark, drawn as the panel's own hairlines are: it widens out from the mark's centre as the
+   mark settles (ClusterScreen.tsx), so it reads as the mark's base rather than a line already on the glass. */
 .cluster-standby-rule {
   width: 148px;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--line), transparent);
+  transform-origin: center;
 }
 
 .cluster-standby-label {

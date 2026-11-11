@@ -167,6 +167,24 @@ describe('the saved Settings choices', () => {
     })
   })
 
+  it('put the Overview page back to a new Dashboard’s choices', async () => {
+    vi.stubGlobal(
+      'localStorage',
+      savedStorage({
+        overviewShown: false,
+        overviewDefault: true,
+        overviewCards: { trip: false, media: false },
+      }),
+    )
+    const { useCabin } = await import('./store')
+    useCabin.getState().resetOverview()
+    expect(useCabin.getState()).toMatchObject({
+      overviewShown: true,
+      overviewDefault: false,
+      overviewCards: { trip: true, truck: true, hours: true, media: true, weather: true },
+    })
+  })
+
   it('come back with the instrument cluster’s choices, a card shown unless it was turned off', async () => {
     vi.stubGlobal('localStorage', savedStorage({ clusterShown: false, clusterCards: { fuel: false, hours: 'no' } }))
     const { useCabin } = await import('./store')

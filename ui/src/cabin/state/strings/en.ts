@@ -563,7 +563,7 @@ export const ENGLISH_STRINGS: Strings = {
     widgets: 'Widgets',
     widgetLayout: 'Layout',
     widgetLayoutFooter:
-      'Drag a card to reorder the column, or start from a preset. Either turns Auto Order off; a preset also sets sizes and which widgets show.',
+      'Tap a card to put it on the Dashboard or take it off; drag it to reorder the column, or drag its lower edge to resize it. With Tab, up and down move a card and the side arrows size it. Dragging turns Auto Order off; a preset also sets sizes and which widgets show.',
     widgetPresets: 'Presets',
     presetFocus: 'Focus',
     presetMedia: 'Media',
@@ -572,19 +572,21 @@ export const ENGLISH_STRINGS: Strings = {
     widgetCompact: 'Compact',
     widgetStandard: 'Standard',
     widgetExpanded: 'Large',
-    noWidgets: 'No widgets turned on',
     overviewScreen: 'Overview Screen',
     openOverview: 'Open Dashboard on Overview',
     overviewCards: 'Show on Overview',
+    overviewCardsFooter:
+      'Tap a card in the picture to keep it on the Overview or take it off; the grid packs the cards that are left, as the screen does. The speed is always there.',
+    overviewHidden: 'Off the Overview',
+    resetOverview: 'Reset Overview',
     overviewFooter:
       'A second Dashboard screen: the drive’s readings in one grid, beside the map. The switch in the Dashboard’s corner turns it over.',
     clusterScreen: 'Instrument Cluster',
     clusterSwitch: 'Replace the Cluster',
     clusterCards: 'Show on the Cluster',
+    clusterHidden: 'Off the Cluster',
     clusterFooter:
       'WestPlay’s digital cluster, in place of the truck’s own on the Scania S and R. Its speed and gear are always there.',
-    clusterCardsFooter:
-      'The dial, the route above it and the readings with no card of their own are always drawn. A card turned off leaves its room to the others.',
     clusterCardTrip: 'Distance since the engine started, the average, the time moving and the odometer.',
     clusterCardFuel: 'Tank level, the distance left on it and what the trip has burned.',
     clusterCardEngine: 'Oil temperature, brake air pressure and battery voltage.',
@@ -596,7 +598,7 @@ export const ENGLISH_STRINGS: Strings = {
       'The tank and the AdBlue read their share of what they hold, beside bars drawn from empty. Temperatures, consumption and wear keep their own figures.',
     clusterReadings: 'Engine Readings',
     clusterReadingsFooter:
-      'The three readings under the engine card, each one a gauge the Diagnostics app keeps. A reading already in another slot trades places with the one picked here.',
+      'Tap a reading on the engine card to choose the gauge in that slot; each one is a gauge the Diagnostics app keeps. A reading already in another slot trades places with the one picked.',
     clusterReadingSlot: (slot) => `Reading ${slot}`,
     clusterReadingInstant: 'Instant consumption',
     clusterDial: 'Dial',
@@ -612,7 +614,7 @@ export const ENGLISH_STRINGS: Strings = {
     clusterAccentNeutral: 'Neutral',
     clusterLayout: 'Layout',
     clusterLayoutFooter:
-      'Drag a card to either side of the dial, above or below another. With Tab, a card moves with the arrow keys: up and down its column, left and right across the dial. The warning lamps stay in the bar above, and the tank’s own readings fill the right side.',
+      'Drag a card to either side of the dial, above or below another. Tap it to take it off the dash — the column closes up, and the card waits under the picture until a tap puts it back — and tap the warning lamps above to show them or not. With Tab, a card moves with the arrow keys: up and down its column, left and right across the dial. The tank’s own readings fill the right side.',
     clusterLayoutFixed: 'Always here',
     clusterPresets: 'Presets',
     presetClusterStandard: 'Standard',
