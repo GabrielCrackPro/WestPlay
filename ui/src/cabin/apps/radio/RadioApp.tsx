@@ -53,6 +53,8 @@ export function RadioApp() {
   const face = station ?? tuned
   const live = status === 'playing' || status === 'loading'
   const paused = station !== null && status === 'paused'
+  // The volume as the slider and the glyph read it.
+  const percent = Math.round(volume * 100)
   const at = face ? shown.findIndex((each) => each.url === face.url) : -1
   const chips: [string, string][] = [
     ['all', words.all],
@@ -111,6 +113,9 @@ export function RadioApp() {
                   <p className="radio-now-state" aria-live="polite">
                     {failed === station?.url ? (
                       words.unavailable
+                    ) : status === 'loading' ? (
+                      // Opening the stream isn't playing it: the badge says which of the two it is.
+                      <span className="radio-now-badge tuning">{words.tuning}</span>
                     ) : live ? (
                       <span className="radio-now-badge">{words.playingNow}</span>
                     ) : paused ? (
@@ -160,13 +165,16 @@ export function RadioApp() {
                     </button>
                   </div>
                   <label className="radio-volume">
-                    <VolumeGlyph />
+                    <VolumeGlyph muted={percent === 0} />
                     <input
                       type="range"
                       min={0}
                       max={100}
-                      value={Math.round(volume * 100)}
+                      value={percent}
                       aria-label={words.volume}
+                      aria-valuetext={`${percent}%`}
+                      // The track's fill is drawn in CSS from this (radioApp.css), as the cab's own slider draws it.
+                      style={{ '--volume-fill': `${percent}%` } as CSSProperties}
                       onChange={(event) => setVolume(Number(event.target.value) / 100)}
                     />
                   </label>
@@ -318,7 +326,11 @@ function StationRow({
               : [station.genre || words.other, station.language].filter(Boolean).join(' · ')}
           </span>
         </span>
-        {live ? <span className="radio-row-live">{words.playingNow}</span> : null}
+        {live ? (
+          <span className={status === 'loading' ? 'radio-row-live tuning' : 'radio-row-live'}>
+            {status === 'loading' ? words.tuning : words.playingNow}
+          </span>
+        ) : null}
         {now && status === 'paused' ? <span className="radio-row-live paused">{words.paused}</span> : null}
       </button>
       <button
@@ -393,10 +405,10 @@ function NextGlyph() {
   )
 }
 
-/** The station playing: its sound, as three bars dancing. */
+/** The station playing: its sound, as three bars dancing (they rise and fall in radioApp.css while it plays). */
 function WavesGlyph() {
   return (
-    <svg viewBox="0 0 24 24" className="radio-glyph" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="radio-glyph radio-waves" aria-hidden="true">
       <g stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
         <path d="M6 10v4" />
         <path d="M12 6.5v11" />
@@ -406,12 +418,38 @@ function WavesGlyph() {
   )
 }
 
-function VolumeGlyph() {
+/** The volume: a speaker with its sound, or — turned right down — the speaker struck through, as a car's set says
+ * it is muted. */
+function VolumeGlyph({ muted = false }: { muted?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="radio-glyph" aria-hidden="true">
       <path d="M4.5 9.5h3.2L12 6v12L7.7 14.5H4.5Z" fill="currentColor" />
-      <path d="M15.5 9.5a3.7 3.7 0 0 1 0 5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M18 7a7.4 7.4 0 0 1 0 10" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      {muted ? (
+        <path
+          d="m15.7 9.4 4.6 5.2M20.3 9.4l-4.6 5.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+        />
+      ) : (
+        <>
+          <path
+            d="M15.5 9.5a3.7 3.7 0 0 1 0 5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          />
+          <path
+            d="M18 7a7.4 7.4 0 0 1 0 10"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          />
+        </>
+      )}
     </svg>
   )
 }

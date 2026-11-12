@@ -939,6 +939,8 @@ export interface Strings {
     previous: string
     next: string
     playingNow: string
+    /** Its stream is still opening: it isn't playing yet. */
+    tuning: string
     paused: string
     /** A station that didn't play: off the air, or its server refused the cab. */
     unavailable: string

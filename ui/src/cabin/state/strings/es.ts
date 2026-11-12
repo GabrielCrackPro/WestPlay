@@ -892,6 +892,7 @@ export const SPANISH_STRINGS: Strings = {
     previous: 'Emisora anterior',
     next: 'Emisora siguiente',
     playingNow: 'Reproduciendo',
+    tuning: 'Sintonizando',
     paused: 'En pausa',
     unavailable: 'Esta emisora no ha sonado: puede que esté fuera del aire o que su servidor rechace la cabina.',
     unavailableTag: 'Sin sonido',

@@ -874,6 +874,7 @@ export const TURKISH_STRINGS: Strings = {
     previous: 'Önceki istasyon',
     next: 'Sonraki istasyon',
     playingNow: 'Şimdi çalıyor',
+    tuning: 'Ayarlanıyor',
     paused: 'Duraklatıldı',
     unavailable: 'Bu istasyon çalmadı: yayında olmayabilir ya da sunucusu kabini reddediyor olabilir.',
     unavailableTag: 'Ses yok',

@@ -875,6 +875,7 @@ export const ENGLISH_STRINGS: Strings = {
     previous: 'Previous station',
     next: 'Next station',
     playingNow: 'Now playing',
+    tuning: 'Tuning',
     paused: 'Paused',
     unavailable: 'This station didn’t play: it may be off the air, or its server may refuse the cab.',
     unavailableTag: 'No sound',
