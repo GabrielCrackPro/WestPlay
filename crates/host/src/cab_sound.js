@@ -168,12 +168,17 @@ window.westplayCabSound = (media, say) => {
       audio.source = source
       audio.wired = undefined
     }
-    if (audio.wired === speakers || (speakers && !head)) return
+    // By what the speakers are, not by the list they came in: the host says them afresh with every move of the
+    // camera (a new list of the same speakers), and a way built again starts its filters, panners, delays and
+    // limiter anew — a click twenty times a second while the camera turns (measured: 9× the sound's own steepest
+    // step). Only speakers that really changed are a new way.
+    const told = speakers ? JSON.stringify(speakers) : null
+    if (audio.wired === told || (speakers && !head)) return
     audio.source.disconnect()
     for (const node of audio.nodes) node.disconnect()
     audio.nodes = []
     audio.meters = null
-    audio.wired = speakers
+    audio.wired = told
     const keep = (node) => (audio.nodes.push(node), node)
     // First of all, the tone.
     const bands = TONE.map(([, options]) => keep(new BiquadFilterNode(context, options)))

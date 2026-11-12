@@ -1072,6 +1072,77 @@ mod tests {
         assert_eq!(heard, [true, true, true], "silent through the speakers at some point (a, b, then a again)");
     }
 
+    /// The truck's speakers (cab_sound.js) are told afresh with every move of the camera — the host sends them again
+    /// beside the head — and the way through them is built once, never again: one built again starts its filters,
+    /// panners, delays and limiter anew, which is a click in the sound twenty times a second as the camera turns.
+    /// Muted (nothing is heard), an element to play from, and each node made counted.
+    #[test]
+    #[ignore = "runs WebView2"]
+    fn the_speakers_way_is_not_built_again_as_the_camera_moves() {
+        use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+        // SAFETY: COM on this test's own thread, once, before anything uses it.
+        unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap() };
+        let root = std::env::temp_dir().join(format!("westplay-speakers-rebuild-{}", std::process::id()));
+        let site = root.join("site");
+        std::fs::create_dir_all(&site).unwrap();
+        let speakers = serde_json::to_string(&crate::speakers::in_truck("scania.s_2016").unwrap()).unwrap();
+        let count = serde_json::from_str::<Vec<serde_json::Value>>(&speakers).unwrap().len();
+        std::fs::write(
+            site.join("index.html"),
+            format!(
+                "<!doctype html><audio id=a></audio><script>\n\
+                 const made = {{ filters: 0, panners: 0 }}\n\
+                 const wrap = (name, tally) => {{\n\
+                   const Real = window[name]\n\
+                   window[name] = class extends Real {{ constructor(...args) {{ super(...args); made[tally]++ }} }}\n\
+                 }}\n\
+                 wrap('BiquadFilterNode', 'filters')\n\
+                 wrap('PannerNode', 'panners')\n\
+                 </script><script>{}</script><script>\n\
+                 const speakers = {speakers}\n\
+                 const head = {{ x: -0.47, y: 1.33, z: 0.32, heading: 0, pitch: 0 }}\n\
+                 const audio = document.getElementById('a')\n\
+                 const cab = window.westplayCabSound(() => audio)\n\
+                 cab.head(head)\n\
+                 cab.speakers(speakers)\n\
+                 // As the host does while the camera turns: the head moved, the same speakers in a new list.\n\
+                 window.turning = (times) => {{\n\
+                   for (let i = 0; i < times; i++) {{\n\
+                     cab.head({{ ...head, heading: i / 200 }})\n\
+                     cab.speakers(JSON.parse(JSON.stringify(speakers)))\n\
+                   }}\n\
+                 }}\n\
+                 </script>",
+                include_str!("cab_sound.js")
+            ),
+        )
+        .unwrap();
+        let stage = Stage::new(320, 200).unwrap();
+        let view = OffscreenWebView::new(&stage, 320, 200, &root.join("profile")).unwrap();
+        view.set_muted(true).unwrap();
+        view.map_folder("westplay.rebuild", &site).unwrap();
+        let pump = |seconds: f64| {
+            let until = std::time::Instant::now() + std::time::Duration::from_secs_f64(seconds);
+            while std::time::Instant::now() < until {
+                crate::pump_messages();
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        };
+        view.navigate("https://westplay.rebuild/index.html").unwrap();
+        pump(2.0);
+        let built = |make: &str| -> serde_json::Value {
+            let said = view.evaluate(&format!("JSON.stringify({make})")).unwrap();
+            serde_json::from_str(&serde_json::from_str::<String>(&said).unwrap()).unwrap()
+        };
+        let once = built("made");
+        println!("built: {once}");
+        // Each speaker has its filters, its gain and its place; the way is made.
+        assert!(once["panners"].as_u64() == Some(count as u64), "a way for each speaker: {once}");
+        assert!(once["filters"].as_u64().unwrap_or(0) > 0, "a way made: {once}");
+        view.evaluate("window.turning(20)").unwrap();
+        assert_eq!(built("made"), once, "the way built again as the camera moved");
+    }
+
     #[test]
     fn fits_a_small_view_in_its_own_shape() {
         // A 16:9 card on a 16:9 screen: the whole screen, shrunk.
