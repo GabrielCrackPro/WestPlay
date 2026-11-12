@@ -42,9 +42,6 @@ export interface Strings {
   close: string
   /** The voice assistant's button and its short notes. */
   voice: {
-    assistant: string
-    listening: string
-    processing: string
     unavailable: string
     noSpeech: string
     notUnderstood: string
@@ -526,9 +523,11 @@ export interface Strings {
     units: string
     unitsFooter: string
     unitsGame: string
-    /** The list's sections: how the screen looks, what the cab's own displays show, and the apps. */
+    /** The list's sections: how the screen looks, what the cab's own displays show, the navigation (the map and the
+     * game's voice over it), and the apps. */
     screenSection: string
     cabSection: string
+    navSection: string
     appsSection: string
     /** The page holding the driver's units and the clock, both of which can follow the game. */
     unitsClock: string
@@ -657,6 +656,24 @@ export interface Strings {
     uiSounds: string
     uiSoundVolume: string
     uiSoundsFooter: string
+    /** The page the game's GPS voice has of its own, and its row under Navigation on the list. */
+    gpsVoicePage: string
+    /** The music dipping under the game's GPS voice, as the switch reads. */
+    gpsDuck: string
+    /** What the dip is, and what it leaves alone. */
+    gpsDuckFooter: string
+    /** How early the dip begins, as the card's heading, and the three choices in it. */
+    gpsDuckLead: string
+    /** The seconds of road the choices are, and the trade they make. */
+    gpsDuckLeadFooter: string
+    gpsDuckLeadJust: string
+    gpsDuckLeadFew: string
+    gpsDuckLeadEarly: string
+    /** Whether the cabin marks the voice on screen, at the screens' edges: the switch's label and the note under it. */
+    gpsVoice: string
+    gpsVoiceFooter: string
+    /** The GPS row's word for a dip or sign that is switched off (the list's Navigation section, and its row). */
+    gpsVoiceOff: string
     /** The voice assistant's switch, and the push-to-talk chord set in the companion. */
     voiceAssistant: string
     /** `{key}`: the chord. */
@@ -677,6 +694,8 @@ export interface Strings {
     resetEqualizer: string
     /** Maps: its own pages — what it draws, the traffic, the route's line, and the markers and pins. */
     mapsDisplay: string
+    /** The card of map controls on the Display page: north up, the limit's sign, the compass and the scale. */
+    mapControls: string
     mapsRoute: string
     mapsMarkers: string
     /** The card under turn-by-turn, and when it shows. */

@@ -415,6 +415,44 @@ describe('the saved Settings choices', () => {
     expect(useCabin.getState().uiSounds).toBe(false)
     expect(JSON.parse(storage.getItem('westplay.cabin')!).state.uiSoundVolume).toBe(1)
   })
+
+  it('remembers the GPS duck, and leaves it on for anything but a switch', async () => {
+    vi.stubGlobal('localStorage', savedStorage({ gpsDuck: false }))
+    const off = await import('./store')
+    expect(off.useCabin.getState().gpsDuck).toBe(false)
+    off.useCabin.getState().setGpsDuck(true)
+    expect(off.useCabin.getState().gpsDuck).toBe(true)
+
+    vi.resetModules()
+    vi.stubGlobal('localStorage', savedStorage({ gpsDuck: 'off', gpsDuckLead: 'nonsense' }))
+    const junk = await import('./store')
+    expect(junk.useCabin.getState().gpsDuck).toBe(true)
+    expect(junk.useCabin.getState().gpsDuckLead).toBe('few')
+  })
+
+  it('remembers how early the GPS duck begins, and whether the voice is marked on screen', async () => {
+    vi.stubGlobal('localStorage', savedStorage({ gpsDuck: true, gpsDuckLead: 'early', gpsVoiceOnScreen: false }))
+    const { useCabin } = await import('./store')
+    expect(useCabin.getState().gpsDuckLead).toBe('early')
+    expect(useCabin.getState().gpsVoiceOnScreen).toBe(false)
+
+    vi.resetModules()
+    vi.stubGlobal('localStorage', savedStorage({ gpsVoiceOnScreen: 'shouting' }))
+    const junk = await import('./store')
+    expect(junk.useCabin.getState().gpsVoiceOnScreen).toBe(true)
+  })
+
+  it('keeps a sign switched off before the choice became a switch', async () => {
+    // A cabin saved while the sign was Glow/Bars/Off: off stays off, and either of the two signs is simply on now.
+    vi.stubGlobal('localStorage', savedStorage({ gpsVoiceEffect: 'off' }))
+    const off = await import('./store')
+    expect(off.useCabin.getState().gpsVoiceOnScreen).toBe(false)
+
+    vi.resetModules()
+    vi.stubGlobal('localStorage', savedStorage({ gpsVoiceEffect: 'waves' }))
+    const on = await import('./store')
+    expect(on.useCabin.getState().gpsVoiceOnScreen).toBe(true)
+  })
 })
 
 describe('the saved Text Size', () => {

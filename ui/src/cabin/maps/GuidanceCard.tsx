@@ -104,6 +104,10 @@ function useKept<T>(value: T | null): T | null {
  *
  * In motion with Apple's curves: the card springs in when a route starts and fades away when it ends; a
  * step done slides up and away as the next rises in its place; and the "then" row opens and closes.
+ *
+ * Nothing on the card answers the game's GPS voice: the sign for it is the screens' own, their frames glowing at
+ * their edges (Shell.tsx, ClusterScreen.tsx, and maps/voice.ts for when), so the card stays the card whatever is
+ * switched on.
  */
 export function GuidanceCard() {
   const text = useText()

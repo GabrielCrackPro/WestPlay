@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { flushSync } from 'react-dom'
 import { type Backdrop, type Look, useWordsOver, wordsClass } from '../apps/music/contrast'
 import { Crossfade } from '../apps/music/Crossfade'
 import { VideoWidget } from '../apps/youtube/VideoWidget'
@@ -52,6 +53,7 @@ import type { AppId } from '../state/apps'
 import { useLook } from '../state/hooks'
 import { type DashboardWidget, go, useCabin } from '../state/store'
 import { useMapData } from '../maps/mapData'
+import { showWidgetSize } from '../shell/hud'
 import { useLive } from '../state/store'
 import { useText } from '../state/text'
 import { nearestCity } from './destination'
@@ -208,9 +210,11 @@ const WIDGET_BACKDROPS: Record<Look, Backdrop> = {
 
 /**
  * Now Playing's music: a source's track, tinted by its album art (a blurred copy behind the glass). Track
- * changes animate (the new cover waited for, the text sliding, cover and tint crossfading). The track opens
- * its app (if CabinPlay has one for it); the controls work in place, on what's playing now. Over a cover the
- * look's words wouldn't read on, the other look's (a light cover: dark words); the glass and tint stay.
+ * changes animate (the new cover waited for, the text sliding, cover and tint crossfading). The card holds two
+ * presses: the cover opens its player's app on what it plays (`onOpen`), and the name and artist turn the card over
+ * between its full size and the compact player, saying so on the HUD (`resize`). The controls work in place, on what's
+ * playing now. Over a cover the look's words wouldn't read on, the other look's (a light cover: dark words); the glass
+ * and tint stay.
  */
 function MusicWidget({
   source,
@@ -226,16 +230,39 @@ function MusicWidget({
   tile?: { hue: number; initials: string }
   /** Instead of a progress bar: where what plays sits among its player's own, the needle on `at`. */
   dial?: { at: number; of: number }
+  /** The cover's press: the player's own app, opened on what it plays (the name's press is the size, `resize`). */
   onOpen?(): void
   onControl(action: MediaAction): void
 }) {
   const transition = useTrackTransition(source, artwork)
   const albumArt = useCabin((state) => state.albumArt)
+  const text = useText()
   const compact = useCabin((state) => state.dashboardWidgetSizes.nowPlaying === 'compact')
+  const reduceMotion = useCabin((state) => state.reduceMotion)
+  // Pressing the name turns the card over between the two sizes a player uses by hand (Settings › Dashboard still has
+  // all three): the full card and the compact player, which leaves the column's room to the drive's own cards. The pill
+  // says which way it went (shell/hud.ts), as the volume's does; the cover keeps opening the player's own app.
+  const resize = () => {
+    const next = compact ? 'standard' : 'compact'
+    const change = () => useCabin.getState().setDashboardWidgetSize('nowPlaying', next)
+    // The card turns over as one morph rather than a jump, and the column's other cards slide to their new places: the
+    // slots carry the View Transition names (Dashboard.tsx, dashboard.css), and this is a change of layout inside the
+    // screen. Reduce Motion, a page without View Transitions and a screen change already animating all take the change
+    // as it comes, as the column's reorder does.
+    if (
+      reduceMotion ||
+      typeof document.startViewTransition !== 'function' ||
+      document.documentElement.dataset.transition
+    ) {
+      change()
+    } else {
+      document.startViewTransition(() => flushSync(change)).finished.catch(() => {})
+    }
+    showWidgetSize(next === 'compact' ? text.settings.widgetCompact : text.settings.widgetStandard)
+  }
   const cover = albumArt ? (transition.shown?.artwork ?? null) : null
   const controls = source?.controls
   const playing = source?.status === 'playing'
-  const text = useText()
   // How far into the track (its own player's time, ticking while it plays).
   const progress = useProgress(source)
   const ink = useWordsOver(cover, useLook().appearance, WIDGET_BACKDROPS)
@@ -250,38 +277,55 @@ function MusicWidget({
       className={`widget glass now-playing ${wordsClass(ink)}${compact ? ' compact' : ''}${playing ? ' is-playing' : ''}`}
     >
       <Crossfade value={cover} className="np-tint" render={(url) => url && <img src={url} alt="" aria-hidden />} />
-      <button type="button" className="np-top" onClick={onOpen} disabled={!onOpen}>
-        <Crossfade
-          value={cover}
-          className="art"
-          render={(url) =>
-            url ? (
-              <img src={url} alt="" />
-            ) : (
-              <span
-                className={tile ? 'art-placeholder radio-art' : 'art-placeholder'}
-                style={tile ? ({ '--hue': String(tile.hue) } as CSSProperties) : undefined}
-                aria-hidden
-              >
-                {tile ? <span className="radio-art-initials">{tile.initials}</span> : <NoteGlyph size={36} />}
-              </span>
-            )
-          }
-        />
-        <TrackSlide
-          transition={transition}
-          className="track"
-          layerClassName="track-lines"
-          render={(track) => (
-            <>
-              {/* Which app plays it, above the name (the players' own names, in their language). */}
-              {track && <span className="service">{text.apps[SERVICE_APPS[track.source.service]]}</span>}
-              <span className="title">{track?.source.title ?? text.notPlaying}</span>
-              {track && <span className="artist">{track.source.artist}</span>}
-            </>
-          )}
-        />
-      </button>
+      <div className="np-top">
+        {/* The cover is the player's door, as it always was: a press opens its app on what it plays. */}
+        <button
+          type="button"
+          className="np-open"
+          aria-label={source ? text.apps[SERVICE_APPS[source.service]] : text.notPlaying}
+          disabled={!onOpen}
+          onClick={onOpen}
+        >
+          <Crossfade
+            value={cover}
+            className="art"
+            render={(url) =>
+              url ? (
+                <img src={url} alt="" />
+              ) : (
+                <span
+                  className={tile ? 'art-placeholder radio-art' : 'art-placeholder'}
+                  style={tile ? ({ '--hue': String(tile.hue) } as CSSProperties) : undefined}
+                  aria-hidden
+                >
+                  {tile ? <span className="radio-art-initials">{tile.initials}</span> : <NoteGlyph size={36} />}
+                </span>
+              )
+            }
+          />
+        </button>
+        {/* The name and the artist turn the card over between its sizes (`resize`). */}
+        <button
+          type="button"
+          className="np-resize"
+          aria-label={`${text.settings.widgetSize}: ${compact ? text.settings.widgetStandard : text.settings.widgetCompact}`}
+          onClick={resize}
+        >
+          <TrackSlide
+            transition={transition}
+            className="track"
+            layerClassName="track-lines"
+            render={(track) => (
+              <>
+                {/* Which app plays it, above the name (the players' own names, in their language). */}
+                {track && <span className="service">{text.apps[SERVICE_APPS[track.source.service]]}</span>}
+                <span className="title">{track?.source.title ?? text.notPlaying}</span>
+                {track && <span className="artist">{track.source.artist}</span>}
+              </>
+            )}
+          />
+        </button>
+      </div>
       {/* How far among what its player plays: the radio's dial, the needle on its station. */}
       {dial && ticks > 0 && (
         <div className="np-dial" aria-hidden="true">

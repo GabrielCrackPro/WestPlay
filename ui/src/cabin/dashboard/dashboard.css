@@ -434,6 +434,31 @@ button.widget:active {
   text-align: left;
 }
 
+/* The card holds two presses: the cover opens its player's app, the name turns the card over between its sizes
+   (widgets.tsx). Both are buttons, so both are drawn as the card's own picture and words: no frame, no fill, the card's
+   type, and only as much room as the thing inside them. */
+.now-playing .np-open,
+.now-playing .np-resize {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.now-playing .np-open {
+  flex: none;
+}
+
+.now-playing .np-resize {
+  flex: 1;
+}
+
 .now-playing .art {
   position: relative;
   width: 72px;
@@ -597,6 +622,7 @@ button.widget:active {
   padding: 0;
 }
 
+.now-playing.compact .np-open,
 .now-playing.compact .art,
 .now-playing.compact .service,
 .now-playing.compact .np-progress,

@@ -85,19 +85,25 @@ html[data-transition='appearance'] :not(.cursor) {
 .shell.appearing .keyboard,
 .shell.appearing .dashboard-widget,
 .shell.appearing .overview-card,
-.shell.appearing [class*="-pill"],
-.shell.appearing [class*="-card"]:not(.map-card),
+.shell.appearing [class*='-pill'],
+.shell.appearing [class*='-card']:not(.map-card),
 .shell.appearing .map-controls .glass,
 .shell.appearing .map-tile.light,
 .shell.appearing .map-tile.dark {
-  transition: background-color 420ms var(--motion-ease) 40ms, border-color 420ms var(--motion-ease) 80ms, box-shadow 420ms var(--motion-ease) 120ms;
+  transition:
+    background-color 420ms var(--motion-ease) 40ms,
+    border-color 420ms var(--motion-ease) 80ms,
+    box-shadow 420ms var(--motion-ease) 120ms;
 }
 
 /* Text and icons across the look: the same breath, a little later, so they come up under the glass that holds them. */
 .shell.appearing *,
 .shell.appearing *::before,
 .shell.appearing *::after {
-  transition: color 420ms var(--motion-ease) 160ms, fill 420ms var(--motion-ease) 160ms, stroke 420ms var(--motion-ease) 160ms;
+  transition:
+    color 420ms var(--motion-ease) 160ms,
+    fill 420ms var(--motion-ease) 160ms,
+    stroke 420ms var(--motion-ease) 160ms;
 }
 
 /* The screen's rim is part of the artwork, not a surface that breathes: it stays hard while the rest moves. */
@@ -112,7 +118,8 @@ html[data-transition='appearance'] :not(.cursor) {
 
 /* Keep the brief ones quick: presses, hovers, the little living marks. Those are a different tempo and should not
    wait on a look change. */
-.shell.appearing :is(button, a, [tabindex], [role='tab'], [role='switch'], [role='radio'], [role='slider']):focus-visible,
+.shell.appearing
+  :is(button, a, [tabindex], [role='tab'], [role='switch'], [role='radio'], [role='slider']):focus-visible,
 .shell.appearing button:active,
 .shell.appearing .sidebar-button:active,
 .shell.appearing .recent button:active,
@@ -131,7 +138,9 @@ html[data-transition='appearance'] :not(.cursor) {
    while the look is arriving — after that they keep the instant flip they already have. */
 .shell.appearing .brand img,
 .shell.appearing .brand-wordmark {
-  transition: filter 420ms var(--motion-ease) 60ms, color 420ms var(--motion-ease) 160ms;
+  transition:
+    filter 420ms var(--motion-ease) 60ms,
+    color 420ms var(--motion-ease) 160ms;
 }
 
 /* The sidebar is glass, and a snapshot can't blur what's behind it (it's taken on its own). Its group does
@@ -327,8 +336,9 @@ html[data-transition='close']::view-transition-new(root) {
 
 /* --- Home and the Dashboard trading places (CabinApp.tsx `Screens`) ----------------------------------------
    Not a View Transition: nothing morphs between the two, and the live screens keep their glass blurring the
-   real wallpaper while they move (a snapshot's glass has nothing behind it). Motion moves the screens; only
-   their pieces fade here, since fading a whole screen (opacity) would cut its glass off from the wallpaper too.
+   real wallpaper while they move (a snapshot's glass has nothing behind it). Motion moves the screens; the
+   outgoing one also fades, and the cards of the one arriving fade in (below).
+
    To the Dashboard, Home's icons zoom gently towards the player as the Dashboard settles in from a little
    smaller; back to Home, the other way round: the same language as opening and closing apps. */
 
@@ -339,14 +349,24 @@ html[data-transition='close']::view-transition-new(root) {
 
 .screen-slot.leaving {
   pointer-events: none;
+  /* Out as one picture, and well before the switch ends: neither screen has a fill of its own — the wallpaper shows
+     between their cards — so whatever is left of the one underneath shows through the gaps of the one arriving, its
+     icons and badges floating over the Dashboard until they fade. The whole slot goes, so every part of it does:
+     the icons, their badges, the page dots, the map tile. */
+  animation: launch-fade-out calc(var(--switch-duration) * 0.55) var(--motion-ease) both;
 }
 
-.screen-slot.leaving :is(.home-grid .app > img, .home-grid .label, .dashboard .map-tile, .dashboard .widget) {
-  animation: launch-fade-out var(--switch-duration) var(--motion-ease) both;
-}
-
-.screen-slot.entering :is(.home-grid .app > img, .home-grid .label, .dashboard .map-tile, .dashboard .widget) {
+/* Arriving, the Dashboard's cards fade in over the switch. Home's icons are not faded here: they have an entrance of
+   their own, one after another (home.css, Home.tsx hands each its delay), and fading them twice over would turn that
+   stagger into a slow, muddy arrival. Its page dots have no entrance of their own, so they are given one: the dots
+   come up under the icons rather than blinking in on the first frame. */
+.screen-slot.entering :is(.dashboard .map-tile, .dashboard .widget) {
   animation: launch-fade-in var(--switch-duration) var(--motion-ease) both;
+}
+
+.screen-slot.entering .home-dots {
+  animation: launch-fade-in calc(var(--switch-duration) * 0.7) var(--motion-ease) calc(var(--switch-duration) * 0.3)
+    both;
 }
 
 :root {

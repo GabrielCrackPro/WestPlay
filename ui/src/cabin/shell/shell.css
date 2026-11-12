@@ -989,6 +989,92 @@ html[data-motion='reduced'] .shell .recent button[aria-current='page']::after {
   background: rgb(0 0 0 / 0.36);
 }
 
+/* While the game's GPS voice talks, the screen's own edge answers it (Settings › GPS Voice, Glow): a ring and
+   a bloom inward from all four sides, in the route's colour — the cabin's accent (Shell.tsx) — on the frame rather
+   than on the turn-by-turn card alone, so the mark is where a driver's eye already is whatever is showing: the
+   dashboard, an app, a menu. Inset, because the CarPlay area clips what is drawn outside it, and under the rim over
+   everything (below): the ring is a pixel wider than that rim's 2 px, so the rim keeps the screen's own outermost
+   pixels and the glow still draws a line of its own just inside them. The cab's own assistant pulses on the same edge
+   while it listens (voice/VoiceAssistant.tsx), since removing its panel left it with no sign of its own; the game's
+   switch (Settings › GPS Voice) governs its own voice only.
+
+   Two layers, because the sign has two things to say at once: the element fades in and out with the voice (`data-on`,
+   the same window the music's dip keeps in maps/voice.ts), while the light inside it keeps speech's rhythm — so the
+   glow arrives and leaves smoothly, on the voice's own beat, rather than being switched on and off at the window's
+   edges. */
+.screen-voice-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  /* Leaving, unhurried: a fade the length of a spoken word, not the end of the sentence. The box goes with it, and
+     only once the fade is over (visibility waits the transition out), so a sign that is off costs the screen nothing
+     to draw. */
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s;
+}
+
+.screen-voice-glow[data-on] {
+  visibility: visible;
+  opacity: 1;
+  /* Arriving as the voice comes up, so the first word is already lit. */
+  transition: opacity 0.32s ease-in;
+}
+
+.screen-voice-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 4px var(--accent, #3d8bff),
+    inset 0 0 48px color-mix(in srgb, var(--accent, #3d8bff) 40%, transparent);
+}
+
+/* The ring talks with the voice rather than breathing on a clock of its own. The game's sound can't be heard here, so
+   the rhythm is speech's: accents not evenly spaced, the way words land between pauses, at about the pace a sentence
+   comes — and the whole figure starts on the window's first frame, the voice's first word, because the animation only
+   exists while the sign is on. Silenced with it, too: no running animation is left to draw under a screen at rest. */
+.screen-voice-glow[data-on]::after {
+  animation: screen-voice-glow 1.1s ease-in-out infinite;
+}
+
+/* A light screen washes colour out: the same ring, a band just inside it and a wider, stronger bloom, or the glow
+   reads as a hairline on a bright wallpaper and nothing more. */
+.shell.appearance-light .screen-voice-glow::after {
+  box-shadow:
+    inset 0 0 0 4px var(--accent, #3d8bff),
+    inset 0 0 0 14px color-mix(in srgb, var(--accent, #3d8bff) 22%, transparent),
+    inset 0 0 72px color-mix(in srgb, var(--accent, #3d8bff) 52%, transparent);
+}
+
+@keyframes screen-voice-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  30% {
+    opacity: 0.72;
+  }
+
+  52% {
+    opacity: 0.94;
+  }
+
+  76% {
+    opacity: 0.78;
+  }
+}
+
+/* Less motion (Settings › Appearance): the ring holds lit rather than breathing. It still fades in and out — a
+   full-screen light switched on and off in one step is a flash, which is the thing less motion is asking away from. */
+html[data-motion='reduced'] .screen-voice-glow::after {
+  animation: none;
+}
+
 /* The outermost pixels of the image in the rim's colour (its `color`), where the game repeats them into a
    screen's rim (Shell.tsx). 2 px: the game shrinks the image to 1024x512 for the screen, so its edge pixel
    blends about 1.3 of ours. */

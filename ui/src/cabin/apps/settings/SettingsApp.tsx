@@ -13,7 +13,7 @@ import { type AppIconRole, appIcon, type IconLook } from '../../../shared/icons'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import type { Appearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import { type MapDetail, useCabin, useLive } from '../../state/store'
+import { type GpsDuckLead, type MapDetail, useCabin, useLive } from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
 import { useLanguage, useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
@@ -46,7 +46,9 @@ import { useWantedAppearance } from './useWantedAppearance'
  * and pill switches, in Apple's colours (shell/apple.css). Only the player's own CarPlay choices live here;
  * WestPlay's management (the cab's sound, the companion's options) belongs to the companion window.
  *
- * Appearance (with Text Size), Wallpaper, the Dashboard's widgets, Now Playing's album art and the Equalizer.
+ * Its list is in four sections, by the question a driver is asking: Screen (Appearance with Text Size, Wallpaper, App
+ * Icons), The Cab (Dashboard with its Overview, Instrument Cluster, Units & Clock), Navigation (Maps, the game's GPS
+ * Voice), and Apps (Home Screen, Now Playing, Sound with its Equalizer, Voice Assistant).
  */
 export function SettingsApp() {
   const text = useText()
@@ -109,6 +111,8 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <NowPlayingPage />
     case 'sound':
       return <SoundPage />
+    case 'gpsVoice':
+      return <GpsVoicePage />
     case 'equalizer':
       return <EqualizerPage />
     case 'voice':
@@ -140,8 +144,14 @@ function ListPage() {
   const iconStyle = useLooks((state) => state.iconStyle)
   const detail = useCabin((state) => state.mapDetail)
   const clusterShown = useCabin((state) => state.clusterShown)
-  // What each row is set to now, as iOS's Settings says it: the screen's look, its wallpaper, its icons, and how
-  // much the map draws.
+  const units = useCabin((state) => state.units)
+  const clockFormat = useCabin((state) => state.clockFormat)
+  const voice = useCabin((state) => state.voiceEnabled)
+  const duck = useCabin((state) => state.gpsDuck)
+  const lead = useCabin((state) => state.gpsDuckLead)
+  const sign = useCabin((state) => state.gpsVoiceOnScreen)
+  // What each row is set to now, as iOS's Settings says it: the screen's look, its wallpaper, its icons, how much the
+  // map draws, which units and clock the readings are in, and the game's voice's two answers.
   const wallpaper = wallpapers.find((each) => each.id === wallpaperId) ?? wallpapers[0]
   const icons = iconStyle === 'android' ? 'Android Auto' : (iconSet ?? 'Cabin Play')
   const drawn: Record<MapDetail, string> = {
@@ -149,6 +159,28 @@ function ListPage() {
     balanced: text.destinations.mapBalanced,
     low: text.settings.low,
   }
+  // Automatic when both simply follow the game's own: there is nothing of the player's in the row to report.
+  const unitsWords: Record<UnitsChoice, string> = {
+    game: text.settings.unitsGame,
+    metric: text.settings.unitsMetric,
+    uk: text.settings.unitsUk,
+    us: text.settings.unitsUs,
+  }
+  const clockWords: Record<ClockChoice, string> = {
+    game: text.settings.clockFormatGame,
+    '24': text.settings.clockFormat24,
+    '12': text.settings.clockFormat12,
+  }
+  const unitsValue =
+    [units === 'game' ? null : unitsWords[units], clockFormat === 'game' ? null : clockWords[clockFormat]]
+      .filter(Boolean)
+      .join(' · ') || text.settings.automatic
+  // The voice's own row: how early the music steps aside, and that the screen's sign is off when it is — and where
+  // neither is on, "Off". A dip switched off with the sign still on has its own words, so the row never says "Off"
+  // over a screen that is still glowing.
+  const voiceValue =
+    [duck ? leadNames(text)[lead] : null, sign ? null : text.settings.gpsVoiceOff].filter(Boolean).join(' · ') ||
+    (sign ? text.settings.gpsVoice : text.settings.gpsVoiceOff)
   return (
     <Page title={text.apps.settings} list>
       <div className="settings-search">
@@ -166,10 +198,12 @@ function ListPage() {
         <SearchResults results={results} onOpen={openResult} />
       ) : (
         <>
-          {/* The list in three sections, so a setting is found where it's expected: how the screen looks, what the
-              cab's own displays show, and the apps. The cab's displays sit together — the dash, its Overview, the
-              map — and the units and clock, which both follow the game, are one page of their own rather than a
-              footnote under Appearance. */}
+          {/* The list in four sections, by the question a driver is asking: how the screen looks, what the truck's
+              own displays show, the navigation, and the apps. The cab's displays sit together — the dash, its
+              Overview, the cluster — with the units and clock every reading is in, one page of their own rather than
+              a footnote under Appearance. Navigation is apart from them because it follows the route rather than the
+              cab: the map, and the game's own voice speaking over it, whose music dip and on-screen sign are that
+              page's. */}
           <Group header={text.settings.screenSection}>
             <NavRow
               tile="var(--apple-blue)"
@@ -208,6 +242,15 @@ function ListPage() {
               onOpen={() => open('cluster')}
             />
             <NavRow
+              tile="var(--apple-gray)"
+              icon={<UnitsGlyph />}
+              label={text.settings.unitsClock}
+              value={unitsValue}
+              onOpen={() => open('units')}
+            />
+          </Group>
+          <Group header={text.settings.navSection}>
+            <NavRow
               tile="var(--apple-green)"
               icon={<MapGlyph />}
               label={text.apps.maps}
@@ -215,10 +258,11 @@ function ListPage() {
               onOpen={() => open('map')}
             />
             <NavRow
-              tile="var(--apple-gray)"
-              icon={<UnitsGlyph />}
-              label={text.settings.unitsClock}
-              onOpen={() => open('units')}
+              tile="var(--apple-blue)"
+              icon={<RouteGlyph />}
+              label={text.settings.gpsVoicePage}
+              value={voiceValue}
+              onOpen={() => open('gpsVoice')}
             />
           </Group>
           <Group header={text.settings.appsSection}>
@@ -244,6 +288,7 @@ function ListPage() {
               tile="var(--apple-orange)"
               icon={<VoiceGlyph />}
               label={text.settings.voiceAssistant}
+              value={voice ? text.diagnostics.on : text.diagnostics.off}
               onOpen={() => open('voice')}
             />
           </Group>
@@ -686,6 +731,26 @@ function HomeScreenPage() {
   )
 }
 
+/** The GPS Voice row's tile glyph: the turn onto the way, in white on the blue tile. */
+function RouteGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="25"
+      height="25"
+      fill="none"
+      stroke="#fff"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5.5 20v-6.5a5 5 0 0 1 5-5H18" />
+      <path d="m14.5 5 3.5 3.5-3.5 3.5" />
+    </svg>
+  )
+}
+
 /** The Maps row's tile glyph: the map's own folds, in white on the green tile. */
 function MapGlyph() {
   return (
@@ -710,7 +775,19 @@ function NowPlayingPage() {
   )
 }
 
-/** Sound: the cabin's own interface sounds, and the Equalizer (the speakers' tone, per truck). */
+/** The cabin's words, as the strings store hands them to a page (the same alias the map's pages keep). */
+type Words = ReturnType<typeof useText>
+
+/** The three How Early choices, as their rows read them. */
+function leadNames(text: Words): Record<GpsDuckLead, string> {
+  const s = text.settings
+  return { just: s.gpsDuckLeadJust, few: s.gpsDuckLeadFew, early: s.gpsDuckLeadEarly }
+}
+
+/**
+ * Sound: the cabin's own interface sounds and the Equalizer (the speakers' tone, per truck). The game's GPS voice is a
+ * navigation matter and has its page under Navigation on the list, though its music dip is as much a sound.
+ */
 function SoundPage() {
   const text = useText()
   const open = useSettings((state) => state.open)
@@ -729,6 +806,49 @@ function SoundPage() {
           value={custom ? text.settings.custom : text.settings.recommended}
           onOpen={() => open('equalizer')}
         />
+      </Group>
+    </Page>
+  )
+}
+
+/**
+ * GPS Voice (Settings › GPS Voice): the game's navigation voice, given room. The cab can neither hear it nor
+ * set its volume, so all three settings here follow the turns it announces — the music dipping under it, how early
+ * that dip begins, and the sign the screens show while it talks. They answer separately: a driver can keep the music
+ * full and have only the sign, or have the music step aside with nothing on screen.
+ */
+function GpsVoicePage() {
+  const text = useText()
+  const duck = useCabin((state) => state.gpsDuck)
+  const setDuck = useCabin((state) => state.setGpsDuck)
+  const lead = useCabin((state) => state.gpsDuckLead)
+  const setLead = useCabin((state) => state.setGpsDuckLead)
+  const sign = useCabin((state) => state.gpsVoiceOnScreen)
+  const setSign = useCabin((state) => state.setGpsVoiceOnScreen)
+  return (
+    <Page title={text.settings.gpsVoicePage}>
+      <Group footer={text.settings.gpsDuckFooter}>
+        <SwitchRow label={text.settings.gpsDuck} on={duck} onToggle={setDuck} />
+      </Group>
+      {/* How early it opens is the player's — the game decides when its voice speaks — and it means nothing with the
+          dip switched off, so it is offered only while there is a dip to time. */}
+      {duck && (
+        <ChoiceRows<GpsDuckLead>
+          header={text.settings.gpsDuckLead}
+          footer={text.settings.gpsDuckLeadFooter}
+          radio="gpsDuckLead"
+          value={lead}
+          options={[
+            { id: 'just', label: text.settings.gpsDuckLeadJust },
+            { id: 'few', label: text.settings.gpsDuckLeadFew },
+            { id: 'early', label: text.settings.gpsDuckLeadEarly },
+          ]}
+          onPick={setLead}
+        />
+      )}
+      {/* The voice itself can't be heard by the cab, so the screens say when it is talking instead. */}
+      <Group footer={text.settings.gpsVoiceFooter}>
+        <SwitchRow label={text.settings.gpsVoice} on={sign} onToggle={setSign} />
       </Group>
     </Page>
   )

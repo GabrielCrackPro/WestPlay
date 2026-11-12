@@ -15,6 +15,7 @@ export type SettingsPage =
   | 'home'
   | 'nowPlaying'
   | 'sound'
+  | 'gpsVoice'
   | 'equalizer'
   | 'voice'
   | 'map'

@@ -31,8 +31,8 @@ let ignoreHost = false
 
 /**
  * The cab's voice assistant. The host owns recognition (crates/host voice.rs) and its microphone; this store
- * carries its state to the screen and sends the names the recogniser should listen for. While listening, the
- * page opens the same microphone only to measure the level the meter shows (voice/level.ts).
+ * carries its state to the screen and sends the names the recogniser should listen for. The state is what the
+ * screen's frame pulses on while it listens (shell/Shell.tsx) — the assistant has no panel of its own.
  */
 /** The host's voice state, passed into the store from the page's message loop. */
 export function receiveVoice(state: VoiceState, transcript?: string, error?: string): void {

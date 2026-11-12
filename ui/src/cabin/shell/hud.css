@@ -1,6 +1,6 @@
-/* The volume as a keybind changes it (VolumeHud.tsx): a glass pill at the top of the app area, over the app. */
+/* The cab's HUD (VolumeHud.tsx, hud.ts): a glass pill at the top of the app area, over the app. */
 
-.volume-hud {
+.hud {
   position: absolute;
   /* Right of the sidebar, as the apps are. */
   left: var(--content-left, 170px);
@@ -21,7 +21,7 @@
     visibility 0s linear 260ms;
 }
 
-.volume-hud.shown {
+.hud.shown {
   opacity: 1;
   translate: 0 0;
   scale: 1;
@@ -30,7 +30,7 @@
   transition-duration: 160ms;
 }
 
-.volume-hud-pill {
+.hud-pill {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -46,13 +46,13 @@
   color: var(--text);
 }
 
-.volume-hud-pill svg {
+.hud-pill svg {
   flex: none;
   width: 30px;
   height: 30px;
 }
 
-.volume-hud-bar {
+.hud-bar {
   flex: 1;
   height: 8px;
   border-radius: 4px;
@@ -60,10 +60,20 @@
   background: color-mix(in srgb, var(--text) 22%, transparent);
 }
 
-.volume-hud-bar i {
+.hud-bar i {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: var(--text);
   transition: width 120ms ease;
+}
+
+/* A change that has no number of its own: its new state by name, beside the card's own mark. */
+.hud-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 600;
 }

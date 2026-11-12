@@ -18,14 +18,17 @@ const levels = new Map<string, number>()
 /** Each player's fade in waiting for it to play again (`playAndFadeIn`), to call off as anything else comes. */
 const waiting = new Map<string, () => void>()
 
-/** The level `key`'s player was last faded to, if a fade left it somewhere (one stopped half way). */
+/** The level `key`'s player was last faded to, if it was left somewhere: a fade stopped half way, or one that
+ * holds its level (a duck, ducks.ts). */
 export function levelOf(key: string): number | undefined {
   return levels.get(key)
 }
 
 /**
  * Fades `key`'s player from `from` to `to` (0 to 1) over `ms`, by `send`, then calls `done`. A fade still
- * running for it stops where it is (its `done` not called).
+ * running for it stops where it is (its `done` not called). With `hold`, the level it ends on stays known
+ * (`levelOf`), so a fade that follows starts from where the player was left rather than from its own volume: what
+ * keeps the music down under the GPS's voice while the truck is at a turn (ducks.ts).
  */
 export function fade(
   key: string,
@@ -34,6 +37,7 @@ export function fade(
   to: number,
   ms: number,
   done?: () => void,
+  hold = false,
 ): void {
   running.get(key)?.()
   waiting.get(key)?.()
@@ -47,7 +51,7 @@ export function fade(
     sendAt(from + (to - from) * t)
     if (t < 1) return
     stop()
-    levels.delete(key)
+    if (!hold) levels.delete(key)
     done?.()
   }
   const timer = setInterval(step, STEP_MS)

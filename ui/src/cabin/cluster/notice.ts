@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react'
 import type { PhoneNotification } from '../../shared/host'
 import { useCaller, usePhone, usePhoneToasts } from '../apps/phone/phone'
-import { gameAlerts } from '../shell/gameAlerts'
+import { alertsWorthReading, gameAlerts } from '../shell/gameAlerts'
 import { useLive } from '../state/store'
 import type { Strings } from '../state/strings'
 import { playCue } from '../state/sound'
 import { useText } from '../state/text'
 import { useUnits } from '../state/units'
+import { useAlertStart } from '../state/warnings'
 
 /**
  * The cab's newest notice on the dash: which of the cab's sources the cluster has room for, and the chime that goes with
@@ -91,13 +92,19 @@ export function useNoticeCue(notice: ClusterNotice | null): void {
  * The game's warnings and rest clocks while they're calling for attention: the newest alarm reads first, and the
  * rest are counted. They stay up while the reading is wrong, unlike the cabin's timed pills: a warning covering
  * the route is better than a route covering a fault.
+ *
+ * The truck's start is not read here either: the first seconds of a session are its checks (the compressor filling
+ * the tanks, the oil pump on the key), the brake air is only read once its tanks have been up, and the oil and the
+ * battery only while the engine runs — with it off there is nothing pumping or charging, so their lamps are on by
+ * design (state/warnings.ts `AlertStart`). The lamps in the telltales still light, as the truck's own do.
  */
 function useClusterAlert(text: Strings): ClusterNotice | null {
   const telemetry = useLive((state) => state.telemetry)
   // This page draws its own units (it doesn't load the cabin's shell, which keeps shared/units.ts in step).
   const units = useUnits()
+  const start = useAlertStart(telemetry)
   if (!telemetry) return null
-  const current = gameAlerts(telemetry, text, units).filter((alert) => alert.on)
+  const current = alertsWorthReading(gameAlerts(telemetry, text, units), start).filter((alert) => alert.on)
   if (current.length === 0) return null
   const next = current.find((alert) => alert.tone === 'alarm') ?? current[0]
   return {

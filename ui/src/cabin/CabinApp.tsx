@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { isInHost, postToHost } from '../shared/host'
 import { appleMusicPlayer, pauseAppleMusicWithGame } from './apps/music/pauseWithGame'
+import { duckMusicForGps } from './apps/ducks'
 import { keybinds } from './apps/keybinds'
 import { oneAtATime } from './apps/oneAtATime'
 import { installRadioCabSound } from './apps/radio/cabSound'
@@ -15,11 +16,12 @@ import { BootScreen } from './boot/BootScreen'
 import { Dashboard } from './dashboard/Dashboard'
 import { Home } from './home/Home'
 import { followTruckersMp } from './maps/truckersmp'
+import { followGpsVoice } from './maps/voice'
 import { routeClicksDuringTransitions } from './shell/clickThrough'
 import { installDragScroll } from './shell/dragScroll'
 import { Cursor } from './shell/Cursor'
 import { Shell } from './shell/Shell'
-import { showVolume } from './shell/volumeShown'
+import { showVolume } from './shell/hud'
 import { type Route, routeKey } from './state/navigation'
 import { HANDOVER_MS, nextPhaseAt } from './state/power'
 import { useHandover } from './state/useHandover'
@@ -36,6 +38,10 @@ import { followTimeZone } from './state/timeZone'
  */
 const FOLLOW_POWER = isInHost() || new URLSearchParams(location.search).has('power')
 
+/** The cab's players, in the order one gives way to another (oneAtATime): the music that plays here, the radio's
+ * last. */
+const players = [youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer, radioPlayer] as const
+
 /** The in-cabin screen: the shell around the screen for the current route, after the boot sequence. */
 export function CabinApp() {
   const route = useCabin((state) => state.navigation.route)
@@ -49,7 +55,11 @@ export function CabinApp() {
   useEffect(() => pauseYouTubeMusicWithGame(), [])
   useEffect(() => pauseRadioWithGame(), [])
   // One of them at a time: the newest to start plays on, the others pause (apps/oneAtATime.ts).
-  useEffect(() => oneAtATime([youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer, radioPlayer]), [])
+  useEffect(() => oneAtATime(players), [])
+  // The music under the game's GPS voice as it speaks (apps/ducks.ts).
+  useEffect(() => duckMusicForGps(players), [])
+  // And whether it is speaking, for the screens that say so on their frames (maps/voice.ts).
+  useEffect(() => followGpsVoice(), [])
   // The radio's sound through the truck's own speakers, as the players' music is (apps/radio/cabSound.ts).
   useEffect(() => installRadioCabSound(), [])
   // The player's keybinds pressed in the game: the music's volume, or play/pause (apps/keybinds.ts).
@@ -111,7 +121,7 @@ export function CabinApp() {
 /** Acts on each keybind pressed in the game, for the cab's players, showing a volume it sets. Returns the
  * function that stops it. */
 function followKeybinds(): () => void {
-  const binds = keybinds([youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer, radioPlayer])
+  const binds = keybinds(players)
   const stop = useLive.subscribe((live, before) => {
     if (!live.keybind || live.keybind.count === before.keybind?.count) return
     const shown = binds.press(live.keybind.action)

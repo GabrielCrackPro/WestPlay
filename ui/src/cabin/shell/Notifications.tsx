@@ -7,7 +7,8 @@ import { appHue, sendPhoneCommand, takeDownNotification, usePhoneToasts, wantPho
 import { useNowPlaying, useNowPlayingTrack, useProgress } from '../dashboard/useNowPlaying'
 import { go, useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
-import { gameAlerts } from './gameAlerts'
+import { useAlertStart } from '../state/warnings'
+import { alertsWorthReading, gameAlerts } from './gameAlerts'
 import { type Note, type NoteAction, useNotes } from './notesShown'
 import { playCue } from '../state/sound'
 import './notifications.css'
@@ -353,12 +354,16 @@ const WARN_HOLD_MS = 3000
  * Watches the game for the moments worth a note: its own warning channels (battery, oil pressure, brake air,
  * fuel, AdBlue) as they come on, and the two rest clocks (a rest stop, a mandatory break) at a quarter of an
  * hour out. A telemetry frame is sent twenty times a second, so each is raised on its rising edge only — a
- * warning that stays on is one note, not a hundred.
+ * warning that stays on is one note, not a hundred. The truck's start is not news: the first seconds are silenced
+ * outright, the brake air until its tanks are up, and the oil and the battery except while the engine runs (and has for
+ * a moment) — both are wrong with it off by design (`start`, state/warnings.ts).
  */
 function useGameAlerts() {
   const text = useText()
   const telemetry = useLive((state) => state.telemetry)
   const clockShift = useLive((state) => state.clockShift)
+  // How far the truck's start has got: what the game says in its first seconds is the truck checking itself.
+  const { settled, running, airUp } = useAlertStart(telemetry)
   // The readings that have already had their note, by key: `null` while the note stands, or the timer that forgets
   // a reading that has just gone right again (WARN_HOLD_MS below).
   const raised = useRef(new Map<string, ReturnType<typeof setTimeout> | null>())
@@ -435,8 +440,8 @@ function useGameAlerts() {
       useNotes.getState().push({ key, title, detail, tone, action }, when)
     }
 
-    for (const alert of gameAlerts(telemetry, text)) {
+    for (const alert of alertsWorthReading(gameAlerts(telemetry, text), { settled, running, airUp })) {
       raise(alert.key, alert.on, alert.title, alert.detail, alert.tone, alert.action)
     }
-  }, [telemetry, text, clockShift])
+  }, [telemetry, text, clockShift, settled, running, airUp])
 }

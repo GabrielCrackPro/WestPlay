@@ -13,6 +13,10 @@ export interface SettingsEntry {
  * Every row of the Settings app, with the page that holds it: the pages and their settings, both the cab's own
  * (Appearance, Dashboard, Home Screen, Sound) and the map's and the player's. Built from the cabin's words, so a
  * search matches what the player sees, in their language.
+ *
+ * A row's `section` is where it is, as a result says it: a row on the list names the list's own section (Screen, The
+ * Cab, Navigation, Apps), and a row within a page names that page — so "Off" under Dashboard reads "Dashboard",
+ * never "The Cab" beside the row that opens it.
  */
 export function settingsEntries(text: Strings): SettingsEntry[] {
   const s = text.settings
@@ -89,13 +93,13 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
     { label: text.apps.driver, page: 'dashboard', section: s.dashboard },
     { label: text.apps.weather, page: 'dashboard', section: s.dashboard },
     { label: text.apps.diagnostics, page: 'dashboard', section: s.dashboard },
-    { label: s.homeScreen, page: 'home', section: s.homeScreen },
+    { label: s.homeScreen, page: 'home', section: s.appsSection },
     { label: s.showOnHome, page: 'home', section: s.homeScreen },
     { label: s.editHomeScreen, page: 'home', section: s.homeScreen },
     { label: s.resetHomeScreen, page: 'home', section: s.homeScreen },
     { label: s.pinToSidebar, page: 'home', section: s.homeScreen },
     { label: s.unpinFromSidebar, page: 'home', section: s.homeScreen },
-    { label: text.apps.maps, page: 'map', section: text.apps.maps },
+    { label: text.apps.maps, page: 'map', section: s.navSection },
     { label: s.mapsDisplay, page: 'mapDisplay', section: text.apps.maps },
     { label: s.mapsRoute, page: 'mapRoute', section: text.apps.maps },
     { label: s.mapsMarkers, page: 'mapMarkers', section: text.apps.maps },
@@ -123,12 +127,17 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
     { label: d.pinsFuel, page: 'mapMarkers', section: s.mapsMarkers },
     { label: d.pinsParking, page: 'mapMarkers', section: s.mapsMarkers },
     { label: d.pinsService, page: 'mapMarkers', section: s.mapsMarkers },
-    { label: text.nowPlaying, page: 'nowPlaying', section: text.nowPlaying },
+    { label: text.nowPlaying, page: 'nowPlaying', section: s.appsSection },
     { label: s.showAlbumArt, page: 'nowPlaying', section: text.nowPlaying },
-    { label: s.sound, page: 'sound', section: s.sound },
+    { label: s.sound, page: 'sound', section: s.appsSection },
     { label: s.uiSounds, page: 'sound', section: s.sound },
     { label: s.uiSoundVolume, page: 'sound', section: s.sound },
-    { label: s.voiceAssistant, page: 'voice', section: s.voiceAssistant },
+    { label: s.gpsVoicePage, page: 'gpsVoice', section: s.navSection },
+    { label: s.gpsDuck, page: 'gpsVoice', section: s.gpsVoicePage },
+    { label: s.gpsDuckLead, page: 'gpsVoice', section: s.gpsVoicePage },
+    { label: s.gpsVoice, page: 'gpsVoice', section: s.gpsVoicePage },
+    { label: s.voiceAssistant, page: 'voice', section: s.appsSection },
+    { label: s.voiceHotkey, page: 'voice', section: s.voiceAssistant },
     { label: s.voiceWake, page: 'voice', section: s.voiceAssistant },
     { label: s.equalizer, page: 'equalizer', section: s.sound },
     { label: s.recommended, page: 'equalizer', section: s.equalizer },

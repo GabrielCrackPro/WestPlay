@@ -1,7 +1,7 @@
 import type { Telemetry } from '../../shared/host'
 import { activeUnits, type Units } from '../../shared/units'
 import type { Strings } from '../state/strings'
-import { truckWarningOn } from '../state/warnings'
+import { type AlertStart, truckWarningOn } from '../state/warnings'
 import type { NoteAction } from './notesShown'
 
 /** One of the game's own warnings or rest clocks, worded for the cab and the cluster. */
@@ -22,6 +22,10 @@ export interface GameAlert {
  * The game's warning channels (battery, oil pressure, brake air, fuel, AdBlue) and the two rest clocks at a
  * quarter of an hour out, each with the words the cab shows. `on` is false for a reading that is right, so the
  * caller can raise a note on its rising edge and forget it once it has gone right again.
+ *
+ * The brake air is included as the game reports it, start-up flag and all; the surfaces that *say* a warning aloud
+ * pass this through `alertsWorthReading` first, so the tanks filling on the key are not announced (state/warnings.ts,
+ * `airUpNow`).
  */
 export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = activeUnits()): GameAlert[] {
   const words = text.diagnostics
@@ -94,3 +98,26 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
     },
   ]
 }
+
+/**
+ * The alerts worth reading aloud, given how far the truck's start has got (`start`, state/warnings.ts `useAlertStart`):
+ *
+ * - The first seconds are its checks and nothing else — the compressor filling the tanks, the oil pump on the key — so
+ *   none of them is said, and what is still wrong once they have passed is said then (nothing is recorded as already
+ *   said in the meantime, so a real fault still gets its one note).
+ * - The brake air keeps quiet for longer: the game loads a truck with empty tanks and fills them as it runs, so a low
+ *   reading only counts once the air has been up at least once.
+ * - Oil pressure and the battery are read only while the engine runs: with it off (as a truck sits at the start of every
+ *   drive) there is no pump and no alternator, so their lamps are on by design rather than because anything is wrong.
+ *
+ * Everything else — the rest clocks included — is read as the game reports it.
+ */
+export function alertsWorthReading(alerts: readonly GameAlert[], start: AlertStart): GameAlert[] {
+  if (!start.settled) return []
+  return alerts.filter(
+    (alert) => (start.airUp || alert.key !== 'brakeAir') && (start.running || !ENGINE_ONLY.has(alert.key)),
+  )
+}
+
+/** The readings that are wrong with the engine off because of it: no oil pump, no alternator. */
+const ENGINE_ONLY: ReadonlySet<string> = new Set(['battery', 'oilPressure'])

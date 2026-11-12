@@ -231,6 +231,15 @@ export type MapDetail = 'high' | 'balanced' | 'low'
 
 export const MAP_DETAILS: readonly MapDetail[] = ['high', 'balanced', 'low']
 
+/**
+ * How early the music dips under the game's GPS voice (Settings › GPS Voice): the road before a turn it covers first,
+ * counted at the truck's own speed. The game chooses when its voice speaks, so this is a taste of how far ahead to
+ * meet it — `just` at the mouth of the turn, `few` a few seconds out, `early` the whole approach.
+ */
+export type GpsDuckLead = 'just' | 'few' | 'early'
+
+export const GPS_DUCK_LEADS: readonly GpsDuckLead[] = ['just', 'few', 'early']
+
 /** How long (s) a map the player moved stays put before it comes back to the truck; 0 never. */
 export type MapRecentre = 5 | 15 | 30 | 0
 
@@ -293,6 +302,13 @@ interface CabinState {
   uiSounds: boolean
   /** The cabin's own sounds' level, independent of the music and game volume (Settings › Sound). */
   uiSoundVolume: number
+  /** Whether the music dips while the game's GPS navigation voice speaks (Settings › GPS Voice; apps/ducks.ts). */
+  gpsDuck: boolean
+  /** How early that dip begins, in the road before the turn (Settings › GPS Voice; apps/ducks.ts). */
+  gpsDuckLead: GpsDuckLead
+  /** Whether the cabin marks the GPS voice on screen (Settings › GPS Voice): the screens glow at their edges
+   * while it talks (Shell.tsx, ClusterScreen.tsx). The voice is the game's, so this is the cab's own sign for it. */
+  gpsVoiceOnScreen: boolean
   /** The voice assistant's switch (Settings › Voice Assistant): its button and hotkey are off when false. */
   voiceEnabled: boolean
   /** The push-to-talk chord as the companion set it, for Settings to show. */
@@ -445,6 +461,9 @@ interface CabinState {
   setMapStopCardRest(minutes: number): void
   setUiSounds(uiSounds: boolean): void
   setUiSoundVolume(uiSoundVolume: number): void
+  setGpsDuck(gpsDuck: boolean): void
+  setGpsDuckLead(gpsDuckLead: GpsDuckLead): void
+  setGpsVoiceOnScreen(gpsVoiceOnScreen: boolean): void
   setVoiceEnabled(voiceEnabled: boolean): void
   setVoiceWake(voiceWake: boolean): void
   setMapDetail(detail: MapDetail): void
@@ -528,6 +547,9 @@ type Persisted = Pick<
   | 'mapStopCardRest'
   | 'uiSounds'
   | 'uiSoundVolume'
+  | 'gpsDuck'
+  | 'gpsDuckLead'
+  | 'gpsVoiceOnScreen'
 >
 
 /** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
@@ -685,6 +707,9 @@ export const useCabin = create<CabinState>()(
       mapStopCardRest: 60,
       uiSounds: true,
       uiSoundVolume: 1,
+      gpsDuck: true,
+      gpsDuckLead: 'few',
+      gpsVoiceOnScreen: true,
       voiceEnabled: true,
       voiceKey: 'Ctrl + Shift + Space',
       voiceWake: false,
@@ -898,6 +923,9 @@ export const useCabin = create<CabinState>()(
       setMapStopCardRest: (mapStopCardRest) => set({ mapStopCardRest }),
       setUiSounds: (uiSounds) => set({ uiSounds }),
       setUiSoundVolume: (uiSoundVolume) => set({ uiSoundVolume: Math.max(0, Math.min(1, uiSoundVolume)) }),
+      setGpsDuck: (gpsDuck) => set({ gpsDuck }),
+      setGpsDuckLead: (gpsDuckLead) => set({ gpsDuckLead }),
+      setGpsVoiceOnScreen: (gpsVoiceOnScreen) => set({ gpsVoiceOnScreen }),
       setVoiceEnabled: (voiceEnabled) => {
         set({ voiceEnabled })
         if (isInHost()) postToHost({ type: 'voiceEnabled', on: voiceEnabled })
@@ -1030,6 +1058,9 @@ export const useCabin = create<CabinState>()(
         mapStopCardRest: state.mapStopCardRest,
         uiSounds: state.uiSounds,
         uiSoundVolume: state.uiSoundVolume,
+        gpsDuck: state.gpsDuck,
+        gpsDuckLead: state.gpsDuckLead,
+        gpsVoiceOnScreen: state.gpsVoiceOnScreen,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -1174,6 +1205,14 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
     result.mapStopCardRest = stored.mapStopCardRest as number
   }
   if (typeof stored.uiSounds === 'boolean') result.uiSounds = stored.uiSounds
+  if (typeof stored.gpsDuck === 'boolean') result.gpsDuck = stored.gpsDuck
+  if ((GPS_DUCK_LEADS as readonly unknown[]).includes(stored.gpsDuckLead)) {
+    result.gpsDuckLead = stored.gpsDuckLead as GpsDuckLead
+  }
+  if (typeof stored.gpsVoiceOnScreen === 'boolean') result.gpsVoiceOnScreen = stored.gpsVoiceOnScreen
+  // A cabin saved while the sign was a three-way choice (a glow, the card's bars, or off): the choice is a switch now,
+  // so off stays off and either of the two signs is simply on.
+  if ((stored as { gpsVoiceEffect?: unknown }).gpsVoiceEffect === 'off') result.gpsVoiceOnScreen = false
   if (typeof stored.uiSoundVolume === 'number' && Number.isFinite(stored.uiSoundVolume)) {
     result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))
   }

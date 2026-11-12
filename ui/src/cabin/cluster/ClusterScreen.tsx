@@ -29,6 +29,7 @@ import { useClusterTelltales } from './telltales'
 import { DAMAGE_STOP } from '../state/warnings'
 import { ManeuverGlyph } from '../maps/ManeuverGlyph'
 import { guidanceOf, NOW_WITHIN, type Step } from '../maps/guidance'
+import { followGpsVoice, useGpsVoice } from '../maps/voice'
 import { useClock } from '../state/clock'
 import { clusterTextScale } from '../state/textSize'
 import { useUnits } from '../state/units'
@@ -225,6 +226,9 @@ export function ClusterScreen() {
     window.addEventListener('storage', changed)
     return () => window.removeEventListener('storage', changed)
   }, [])
+  // The game's GPS voice, followed on this page too: the cluster has its own live store (the host streams the truck to
+  // both pages), so its own follower — the panel's frame answers the voice as the cabin's screens do (maps/voice.ts).
+  useEffect(() => followGpsVoice(), [])
   // Reduced motion follows the cabin's switch, as the shell's does: the boot and the dial then hold still.
   useEffect(() => {
     if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
@@ -284,6 +288,10 @@ export function ClusterScreen() {
     lowBeam: telemetry?.lowBeam ?? false,
   })
   const { appearance, appearing } = useShownAppearance(wanted, reduceMotion)
+  // Whether the sign is switched on (Settings › GPS Voice) and the game's GPS voice is talking: the glow on
+  // this panel's frame is the same answer the cabin's screens give, read from this page's own follower.
+  const voiceOnScreen = useCabin((state) => state.gpsVoiceOnScreen)
+  const voiceTalking = useGpsVoice((state) => state.talking)
 
   // Switched off in Settings: the game's own cluster shows through the transparent texture.
   if (!shown) return null
@@ -477,6 +485,7 @@ export function ClusterScreen() {
       aria-label={text.settings.clusterScreen}
       style={panelStyle}
     >
+      {voiceOnScreen && <div className="cluster-voice-glow" data-on={voiceTalking ? '' : undefined} aria-hidden />}
       <AnimatePresence>
         {booting && power && (reduceMotion || !handover) && <ClusterBoot power={power} />}
       </AnimatePresence>

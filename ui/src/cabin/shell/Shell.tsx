@@ -1,6 +1,8 @@
 import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { isInHost } from '../../shared/host'
+import { useGpsVoice } from '../maps/voice'
+import { useVoice } from '../voice/voice'
 import { routeAccent } from '../maps/routeLook'
 import { useLook, useLookChanges, useOemStrip, useScreenProfile } from '../state/hooks'
 import { usePreparedIcons } from '../state/looks'
@@ -57,9 +59,7 @@ export function Shell({ children, overlay, voice = true }: ShellProps) {
   const sweepAnimate = reduced
     ? { opacity: 0, backgroundPosition: '120% 0' }
     : { opacity: [0, 0.9, 0.55, 0], backgroundPosition: ['120% 0', '116% 0', '104% 0', '72% 0'] }
-  const sweepTransition = reduced
-    ? { duration: 0 }
-    : { duration: 0.9, ease: motionEase, times: [0, 0.2, 0.6, 1] }
+  const sweepTransition = reduced ? { duration: 0 } : { duration: 0.9, ease: motionEase, times: [0, 0.2, 0.6, 1] }
   const shellRef = useRef<HTMLDivElement>(null)
   // Bring the shell's own surfaces into the new look as one breath, sequenced under the sweep.
   const { sweepLead } = useAppearanceSweep(appearance, reduced)
@@ -79,6 +79,12 @@ export function Shell({ children, overlay, voice = true }: ShellProps) {
   // accent draws the cluster's needle and its lit arc, lights both screens' boot, and marks the way on the cabin's
   // own surfaces (the Overview's route bar). Set once here, so every Cabin Play surface in the cabin answers it.
   const routeColour = useCabin((state) => state.mapRoute)
+  // The game's GPS voice, for the screen's own edge to answer it (Settings › GPS Voice): whether the sign is
+  // switched on at all, and whether the voice is talking now (maps/voice.ts).
+  const voiceOnScreen = useCabin((state) => state.gpsVoiceOnScreen)
+  const voiceTalking = useGpsVoice((state) => state.talking)
+  // The cab's own assistant, which paints nothing: the frame is all it has to show it heard (voice/VoiceAssistant.tsx).
+  const assistantVoice = useVoice((state) => state.phase !== 'idle')
   const profile = useScreenProfile()
   const stripId = useOemStrip()
   const strip = stripId && OEM_STRIPS[stripId]
@@ -171,6 +177,14 @@ export function Shell({ children, overlay, voice = true }: ShellProps) {
           {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
           {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>
+        {/* Over the whole CarPlay area, whatever screen is showing: the frame answers the voice on all of them. It stands
+            here on every screen and fades in and out of the voice (`data-on`, shell.css), so the sign arrives and
+            leaves with it rather than appearing and vanishing at the two edges of the window. Both voices share it —
+            the game's navigator (kept on or off by its own switch, Settings › GPS Voice) and the cab's assistant, which
+            has no sign of its own but this one (`useVoice` above), so the same pulse answers either. */}
+        {(voiceOnScreen || assistantVoice) && (
+          <div className="screen-voice-glow" data-on={voiceTalking || assistantVoice ? '' : undefined} aria-hidden />
+        )}
       </div>
       {/* The phone over any app: its call, and its notifications as they come (shell/PhoneAlerts.tsx). */}
       <PhoneAlerts />

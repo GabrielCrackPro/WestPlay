@@ -1,22 +1,23 @@
-import { type CSSProperties, useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { postToHost } from '../../shared/host'
 import { usePhone } from '../apps/phone/phone'
 import { useNowPlaying } from '../dashboard/useNowPlaying'
 import { nameOf, usePlaces } from '../maps/places'
-import { BrandIcon } from '../shell/BrandIcon'
-import { logoSources } from '../boot/brand'
 import { playCue } from '../state/sound'
 import { RELEASED_APP_IDS } from '../state/apps'
 import { useCabin, useLive } from '../state/store'
 import { useLanguage, useText } from '../state/text'
 import { prepareVoiceAudio } from './audio'
 import { handleVoice } from './intents'
-import { followMicrophoneLevel } from './level'
 import { speak } from './speak'
 import { useVoice } from './voice'
-import './voice.css'
 
-/** The mic button and its short panel, over whatever the cab shows. */
+/**
+ * The cab's voice assistant, heard rather than shown: it paints nothing of its own. What it is doing is on the screen's
+ * own frame — the pulse the game's GPS voice uses (Shell.tsx, shell.css `screen-voice-glow`), lit while it listens, with
+ * the cabin's accent — and what it did is said through the truck's speakers. A failure is said too, since there is no
+ * card of words left to read it on.
+ */
 export function VoiceAssistant() {
   const text = useText()
   const language = useLanguage()
@@ -25,14 +26,12 @@ export function VoiceAssistant() {
   const showing = useNowPlaying().showing
   const enabled = useCabin((state) => state.voiceEnabled)
   const phase = useVoice((state) => state.phase)
-  const transcript = useVoice((state) => state.transcript)
   const error = useVoice((state) => state.error)
   const message = useVoice((state) => state.message)
   const resultId = useVoice((state) => state.resultId)
   const hotkey = useVoice((state) => state.hotkey)
   const handled = useRef(0)
   const lastHotkey = useRef(0)
-  const meter = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     if (!resultId || handled.current === resultId) return
@@ -60,19 +59,6 @@ export function VoiceAssistant() {
   }, [phase, message, error])
 
   const listening = phase === 'listening'
-  const failure = phase === 'error'
-  const detail = failure
-    ? error === 'no-speech'
-      ? text.voice.noSpeech
-      : error === 'unavailable'
-        ? text.voice.unavailable
-        : text.voice.unavailable
-    : listening
-      ? text.voice.listening
-      : phase === 'processing'
-        ? text.voice.processing
-        : message || (transcript ? text.voice.processing : '')
-  const open = phase !== 'idle' || Boolean(message) || failure
 
   const start = useCallback(() => {
     if (!enabled) return
@@ -99,7 +85,7 @@ export function VoiceAssistant() {
     })
   }, [enabled, language, listening, places, text])
 
-  // The fixed push-to-talk chord: the page makes the same utterance the mic button does.
+  // The fixed push-to-talk chord: the host hears it and tells the page to start, as the wake phrase does.
   useEffect(() => {
     if (!enabled || !hotkey || hotkey === lastHotkey.current) return
     lastHotkey.current = hotkey
@@ -111,77 +97,13 @@ export function VoiceAssistant() {
     postToHost({ type: 'voiceWakePhrase', brand: truck?.brand ?? '', language })
   }, [truck?.brand, language])
 
-  // The bars follow the microphone while it listens, through a custom property rather than a render a frame.
+  // A failure is said rather than shown: the card that carried the words went with the overlay, and the screen's frame
+  // is the only thing left to light — which says that it heard the chord, not what went wrong.
   useEffect(() => {
-    const bars = meter.current
-    if (!bars) return
-    bars.style.setProperty('--meter-level', '0')
-    if (!listening) return
-    return followMicrophoneLevel((level) => bars.style.setProperty('--meter-level', level.toFixed(3)))
-  }, [listening])
+    if (phase !== 'error' || !error) return
+    speak(error === 'no-speech' ? text.voice.noSpeech : text.voice.unavailable, language)
+  }, [phase, error, language, text])
 
-  if (!enabled) return null
-
-  return (
-    <div className="voice-assistant" data-phase={phase} data-appear hidden={!open}>
-      {open && (
-        <section
-          className="voice-card"
-          data-phase={phase}
-          data-activate-mark
-          role="status"
-          aria-live="polite"
-          aria-label={text.voice.assistant}
-        >
-          {' '}
-          <span className="voice-card-mark" aria-hidden>
-            {truck ? (
-              <img src={logoSources(truck.brandId, truck.brand, { mono: true })[0].src} alt="" />
-            ) : (
-              <BrandIcon />
-            )}
-          </span>
-          <div className="voice-card-copy">
-            <div className="voice-card-head">
-              <span className="voice-eyebrow">{truck ? truck.brand : text.voice.assistant}</span>
-              {listening && (
-                <span ref={meter} className="voice-meter" aria-hidden>
-                  {Array.from({ length: 4 }, (_, index) => (
-                    <span key={index} style={{ '--bar': index } as CSSProperties} />
-                  ))}
-                </span>
-              )}
-            </div>
-            {transcript && !failure && <p className="voice-transcript">{transcript}</p>}
-            <p className={failure ? 'voice-detail error' : 'voice-detail'}>{detail}</p>
-          </div>
-          <button
-            type="button"
-            className="voice-dismiss"
-            aria-label={text.close}
-            onClick={() => (listening ? useVoice.getState().cancel() : useVoice.getState().reset())}
-          >
-            <CloseGlyph />
-          </button>
-        </section>
-      )}
-    </div>
-  )
-}
-
-function CloseGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="17"
-      height="17"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <path d="m7 7 10 10M17 7 7 17" />
-    </svg>
-  )
+  // Nothing of its own on the glass: the pulse is the Shell's, the words are the speakers'.
+  return null
 }

@@ -226,6 +226,74 @@ body,
   --type-gap: 6px;
 }
 
+/* While the game's GPS voice talks, the panel's own edge answers it (Settings › GPS Voice, Glow), as the
+   cabin's screens do to theirs (shell.css): a ring and a bloom inward from all four sides, in the dash's accent, so
+   the driver reads the voice's moment on the glass they are already watching, turning or not. On the already dark
+   edge of the panel and under nothing that is read: the ring sits on the glass rather than over the readings.
+
+   The same two layers as the cabin's frame, and for the same reason: the element fades in and out on the voice's own
+   window — the one the music's dip keeps (maps/voice.ts) — while the light inside it keeps speech's rhythm. */
+.cluster-voice-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  /* As the cabin's frame: the fade out, and the box only gone once it is over. */
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s;
+}
+
+.cluster-voice-glow[data-on] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.32s ease-in;
+}
+
+.cluster-voice-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 3px var(--accent),
+    inset 0 0 40px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* As the cabin's frame: the ring talks with the voice — speech's uneven accents, beginning on the first word — and is
+   still whenever the voice is. */
+.cluster-voice-glow[data-on]::after {
+  animation: cluster-voice-glow 1.1s ease-in-out infinite;
+}
+
+/* The light panel washes the glow out as the cabin's light look does: a band inside the ring and a stronger bloom. */
+.cluster[data-appearance='light'] .cluster-voice-glow::after {
+  box-shadow:
+    inset 0 0 0 3px var(--accent),
+    inset 0 0 0 12px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 56px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+@keyframes cluster-voice-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  30% {
+    opacity: 0.72;
+  }
+
+  52% {
+    opacity: 0.94;
+  }
+
+  76% {
+    opacity: 0.78;
+  }
+}
+
 .cluster[data-appearance='light'] {
   --bg: #eef2f6;
   --ink: #12202c;
@@ -2368,6 +2436,19 @@ html[data-motion='reduced'] .cluster *::before,
 html[data-motion='reduced'] .cluster *::after {
   animation: none !important;
   transition: none !important;
+}
+
+/* The frame's glow is an exception of its own, cut above with everything else: a full-screen light switched on and
+   off in one step is a flash, which is the thing less motion is asking away from — so it still arrives and leaves as
+   a fade, and only stops breathing. */
+html[data-motion='reduced'] .cluster-voice-glow {
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s !important;
+}
+
+html[data-motion='reduced'] .cluster-voice-glow[data-on] {
+  transition: opacity 0.32s ease-in !important;
 }
 
 /* The bulb check is the one exception: it holds a state rather than moving anything — the lamps appear, stay, and go

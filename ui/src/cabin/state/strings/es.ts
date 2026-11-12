@@ -38,9 +38,6 @@ export const SPANISH_STRINGS: Strings = {
   searchPlaces: 'Busca lugares y ciudades',
   close: 'Cerrar',
   voice: {
-    assistant: 'Asistente de voz',
-    listening: 'Escuchando…',
-    processing: 'Un momento…',
     unavailable: 'El reconocimiento de voz no está disponible en este PC.',
     noSpeech: 'No he oído nada.',
     notUnderstood: 'No te he entendido.',
@@ -549,6 +546,7 @@ export const SPANISH_STRINGS: Strings = {
     unitsGame: 'Seguir el juego',
     screenSection: 'Pantalla',
     cabSection: 'La cabina',
+    navSection: 'Navegación',
     appsSection: 'Apps',
     unitsClock: 'Unidades y reloj',
     clockFormat: 'Reloj',
@@ -668,9 +666,23 @@ export const SPANISH_STRINGS: Strings = {
     uiSoundVolume: 'Volumen de sonidos de la interfaz',
     uiSoundsFooter:
       'Ajusta por separado los clics y avisos de la cabina. No cambia el volumen de la música ni del juego.',
+    gpsVoicePage: 'Voz del GPS',
+    gpsDuck: 'Bajar la música con el GPS',
+    gpsDuckFooter:
+      'La música baja mientras la voz del GPS del juego tiene algo que decir, y vuelve después. Solo lo que suena aquí: el sonido del propio juego no se toca.',
+    gpsDuckLead: 'Con cuánta antelación',
+    gpsDuckLeadFooter:
+      'Cuándo empieza a bajar: los últimos segundos de carretera antes del giro, contados a la velocidad del camión. Más tarde, la música sigue entera casi hasta el cruce; antes, alcanza la voz del juego donde empieza.',
+    gpsDuckLeadJust: 'En el giro',
+    gpsDuckLeadFew: 'Unos segundos antes',
+    gpsDuckLeadEarly: 'Antes',
+    gpsVoice: 'Voz del GPS en pantalla',
+    gpsVoiceFooter:
+      'Las pantallas se iluminan por sus bordes mientras la voz del GPS del juego habla, en el color de la ruta. La voz es del propio juego, así que esto sigue sus giros en vez de escucharla.',
+    gpsVoiceOff: 'No',
     voiceAssistant: 'Asistente de voz',
     voiceAssistantFooter:
-      'Habla desde el botón del micrófono o pulsa {key} en cualquier momento. El reconocimiento se queda en este PC y suena por los altavoces del camión.',
+      'Pulsa {key} en cualquier momento para hablar. Las pantallas brillan en sus bordes mientras escucha y el camión dice lo que ha hecho. El reconocimiento se queda en este PC y suena por los altavoces del camión.',
     voiceHotkey: 'Pulsar para hablar',
     voiceWake: 'Frase de activación',
     voiceWakePhrase: 'Di',
@@ -686,6 +698,7 @@ export const SPANISH_STRINGS: Strings = {
     high: 'Agudos',
     resetEqualizer: 'Restablecer',
     mapsDisplay: 'Visualización',
+    mapControls: 'En el mapa',
     mapsRoute: 'Ruta',
     mapsMarkers: 'Marcadores y pines',
     stopCard: 'Tarjeta de parada',

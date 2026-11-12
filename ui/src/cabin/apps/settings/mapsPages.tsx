@@ -54,9 +54,10 @@ function pinStyleNames(text: Words): Record<MapPinStyle, string> {
 }
 
 /**
- * Maps: the live map's settings, in four pages of their own — what it draws and how it comes back to the truck,
- * the traffic and the camera on the road, the route's line, and the markers and pins. This page is the way in,
- * each row saying what it is set to now, as the Settings list says its own rows.
+ * Maps: the live map's settings, in five pages of their own — what it draws and how it comes back to the truck,
+ * the traffic and the camera on the road, the route's line, the markers and pins, and the stop card under
+ * turn-by-turn. This page is the way in, each row saying what it is set to now, as the Settings list says its own
+ * rows.
  */
 export function MapsPage() {
   const text = useText()
@@ -73,7 +74,6 @@ export function MapsPage() {
   return (
     <Page title={text.apps.maps}>
       <Group>
-        {' '}
         <NavRow
           tile="var(--apple-blue)"
           icon={<MapDisplayGlyph />}
@@ -115,8 +115,9 @@ export function MapsPage() {
 }
 
 /**
- * Display: how much map there is to see (the detail it draws and the game's night), the controls on the map's own
- * face, and how long a map the player moved stays put before it comes back to the truck.
+ * Display: how much map there is to see (the detail it draws, and the game's night with the hour it dims from), the
+ * controls on the map's own face — a card of their own, headed, so a driver looking for the compass needn't read
+ * every switch — and how long a map the player moved stays put before it comes back to the truck.
  */
 export function MapDisplayPage() {
   const text = useText()
@@ -149,21 +150,26 @@ export function MapDisplayPage() {
         value={detail}
         onPick={setDetail}
       />
+      {/* The night switch and the hour it starts at, side by side on the page: the choice under the switch is that
+          switch's own, so the pair reads as one thing rather than two. */}
       <Group>
         <SwitchRow label={words.mapNight} on={night} onToggle={setNight} />
       </Group>
-      {/* When the night's dimming starts, with the night it belongs to. */}
-      <ChoiceRows
-        header={words.mapNightFrom}
-        radio={words.mapNightFrom}
-        options={MAP_NIGHT_STARTS.map((hour) => ({
-          id: hour,
-          label: `${String(hour).padStart(2, '0')}:00`,
-        }))}
-        value={nightStart}
-        onPick={setNightStart}
-      />
-      <Group>
+      {/* When the night's dimming starts, with the night it belongs to: a choice that means nothing while the
+          dimming is off, so it arrives with the switch. */}
+      {night && (
+        <ChoiceRows
+          header={words.mapNightFrom}
+          radio={words.mapNightFrom}
+          options={MAP_NIGHT_STARTS.map((hour) => ({
+            id: hour,
+            label: `${String(hour).padStart(2, '0')}:00`,
+          }))}
+          value={nightStart}
+          onPick={setNightStart}
+        />
+      )}
+      <Group header={text.settings.mapControls}>
         <SwitchRow label={words.mapNorth} on={north} onToggle={setNorth} />
         <SwitchRow label={words.mapLimit} on={limit} onToggle={setLimit} />
         <SwitchRow label={words.mapOver} on={over} onToggle={setOver} />
@@ -208,16 +214,20 @@ export function MapTrafficPage() {
         <SwitchRow label={words.mapTrucks} on={trucks} onToggle={setTrucks} />
         <SwitchRow label={words.mapTraffic} on={traffic} onToggle={setTraffic} />
       </Group>
-      <ChoiceRows
-        header={words.mapTraffic}
-        radio={words.mapTraffic}
-        options={MAP_TRAFFIC_AROUND.map((metres) => ({
-          id: metres,
-          label: metres === 0 ? words.mapNever : units.longDistance(metres / 1000, text.decimal),
-        }))}
-        value={around}
-        onPick={setAround}
-      />
+      {/* How far around the truck its traffic is drawn: a choice about the traffic, so it is offered with it, and
+          not while the traffic is switched off. */}
+      {traffic && (
+        <ChoiceRows
+          header={words.mapTraffic}
+          radio={words.mapTraffic}
+          options={MAP_TRAFFIC_AROUND.map((metres) => ({
+            id: metres,
+            label: metres === 0 ? words.mapNever : units.longDistance(metres / 1000, text.decimal),
+          }))}
+          value={around}
+          onPick={setAround}
+        />
+      )}
     </Page>
   )
 }
