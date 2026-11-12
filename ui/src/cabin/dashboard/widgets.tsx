@@ -196,6 +196,9 @@ const SERVICE_APPS: Record<MusicService, AppId> = {
   radio: 'radio',
 }
 
+/** How many ticks a dial draws at most: the game's list has hundreds of stations, and a card has one width. */
+const MOST_TICKS = 61
+
 /** Behind Now Playing's words, in each look: the blurred cover at its opacity (dashboard.css) over the look's
  * glass, on the page behind an app (what's under the glass, roughly). */
 const WIDGET_BACKDROPS: Record<Look, Backdrop> = {
@@ -236,6 +239,11 @@ function MusicWidget({
   // How far into the track (its own player's time, ticking while it plays).
   const progress = useProgress(source)
   const ink = useWordsOver(cover, useLook().appearance, WIDGET_BACKDROPS)
+  // The dial's ticks: a tick a station, up to a card's worth (a mod's list of hundreds would run past the card),
+  // the one playing lit of them and the needle over it.
+  const ticks = dial ? Math.min(dial.of, MOST_TICKS) : 0
+  const lit = dial && dial.at >= 0 ? Math.round((dial.at * Math.max(0, ticks - 1)) / Math.max(1, dial.of - 1)) : -1
+  const needle = !dial || dial.at < 0 || ticks < 2 ? '50%' : `${(lit / (ticks - 1)) * 100}%`
 
   return (
     <article
@@ -275,15 +283,12 @@ function MusicWidget({
         />
       </button>
       {/* How far among what its player plays: the radio's dial, the needle on its station. */}
-      {dial && dial.of > 0 && (
+      {dial && ticks > 0 && (
         <div className="np-dial" aria-hidden="true">
-          {Array.from({ length: dial.of }, (_, index) => (
-            <span key={index} className={index === dial.at ? 'on' : ''} />
+          {Array.from({ length: ticks }, (_, index) => (
+            <span key={index} className={index === lit ? 'on' : ''} />
           ))}
-          <span
-            className="np-dial-needle"
-            style={{ left: dial.at < 0 || dial.of < 2 ? '50%' : `${(dial.at / (dial.of - 1)) * 100}%` }}
-          />
+          <span className="np-dial-needle" style={{ left: needle }} />
         </div>
       )}
       {/* How far in, and how long: the bar moves while it plays, the times either side of it. */}

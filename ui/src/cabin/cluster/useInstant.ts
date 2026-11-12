@@ -17,7 +17,6 @@ export function useInstantConsumption(): number | null {
   useEffect(() => {
     if (!telemetry || !telemetry.engineEnabled) {
       last.current = null
-      setInstant(null)
       return
     }
     const previous = last.current
@@ -32,5 +31,8 @@ export function useInstantConsumption(): number | null {
     published.current = now
     setInstant(Math.min(99.9, (burnt / distance) * 100))
   }, [telemetry])
-  return instant
+  // The figure belongs to a running engine: parked, the tank isn't being read, whatever the last sample said. Clearing
+  // it during render (React's derived-state pattern) also keeps a restart from showing the old run's figure.
+  if (!telemetry?.engineEnabled && instant !== null) setInstant(null)
+  return telemetry?.engineEnabled ? instant : null
 }

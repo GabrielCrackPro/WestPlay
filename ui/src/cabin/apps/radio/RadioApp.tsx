@@ -3,7 +3,7 @@ import { SearchGlyph } from '../../keyboard/glyphs'
 import { TextField } from '../../keyboard/TextField'
 import { useText } from '../../state/text'
 import { pauseHere, play, requestStations, resumeHere, setVolume, stopRadio, useRadio, type RadioStatus } from './radio'
-import { favouritesOf, genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
+import { favouritesOf, genreToShow, genresOf, groupsOf, hueOf, initialsOf, matchesOf, type Station } from './stations'
 import '../../shell/appTabs.css'
 import './radioApp.css'
 
@@ -30,6 +30,8 @@ export function RadioApp() {
   const failed = useRadio((state) => state.failed)
   const title = useRadio((state) => state.title)
   const volume = useRadio((state) => state.volume)
+  const channels = useRadio((state) => state.channels)
+  const channel = useRadio((state) => state.channel)
   const favourites = useRadio((state) => state.favourites)
   const toggleFavourite = useRadio((state) => state.toggleFavourite)
   // The genre shown: all of them, or one (a new list keeps a genre it still has); and the name searched for.
@@ -40,7 +42,9 @@ export function RadioApp() {
   }, [])
   const matching = matchesOf(stations, query)
   const genres = genresOf(matching)
-  const groups = groupsOf(matching).filter((group) => genre === 'all' || group.genre === genre)
+  // What the chips and the list follow: the genre picked, while the search still finds stations of it.
+  const shownGenre = genreToShow(genres, genre)
+  const groups = groupsOf(matching).filter((group) => shownGenre === 'all' || group.genre === shownGenre)
   // The player's favourites, the list's own copy of each, and only those the search finds.
   const loved = favouritesOf(stations, favourites).filter((each) => matchesOf([each], query).length > 0)
   // What the tuning steps across: the stations the list shows, in their order.
@@ -178,6 +182,26 @@ export function RadioApp() {
                     </button>
                   ) : null}
                 </div>
+                {/* A station its playlist gives more than one stream (at more than one bitrate): the one playing, and
+                    the others a press away. */}
+                {station && channels.length > 1 ? (
+                  <div className="radio-channels" role="group" aria-label={words.channels}>
+                    {channels.map((each, index) => (
+                      <button
+                        key={each.url}
+                        type="button"
+                        className={index + 1 === channel ? 'radio-channel on' : 'radio-channel'}
+                        aria-pressed={index + 1 === channel}
+                        onClick={() => {
+                          // The stream already playing is left playing: a press on it isn't a restart.
+                          if (index + 1 !== channel || !live) play(station, index + 1)
+                        }}
+                      >
+                        {each.name || words.stream(index + 1)}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </section>
               <div className="radio-filters">
                 <div className="radio-search">
@@ -196,8 +220,8 @@ export function RadioApp() {
                       key={id || 'other'}
                       type="button"
                       role="tab"
-                      aria-selected={genre === id}
-                      className={genre === id ? 'radio-chip app-tab on' : 'radio-chip app-tab'}
+                      aria-selected={shownGenre === id}
+                      className={shownGenre === id ? 'radio-chip app-tab on' : 'radio-chip app-tab'}
                       onClick={() => setGenre(id)}
                     >
                       <span className="app-tab-label">{name}</span>
@@ -210,7 +234,7 @@ export function RadioApp() {
               ) : (
                 <div className="radio-groups">
                   {/* The stations they picked, above the genres: a drive's own few, ready before any scrolling. */}
-                  {genre === 'all' && loved.length > 0 ? (
+                  {shownGenre === 'all' && loved.length > 0 ? (
                     <section className="radio-group">
                       <h2>{words.favourites}</h2>
                       <div className="radio-list">

@@ -590,8 +590,8 @@ export const ENGLISH_STRINGS: Strings = {
     clusterCardTrip: 'Distance since the engine started, the average, the time moving and the odometer.',
     clusterCardFuel: 'Tank level, the distance left on it and what the trip has burned.',
     clusterCardEngine: 'Oil temperature, brake air pressure and battery voltage.',
-    clusterCardHours: 'The next rest stop and the mandatory break, as the game counts them.',
-    clusterCardWarnings: 'The truck’s warning lamps: brakes, air, fuel, AdBlue, battery and oil pressure.',
+    clusterCardHours: 'The next rest stop, and the time left to deliver the job.',
+    clusterCardWarnings: 'The truck’s warning lamps: brakes, air, fuel, AdBlue, battery, oil pressure and damage.',
     clusterGauges: 'Gauges',
     clusterGaugePercent: 'Percentages',
     clusterGaugeFooter:
@@ -613,6 +613,7 @@ export const ENGLISH_STRINGS: Strings = {
     clusterAccentPlay: 'Cabin Play',
     clusterAccentNeutral: 'Neutral',
     clusterLayout: 'Layout',
+    clusterTestLamps: 'Test lamps',
     clusterLayoutFooter:
       'Drag a card to either side of the dial, above or below another. Tap it to take it off the dash — the column closes up, and the card waits under the picture until a tap puts it back — and tap the warning lamps above to show them or not. With Tab, a card moves with the arrow keys: up and down its column, left and right across the dial. The tank’s own readings fill the right side.',
     clusterLayoutFixed: 'Always here',
@@ -726,6 +727,7 @@ export const ENGLISH_STRINGS: Strings = {
     wearCabin: 'Cab',
     wearChassis: 'Chassis',
     wearTrailer: 'Trailer tires',
+    trailerWear: 'Trailer wear',
     running: 'Running',
     engineOff: 'Engine off',
     check: 'Check',
@@ -747,6 +749,7 @@ export const ENGLISH_STRINGS: Strings = {
     restStop: 'Next rest stop',
     mandatoryBreak: 'Mandatory break',
     noRest: 'Off in this profile',
+    noJob: 'No job',
     controls: 'Controls',
     cruiseControl: 'Cruise control',
     lights: 'Lights',
@@ -881,6 +884,8 @@ export const ENGLISH_STRINGS: Strings = {
     favourites: 'Favourites',
     addFavourite: 'Add to favourites',
     removeFavourite: 'Remove from favourites',
+    channels: 'Streams',
+    stream: (number) => `Stream ${number}`,
   },
   whatsappApp: {
     preview: 'This window shows WhatsApp’s own page, inside the game.',

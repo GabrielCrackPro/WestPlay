@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Telemetry } from '../../../shared/host'
 import { useLive } from '../../state/store'
+import { DAMAGE_WARN, TRUCK_WARNING_KEYS, truckWarningOn } from '../../state/warnings'
 import { advanceTrip, HISTORY, TRIP_START, type Trip } from './trip'
 
 /**
@@ -18,7 +19,7 @@ export interface Extremes {
   oilLow: number | null
   /** litres. */
   fuelLow: number | null
-  /** How many of the game's warnings (fuel, AdBlue, battery, oil, brake air) came up. */
+  /** How many of the game's warnings (fuel, AdBlue, battery, oil, brake air) and wear lamps came up. */
   warnings: number
 }
 
@@ -35,14 +36,26 @@ export const NO_EXTREMES: Extremes = {
 const higher = (kept: number | null, value: number) => (kept === null ? value : Math.max(kept, value))
 const lower = (kept: number | null, value: number) => (kept === null ? value : Math.min(kept, value))
 
-/** A frame further on: each peak the higher of the two, each low the lower, and the game's warning channels
- * remembered by name (one flag coming up is one warning, however long it stays on). */
+/** A frame further on: each peak the higher of the two, each low the lower, and the game's warning channels and
+ * wear lamps remembered by name (one flag coming up is one warning, however long it stays on). */
 function trackExtremes(extremes: Extremes, telemetry: Telemetry, raised: Set<string>): Extremes {
-  if (telemetry.fuelWarning) raised.add('fuel')
-  if (telemetry.adblueWarning) raised.add('adblue')
-  if (telemetry.batteryWarning) raised.add('battery')
-  if (telemetry.oilPressureWarning) raised.add('oil')
-  if (telemetry.brakeAirWarning) raised.add('air')
+  for (const key of TRUCK_WARNING_KEYS) {
+    if (truckWarningOn(telemetry, key)) raised.add(key)
+  }
+  const damage = Math.max(
+    telemetry.wearEngine,
+    telemetry.wearWheels,
+    telemetry.wearTransmission,
+    telemetry.wearCabin,
+    telemetry.wearChassis,
+  )
+  if (damage >= DAMAGE_WARN) raised.add('damage')
+  if (
+    telemetry.trailerAttached &&
+    Math.max(telemetry.trailerWearWheels, telemetry.trailerWearBody, telemetry.trailerWearChassis) >= DAMAGE_WARN
+  ) {
+    raised.add('trailerWear')
+  }
   return {
     coolantPeak: higher(extremes.coolantPeak, telemetry.coolantTemperature),
     brakePeak: higher(extremes.brakePeak, telemetry.brakeTemperature),

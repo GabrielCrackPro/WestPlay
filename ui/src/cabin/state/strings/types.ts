@@ -611,6 +611,7 @@ export interface Strings {
     /** The cluster's layout: its two columns, the ready-made ones, and the sides a card can be on. */
     clusterLayout: string
     clusterLayoutFooter: string
+    clusterTestLamps: string
     /** What the right column carries whatever the layout (the tank's companions), as the preview draws it. */
     clusterLayoutFixed: string
     clusterPresets: string
@@ -740,6 +741,7 @@ export interface Strings {
     wearCabin: string
     wearChassis: string
     wearTrailer: string
+    trailerWear: string
     running: string
     engineOff: string
     check: string
@@ -762,6 +764,7 @@ export interface Strings {
     restStop: string
     mandatoryBreak: string
     noRest: string
+    noJob: string
     controls: string
     cruiseControl: string
     lights: string
@@ -951,6 +954,10 @@ export interface Strings {
     /** A station’s star, unpressed, and pressed. */
     addFavourite: string
     removeFavourite: string
+    /** The streams a station's playlist offers (a station at more than one bitrate), named as a group. */
+    channels: string
+    /** A stream the playlist gives no name to, by its place in the list. */
+    stream: (number: number) => string
   }
   /** The sidebar icon's options button, named after the app it belongs to. */
   appOptions: (app: string) => string

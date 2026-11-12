@@ -11,10 +11,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use westplay_shared::{FixedStr, JobInfo, Telemetry, TrailerInfo, TruckInfo};
 
 use crate::scs::{
-    ChannelCallback, ConfigurationEvent, EventCallback, SCS_RESULT_OK, SCS_TELEMETRY_EVENT_CONFIGURATION,
-    SCS_TELEMETRY_EVENT_FRAME_END, SCS_TELEMETRY_EVENT_PAUSED, SCS_TELEMETRY_EVENT_STARTED, SCS_U32_NIL,
-    SCS_VALUE_TYPE_BOOL, SCS_VALUE_TYPE_DPLACEMENT, SCS_VALUE_TYPE_FLOAT, SCS_VALUE_TYPE_FPLACEMENT,
-    SCS_VALUE_TYPE_S32, SCS_VALUE_TYPE_U32, ScsValue, TelemetryInitParamsV100,
+    ChannelCallback, ConfigurationEvent, EventCallback, SCS_RESULT_OK, SCS_TELEMETRY_CHANNEL_FLAG_NO_VALUE,
+    SCS_TELEMETRY_EVENT_CONFIGURATION, SCS_TELEMETRY_EVENT_FRAME_END, SCS_TELEMETRY_EVENT_PAUSED,
+    SCS_TELEMETRY_EVENT_STARTED, SCS_U32_NIL, SCS_VALUE_TYPE_BOOL, SCS_VALUE_TYPE_DPLACEMENT, SCS_VALUE_TYPE_FLOAT,
+    SCS_VALUE_TYPE_FPLACEMENT, SCS_VALUE_TYPE_S32, SCS_VALUE_TYPE_U32, ScsValue, TelemetryInitParamsV100,
 };
 use crate::{bridge, log};
 
@@ -168,6 +168,68 @@ enum Field {
     TrailerWearChassis,
 }
 
+#[cfg(test)]
+impl Field {
+    /// Every variant, for the registration test below: a field the channel table forgets would simply stop
+    /// updating, with nothing in the log to say so.
+    const ALL: &'static [Field] = &[
+        Field::Placement,
+        Field::Speed,
+        Field::EngineRpm,
+        Field::Gear,
+        Field::DisplayedGear,
+        Field::CruiseControl,
+        Field::Fuel,
+        Field::FuelRange,
+        Field::NavigationDistance,
+        Field::NavigationTime,
+        Field::NavigationSpeedLimit,
+        Field::GameTime,
+        Field::LocalScale,
+        Field::DashboardBacklight,
+        Field::ElectricEnabled,
+        Field::EngineEnabled,
+        Field::ParkingBrake,
+        Field::LowBeam,
+        Field::HighBeam,
+        Field::LeftBlinker,
+        Field::RightBlinker,
+        Field::HeadOffset,
+        Field::Steering,
+        Field::MultiplayerTimeOffset,
+        Field::CoolantTemperature,
+        Field::OilTemperature,
+        Field::BrakeAirPressure,
+        Field::BrakeTemperature,
+        Field::WearEngine,
+        Field::WearWheels,
+        Field::WearTransmission,
+        Field::WearCabin,
+        Field::WearChassis,
+        Field::OilPressure,
+        Field::BatteryVoltage,
+        Field::Adblue,
+        Field::AdblueWarning,
+        Field::FuelAverage,
+        Field::Odometer,
+        Field::RetarderLevel,
+        Field::TrailerAttached,
+        Field::TrailerWearWheels,
+        Field::BatteryWarning,
+        Field::OilPressureWarning,
+        Field::BrakeAirWarning,
+        Field::FuelWarning,
+        Field::RestStop,
+        Field::MandatoryBreak,
+        Field::ParkingLight,
+        Field::Beacon,
+        Field::Wipers,
+        Field::Hazard,
+        Field::TrailerWearBody,
+        Field::TrailerWearChassis,
+    ];
+}
+
 const CHANNELS: &[(&str, u32, Field)] = &[
     ("truck.world.placement", SCS_VALUE_TYPE_DPLACEMENT, Field::Placement),
     ("truck.speed", SCS_VALUE_TYPE_FLOAT, Field::Speed),
@@ -251,9 +313,17 @@ pub unsafe fn register(params: &TelemetryInitParamsV100) {
         let mut registered = 0;
         for (index, &(name, value_type, _)) in CHANNELS.iter().enumerate() {
             let Ok(c_name) = CString::new(name) else { continue };
-            // The SDK copies the name during registration.
-            let result =
-                register_channel(c_name.as_ptr(), SCS_U32_NIL, value_type, 0, on_channel, index as *mut c_void);
+            // The SDK copies the name during registration. `NO_VALUE` matters: without it the SDK simply stops
+            // calling a channel that loses its value (a trailer detached, a truck gone), leaving the last one in
+            // the snapshot forever; with it the callback gets the null that resets the field.
+            let result = register_channel(
+                c_name.as_ptr(),
+                SCS_U32_NIL,
+                value_type,
+                SCS_TELEMETRY_CHANNEL_FLAG_NO_VALUE,
+                on_channel,
+                index as *mut c_void,
+            );
             if result == SCS_RESULT_OK {
                 registered += 1;
             } else {
@@ -659,5 +729,32 @@ unsafe fn on_trailer(configuration: &ConfigurationEvent) {
         if let Some(bridge) = bridge::get() {
             bridge.plugin.trailer.write(&trailer);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+    use std::mem::discriminant;
+
+    use super::*;
+
+    /// The channel table is the only thing binding a telemetry field to the game: a field left out of it, or a
+    /// channel name registered twice, would go unnoticed until a cab read a value that never changed.
+    #[test]
+    fn every_field_has_one_channel() {
+        let mut fields = HashSet::new();
+        let mut names = HashSet::new();
+        for &(name, _, field) in CHANNELS {
+            assert!(names.insert(name), "channel {name} is registered twice");
+            assert!(fields.insert(discriminant(&field)), "a field is registered twice");
+        }
+        for field in Field::ALL {
+            assert!(
+                fields.contains(&discriminant(field)),
+                "a field has no channel in CHANNELS"
+            );
+        }
+        assert_eq!(fields.len(), Field::ALL.len(), "Field::ALL and Field disagree");
     }
 }

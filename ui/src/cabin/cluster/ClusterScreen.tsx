@@ -5,17 +5,10 @@ import { cabClock, type CabinPower, hasTruck, type NowPlayingInfo, subscribeHost
 import { appIcon, type AppIconRole } from '../../shared/icons'
 import {
   adblue as adblueReading,
-  battery as batteryReading,
-  brakeAir as brakeAirReading,
   brakeTemperature as brakeTemperatureReading,
   consumption as consumptionReading,
   coolant as coolantReading,
-  fuelLevel,
-  oil as oilReading,
-  warned,
 } from '../apps/diagnostics/readings'
-import { tripAverage } from '../apps/diagnostics/trip'
-import { useTrends } from '../apps/diagnostics/useTrends'
 import {
   receivePhoneNotifications,
   receivePhoneState,
@@ -32,8 +25,13 @@ import { useHandover } from '../state/useHandover'
 import { motionEase, seconds, useMotionReduced } from '../motion'
 import { resolveAppearance } from '../state/appearance'
 import { useNightDim } from '../state/nightDim'
-import { type ClusterReading, type ClusterSideCard, syncClock, useCabin, useLive } from '../state/store'
+import { type ClusterSideCard, syncClock, useCabin, useLive } from '../state/store'
 import { clusterAccent } from './accent'
+import { EngineCardBody, FuelCardBody, HoursCardBody, TripCardBody } from './ClusterCards'
+import { meterZone, useClusterCardViews } from './clusterCardViews'
+import { TelltaleList } from './ClusterTelltales'
+import { useClusterTelltales } from './telltales'
+import { DAMAGE_STOP } from '../state/warnings'
 import { ManeuverGlyph } from '../maps/ManeuverGlyph'
 import { guidanceOf, NOW_WITHIN, type Step } from '../maps/guidance'
 import { useClock } from '../state/clock'
@@ -47,40 +45,23 @@ import type { Figure } from '../../shared/units'
 import { gameAlerts } from '../shell/gameAlerts'
 import {
   AdblueIcon,
-  BatteryIcon,
-  BeamIcon,
-  BeaconIcon,
-  BrakeAirIcon,
   BrakeTemperatureIcon,
-  BreakIcon,
   ClockIcon,
   CoolantIcon,
   CruiseIcon,
   DropIcon,
-  FuelIcon,
-  GaugeIcon,
-  HazardIcon,
-  IndicatorIcon,
-  OdometerIcon,
-  OilIcon,
-  OilTemperatureIcon,
   MusicIcon,
-  ParkingBrakeIcon,
   PhoneIcon,
-  PositionLightIcon,
   RangeIcon,
-  RestIcon,
   RetarderIcon,
   TrailerIcon,
-  TripIcon,
   WarningIcon,
-  WipersIcon,
 } from './ClusterIcons'
-import { useInstantConsumption } from './useInstant'
 import { useLingering } from './useLingering'
 import { useShownAppearance } from './useShownAppearance'
 import { useSmoothed } from './useSmoothed'
 import './cluster.css'
+import './telltales.css'
 
 /**
  * WestPlay's instrument cluster, on the truck's own cluster display (the Scania S and R's; setup patches their
@@ -189,7 +170,6 @@ export function ClusterScreen() {
   // The driver's units (Settings › Appearance › Units, or the game's own): speeds, distances, fuel, temperatures.
   const units = useUnits()
   const telemetry = useLive((state) => state.telemetry)
-  const truck = useLive((state) => state.truck)
   const job = useLive((state) => state.job)
   // The route the cab's map drew, and how far along it the truck is: the dash draws the same next turn from it.
   const route = useLive((state) => state.route)
@@ -224,10 +204,13 @@ export function ClusterScreen() {
   // Whether the game runs. The host keeps this page between games, so without it the panel would hold the last
   // frame of a closed game up as if the truck were still driving.
   const [running, setRunning] = useState<boolean | null>(null)
-  // The trip since the engine came on, worked out from the same telemetry (its distance, not the odometer).
-  const { trip } = useTrends()
-  // The tank's loss over the last second, for the instant-consumption gauge (the game reports only the average).
-  const instant = useInstantConsumption()
+  // The side cards' figures, and the tank's loss over the last second for the instant-consumption gauge (the game
+  // reports only the average): the same view model the Settings preview draws.
+  const cardViews = useClusterCardViews()
+  const instant = cardViews.instant
+  // The two rows of lamps, and the wear that lights the damage lamp (the Settings preview draws the warnings' row from
+  // the same place).
+  const { lights, faults, damage, damageTone, trailerDamage, trailerTone } = useClusterTelltales()
   // The cab's newest alert or phone notification: the same sources the cabin's stack uses, kept to one line here.
   const notice = useClusterNotice()
   // The chime as a notice is recorded on the dash: soft for a warning, firmer for an alarm.
@@ -296,10 +279,10 @@ export function ClusterScreen() {
   // The job's route, once the game has guided it. Before guidance starts the job's planned distance is what's
   // left, but once the destination is reached it is the whole trip, and mustn't read as if it were still ahead.
   const jobKey = job ? [job.sourceCity, job.sourceCompany, job.destinationCity, job.cargoLoaded].join('|') : ''
+  // The latch is adjusted during render (React's derived-state pattern): once guidance has started for a job it stays
+  // started for that job, even as the remaining distance reaches zero at the destination.
   const [guidedFor, setGuidedFor] = useState<string | null>(null)
-  useEffect(() => {
-    if (telemetry && telemetry.navigationDistance > 0 && guidedFor !== jobKey) setGuidedFor(jobKey)
-  }, [telemetry, jobKey, guidedFor])
+  if (telemetry && telemetry.navigationDistance > 0 && guidedFor !== jobKey) setGuidedFor(jobKey)
   const guided = jobKey !== '' && guidedFor === jobKey
 
   // The boot, as the cabin's: the panel lights with the truck's brand and Cabin Play's mark as the electrics come on,
@@ -354,63 +337,24 @@ export function ClusterScreen() {
   const face = units.face
   // How far round the face the driver is: the lit arc's length, and the angle the needle's head rides at.
   const speedShare = clamp(speed / face.max)
-  const capacity = truck?.fuelCapacity ?? 0
-  const fuelShare = capacity > 0 && t ? clamp(t.fuel / capacity) : null
-  // The readings as Diagnostics gauges them: the same ranges, the same warning lines and the game's own warning
-  // channels, so the cluster and the app can't disagree about when something is wrong.
+  // The right column's own readings, as Diagnostics gauges them: the same ranges, the same warning lines and the
+  // game's own warning channels, so the cluster and the app can't disagree about when something is wrong. The four
+  // side cards' readings are the shared view model's (ClusterCards).
   const adblue = t ? adblueReading(t.adblue) : null
   const coolant = t ? coolantReading(t.coolantTemperature) : null
-  const oilTemp = t ? oilReading(t.oilTemperature) : null
-  const air = t ? warned(brakeAirReading(t.brakeAirPressure), t.brakeAirWarning) : null
-  const volts = t ? warned(batteryReading(t.batteryVoltage), t.batteryWarning) : null
   const brakeHeat = t ? brakeTemperatureReading(t.brakeTemperature) : null
-  const fuel =
-    fuelShare === null ? null : warned(fuelLevel(fuelShare, truck?.fuelWarningFactor), t?.fuelWarning ?? false)
   const instantReading = instant === null ? null : consumptionReading(instant)
   // A cold diesel reads blue on the dash until it is up to working temperature, not only red when it is too hot.
   const coldCoolant = (t?.coolantTemperature ?? 0) > 0 && (t?.coolantTemperature ?? 0) < COLD_C
-  const coldOil = (t?.oilTemperature ?? 0) > 0 && (t?.oilTemperature ?? 0) < COLD_C
-  // The truck's damage: the worst of its parts, lit amber from 15% and red from 50% as the game's own warning and
-  // stop lamps are (`indicator_warning` and `indicator_stop`).
-  const damage = t ? Math.max(t.wearEngine, t.wearWheels, t.wearTransmission, t.wearCabin, t.wearChassis) : 0
-  const damageTone: Telltale['tone'] | null = damage >= DAMAGE_STOP ? 'danger' : damage >= DAMAGE_WARN ? 'warn' : null
-  // The trailer's own wear, on the same lines: its wheels, body and chassis, when one is on the back. `null` on a solo
-  // run, where there is no trailer to have worn anything — and where the truck's own damage already reads.
-  const trailerDamage =
-    t && t.trailerAttached ? Math.max(t.trailerWearWheels, t.trailerWearBody, t.trailerWearChassis) : null
-  const trailerTone: Telltale['tone'] | null =
-    trailerDamage === null
-      ? null
-      : trailerDamage >= DAMAGE_STOP
-        ? 'danger'
-        : trailerDamage >= DAMAGE_WARN
-          ? 'warn'
-          : null
-  const rest = t?.restStop ?? -1
-  const breaking = t?.mandatoryBreak ?? -1
   const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
-  const average = trip.distance > 0.05 ? tripAverage(trip) : (t?.fuelAverage ?? 0)
-  // How long the trip has been moving, as the panel's pair of figures says it: minutes until the hour, then h:mm.
-  const driving = driveTime(trip.moving, words)
-  // The readings as the driver's units set them, the number and its unit apart for the dash's two sizes.
-  const tripFigure = units.distanceFigure(trip.distance, text.decimal)
-  const averageFigure = units.consumptionFigure(average, text.decimal)
-  const rangeFigure = units.longFigure(t?.fuelRange ?? 0, text.decimal)
-  const odoFigure = units.longFigure(t?.odometer ?? 0, text.decimal)
-  const fuelFigure = units.volumeFigure(t?.fuel ?? 0, text.decimal)
-  const usedFigure = units.volumeFigure(trip.fuel, text.decimal)
   const adblueFigure = units.volumeFigure(t?.adblue ?? 0, text.decimal)
   // The figures the two level gauges print. A level is a share of what its tank holds, which is what the bar beside
   // it draws, so the settings can read it as that share — the one reading a driver can put against the bar without
   // working out the tank's capacity. Only the two quantities have a share to give: a temperature or a rate is a
   // point on a scale, not a part of it, and keeps its own figure either way. A truck whose tank the game doesn't
   // measure keeps its litres rather than claiming an empty tank.
-  const fuelValue: Figure =
-    gaugePercent && fuelShare !== null ? { value: String(Math.round(fuelShare * 100)), unit: '%' } : fuelFigure
   const adblueValue: Figure =
     gaugePercent && adblue !== null ? { value: String(Math.round(adblue.percent * 100)), unit: '%' } : adblueFigure
-  const oilFigure = units.temperatureFigure(t?.oilTemperature ?? 0, text.decimal)
-  const airFigure = units.pressureFigure(t?.brakeAirPressure ?? 0, text.decimal)
   const heatFigure = units.temperatureFigure(t?.brakeTemperature ?? 0, text.decimal)
   const coolantFigure = units.temperatureFigure(t?.coolantTemperature ?? 0, text.decimal)
   const instantFigure = instant === null ? null : units.consumptionFigure(instant, text.decimal)
@@ -465,60 +409,6 @@ export function ClusterScreen() {
   // a dash that is its own thing. The route's own fill does on the dark panel, its darker edge on the light one, so it
   // reads on either.
   const accent = clusterAccent(accentChoice, appearance, routeColour)
-  // The engine card's three readings, as the settings chose them: every one a gauge the Diagnostics app already keeps,
-  // drawn with its own icon, figure, unit and warning line, so a reading moved onto the dash reads exactly as it does
-  // in the app. Only the two temperatures carry the dash's cold blue, as the oil's always did.
-  const instantShown = instantFigure ?? units.consumptionFigure(0, text.decimal)
-  const readingViews: Record<
-    ClusterReading,
-    { label: string; icon: ReactElement; value: Figure; warn: boolean; cold?: boolean }
-  > = {
-    oilTemperature: {
-      label: words.oilTemperature,
-      icon: <OilTemperatureIcon />,
-      value: oilFigure,
-      // A reading there is none of (no game, or the engine off) isn't a warning: only one that is out of its range is.
-      warn: (oilTemp?.state ?? 'ok') !== 'ok',
-      cold: coldOil,
-    },
-    coolant: {
-      label: words.coolant,
-      icon: <CoolantIcon />,
-      value: coolantFigure,
-      warn: (coolant?.state ?? 'ok') !== 'ok',
-      cold: coldCoolant,
-    },
-    brakeAir: {
-      label: words.brakeAir,
-      icon: <BrakeAirIcon />,
-      value: airFigure,
-      warn: (air?.state ?? 'ok') !== 'ok',
-    },
-    battery: {
-      label: words.battery,
-      icon: <BatteryIcon />,
-      value: { value: (t?.batteryVoltage ?? 0).toFixed(1).replace('.', text.decimal), unit: words.volts },
-      warn: (volts?.state ?? 'ok') !== 'ok',
-    },
-    adblue: {
-      label: words.adblue,
-      icon: <AdblueIcon />,
-      value: adblueValue,
-      warn: (adblue?.state ?? 'ok') !== 'ok',
-    },
-    brakeTemperature: {
-      label: words.brakeTemperature,
-      icon: <BrakeTemperatureIcon />,
-      value: heatFigure,
-      warn: (brakeHeat?.state ?? 'ok') !== 'ok',
-    },
-    consumption: {
-      label: words.instant,
-      icon: <GaugeIcon />,
-      value: instantShown,
-      warn: (instantReading?.state ?? 'ok') !== 'ok',
-    },
-  }
   const panelStyle = {
     '--cluster-scale': typeScale,
     '--accent': accent,
@@ -563,137 +453,6 @@ export function ClusterScreen() {
     )
   }
 
-  // The lights the driver switches: the indicators first, then the beams, the running lights and the wipers. Each
-  // keeps its place even when it is out, so a blinker lighting up never moves the others.
-  const lights: Telltale[] = [
-    {
-      key: 'left',
-      label: words.indicatorLeft,
-      tone: 'ok',
-      blink: true,
-      icon: <IndicatorIcon direction="left" />,
-      active: t?.leftBlinker ?? false,
-    },
-    {
-      key: 'right',
-      label: words.indicatorRight,
-      tone: 'ok',
-      blink: true,
-      icon: <IndicatorIcon direction="right" />,
-      active: t?.rightBlinker ?? false,
-    },
-    {
-      key: 'beam',
-      label: t?.highBeam ? words.highBeam : words.lowBeam,
-      tone: t?.highBeam ? 'info' : 'ok',
-      icon: <BeamIcon main={t?.highBeam} />,
-      active: (t?.highBeam || t?.lowBeam) ?? false,
-    },
-    {
-      key: 'parkingLight',
-      label: words.parkingLight,
-      tone: 'ok',
-      icon: <PositionLightIcon />,
-      active: t?.parkingLight ?? false,
-    },
-    {
-      key: 'beacon',
-      label: words.lights,
-      tone: 'warn',
-      icon: <BeaconIcon />,
-      active: t?.beacon ?? false,
-    },
-    {
-      key: 'wipers',
-      label: words.wipers,
-      tone: 'info',
-      icon: <WipersIcon />,
-      active: t?.wipers ?? false,
-    },
-  ]
-
-  // The retarder's own light, on the trucks that have one: lit while the driver holds a step.
-  if (truck && truck.retarderSteps > 0) {
-    lights.push({
-      key: 'retarder',
-      label: words.retarder,
-      tone: 'info',
-      icon: <RetarderIcon />,
-      active: retarder > 0,
-    })
-  }
-
-  // The hitch lamp: lit while a trailer is coupled, out when the truck runs solo, as the dash's own does — and pushed
-  // last, so hitching up adds its slot at the end of the row instead of moving the lights already in it.
-  if (t?.trailerAttached) {
-    lights.push({
-      key: 'trailer',
-      label: `${words.trailer} ${words.hitched}`,
-      tone: 'info',
-      icon: <TrailerIcon />,
-      active: true,
-    })
-  }
-
-  // The warnings, grouped as the dash groups them, nearest the dial where the eye lands.
-  const faults: Telltale[] = [
-    {
-      key: 'parkingBrake',
-      label: words.parkingBrake,
-      tone: 'danger',
-      icon: <ParkingBrakeIcon />,
-      active: cards.warnings && (t?.parkingBrake ?? false),
-    },
-    {
-      key: 'hazard',
-      label: words.hazardLights,
-      tone: 'danger',
-      blink: true,
-      icon: <HazardIcon />,
-      active: cards.warnings && (t?.hazard ?? false),
-    },
-    {
-      key: 'fuel',
-      label: words.fuel,
-      tone: 'danger',
-      icon: <FuelIcon />,
-      active: cards.warnings && (t?.fuelWarning ?? false),
-    },
-    {
-      key: 'adblue',
-      label: words.adblue,
-      tone: 'danger',
-      icon: <AdblueIcon />,
-      active: cards.warnings && (t?.adblueWarning ?? false),
-    },
-    {
-      key: 'battery',
-      label: words.battery,
-      tone: 'danger',
-      icon: <BatteryIcon />,
-      active: cards.warnings && (t?.batteryWarning ?? false),
-    },
-    {
-      key: 'oil',
-      label: words.oilPressure,
-      tone: 'danger',
-      icon: <OilIcon />,
-      active: cards.warnings && (t?.oilPressureWarning ?? false),
-    },
-    {
-      key: 'air',
-      label: words.brakeAir,
-      tone: 'danger',
-      icon: <BrakeAirIcon />,
-      active: cards.warnings && (t?.brakeAirWarning ?? false),
-    },
-  ]
-
-  // The dash's damage lamps, off the wear the game already sends: one light, amber then red as the truck wears.
-  if (damageTone) {
-    faults.push({ key: 'damage', label: words.damage, tone: damageTone, icon: <WarningIcon />, active: true })
-  }
-
   // Each side card's panel, as the dash draws it: the two columns are filled from the player's layout (Settings ›
   // Instrument Cluster), so a card moved to the other side is drawn there with the same face and the same entrance,
   // and a card in the order but turned off is simply not drawn. The tank's companions — the AdBlue and the coolant,
@@ -703,38 +462,10 @@ export function ClusterScreen() {
       <motion.section
         key="trip"
         className="cluster-panel cluster-trip"
-        aria-label={`${words.trip} ${t ? tripFigure.value : 0} ${tripFigure.unit}`}
+        aria-label={`${words.trip} ${t ? cardViews.trip.distance.value : 0} ${cardViews.trip.distance.unit}`}
         variants={riseVariants(reduceMotion)}
       >
-        <div className="cluster-trip-top">
-          <span className="cluster-glyph" aria-hidden>
-            <TripIcon />
-          </span>
-          <strong className="cluster-trip-value">
-            {t ? tripFigure.value : '—'}
-            <small>{tripFigure.unit}</small>
-          </strong>
-        </div>
-        <div className="cluster-pairs">
-          <span className="cluster-pair" aria-label={`${words.average} ${averageFigure.value} ${averageFigure.unit}`}>
-            <GaugeIcon />
-            <b>{t ? averageFigure.value : '—'}</b>
-            <small>{averageFigure.unit}</small>
-          </span>
-          {/* The trip's time on the move, not the range: the tank's range is already on the fuel panel's foot, and a
-              figure the dash shows twice is a slot it can't show something else in. The trip computer counts these
-              seconds for nothing else (`trip.moving`, diagnostics/trip.ts). */}
-          <span className="cluster-pair" aria-label={t ? `${words.time} ${driving.value} ${driving.unit}` : undefined}>
-            <ClockIcon />
-            <b>{t ? driving.value : '—'}</b>
-            <small>{t ? driving.unit : ''}</small>
-          </span>
-        </div>
-        <div className="cluster-odo" aria-label={`${words.odometer} ${t ? odoFigure.value : 0} ${odoFigure.unit}`}>
-          <OdometerIcon />
-          <b>{t ? odoFigure.value : '—'}</b>
-          <small>{odoFigure.unit}</small>
-        </div>
+        <TripCardBody views={cardViews} />
       </motion.section>
     ),
     engine: (
@@ -744,24 +475,7 @@ export function ClusterScreen() {
         aria-label={words.engine}
         variants={riseVariants(reduceMotion)}
       >
-        {readingSlots.map((reading) => {
-          const view = readingViews[reading]
-          return (
-            <div
-              key={reading}
-              className="cluster-readout"
-              data-warn={view.warn ? '' : undefined}
-              data-cold={view.cold ? '' : undefined}
-              aria-label={`${view.label} ${t ? view.value.value : 0} ${view.value.unit}`}
-            >
-              <span className="cluster-glyph" aria-hidden>
-                {view.icon}
-              </span>
-              <b>{t ? view.value.value : '—'}</b>
-              <small>{view.value.unit}</small>
-            </div>
-          )
-        })}
+        <EngineCardBody views={cardViews} slots={readingSlots} />
       </motion.section>
     ),
     hours: (
@@ -771,28 +485,7 @@ export function ClusterScreen() {
         aria-label={words.driverHours}
         variants={riseVariants(reduceMotion)}
       >
-        <div
-          className="cluster-hours-row"
-          data-due={rest >= 0 && rest <= 60 ? '' : undefined}
-          aria-label={`${words.restStop} ${rest >= 0 ? minutes(rest, words) : words.noRest}`}
-        >
-          <span className="cluster-glyph" aria-hidden>
-            <RestIcon />
-          </span>
-          <strong>{rest >= 0 ? minutes(rest, words) : '—'}</strong>
-          <span className="cluster-dot" aria-hidden />
-        </div>
-        <div
-          className="cluster-hours-row"
-          data-due={breaking >= 0 && breaking <= 60 ? '' : undefined}
-          aria-label={`${words.mandatoryBreak} ${breaking >= 0 ? minutes(breaking, words) : words.noRest}`}
-        >
-          <span className="cluster-glyph" aria-hidden>
-            <BreakIcon />
-          </span>
-          <strong>{breaking >= 0 ? minutes(breaking, words) : '—'}</strong>
-          <span className="cluster-dot" aria-hidden />
-        </div>
+        <HoursCardBody views={cardViews} />
       </motion.section>
     ),
     fuel: (
@@ -802,43 +495,7 @@ export function ClusterScreen() {
         aria-label={words.fuel}
         variants={riseVariants(reduceMotion)}
       >
-        <div className="cluster-gauge-row">
-          <span className="cluster-glyph" data-warn={fuel?.state === 'alarm' ? '' : undefined} aria-hidden>
-            <FuelIcon />
-          </span>
-          <div
-            className="cluster-meter"
-            data-scale="level"
-            data-hot={fuel?.state === 'warn' ? '' : undefined}
-            data-low={fuel?.state === 'alarm' ? '' : undefined}
-            {...meterZone(fuel, 'low')}
-          >
-            <span style={{ width: `${Math.round((fuelShare ?? 0) * 100)}%` }} />
-          </div>
-          <strong
-            className="cluster-gauge-value"
-            data-hot={fuel?.state === 'warn' ? '' : undefined}
-            data-warn={fuel?.state === 'alarm' ? '' : undefined}
-          >
-            {t ? fuelValue.value : '—'}
-            <small>{fuelValue.unit}</small>
-          </strong>
-        </div>
-        <div
-          className="cluster-gauge-foot"
-          aria-label={`${words.range} ${t ? rangeFigure.value : 0} ${rangeFigure.unit} · ${words.used} ${t ? usedFigure.value : 0} ${usedFigure.unit}`}
-        >
-          <span className="cluster-foot-pair" aria-hidden>
-            <RangeIcon />
-            <b>{t ? rangeFigure.value : '—'}</b>
-            <small>{rangeFigure.unit}</small>
-          </span>
-          <span className="cluster-foot-pair" aria-hidden>
-            <DropIcon />
-            <b>{t ? usedFigure.value : '—'}</b>
-            <small>{usedFigure.unit}</small>
-          </span>
-        </div>
+        <FuelCardBody views={cardViews} />
       </motion.section>
     ),
   }
@@ -1631,49 +1288,6 @@ function ClusterBoot({ power }: { power: CabinPower }) {
   return <BootScreen phase={boot.phase} elapsed={boot.elapsed} />
 }
 
-/** A telltale: its icon, the label a screen reader reads, and the colour the dash lights it in. */
-interface Telltale {
-  key: string
-  label: string
-  tone: 'ok' | 'info' | 'warn' | 'danger'
-  blink?: boolean
-  icon: ReactElement
-  active: boolean
-}
-
-/**
- * A group of telltales: every light keeps its slot whether it is lit or not, so a blinker coming on never moves the
- * row. The cluster has two, the lights the driver switches and the truck's warnings, either side of the route.
- */
-/**
- * A group of telltales: every light keeps its slot whether it is lit or not, so a blinker coming on never moves the
- * row. The cluster has two, the lights the driver switches and the truck's warnings, either side of the route.
- *
- * `check` runs the dash's bulb check over the row: the stylesheet lights every slot for a moment and then hands it back
- * to the truck's own states, so the row is never claimed to be showing anything it isn't — the reader still hears only
- * the lamps that are really on.
- */
-function TelltaleList({ items, label, check }: { items: Telltale[]; label: string; check?: boolean }) {
-  return (
-    <ul className="cluster-telltales" data-check={check ? '' : undefined} aria-label={label}>
-      {items.map((telltale) => (
-        <li
-          key={telltale.key}
-          className="cluster-telltale"
-          data-tone={telltale.tone}
-          data-active={telltale.active ? '' : undefined}
-          data-blink={telltale.active && telltale.blink ? '' : undefined}
-          role={telltale.active ? 'img' : undefined}
-          aria-label={telltale.active ? telltale.label : undefined}
-          aria-hidden={!telltale.active}
-        >
-          {telltale.icon}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 /** A notice on the cluster: the cab's newest warning, phone message or call, in one line. */
 interface ClusterNotice {
   key: string
@@ -1752,7 +1366,7 @@ function useNoticeCue(notice: ClusterNotice | null): void {
  * Takes the cluster's current notice away: tells the phone to drop the notification, clears the local toast, and
  * marks the dash's notice line as dismissed so the exit animation can play before the bar goes empty.
  */
-export function removeNotice(key: string): void {
+function removeNotice(key: string): void {
   if (key.startsWith('phone:')) {
     const id = key.slice(6)
     sendPhoneCommand({ action: 'dismiss', id })
@@ -1834,23 +1448,6 @@ function ClusterNoticeBar({
   )
 }
 
-/**
- * Where a bar prints its gauge's warning line, and which end of the bar the trouble is at (cluster.css,
- * `.cluster-meter[data-zone]`): the reading's own threshold, so the zone a bar draws is the same one the Diagnostics
- * app turns amber at. A reading the panel has no data behind draws no zone, rather than painting the whole bar with one.
- */
-function meterZone(read: { warnPercent: number } | null, side: 'low' | 'high') {
-  if (!read) return {}
-  return {
-    'data-zone': side,
-    style: { '--zone': `${Math.round(read.warnPercent * 100)}%` } as CSSProperties,
-  }
-}
-
-/** Damage at which the dash lights its warning lamp, and its stop lamp (the game's 15% and 50%). */
-const DAMAGE_WARN = 0.15
-const DAMAGE_STOP = 0.5
-
 /** Below this the engine is still warming up: the dash reads its coolant and oil blue, not just red when hot. */
 const COLD_C = 60
 
@@ -1902,25 +1499,10 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(1, value))
 }
 
-/** A driver-hours clock as the cluster says it: "4:05 h", or "58 min", in the cab's language. */
-/** The trip's time on the move, split for the dash's two sizes: "45" and "min" for the first hour, "3:24" and "h"
- *  past it — the same two readings the driver-hours rows give, in the trip panel's own layout. */
-function driveTime(seconds: number, words: Strings['diagnostics']): Figure {
-  const whole = Math.max(0, Math.round(seconds / 60))
-  if (whole < 60) return { value: String(whole), unit: words.minutes }
-  return { value: `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`, unit: words.hours }
-}
-
 /** What a step is, in the cab's own words (the same words the map's guidance card says, GuidanceCard): a turn, a
  *  roundabout's exit, or arriving. The cluster draws the step as its arrow, so this is for the reader's label. */
 function stepWords(step: Step, text: Strings): string {
   if (step.kind === 'arrive') return text.arrive
   const { turn, exit } = step.maneuver
   return turn === 'roundabout' ? text.roundabout(exit ?? 1) : text.turns[turn]
-}
-
-function minutes(value: number, words: Strings['diagnostics']): string {
-  const whole = Math.max(0, Math.round(value))
-  if (whole < 60) return `${whole} ${words.minutes}`
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')} ${words.hours}`
 }

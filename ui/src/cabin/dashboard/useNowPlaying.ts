@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { MediaSource } from '../../shared/media'
 import { command, useYouTube } from '../apps/youtube/youtube'
 import { playOrPause, useSpotifySource } from '../apps/spotify/spotify'
@@ -47,6 +47,35 @@ export function useAnythingLoaded(): boolean {
   return useNowPlaying().showing !== null
 }
 
+/** The wall clock behind the progress bars: one interval for every hook that reads it, running only while one of them
+ * is subscribed (a playing source is on screen). The time is read in the subscription, never during a render. */
+let now = 0
+let clockTimer = 0
+const listeners = new Set<() => void>()
+
+function subscribeClock(listener: () => void): () => void {
+  listeners.add(listener)
+  if (listeners.size === 1) {
+    now = Date.now()
+    clockTimer = window.setInterval(() => {
+      now = Date.now()
+      for (const notify of listeners) notify()
+    }, 1000)
+    // The snapshot changed from the clock's idle zero: let the new subscriber read the real time now rather than a
+    // second from now.
+    for (const notify of listeners) notify()
+  }
+  return () => {
+    listeners.delete(listener)
+    if (listeners.size === 0) {
+      clearInterval(clockTimer)
+      clockTimer = 0
+    }
+  }
+}
+
+const readClock = () => now
+
 /**
  * How far into what plays Now Playing reads, in seconds: the position its player last said, run on by the clock
  * while it plays, and the track's length. It ticks once a second — a bar that moves without the card redrawing
@@ -54,19 +83,15 @@ export function useAnythingLoaded(): boolean {
  */
 export function useProgress(source: MediaSource | null): { position: number; duration: number } | null {
   const playing = source?.status === 'playing'
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    if (!playing) return
-    const id = setInterval(() => setTick((count) => count + 1), 1000)
-    return () => clearInterval(id)
-  }, [playing])
+  const subscribe = useCallback((listener: () => void) => (playing ? subscribeClock(listener) : () => {}), [playing])
+  const ticked = useSyncExternalStore(subscribe, readClock, readClock)
   return useMemo(() => {
     if (!source || !(source.durationMs > 0)) return null
     const duration = source.durationMs / 1000
     // `positionAt` is Unix time, and the position was that many ms in when it was taken: played on from there.
-    const ran = playing ? Math.max(0, Date.now() - source.positionAt) / 1000 : 0
+    const ran = playing ? Math.max(0, ticked - source.positionAt) / 1000 : 0
     return { position: Math.min(duration, source.positionMs / 1000 + ran), duration }
-  }, [source, playing, tick])
+  }, [source, playing, ticked])
 }
 
 /** A time in seconds as a player writes it: 4:07, or 1:02:11 for the long ones. */

@@ -375,6 +375,12 @@ body,
 
 /* Every light has a slot whether it is lit or not, so the row never rearranges as the truck changes state. */
 .cluster-telltales {
+  /* The four tones, in the panel's own palette; telltales.css maps each lamp's tone onto them for both the dash and
+     the Settings preview, which declares Apple's colours on its own rows. */
+  --telltale-ok: var(--ok);
+  --telltale-info: var(--accent-2);
+  --telltale-warn: var(--warn);
+  --telltale-danger: var(--danger);
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 32px;
@@ -400,7 +406,7 @@ body,
   place-items: center;
   width: 32px;
   height: 32px;
-  color: var(--ok);
+  color: var(--telltale-ok);
   opacity: 0;
   transition: opacity 80ms linear;
 }
@@ -459,22 +465,6 @@ body,
   height: 24px;
   /* Slightly thicker stroke for better visibility at distance */
   stroke-width: 2;
-}
-
-.cluster-telltale[data-tone='ok'] {
-  color: var(--ok);
-}
-
-.cluster-telltale[data-tone='info'] {
-  color: var(--accent-2);
-}
-
-.cluster-telltale[data-tone='warn'] {
-  color: var(--warn);
-}
-
-.cluster-telltale[data-tone='danger'] {
-  color: var(--danger);
 }
 
 /*

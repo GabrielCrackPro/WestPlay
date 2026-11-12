@@ -3,6 +3,8 @@ import { launchingNow } from '../../state/launch'
 import { useCabin, useLive, type DiagnosticsPage } from '../../state/store'
 import { useText } from '../../state/text'
 import { useUnits } from '../../state/units'
+import { CruiseIcon } from '../../cluster/ClusterIcons'
+import { type Telltale, buildTelltales } from '../../cluster/telltales'
 import {
   adblue,
   battery,
@@ -35,9 +37,6 @@ const TAB_ICONS: Record<DiagnosticsPage, ReactNode> = {
   chassis: <ChassisTabIcon />,
 }
 
-/** A telltale that's on: the capsule the hero shows it as, in its own tone. */
-type Lit = { label: string; tone: 'green' | 'blue' | 'amber' | 'red'; blink?: boolean; icon: ReactNode }
-
 /**
  * The Diagnostics app: the truck's health as the game reports it, on four pages — the drive's own readings, the
  * engine and fuel, the driver's hours, and the chassis and trailer. It's built as a native app is: a large title
@@ -56,6 +55,9 @@ export function DiagnosticsApp() {
   const speedShown = Math.round(useDamped(telemetry ? units.speed(telemetry.speed) : 0))
   const truck = useLive((state) => state.truck)
   const trailer = useLive((state) => state.trailer)
+  // The dash's own lamps, from the same rows the cluster draws — but without the cluster card's warnings switch: this
+  // app reads the truck, and turning the dash's row off doesn't turn the truck's warnings off.
+  const telltales = buildTelltales({ telemetry, truck, warnings: true, words: text.diagnostics })
   // The trip computer and the two histories, from the frames the game sends.
   const trends = useTrends()
   // The page left open comes back with the player's settings, so a warning's page isn't hunted for twice.
@@ -148,32 +150,22 @@ export function DiagnosticsApp() {
   const hoursState: State = rest >= 0 && rest <= 15 ? 'warn' : 'ok'
 
   // Only what's lit: an off telltale says nothing a glance needs, and the dash's own lamps are there when they're
-  // on. The indicators blink with the truck's.
-  const lit: Lit[] = []
-  if (t.leftBlinker)
-    lit.push({ label: words.indicatorLeft, tone: 'green', blink: true, icon: <path d="M14 5 7 12l7 7" /> })
-  if (t.rightBlinker)
-    lit.push({ label: words.indicatorRight, tone: 'green', blink: true, icon: <path d="M10 5l7 7-7 7" /> })
-  if (t.highBeam) lit.push({ label: words.highBeam, tone: 'blue', icon: <path d="M3 12h8m0-6 4-3v18l-4-3" /> })
-  else if (t.lowBeam) lit.push({ label: words.lowBeam, tone: 'blue', icon: <path d="M3 8h6M3 12h8M3 16h6" /> })
-  if (t.parkingBrake)
-    lit.push({ label: words.parkingBrake, tone: 'red', icon: <path d="M9 17V7h3.5a3.2 3.2 0 0 1 0 6.4H9" /> })
-  if (t.retarderLevel > 0)
-    lit.push({
-      label: `${words.retarder} ${n(t.retarderLevel)}`,
-      tone: 'amber',
-      icon: <path d="M5 8h14M5 12h14M5 16h9" />,
-    })
+  // on. The rows come from the cluster (wear, trailer, wipers, hazard and all), so this page can't omit a lamp the
+  // driver sees on the glass; cruise is the one mark the dash keeps outside its telltale rows.
+  const toneClass: Record<Telltale['tone'], 'green' | 'blue' | 'amber' | 'red'> = {
+    ok: 'green',
+    info: 'blue',
+    warn: 'amber',
+    danger: 'red',
+  }
+  const lit: Telltale[] = [...telltales.faults, ...telltales.lights].filter((lamp) => lamp.active)
   if (t.cruiseControlSpeed > 0.5)
     lit.push({
+      key: 'cruise',
       label: `${words.cruiseControl} ${units.speed(t.cruiseControlSpeed)} ${units.labels.speed}`,
-      tone: 'green',
-      icon: (
-        <>
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-        </>
-      ),
+      tone: 'ok',
+      icon: <CruiseIcon />,
+      active: true,
     })
 
   // The tabs: each page's name, and the tone of the worst reading it holds, so a page worth opening shows it.
@@ -244,22 +236,12 @@ export function DiagnosticsApp() {
                     <div className="diag-warnings">
                       {lit.map((lamp) => (
                         <span
-                          key={lamp.label}
-                          className={`diag-warning ${lamp.tone}${lamp.blink ? ' blink' : ''}`}
+                          key={lamp.key}
+                          className={`diag-warning ${toneClass[lamp.tone]}${lamp.blink ? ' blink' : ''}`}
                           role="img"
                           aria-label={lamp.label}
                         >
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden
-                          >
-                            {lamp.icon}
-                          </svg>
+                          {lamp.icon}
                           <span>{lamp.label}</span>
                         </span>
                       ))}

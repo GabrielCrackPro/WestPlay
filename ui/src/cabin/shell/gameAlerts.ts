@@ -1,6 +1,7 @@
 import type { Telemetry } from '../../shared/host'
 import { activeUnits, type Units } from '../../shared/units'
 import type { Strings } from '../state/strings'
+import { truckWarningOn } from '../state/warnings'
 import type { NoteAction } from './notesShown'
 
 /** One of the game's own warnings or rest clocks, worded for the cab and the cluster. */
@@ -37,7 +38,7 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
   return [
     {
       key: 'battery',
-      on: telemetry.batteryWarning,
+      on: truckWarningOn(telemetry, 'battery'),
       title: words.battery,
       detail: `${n(Math.round(telemetry.batteryVoltage * 10) / 10)} ${words.volts}`,
       tone: 'alarm',
@@ -45,7 +46,7 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
     },
     {
       key: 'oilPressure',
-      on: telemetry.oilPressureWarning,
+      on: truckWarningOn(telemetry, 'oil'),
       title: words.oilPressure,
       detail: psi(telemetry.oilPressure),
       tone: 'alarm',
@@ -53,7 +54,7 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
     },
     {
       key: 'brakeAir',
-      on: telemetry.brakeAirWarning,
+      on: truckWarningOn(telemetry, 'air'),
       title: words.brakeAir,
       detail: psi(telemetry.brakeAirPressure),
       tone: 'alarm',
@@ -61,7 +62,7 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
     },
     {
       key: 'fuel',
-      on: telemetry.fuelWarning,
+      on: truckWarningOn(telemetry, 'fuel'),
       title: words.fuel,
       detail: litres(telemetry.fuel),
       tone: 'alarm',
@@ -69,7 +70,7 @@ export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = a
     },
     {
       key: 'adblue',
-      on: telemetry.adblueWarning,
+      on: truckWarningOn(telemetry, 'adblue'),
       title: words.adblue,
       detail: litres(telemetry.adblue),
       tone: 'alarm',

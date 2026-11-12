@@ -45,7 +45,18 @@ export function MapSearch() {
   // A tap on the map: the place it landed on, its card. The panel opens for it and Destinations shows it (the
   // card is where a place is added to the route, so a tap on the map is a way to route somewhere, as on a phone).
   const places = usePlaces()
-  const picked = usePlacePick((state) => state.picked)
+  // A pick is an outside event (a map tap, a stop): the panel opens on it as it happens, rather than watching the
+  // store's value and setting state from an effect.
+  useEffect(() => {
+    return usePlacePick.subscribe((state) => {
+      if (!state.picked) return
+      // On the side the search button has, away from the turn-by-turn banner; and the Stops page gives way, since one
+      // panel stands over the map at a time (StopsPage.tsx).
+      setOpenedRight(guided)
+      setPhase('open')
+      useMapPanel.getState().show('search')
+    })
+  }, [guided])
   useEffect(() => {
     setPlaceTap((at, within) => {
       const place = nearestPlace(places, at, within)
@@ -55,15 +66,6 @@ export function MapSearch() {
     })
     return () => setPlaceTap(null)
   }, [places])
-  useEffect(() => {
-    if (!picked) return
-    // On the side the search button has, away from the turn-by-turn banner; and the Stops page gives way, since one
-    // panel stands over the map at a time (StopsPage.tsx).
-    setOpenedRight(guided)
-    setPhase('open')
-    useMapPanel.getState().show('search')
-  }, [picked, guided])
-
   useEffect(() => {
     if (!confirmation) return
     const timer = setTimeout(() => setConfirmation(null), CONFIRMATION_MS)

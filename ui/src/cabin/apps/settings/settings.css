@@ -1875,6 +1875,9 @@ html[data-motion='reduced'] .settings-more {
 .cluster-layout-preview {
   position: relative;
   display: grid;
+  /* The two lamp rows are sized off the picture's own width, not the window's: the panel can be narrow while the
+     Settings window is wide. */
+  container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
   grid-template-rows: 22px minmax(0, 1fr);
   gap: 8px 12px;
@@ -1896,8 +1899,8 @@ html[data-motion='reduced'] .settings-more {
     inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
 
-/* Its status bar: the lamps at the left, the route in the middle and the time at the right — dim marks of what the
-   dash's own bar carries, so the columns read as the dash's and not as a list. */
+/* Its status bar: the lights at the left, the route in the middle, the warnings and the time at the right — the dash's
+   own bar in miniature, so the columns read as the dash's and not as a list. */
 .cluster-layout-rail {
   grid-column: 1 / -1;
   display: flex;
@@ -1907,8 +1910,29 @@ html[data-motion='reduced'] .settings-more {
   padding: 0 2px;
 }
 
+/* The lights row, where the dash keeps it: the rail's left, ahead of the route. It is a reading, not a control, so it
+   is drawn without the warnings row's switch treatment. */
+.cluster-layout-lights {
+  /* The preview's lamps use the same four tone names as the dash's; these are the Apple colours they light in here
+     (telltales.css maps the tones). */
+  --telltale-ok: var(--apple-green);
+  --telltale-info: var(--apple-blue);
+  --telltale-warn: var(--apple-orange);
+  --telltale-danger: var(--apple-red);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* The lamps in the bar are the warnings card's own switch, drawn where the dash keeps them. */
 .shell .cluster-layout-lamps {
+  --telltale-ok: var(--apple-green);
+  --telltale-info: var(--apple-blue);
+  --telltale-warn: var(--apple-orange);
+  --telltale-danger: var(--apple-red);
   display: flex;
   gap: 3px;
   padding: 6px 7px;
@@ -1931,20 +1955,134 @@ html[data-motion='reduced'] .settings-more {
   outline-offset: 1px;
 }
 
-.cluster-layout-lamps i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.22);
+/* The lamps are the dash's own rows, drawn small: an unlit slot keeps its mark faintly here (the glass draws nothing
+   for one) so both strips stay readable in the picture, and the warnings row stays a usable switch even when the
+   truck has nothing to warn about. */
+/* The compact rows keep their lamps as direct flex items of the strip; the wrapper is only there to carry the lamp
+   test over the whole row. */
+.cluster-layout-lamp-row {
+  display: contents;
+}
+
+.cluster-layout-lamp {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  color: rgb(255 255 255 / 0.24);
+  transition: color 120ms var(--motion-ease);
+}
+
+.cluster-layout-lamp svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+}
+
+.appearance-light .cluster-layout-lamp {
+  color: rgb(0 0 0 / 0.2);
 }
 
 /* The warnings card off: the bar above the dial holds its marks for the lamps without claiming they are lit. */
-.cluster-layout-lamps[data-off] i {
+.cluster-layout-lamps[data-off] .cluster-layout-lamp {
   opacity: 0.35;
 }
 
-.appearance-light .cluster-layout-lamps i {
-  background: rgb(0 0 0 / 0.18);
+/* The bulb check: every slot lights in its own tone for 1.5 s, then hands the rows back to the truck's states. The
+   animation's opacity wins over the off strip's dim and the lamp's own faint mark, so the test proves every lamp. */
+.cluster-layout-lamp-row[data-check] .cluster-layout-lamp {
+  opacity: 1;
+  animation: cluster-lamp-check 1500ms linear;
+}
+
+.cluster-layout-lamp-row[data-check] .cluster-layout-lamp[data-tone='ok'] {
+  color: var(--telltale-ok);
+}
+
+.cluster-layout-lamp-row[data-check] .cluster-layout-lamp[data-tone='info'] {
+  color: var(--telltale-info);
+}
+
+.cluster-layout-lamp-row[data-check] .cluster-layout-lamp[data-tone='warn'] {
+  color: var(--telltale-warn);
+}
+
+.cluster-layout-lamp-row[data-check] .cluster-layout-lamp[data-tone='danger'] {
+  color: var(--telltale-danger);
+}
+
+@keyframes cluster-lamp-check {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The dash's bulb check, replayed in the miniature. */
+.cluster-layout-test {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(255 255 255 / 0.72);
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.cluster-layout-test:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.cluster-layout-test:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 1px;
+}
+
+.appearance-light .cluster-layout-test {
+  background: rgb(0 0 0 / 0.06);
+  color: rgb(0 0 0 / 0.65);
+}
+
+.appearance-light .cluster-layout-test:hover {
+  background: rgb(0 0 0 / 0.1);
+}
+
+/* A narrow picture shrinks both rows a step rather than letting the route and the clock be squeezed out: the marks
+   stay legible at 12px, and the warnings switch keeps its hit area. */
+@container (max-width: 440px) {
+  .cluster-layout-rail {
+    gap: 6px;
+  }
+
+  .cluster-layout-lights,
+  .cluster-layout-lamps {
+    gap: 2px;
+  }
+
+  .cluster-layout-lamp {
+    width: 12px;
+    height: 12px;
+  }
+
+  .cluster-layout-lamp svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .cluster-layout-lamps {
+    padding: 6px 4px;
+    margin: -6px -4px;
+  }
 }
 
 .cluster-layout-route {

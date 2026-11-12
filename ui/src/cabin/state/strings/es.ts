@@ -605,8 +605,9 @@ export const SPANISH_STRINGS: Strings = {
     clusterCardTrip: 'Distancia desde que arrancó el motor, la media, el tiempo en marcha y el cuentakilómetros.',
     clusterCardFuel: 'Nivel del depósito, la distancia que queda con él y lo gastado en el viaje.',
     clusterCardEngine: 'Temperatura del aceite, presión del aire de frenos y voltaje de la batería.',
-    clusterCardHours: 'El próximo descanso y la pausa obligatoria, como los cuenta el juego.',
-    clusterCardWarnings: 'Los testigos del camión: frenos, aire, combustible, AdBlue, batería y presión de aceite.',
+    clusterCardHours: 'El próximo descanso y el tiempo que queda para entregar el trabajo.',
+    clusterCardWarnings:
+      'Los testigos del camión: frenos, aire, combustible, AdBlue, batería, presión de aceite y daños.',
     clusterGauges: 'Indicadores',
     clusterGaugePercent: 'Porcentajes',
     clusterGaugeFooter:
@@ -628,6 +629,7 @@ export const SPANISH_STRINGS: Strings = {
     clusterAccentPlay: 'Cabin Play',
     clusterAccentNeutral: 'Neutro',
     clusterLayout: 'Diseño',
+    clusterTestLamps: 'Probar testigos',
     clusterLayoutFooter:
       'Arrastra una tarjeta a cualquier lado de la esfera, por encima o por debajo de otra. Tócala para quitarla del cuadro —la columna se cierra y la tarjeta espera bajo la imagen hasta que la devuelvas—, y toca los testigos de aviso de arriba para mostrarlos o no. Con Tab, una tarjeta se mueve con las flechas: arriba y abajo por su columna, izquierda y derecha a través de la esfera. Las lecturas del depósito llenan el lado derecho.',
     clusterLayoutFixed: 'Siempre aquí',
@@ -742,6 +744,7 @@ export const SPANISH_STRINGS: Strings = {
     wearCabin: 'Cabina',
     wearChassis: 'Chasis',
     wearTrailer: 'Neumáticos del remolque',
+    trailerWear: 'Desgaste del remolque',
     running: 'En marcha',
     engineOff: 'Motor apagado',
     check: 'Revisar',
@@ -763,6 +766,7 @@ export const SPANISH_STRINGS: Strings = {
     restStop: 'Próximo descanso',
     mandatoryBreak: 'Descanso obligatorio',
     noRest: 'Desactivado en este perfil',
+    noJob: 'Sin trabajo',
     controls: 'Controles',
     cruiseControl: 'Control de crucero',
     lights: 'Luces',
@@ -897,6 +901,8 @@ export const SPANISH_STRINGS: Strings = {
     favourites: 'Favoritas',
     addFavourite: 'Añadir a favoritas',
     removeFavourite: 'Quitar de favoritas',
+    channels: 'Emisiones',
+    stream: (number) => `Emisión ${number}`,
   },
   whatsappApp: {
     preview: 'Esta ventana muestra la página de WhatsApp dentro del juego.',

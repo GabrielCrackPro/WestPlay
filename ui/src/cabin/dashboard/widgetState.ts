@@ -5,6 +5,7 @@ import { adblue, battery, brakeAir, coolant, fuelLevel, warned, type State } fro
 import { useMapData } from '../maps/mapData'
 import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
+import { anyTruckWarning } from '../state/warnings'
 import { destinationView } from './destination'
 import { driverHoursView } from './hours'
 import { useAnythingLoaded } from './useNowPlaying'
@@ -60,13 +61,7 @@ export function useWidgetOrder(): DashboardWidget[] {
       const clock = telemetry?.gameTime ?? 0
       const late = job !== null && job.deliveryTime > 0 && clock > job.deliveryTime
       const soon = job !== null && job.deliveryTime > 0 && !late && job.deliveryTime - clock <= 20
-      const warn =
-        telemetry !== null &&
-        (telemetry.fuelWarning ||
-          telemetry.adblueWarning ||
-          telemetry.batteryWarning ||
-          telemetry.oilPressureWarning ||
-          telemetry.brakeAirWarning)
+      const warn = anyTruckWarning(telemetry)
       const restDue =
         telemetry !== null &&
         ((telemetry.restStop >= 0 && telemetry.restStop <= 60) ||

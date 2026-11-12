@@ -59,8 +59,10 @@ export function Dashboard() {
       typeof document.startViewTransition !== 'function' ||
       document.documentElement.dataset.transition
     ) {
-      setShown(order)
-      return
+      // No transition to run: the list follows on the next frame, so the effect only schedules the update rather than
+      // setting state inside itself.
+      const id = requestAnimationFrame(() => setShown(order))
+      return () => cancelAnimationFrame(id)
     }
     document.startViewTransition(() => flushSync(() => setShown(order))).finished.catch(() => {})
   }, [order, shown, reduceMotion])

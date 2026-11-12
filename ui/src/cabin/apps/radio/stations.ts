@@ -60,11 +60,69 @@ const MAX_STATIONS = 1000
 /**
  * A station's stream as the page plays it: through this PC's own door (`stations_message`'s `proxy`, the host's
  * `radio_proxy`), which serves the station's bytes with the leave for the truck's speakers to hear them, or from
- * the station's own server when this PC has no door.
+ * the station's own server when this PC has no door. `channel` is which of a playlist's streams (`1`: its first).
  */
-export function streamOf(url: string, proxy: string | null): string {
+export function streamOf(url: string, proxy: string | null, channel = 1): string {
   if (!proxy) return url
-  return `${proxy}/s/${base64url(url)}`
+  return `${proxy}/s/${base64url(url)}${channel > 1 ? `?n=${channel}` : ''}`
+}
+
+/**
+ * Where the door tells what streams a station's playlist offers (`/l/<station>`, the face's channels), or `null`
+ * when this PC has no door: a station played from its own server is one page the playlist is the station's alone.
+ */
+export function channelsUrlOf(url: string, proxy: string | null): string | null {
+  return proxy ? `${proxy}/l/${base64url(url)}` : null
+}
+
+/**
+ * Where the door hands over a station's own bytes as its server sends them (`/b/<station>`: an HLS list, or one of
+ * its segments), or `null` when this PC has no door.
+ */
+export function bytesUrlOf(url: string, proxy: string | null): string | null {
+  return proxy ? `${proxy}/b/${base64url(url)}` : null
+}
+
+/** One of a station's streams: the address its playlist gives it, and the name the playlist gives it (`''`: none). */
+export interface Channel {
+  url: string
+  name: string
+}
+
+/**
+ * The streams a station's playlist offers, as the door sent them: each a stream the page can play, once, and only
+ * those the playlist named (anything else in the message is left out). Nothing means there's nothing to choose.
+ */
+export function channelsOf(told: unknown): Channel[] {
+  if (!Array.isArray(told)) return []
+  const channels: Channel[] = []
+  const seen = new Set<string>()
+  for (const each of told) {
+    if (typeof each !== 'object' || each === null) continue
+    const { url, name } = each as Record<string, unknown>
+    if (typeof url !== 'string') continue
+    const clean = url.trim()
+    if (!/^https?:\/\//i.test(clean) || seen.has(clean)) continue
+    seen.add(clean)
+    channels.push({ url: clean, name: typeof name === 'string' ? name.trim() : '' })
+  }
+  return channels
+}
+
+/** Whether a station's address names a playlist of streams (`.pls`, `.m3u`): one with channels to offer. */
+export function isPlaylistUrl(url: string): boolean {
+  const named = namedUrl(url)
+  return named.endsWith('.pls') || named.endsWith('.m3u')
+}
+
+/** Whether a station's address names an HLS stream (`.m3u8`): the page plays it with HLS, not as a plain stream. */
+export function isHlsUrl(url: string): boolean {
+  return namedUrl(url).endsWith('.m3u8')
+}
+
+/** A station's address without its query or fragment, in lower case: what its name says it is. */
+function namedUrl(url: string): string {
+  return (url.split(/[?#]/)[0] ?? url).toLocaleLowerCase()
 }
 
 /**
@@ -133,6 +191,14 @@ function folded(text: string): string {
 /** Every genre the stations have, in the order their first station brings it. */
 export function genresOf(stations: readonly Station[]): string[] {
   return [...new Set(stations.map(genreOf))]
+}
+
+/**
+ * The genre the app shows of those the list has: the one chosen while the list still has stations of it, all of
+ * them otherwise (a search, or the game's list read again, may take a genre away).
+ */
+export function genreToShow(genres: readonly string[], chosen: string): string {
+  return chosen === 'all' || genres.includes(chosen) ? chosen : 'all'
 }
 
 /**

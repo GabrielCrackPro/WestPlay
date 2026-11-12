@@ -35,24 +35,32 @@ export function useShownAppearance(wanted: Appearance, reduced: boolean): ShownA
   // The look the panel has actually been drawn in: what a new request is measured against, kept in a ref so the
   // effect below only runs when the cabin asks for a different look, never on its own state.
   const shown = useRef(wanted)
+  // Two frames: the first opens the window on the old colours, the second brings the new ones in under it.
   const frame = useRef(0)
+  const next = useRef(0)
   const timer = useRef(0)
 
   useEffect(() => {
     if (shown.current === wanted) return
     // A second change while the first is still on its way takes its place: one change of look, to the newest.
     cancelAnimationFrame(frame.current)
+    cancelAnimationFrame(next.current)
     clearTimeout(timer.current)
     if (reduced) {
-      shown.current = wanted
-      setLook({ appearance: wanted, appearing: false })
+      // Reduced motion still lands before the next paint, just not inside the effect's own commit.
+      frame.current = requestAnimationFrame(() => {
+        shown.current = wanted
+        setLook({ appearance: wanted, appearing: false })
+      })
       return
     }
-    setLook((current) => ({ ...current, appearing: true }))
     frame.current = requestAnimationFrame(() => {
-      shown.current = wanted
-      setLook({ appearance: wanted, appearing: true })
-      timer.current = window.setTimeout(() => setLook((current) => ({ ...current, appearing: false })), LOOK_MS)
+      setLook((current) => ({ ...current, appearing: true }))
+      next.current = requestAnimationFrame(() => {
+        shown.current = wanted
+        setLook({ appearance: wanted, appearing: true })
+        timer.current = window.setTimeout(() => setLook((current) => ({ ...current, appearing: false })), LOOK_MS)
+      })
     })
   }, [wanted, reduced])
 
@@ -60,6 +68,7 @@ export function useShownAppearance(wanted: Appearance, reduced: boolean): ShownA
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current)
+      cancelAnimationFrame(next.current)
       clearTimeout(timer.current)
     },
     [],

@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { favouritesOf, genresOf, groupsOf, matchesOf, stationsOf, streamOf, titleUrlOf } from './stations'
+import {
+  bytesUrlOf,
+  channelsOf,
+  favouritesOf,
+  genreToShow,
+  genresOf,
+  groupsOf,
+  isHlsUrl,
+  isPlaylistUrl,
+  matchesOf,
+  stationsOf,
+  streamOf,
+  titleUrlOf,
+} from './stations'
 
 const told = [
   { name: 'Radio One', genre: 'Pop', language: 'English', bitrate: 128, url: 'https://radio.example/one' },
@@ -55,6 +68,15 @@ describe('the game’s stations', () => {
       ['', 1],
     ])
   })
+
+  it('shows the genre picked while the list has it, and every station once it doesn’t', () => {
+    expect(genreToShow(['Pop', 'Rock'], 'Rock')).toBe('Rock')
+    // A search, or the list read again, may take the genre away: the app shows them all rather than nothing.
+    expect(genreToShow(['Pop'], 'Rock')).toBe('all')
+    // The stations with no genre are a genre of their own, and all of them is always one to show.
+    expect(genreToShow(['Pop', ''], '')).toBe('')
+    expect(genreToShow([], 'all')).toBe('all')
+  })
 })
 
 describe('a station’s stream', () => {
@@ -66,6 +88,44 @@ describe('a station’s stream', () => {
     // The host reads the station back from the door's path: its UTF-8 bytes, base64, url-safe and unpadded.
     const encoded = through.slice(`${door}/s/`.length)
     expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/one?s=1')
+  })
+
+  it('says which of a playlist’s streams to play, and nothing when the first is wanted', () => {
+    const door = 'http://127.0.0.1:49512'
+    const first = streamOf('http://radio.example/listen.pls', door)
+    expect(first.includes('?')).toBe(false)
+    expect(streamOf('http://radio.example/listen.pls', door, 1)).toBe(first)
+    expect(streamOf('http://radio.example/listen.pls', door, 2)).toBe(`${first}?n=2`)
+  })
+})
+
+describe('a station’s channels', () => {
+  it('are the streams its playlist names, each once, as the door sent them', () => {
+    expect(
+      channelsOf([
+        { url: 'http://radio.example/128', name: 'Radio Example 128' },
+        { url: 'http://radio.example/128', name: 'Again' },
+        { url: ' http://radio.example/64 ', name: '  ' },
+        { name: 'Nowhere' },
+        { url: 'file:///music.mp3' },
+        null,
+        'Radio',
+      ]),
+    ).toEqual([
+      { url: 'http://radio.example/128', name: 'Radio Example 128' },
+      { url: 'http://radio.example/64', name: '' },
+    ])
+  })
+
+  it('are what a playlist station has, and an HLS one is played as HLS', () => {
+    expect(isPlaylistUrl('http://radio.example/listen.pls')).toBe(true)
+    expect(isPlaylistUrl('http://radio.example/live.M3U?sid=1')).toBe(true)
+    expect(isPlaylistUrl('https://radio.example/live.mp3')).toBe(false)
+    expect(isHlsUrl('https://radio.example/live.m3u8')).toBe(true)
+    expect(isHlsUrl('https://radio.example/live.m3u8#t=1')).toBe(true)
+    // A playlist is no HLS stream, and an HLS stream is no playlist to read its streams from.
+    expect(isPlaylistUrl('https://radio.example/live.m3u8')).toBe(false)
+    expect(isHlsUrl('http://radio.example/listen.pls')).toBe(false)
   })
 })
 
@@ -80,6 +140,17 @@ describe('the player’s favourites', () => {
 
   it('keep a station the game’s list no longer has: its stream still plays', () => {
     expect(favouritesOf([two], [one, two]).map((each) => each.name)).toEqual(['One', 'Two'])
+  })
+})
+
+describe('an HLS station’s own bytes', () => {
+  it('are asked of this PC’s door, and of nowhere when there is none', () => {
+    expect(bytesUrlOf('https://radio.example/live.m3u8', null)).toBeNull()
+    const door = 'http://127.0.0.1:49512'
+    const asked = bytesUrlOf('https://radio.example/live.m3u8', door)
+    expect(asked?.startsWith(`${door}/b/`)).toBe(true)
+    const encoded = (asked ?? '').slice(`${door}/b/`.length)
+    expect(atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))).toBe('https://radio.example/live.m3u8')
   })
 })
 

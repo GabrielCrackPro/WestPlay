@@ -14,7 +14,8 @@
   letter-spacing: 0.02em;
 }
 
-/* The dial: a tick for every station, the one playing lit, and the needle over it. */
+/* The dial: a tick a station (up to a card's width of them: the game's list has hundreds), the one playing lit, and
+   the needle over it. */
 .np-dial {
   position: relative;
   display: flex;

@@ -151,6 +151,43 @@
   white-space: nowrap;
 }
 
+/* The streams a station’s playlist offers (a station at more than one bitrate), under its face: the one playing
+   picked out in the face’s own blue, the others a press away. */
+.radio-channels {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.radio-channel {
+  min-height: calc(44px * var(--text-scale, 1));
+  padding: 0 calc(18px * var(--text-scale, 1));
+  border: 0;
+  border-radius: 999px;
+  background: var(--apple-fill-secondary);
+  color: var(--apple-label);
+  font: inherit;
+  font-size: calc(19px * var(--text-scale, 1));
+  font-weight: 620;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.radio-channel:hover {
+  background: var(--apple-fill);
+}
+
+.radio-channel:active {
+  scale: 0.97;
+}
+
+.radio-channel.on {
+  background: var(--apple-blue);
+  color: #fff;
+}
+
 /* What it’s doing: Now playing as CarPlay’s badge, paused, or why it didn’t play. */
 .radio-now-state {
   min-height: calc(28px * var(--text-scale, 1));

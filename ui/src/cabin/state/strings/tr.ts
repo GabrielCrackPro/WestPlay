@@ -590,8 +590,8 @@ export const TURKISH_STRINGS: Strings = {
     clusterCardTrip: 'Motor çalıştığından beri mesafe, ortalaması, hareket süresi ve kilometre sayacı.',
     clusterCardFuel: 'Depo seviyesi, kalan menzil ve yolculukta yanan yakıt.',
     clusterCardEngine: 'Yağ sıcaklığı, fren havası basıncı ve akü voltajı.',
-    clusterCardHours: 'Sonraki dinlenme ve zorunlu mola, oyunun saydığı gibi.',
-    clusterCardWarnings: 'Kamyonun uyarı lambaları: fren, hava, yakıt, AdBlue, akü ve yağ basıncı.',
+    clusterCardHours: 'Sonraki dinlenme ve işi teslim etmek için kalan süre.',
+    clusterCardWarnings: 'Kamyonun uyarı lambaları: fren, hava, yakıt, AdBlue, akü, yağ basıncı ve hasar.',
     clusterGauges: 'Göstergeler',
     clusterGaugePercent: 'Yüzdeler',
     clusterGaugeFooter:
@@ -613,6 +613,7 @@ export const TURKISH_STRINGS: Strings = {
     clusterAccentPlay: 'Cabin Play',
     clusterAccentNeutral: 'Nötr',
     clusterLayout: 'Yerleşim',
+    clusterTestLamps: 'Lambaları dene',
     clusterLayoutFooter:
       'Bir kartı göstergenin iki yanına, bir başkasının üstüne ya da altına sürükleyin. Panodan kaldırmak için dokunun — sütun kapanır ve kart, geri konana kadar resmin altında bekler — üstteki uyarı lambalarını göstermek ya da gizlemek için lambalara dokunun. Tab ile seçilen bir kart oklarla taşınır: kendi sütununda yukarı ve aşağı, göstergenin öbür yanına sola ve sağa. Deponun kendi okumaları sağ tarafı doldurur.',
     clusterLayoutFixed: 'Her zaman burada',
@@ -726,6 +727,7 @@ export const TURKISH_STRINGS: Strings = {
     wearCabin: 'Kabin',
     wearChassis: 'Şasi',
     wearTrailer: 'Dorse lastikleri',
+    trailerWear: 'Dorse aşınması',
     running: 'Çalışıyor',
     engineOff: 'Motor kapalı',
     check: 'Kontrol et',
@@ -747,6 +749,7 @@ export const TURKISH_STRINGS: Strings = {
     restStop: 'Sonraki mola',
     mandatoryBreak: 'Zorunlu mola',
     noRest: 'Bu profilde kapalı',
+    noJob: 'İş yok',
     controls: 'Kontroller',
     cruiseControl: 'Hız sabitleyici',
     lights: 'Işıklar',
@@ -880,6 +883,8 @@ export const TURKISH_STRINGS: Strings = {
     favourites: 'Favoriler',
     addFavourite: 'Favorilere ekle',
     removeFavourite: 'Favorilerden çıkar',
+    channels: 'Yayınlar',
+    stream: (number) => `Yayın ${number}`,
   },
   whatsappApp: {
     preview: 'Bu pencere WhatsApp’ın kendi sayfasını oyunun içinde gösterir.',

@@ -8,6 +8,7 @@ import { useCabin, useLive } from '../state/store'
 import { useText } from '../state/text'
 import { useTicker } from '../state/ticker'
 import { useUnits } from '../state/units'
+import { DAMAGE_WARN, type TruckWarning, truckWarningWord, truckWarnings } from '../state/warnings'
 import { EMPTY, useDestinationView, useDiagnosticsView, useDriverHoursView } from './widgetState'
 import { nearestCity } from './destination'
 import { fuelShare, gearLabel, routeShare } from './overview'
@@ -39,25 +40,36 @@ export function Glance() {
   const room = truck?.fuelCapacity ?? 0
   const share = fuelShare(fuel, room)
   const range = useLive((state) => state.telemetry?.fuelRange ?? 0)
-  const warned = useLive(
-    useShallow((state) => {
-      const telemetry = state.telemetry
-      return {
-        fuel: telemetry?.fuelWarning ?? false,
-        adblue: telemetry?.adblueWarning ?? false,
-        battery: telemetry?.batteryWarning ?? false,
-        oil: telemetry?.oilPressureWarning ?? false,
-        air: telemetry?.brakeAirWarning ?? false,
-      }
-    }),
-  )
-  const warnings = [
-    warned.fuel && { key: 'fuel', label: words.fuel },
-    warned.adblue && { key: 'adblue', label: words.adblue },
-    warned.battery && { key: 'battery', label: words.battery },
-    warned.oil && { key: 'oil', label: words.oilPressure },
-    warned.air && { key: 'air', label: words.brakeAir },
-  ].filter((warning): warning is { key: string; label: string } => Boolean(warning))
+  // The lamps the dash would light, plus the wear it tracks: the Overview should not read clean while the cluster is
+  // warning about worn parts or a loaded trailer. The selector returns one string so the card only redraws when the
+  // set of warnings changes, not on every telemetry frame.
+  const warningKeys = useLive((state) => {
+    const telemetry = state.telemetry
+    if (!telemetry) return ''
+    const keys: string[] = truckWarnings(telemetry, words)
+      .filter((warning) => warning.on)
+      .map((warning) => warning.key)
+    const wear = Math.max(
+      telemetry.wearEngine,
+      telemetry.wearWheels,
+      telemetry.wearTransmission,
+      telemetry.wearCabin,
+      telemetry.wearChassis,
+    )
+    if (wear >= DAMAGE_WARN) keys.push('damage')
+    const trailer = telemetry.trailerAttached
+      ? Math.max(telemetry.trailerWearWheels, telemetry.trailerWearBody, telemetry.trailerWearChassis)
+      : 0
+    if (trailer >= DAMAGE_WARN) keys.push('trailer')
+    return keys.join(',')
+  })
+  const warnings = warningKeys ? warningKeys.split(',') : []
+  const warningLabel = (key: string) =>
+    key === 'damage'
+      ? words.damage
+      : key === 'trailer'
+        ? words.trailerWear
+        : truckWarningWord(key as TruckWarning, words)
   const active = useLive(
     useShallow((state) => {
       const telemetry = state.telemetry
@@ -133,9 +145,9 @@ export function Glance() {
         </div>
         {(active.length > 0 || warnings.length > 0) && (
           <div className="glance-chips">
-            {warnings.map((warning) => (
-              <span key={warning.key} className="glance-chip alarm">
-                {warning.label}
+            {warnings.map((key) => (
+              <span key={key} className="glance-chip alarm">
+                {warningLabel(key)}
               </span>
             ))}
             {active.map((label) => (

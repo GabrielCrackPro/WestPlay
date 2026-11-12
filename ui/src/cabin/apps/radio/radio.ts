@@ -4,7 +4,18 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { IS_DEMO, postToHost } from '../../../shared/host'
 import type { MediaSource } from '../../../shared/media'
 import type { MusicPlayer } from '../musicWithGame'
-import { type Station, stationsOf, streamOf, titleUrlOf } from './stations'
+import { hlsPlays, playHls, stopHls } from './hls'
+import {
+  type Channel,
+  channelsOf,
+  channelsUrlOf,
+  isHlsUrl,
+  isPlaylistUrl,
+  type Station,
+  stationsOf,
+  streamOf,
+  titleUrlOf,
+} from './stations'
 
 /** A station as the app plays it now: loading its stream, playing, paused (by the player, another player starting,
  * or the game), or not playing at all (its stream failed). */
@@ -22,6 +33,10 @@ interface RadioState {
   title: string | null
   /** The player’s volume, 0 to 1. */
   volume: number
+  /** The streams the station playing's playlist offers (`[]`: it is its own stream, or there's nothing to choose). */
+  channels: Channel[]
+  /** Which of them plays, counting from 1. */
+  channel: number
   /** This PC’s own door to the stations’ streams (`http://127.0.0.1:…`, the host’s `radio_proxy`); `null` when it
    * has none. */
   proxy: string | null
@@ -58,7 +73,8 @@ function remembered(stored: unknown): Partial<Remembered> {
  * A station is a stream on somebody else’s server, which the cab’s page (https) may neither play (http ones) nor
  * let its Web Audio graph hear (the truck’s speakers, cab_sound.js): it plays through this PC’s own door instead
  * (`stations.ts`’s `streamOf`), which serves the stream to the page with the leave to hear it, so the speakers
- * can. Without a door, the station plays straight from its server: heard, but from the page, not the truck.
+ * can. Without a door, a secure station plays straight from its own server (heard from the page, not the truck);
+ * an http one can't, the cab's page being https, so it is one this PC must find a door for.
  */
 export const useRadio = create<RadioState>()(
   persist(
@@ -69,6 +85,8 @@ export const useRadio = create<RadioState>()(
       failed: null,
       title: null,
       volume: 0.8,
+      channels: [],
+      channel: 1,
       proxy: null,
       tuned: null,
       favourites: [],
@@ -148,6 +166,22 @@ function followTitle(station: Station | null): void {
   asking = window.setInterval(ask, TITLE_EVERY)
 }
 
+/**
+ * Asks the door what streams a station's playlist offers, for the face to offer them (a station at more than one
+ * bitrate, its list naming each): nothing for a station that is its own stream.
+ */
+function followChannels(station: Station): void {
+  const asked = channelsUrlOf(station.url, useRadio.getState().proxy)
+  if (!asked) return
+  fetch(asked, { cache: 'no-store' })
+    .then((answer) => (answer.ok ? answer.json() : []))
+    .then((told: unknown) => {
+      // Only the station chosen has channels here: one left for another has none.
+      if (useRadio.getState().station?.url === station.url) useRadio.setState({ channels: channelsOf(told) })
+    })
+    .catch(() => undefined)
+}
+
 /** The element, made once: its events keep the app’s state (and the cab’s other players) told. */
 function audio(): HTMLAudioElement {
   if (element) return element
@@ -166,6 +200,12 @@ function audio(): HTMLAudioElement {
     const { status } = useRadio.getState()
     if (status === 'playing' || status === 'loading') useRadio.setState({ status: 'paused' })
   })
+  // The station stopped sending: its stream ended (a live one does when it goes off the air, or the door lets it go
+  // with nobody reading it). The set stays tuned to it, its face saying so and its one button playing it again — a
+  // station is a stream to begin, never one to carry on with (play()). Nothing once the radio is stopped.
+  made.addEventListener('ended', () => {
+    if (useRadio.getState().station) useRadio.setState({ status: 'paused' })
+  })
   made.addEventListener('error', () => {
     // No source at all isn’t a station failing (stopping clears it).
     if (!made.getAttribute('src')) return
@@ -177,29 +217,65 @@ function audio(): HTMLAudioElement {
 
 /**
  * The page's element, while it plays through this PC's door: the speakers' graph can hear that one (the stream is
- * CORS-clean). A station played straight from its server is one the graph would play as silence, so it is none.
+ * CORS-clean). A station played straight from its server is one the graph would play as silence, so it is none — an
+ * HLS one excepted, whose sound is the page's own (the element plays a blob the page's HLS player fills).
  */
 export function radioForSpeakers(): HTMLAudioElement | null {
-  return useRadio.getState().proxy !== null ? element : null
+  const { proxy, station } = useRadio.getState()
+  return proxy !== null || (station !== null && isHlsUrl(station.url)) ? element : null
 }
 
-/** Plays a station (from the start: a station is a live stream, there’s nothing to carry on from). */
-export function play(station: Station): void {
+/**
+ * Plays a station (from the start: a station is a live stream, there’s nothing to carry on from), on `channel` of it
+ * when its playlist offers several.
+ */
+export function play(station: Station, channel = 1): void {
   const player = audio()
-  const { proxy } = useRadio.getState()
+  const { proxy, station: playing, channels } = useRadio.getState()
   // The set remembers what it is tuned to: it comes back on it at the next launch (the face shows it, paused).
-  useRadio.setState({ station, status: 'loading', failed: null, title: null, tuned: station })
-  followTitle(station)
+  useRadio.setState({
+    station,
+    status: 'loading',
+    failed: null,
+    title: null,
+    tuned: station,
+    channel,
+    // The same station played on keeps the streams it was offered (they don't come again for a pause); another
+    // station's are as unknown as it is until its playlist is read.
+    channels: playing?.url === station.url ? channels : [],
+  })
+  // A station its list gives as a playlist may offer a choice of streams, which the face then shows.
+  if (isPlaylistUrl(station.url)) followChannels(station)
+  const stopped = (why?: unknown) => {
+    // A play the browser aborted (paused before it started, or another station tuned in over it) isn't a station
+    // failing; one the page still refuses says so on the face.
+    if (why instanceof DOMException && why.name === 'AbortError') return
+    if (useRadio.getState().station?.url !== station.url) return
+    useRadio.setState({ status: 'failed', failed: station.url })
+  }
   // The player’s own volume, whatever a fade left it at.
   player.volume = clamped(useRadio.getState().volume)
+  // An HLS station (`.m3u8`) is no stream as streams go: the page's own HLS player reads its list and its segments,
+  // through the door, since the element can't play the list itself (hls.ts). Its stream carries no ICY song.
+  stopHls()
+  if (isHlsUrl(station.url)) {
+    followTitle(null)
+    if (!hlsPlays()) return stopped(new Error('this page has no MediaSource'))
+    player.removeAttribute('src')
+    playHls(player, station.url, proxy, () => stopped())
+    return
+  }
+  followTitle(station)
   // Through the door the stream is the page's own to hear (CORS), so the truck's speakers can play it.
   if (proxy) player.crossOrigin = 'anonymous'
   else player.removeAttribute('crossorigin')
-  player.src = streamOf(station.url, proxy)
+  // The station is a stream to begin, never to carry on with: played again (played on after a pause, or tuned in
+  // over itself), the element would keep the response it already has — one the door ended, since a paused stream
+  // isn't read — and play silence at its end instead of the station. Emptied first, every play is a fresh stream.
+  player.removeAttribute('src')
+  player.src = streamOf(station.url, proxy, channel)
   // Autoplay is allowed in the cab (webview.rs); a stream the page still refuses says so on the face.
-  player.play().catch(() => {
-    useRadio.setState({ status: 'failed', failed: station.url })
-  })
+  player.play().catch(stopped)
 }
 
 /**
@@ -216,8 +292,9 @@ export function tune(step: number): void {
 
 /** Stops the radio, forgetting the station. */
 export function stopRadio(): void {
-  useRadio.setState({ station: null, status: 'idle', failed: null, title: null })
+  useRadio.setState({ station: null, status: 'idle', failed: null, title: null, channels: [], channel: 1 })
   followTitle(null)
+  stopHls()
   if (!element) return
   element.pause()
   element.removeAttribute('src')
@@ -246,10 +323,11 @@ export function pauseHere(): void {
  * last left on — if there is one. Nothing while a station already plays.
  */
 export function resumeHere(): void {
-  const { station, tuned, status } = useRadio.getState()
+  const { station, tuned, status, channel } = useRadio.getState()
   const chosen = station ?? tuned
   if (!chosen || status === 'playing' || status === 'loading') return
-  play(chosen)
+  // The channel it was playing (one this PC was left tuned to has none picked yet: its first).
+  play(chosen, station?.url === chosen.url ? channel : 1)
 }
 
 /**

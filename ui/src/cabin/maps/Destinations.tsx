@@ -81,17 +81,23 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
   const ahead = live && places ? placesAhead(places, live.spans, live.progress) : null
   const along = ahead ? new Map(ahead.map(({ place, along }) => [place, along])) : undefined
   const [kind, setKind] = useState<DestinationKind | null>(null)
-  const [chosen, setChosen] = useState<Destination | null>(null)
-  // A place tapped on the map (MapSearch opened the panel for it): its card, right away.
-  const picked = usePlacePick((state) => state.picked)
-  const clearPick = usePlacePick((state) => state.clear)
+  // A place tapped on the map (MapSearch opened the panel for it): its card, right away — including a pick that was
+  // already waiting as this panel mounted.
+  const [chosen, setChosen] = useState<Destination | null>(() => usePlacePick.getState().picked?.place ?? null)
   useEffect(() => {
-    if (!picked) return
-    useKeyboard.getState().detach(field)
-    setChosen(picked.place)
-    setKind(null)
-    clearPick()
-  }, [picked, clearPick, field])
+    // The mount's pick (if any) is already the chosen card; clear it so coming back doesn't show it again.
+    if (usePlacePick.getState().picked) {
+      useKeyboard.getState().detach(field)
+      usePlacePick.getState().clear()
+    }
+    return usePlacePick.subscribe((state) => {
+      if (!state.picked) return
+      useKeyboard.getState().detach(field)
+      setChosen(state.picked.place)
+      setKind(null)
+      usePlacePick.getState().clear()
+    })
+  }, [field])
   // Choosing a list or a place puts the keyboard away, as on the iPhone: what's chosen has the room.
   const choose = (place: Destination) => {
     useKeyboard.getState().detach(field)
@@ -158,7 +164,10 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
   // Pinned as the list changes (a new list, a place opened), cleared when the panel closes.
   const pinKey = pins.map((place) => place.node).join(',')
   const pinned = useRef<Destination[]>(pins)
-  pinned.current = pins
+  // The ref follows the list after each render; the effect below only draws when the set of places changes.
+  useEffect(() => {
+    pinned.current = pins
+  })
   useEffect(() => {
     showNearbyPins(pinned.current)
   }, [pinKey])
@@ -278,7 +287,7 @@ function useDetours(places: Destination[], onRoute: boolean): Map<Destination, n
       current = false
     }
     // `key` stands for the places: a new list of the same places asks nothing again.
-  }, [key])
+  }, [key, places])
   return found.key === key ? found.seconds : new Map()
 }
 
