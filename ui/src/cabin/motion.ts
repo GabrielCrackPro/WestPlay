@@ -26,6 +26,23 @@ export const motionEase = (time: number) => 1 - (1 + SPRING * time) * Math.exp(-
 /** Milliseconds to seconds: the stylesheets count in ms, Motion in s. */
 export const seconds = (ms: number) => ms / 1000
 
+/**
+ * A card that arrives over the cabin and goes again — a note in the notification stack, the call alert: down from
+ * just above and a touch small, settling on the cabin's curve, and out the way it came. The stack keeps a card
+ * mounted for the length of `outMs` so its departure is seen (`useLeaving` in shell/Notifications.tsx), which is what
+ * `leaving` is; and a driver who has cut the cabin's motion gets it at rest, where nothing moves at all.
+ */
+export function overlayMotion(leaving: boolean, reduced: boolean, inMs: number, outMs: number) {
+  if (reduced) {
+    return { initial: false, animate: { opacity: leaving ? 0 : 1 }, transition: { duration: 0 } } as const
+  }
+  return {
+    initial: leaving ? false : { opacity: 0, y: -16, scale: 0.94 },
+    animate: leaving ? { opacity: 0, y: -10, scale: 0.97 } : { opacity: 1, y: 0, scale: 1 },
+    transition: { duration: seconds(leaving ? outMs : inMs), ease: motionEase },
+  }
+}
+
 /** Deterministic sample of the spring at evenly spaced times, used by the CSS build and the test tie.
  * Shared so the CSS `linear()` sample array and the motion.test.ts assertions stay derived from the same source. */
 export const sampleMotionEase = (start: number, end: number, count: number): number[] => {

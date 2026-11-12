@@ -1,6 +1,8 @@
+import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import type { PhoneCall } from '../../shared/host'
 import { sendPhoneCommand, useCaller, usePhone } from '../apps/phone/phone'
+import { overlayMotion, useMotionReduced } from '../motion'
 import { go, useCabin } from '../state/store'
 import { useText } from '../state/text'
 import './phoneAlerts.css'
@@ -25,8 +27,13 @@ export function PhoneAlerts() {
   )
 }
 
+/** How long the card takes to come over the cab, ms, and how long an ended call stays for its exit. */
+const CALL_IN_MS = 260
+const CALL_OUT_MS = 220
+
 /** A ringing or answered call: who it is, how long it has lasted, and the buttons that take it. */
 function CallAlert({ call, seconds, leaving }: { call: PhoneCall; seconds: number | null; leaving: boolean }) {
+  const reduced = useMotionReduced()
   const words = useText().phoneApp
   // Who is calling: the phone's own word for the call, or the name the dialer's notification gave it.
   const caller = useCaller(call.id)
@@ -34,10 +41,11 @@ function CallAlert({ call, seconds, leaving }: { call: PhoneCall; seconds: numbe
   const ringing = call.state === 'ringing'
   const lasted = !ringing && seconds !== null ? ` · ${words.duration(seconds)}` : ''
   return (
-    <div
+    <motion.div
       className={ringing ? 'phone-alert ringing' : 'phone-alert calling'}
       role={ringing ? 'alert' : undefined}
       aria-hidden={leaving || undefined}
+      {...overlayMotion(leaving, reduced, CALL_IN_MS, CALL_OUT_MS)}
     >
       <span className="phone-alert-glyph" aria-hidden="true">
         <Receiver />
@@ -65,12 +73,9 @@ function CallAlert({ call, seconds, leaving }: { call: PhoneCall; seconds: numbe
           {ringing ? words.decline : words.end}
         </button>
       </span>
-    </div>
+    </motion.div>
   )
 }
-
-/** How long a call that has ended stays up to fade out, ms (phoneAlerts.css' phone-alert-out). */
-const CALL_OUT_MS = 220
 
 /**
  * The call on screen, kept a moment after the phone hangs it up so its exit can be seen: an element that leaves the

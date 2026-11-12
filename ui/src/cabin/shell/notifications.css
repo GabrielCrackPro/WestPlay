@@ -16,25 +16,10 @@
   gap: calc(10px * var(--text-scale, 1));
   padding: 0 calc(14px * var(--text-scale, 1));
   pointer-events: none;
-  opacity: 0;
-  translate: 0 -10px;
-  scale: 0.96;
-  visibility: hidden;
-  transition:
-    top 260ms var(--motion-ease),
-    opacity 260ms ease,
-    translate 260ms ease,
-    scale 260ms ease,
-    visibility 0s linear 260ms;
-}
-
-.notifications.shown {
-  opacity: 1;
-  translate: 0 0;
-  scale: 1;
-  visibility: visible;
-  transition-delay: 0s;
-  transition-duration: 160ms;
+  /* What moves here is where the stack starts, not the stack: a call taking the first place pushes it down
+     (phoneAlerts.css), and each card is Motion's own to bring in (Notifications.tsx). An empty layer is just a box
+     that takes no press. */
+  transition: top 260ms var(--motion-ease);
 }
 
 .notification {
@@ -212,9 +197,11 @@
 /* A note with somewhere to go: a small button under its reading, the card's own way into the app. */
 .shell .notification-action {
   display: flex;
+  /* A thumb's height on a dash-mounted screen, not a mouse's: the card is pressed on the move (owner 2026-11-12). */
+  min-height: calc(34px * var(--text-scale, 1));
   align-items: center;
   gap: calc(4px * var(--text-scale, 1));
-  padding: calc(3px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1));
+  padding: calc(6px * var(--text-scale, 1)) calc(11px * var(--text-scale, 1));
   border-radius: 999px;
   background: color-mix(in srgb, var(--notification-tone) 18%, transparent);
   color: var(--notification-tone);
@@ -244,7 +231,8 @@
 
 .shell .notification-chip {
   max-width: 100%;
-  padding: calc(5px * var(--text-scale, 1)) calc(13px * var(--text-scale, 1));
+  min-height: calc(36px * var(--text-scale, 1));
+  padding: calc(8px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
   border-radius: 999px;
   background: color-mix(in srgb, var(--notification-tone) 16%, transparent);
   color: var(--text);
@@ -266,14 +254,15 @@
   scale: 0.97;
 }
 
-/* Taking a card down: a small cross, the only part of the glass that isn't a reading. */
+/* Taking a card down: a small cross, the only part of the glass that isn't a reading — small, but a thumb's worth
+   of it, with the card's own 46px of right padding keeping it clear of the reading beside it. */
 .shell .notification-close {
   position: absolute;
-  top: calc(9px * var(--text-scale, 1));
-  right: calc(9px * var(--text-scale, 1));
+  top: calc(8px * var(--text-scale, 1));
+  right: calc(8px * var(--text-scale, 1));
   display: grid;
-  width: calc(28px * var(--text-scale, 1));
-  height: calc(28px * var(--text-scale, 1));
+  width: calc(32px * var(--text-scale, 1));
+  height: calc(32px * var(--text-scale, 1));
   border-radius: 50%;
   background: color-mix(in srgb, var(--text) 10%, transparent);
   color: color-mix(in srgb, var(--text) 66%, transparent);
@@ -294,52 +283,13 @@
   height: 54%;
 }
 
-/* Each note springs in as it arrives, and fades out as it goes: the store drops one the instant it's taken down,
-   so Notifications.tsx keeps it a moment longer for this exit to be seen. The stack's own transition moves the
-   notes that stay as the ones above them leave; a call above them moves the whole stack down (phoneAlerts.css). */
-.notification {
-  animation: note-in 320ms var(--motion-ease) both;
-}
-
-.notification.leaving {
-  animation: note-out 220ms var(--motion-ease) both;
-}
-
-@keyframes note-in {
-  from {
-    opacity: 0;
-    translate: 0 calc(-18px * var(--text-scale, 1));
-    scale: 0.94;
-  }
-}
-
-@keyframes note-out {
-  to {
-    opacity: 0;
-    translate: 0 calc(-10px * var(--text-scale, 1));
-    scale: 0.97;
-  }
-}
-
-/* An alarm's mark gives one short pulse after the card has landed: enough to catch the eye, not a light that keeps
-   blinking at the driver. */
-.notification.alarm .notification-icon {
-  animation: note-alarm 760ms var(--motion-ease) 320ms 1 both;
-}
-
+/* A note arrives and leaves on Motion (Notifications.tsx: `overlayMotion`, the same card the cluster's notice is),
+   and the cards that stay slide up as one goes (`layout`) instead of jumping the height of the one that left. Only
+   the tone's stripe is the stylesheet's: it is a pseudo-element, which Motion has no handle on. */
 @keyframes note-tone-in {
   from {
     opacity: 0.4;
     transform: scaleY(0.4);
-  }
-}
-
-@keyframes note-alarm {
-  35% {
-    scale: 1.08;
-  }
-  65% {
-    scale: 0.98;
   }
 }
 
@@ -375,15 +325,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .notifications,
-  .notifications.shown {
+  .notifications {
     transition: none;
   }
 
-  .notification,
-  .notification.leaving,
-  .notification::before,
-  .notification.alarm .notification-icon {
+  .notification::before {
     animation: none;
   }
 }

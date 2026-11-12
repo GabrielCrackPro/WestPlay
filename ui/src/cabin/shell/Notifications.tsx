@@ -1,6 +1,8 @@
+import { motion } from 'motion/react'
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { cabClock, type PhoneNotification, postToHost } from '../../shared/host'
 import { formatGameTime, formatRealTime } from '../../shared/format'
+import { motionEase, overlayMotion, seconds, useMotionReduced } from '../motion'
 import { appHue, sendPhoneCommand, takeDownNotification, usePhoneToasts, wantPhoneTab } from '../apps/phone/phone'
 import { useNowPlaying, useNowPlayingTrack, useProgress } from '../dashboard/useNowPlaying'
 import { go, useCabin, useLive } from '../state/store'
@@ -30,9 +32,8 @@ export function Notifications() {
   useNoteCue(latest)
   useGameAlerts()
   useNowPlayingReport()
-  const shown = notes.length + leavingNotes.length + phoneNotes.length + leavingPhone.length > 0
   return (
-    <div className={shown ? 'notifications shown' : 'notifications'} aria-live="polite">
+    <div className="notifications" aria-live="polite">
       {notes.map((note) => (
         <NotePill key={note.key} note={note} />
       ))}
@@ -83,12 +84,27 @@ function useNoteCue(note: { id: number; tone: 'warn' | 'alarm' } | undefined): v
   }, [note])
 }
 
-/** How long a note that has gone stays up to fade out, ms (notifications.css' note-out). */
+/** How long a note that has gone stays up to fade out, ms (the departure `overlayMotion` plays). */
 const NOTE_OUT_MS = 220
+/** How long a card takes to land, ms. */
+const NOTE_IN_MS = 320
+
+/**
+ * An alarm's mark gives one short pulse after the card has landed: enough to catch the eye, not a light that keeps
+ * blinking at the driver. Nothing at all when the cabin's motion is cut, or for a note that isn't an alarm.
+ */
+function markPulse(alarm: boolean, reduced: boolean) {
+  if (!alarm || reduced) return {}
+  return {
+    animate: { scale: [1, 1.08, 0.98, 1] },
+    transition: { duration: seconds(760), delay: seconds(320), times: [0, 0.35, 0.65, 1], ease: motionEase },
+  }
+}
 
 /** One of the truck's notes: its warning, what it's about, the reading now, and where it can be read in full. */
 function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) {
   const text = useText()
+  const reduced = useMotionReduced()
   const words = text.notificationsApp
   const dismiss = useNotes((state) => state.dismiss)
   const action = !leaving && note.action ? note.action : null
@@ -101,12 +117,14 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
     dismiss(note.key)
   }
   return (
-    <div
-      className={`notification ${note.tone}${leaving ? ' leaving' : ''}${action ? ' actionable' : ''}`}
+    <motion.div
+      layout
+      className={`notification ${note.tone}${action ? ' actionable' : ''}`}
       aria-hidden={leaving || undefined}
+      {...overlayMotion(leaving, reduced, NOTE_IN_MS, NOTE_OUT_MS)}
     >
       {/* The note's own mark, in the phone cards' style: the tone as the tile's ground, the glyph white on it. */}
-      <span className="notification-icon note" aria-hidden>
+      <motion.span className="notification-icon note" aria-hidden {...markPulse(note.tone === 'alarm', reduced)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           {note.tone === 'alarm' ? (
             <>
@@ -120,7 +138,7 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
             </>
           )}
         </svg>
-      </span>
+      </motion.span>
       <span className="notification-copy">
         <span className="notification-level">{note.tone === 'alarm' ? words.alert : words.warning}</span>
         <span className="notification-title">{note.title}</span>
@@ -144,7 +162,7 @@ function NotePill({ note, leaving = false }: { note: Note; leaving?: boolean }) 
           <Cross />
         </button>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -163,6 +181,7 @@ function PhoneCard({
   onDrop(id: string): void
 }) {
   const text = useText()
+  const reduced = useMotionReduced()
   const words = text.phoneApp
   // The app opens on its notifications list, where the whole message and its reply are.
   const open = () => {
@@ -177,13 +196,19 @@ function PhoneCard({
   // A title with a line under it: the notification's own two parts. Just one of them is the title.
   const body = notification.title ? notification.text : undefined
   return (
-    <div
-      className={`notification phone${urgent ? ' alarm' : ''}${leaving ? ' leaving' : ''}`}
+    <motion.div
+      layout
+      className={`notification phone${urgent ? ' alarm' : ''}`}
       aria-hidden={leaving || undefined}
+      {...overlayMotion(leaving, reduced, NOTE_IN_MS, NOTE_OUT_MS)}
     >
       {/* The app that posted it: its own icon when the phone sends one, else its first letter on a tile of its
           colour — the same mark the Phone app's cards carry. */}
-      <span className={notification.icon ? 'notification-icon app' : 'notification-icon'} aria-hidden>
+      <motion.span
+        className={notification.icon ? 'notification-icon app' : 'notification-icon'}
+        aria-hidden
+        {...markPulse(urgent, reduced)}
+      >
         {notification.icon ? (
           <img src={notification.icon} alt="" />
         ) : (
@@ -194,7 +219,7 @@ function PhoneCard({
             {notification.app.trim().charAt(0).toUpperCase()}
           </span>
         )}
-      </span>
+      </motion.span>
       <span className="notification-copy">
         <span className="notification-level">{notification.app}</span>
         <span className="notification-title">{title}</span>
@@ -237,7 +262,7 @@ function PhoneCard({
           <Cross />
         </button>
       )}
-    </div>
+    </motion.div>
   )
 }
 

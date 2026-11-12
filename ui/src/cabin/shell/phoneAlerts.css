@@ -33,20 +33,15 @@
     inset 0 1px 0 var(--glass-rim),
     var(--shadow-raised-large);
   color: var(--text);
+  /* Centred by the stylesheet's own translate, so Motion's arrival (`overlayMotion`) moves it around that place. */
   translate: -50% 0;
   transform-origin: top center;
   pointer-events: auto;
-  animation: phone-alert-in 260ms var(--motion-ease) both;
 }
 
 /* The warning stack moves down while a call holds its place at the top (notifications.css). */
 .shell:has(.phone-alert) .notifications {
   top: calc(94px + 76px * var(--text-scale, 1));
-}
-
-.phone-alert.leaving {
-  animation: phone-alert-out 220ms var(--motion-ease) both;
-  pointer-events: none;
 }
 
 /* Answered: the same card, in the call's own blue instead of the ring's green. */
@@ -55,27 +50,6 @@
   background:
     radial-gradient(120% 220% at 0% 50%, color-mix(in srgb, var(--apple-blue) 18%, transparent), transparent 62%),
     var(--keyboard-glass);
-}
-
-@keyframes phone-alert-in {
-  from {
-    opacity: 0;
-    translate: -50% calc(-14px * var(--text-scale, 1));
-    scale: 0.96;
-  }
-}
-
-@keyframes phone-alert-out {
-  from {
-    opacity: 1;
-    translate: -50% 0;
-    scale: 1;
-  }
-  to {
-    opacity: 0;
-    translate: -50% calc(-10px * var(--text-scale, 1));
-    scale: 0.97;
-  }
 }
 
 .phone-alert-glyph {
@@ -161,7 +135,9 @@
 
 .shell .phone-alert-answer,
 .shell .phone-alert-end {
-  padding: calc(10px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  /* Answer and decline are the two presses a driver makes without looking: a thumb's height each (owner 2026-11-12). */
+  min-height: calc(44px * var(--text-scale, 1));
+  padding: calc(11px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
   border-radius: 999px;
   color: #fff;
   font-size: calc(16px * var(--text-scale, 1));
@@ -188,11 +164,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .phone-alert,
-  .phone-alert.leaving {
-    animation: none;
-  }
-
   .phone-alert.ringing .phone-alert-glyph::after {
     animation: none;
     opacity: 0;
