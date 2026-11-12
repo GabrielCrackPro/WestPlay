@@ -517,24 +517,13 @@ body,
 }
 
 /*
- * The message line's slot, above the dial: one line high and always held, so a notice never moves the route and
- * never covers the dial. The cabin keeps a stack; the cluster has this one line, so what else is waiting is
- * counted at its end.
+ * The line above the dial: one line high and always held, so the route above never moves as what plays changes.
+ * It is the song's whole width — nothing shares this row with it any more: the notices come over the face as a card
+ * (`.cluster-notices` below) and the phone's status moved up beside the clock (`.cluster-phone`), so a long station
+ * and its byline have the row rather than a little over half of it (owner 2026-11-12). What doesn't fit is cut at
+ * the line's end (`.cluster-media-words`).
  */
-/* The notice row: the cab's message centred over the dial, the phone's status closing it at the right. The message
-   is centred in the row itself — the dial's own centre — rather than in whatever the phone leaves beside it: the rows
-   this drew before laid the phone in the flow, and a long title or a charging phone pushed the message off the dial.
-   The phone is out of that flow at the right end, and the message's width is held back from it by a fixed room, so
-   the two never meet and the message stays over the dial whatever the phone is doing. A message too wide for the room
-   is cut by the row itself. */
 .cluster-message {
-  /* The phone's own width (its widest state, the words that say there is no phone) and the gap it keeps from the
-     message, held on both sides of the centre so the message is cut evenly rather than growing towards the phone. In
-     this row's own units: the panel is drawn at the cabin's type scale, so a room measured in the rendered pixels
-     would hold a third of the row's width back for a chip about a quarter of it. The chip is compact for this reason
-     (see `.cluster-phone`). */
-  --phone-room: 132px;
-
   position: relative;
   display: flex;
   align-items: center;
@@ -544,134 +533,82 @@ body,
   overflow: hidden;
 }
 
-.cluster-message .cluster-phone {
+/*
+ * The notices' layer: the cab's warnings and the phone's messages, centred on the glass over the dial. The cabin
+ * stacks its cards at the top of its screen (shell/notifications.css); the dash has one card's room, so it takes the
+ * middle — the face is what a notice is said over, and a card that a glance finds in the same place every time is
+ * read before the words are. The layer spans the panel and takes no press of its own: what is under it is still read
+ * at a glance, and only the card in it is the driver's to press.
+ */
+.cluster-notices {
   position: absolute;
-  top: 50%;
-  right: 0;
-  /* Held to the room the message is cut back by, so a language whose words run longer than this one's can't reach
-     across the message: the chip gives up the end of its own words instead (`.cluster-phone-words`). */
-  max-width: var(--phone-room);
-  translate: 0 -50%;
-  height: 26px;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
-/* What plays, in the cab's line while the cab has nothing to say: the same slot, centred as the message is. */
-.cluster-message .cluster-media {
-  max-width: calc(100% - 2 * var(--phone-room));
-}
-
+/* The card: the panel's own glass, a rim and a stripe in the notice's tone, and the tone's wash behind it — the same
+   reading the cabin's cards give at a glance (its colour says how urgent, its mark says what). */
 .cluster-notice {
-  --notice-hue: 210;
+  /* The tone the card is drawn in: the phone's own blue for a message, amber for a warning and red for an alarm. */
   --notice-tone: var(--accent-2);
 
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: notice-in 280ms var(--motion-ease) both;
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: calc(14px * var(--text-scale, 1));
+  width: min(calc(460px * var(--text-scale, 1)), 84%);
+  padding: calc(15px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--notice-tone) 34%, var(--line));
+  border-radius: calc(18px * var(--text-scale, 1));
+  background:
+    radial-gradient(130% 160% at 0% 50%, color-mix(in srgb, var(--notice-tone) 14%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--surface-top), var(--bg));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 18px 42px rgb(0 0 0 / 0.42);
+  overflow: hidden;
+  pointer-events: auto;
+  /* One cell for the layer's cards: the notice arriving and the one it replaces share it while both are up, so a
+     change of notice is a hand-over in place rather than two cards stacked above each other (the motion itself is
+     Motion's, in ClusterScreen.tsx). */
+  grid-area: 1 / 1;
+}
+
+/* The tone, as the stripe the cabin's cards carry at their leading edge. */
+.cluster-notice::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--notice-tone);
 }
 
 .cluster-notice[data-tone='warn'] {
-  animation-name: notice-in;
-}
-
-.cluster-notice[data-tone='alarm'] {
-  animation-name: notice-in-alarm;
-  animation-duration: 380ms;
-}
-
-.cluster-notice[data-tone='alarm'] .phone-note-group-icon {
-  animation: notice-icon-pop 300ms var(--motion-ease) both;
-}
-
-.cluster-notice[data-tone='alarm'] .phone-note-dismiss {
-  animation: notice-pulse 1.1s var(--motion-ease) 280ms infinite;
-}
-
-/* When a notice is being dismissed: slide out and fade, the opposite direction to how it came in. */
-.cluster-notice[data-dismissing='true'] {
-  animation: notice-dismiss 180ms var(--motion-ease) both;
-}
-
-.cluster-notice[data-tone='alarm'][data-dismissing='true'] {
-  animation-name: notice-dismiss-opposite;
-}
-
-.cluster-notice[data-tone='warn'] {
-  --notice-hue: 38;
   --notice-tone: var(--warn);
 }
 
 .cluster-notice[data-tone='alarm'] {
-  --notice-hue: 0;
   --notice-tone: var(--danger);
 }
 
-@keyframes notice-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-}
-
-@keyframes notice-in-alarm {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-  50% {
-    transform: translateY(-2px) scale(1.01);
-  }
-}
-
-@keyframes notice-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--notice-tone) 30%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--notice-tone) 0%, transparent);
-  }
-}
-
-@keyframes notice-dismiss {
-  to {
-    opacity: 0;
-    transform: translateX(30px) scale(0.9);
-  }
-}
-
-@keyframes notice-dismiss-opposite {
-  to {
-    opacity: 0;
-    transform: translateX(-30px) scale(0.9);
-  }
-}
-
-@keyframes notice-icon-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  60% {
-    transform: scale(1.1);
-  }
-}
-
 /*
- * The notification card on the notice line: the phone's own card style, so the dash reads what the phone app shows
- * (same app tile, title, text, dismiss button). The card is the phone's own size; the text is the cluster's Text
- * Size. The phone app's CSS lives in phoneApp.css and targets `.shell .phone-note`, so the cluster defines its own
- * `.phone-note` rules here (no `.shell` prefix) that reuse the same layout and hues but for the cluster's palette.
+ * The phone's message in the notice card: the phone's own card style, so the dash reads what the phone app shows
+ * (its head with the time, its title and text, its buttons). The card around it is the notice's
+ * (`.cluster-notice`, above), so the message brings no frame of its own. The phone app's CSS lives in phoneApp.css
+ * and targets `.shell .phone-note`, so the cluster defines its own `.phone-note` rules here (no `.shell` prefix) that
+ * reuse the same layout and hues but for the cluster's palette.
  */
 .cluster-notice .phone-note {
   display: flex;
   flex-direction: column;
   gap: calc(6px * var(--text-scale, 1));
-  padding: calc(12px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  padding: 0;
   min-width: 0;
-  width: 100%;
 }
 
 /* A notification's title, and its own time at the line's end. */
@@ -713,44 +650,6 @@ body,
   font-size: calc(17px * var(--text-scale, 1));
   line-height: 1.4;
   overflow-wrap: anywhere;
-}
-
-/* The row's foot: the dismissal, at the line's end. */
-.cluster-notice .phone-note-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(12px * var(--text-scale, 1));
-  min-height: calc(34px * var(--text-scale, 1));
-  margin-top: calc(8px * var(--text-scale, 1));
-}
-
-.cluster-notice .phone-note-dismiss {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: calc(6px * var(--text-scale, 1));
-  margin-left: auto;
-  padding: calc(6px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1)) calc(6px * var(--text-scale, 1))
-    calc(11px * var(--text-scale, 1));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 10%, transparent);
-  color: var(--ink);
-  font-size: calc(15px * var(--text-scale, 1));
-  font-weight: 600;
-  transition:
-    background-color 160ms var(--motion-ease),
-    color 160ms var(--motion-ease);
-}
-
-.cluster-notice .phone-note-dismiss:hover {
-  background: color-mix(in srgb, var(--danger) 22%, transparent);
-  color: var(--danger);
-}
-
-.cluster-notice .phone-note-dismiss svg {
-  width: calc(15px * var(--text-scale, 1));
-  height: calc(15px * var(--text-scale, 1));
 }
 
 /* A notification's own buttons ("Reply", "Mark as read"), and the reply composer one can open. */
@@ -856,26 +755,27 @@ body,
 }
 
 /*
- * The phone app groups notifications under an app header with an icon tile. The cluster shows only the newest
- * notification, no header — but the icon that a notification carries is rendered as a tile in the app's own colour,
- * the same shape the phone app gives its group icon.
+ * The notice's mark, as the phone app gives its own cards one: a tile in the notice's tone, carrying the app's icon
+ * where the phone sends one, else its first letter — and, for the truck's own warning, the dash's warning ring. The
+ * card is the only thing on this glass that carries a ground, so its mark can be a tile where the dash's readings
+ * have bare glyphs.
  */
-.cluster-notice .phone-note-group-icon {
+.cluster-notice-mark {
   flex: none;
   display: grid;
-  width: calc(32px * var(--text-scale, 1));
-  height: calc(32px * var(--text-scale, 1));
-  border-radius: calc(9px * var(--text-scale, 1));
-  background: linear-gradient(155deg, hsl(210 62% 56%, hsl(210 62% 56%)), hsl(210 62% 38%, hsl(210 62% 38%)));
-  color: #fff;
+  place-items: center;
+  width: calc(34px * var(--text-scale, 1));
+  height: calc(34px * var(--text-scale, 1));
+  border-radius: calc(10px * var(--text-scale, 1));
+  background: color-mix(in srgb, var(--notice-tone) 22%, transparent);
+  color: var(--notice-tone);
   font-size: calc(17px * var(--text-scale, 1));
   font-weight: 800;
   letter-spacing: 0.02em;
-  place-items: center;
   overflow: hidden;
 }
 
-.cluster-notice .phone-note-group-icon img {
+.cluster-notice-mark img {
   border-radius: inherit;
   width: 100%;
   height: 100%;
@@ -883,12 +783,53 @@ body,
   background: none;
 }
 
-.cluster-notice .phone-note-group-icon[data-hue='38'] {
-  background: linear-gradient(155deg, hsl(38 62% 56%, hsl(38 62% 56%)), hsl(38 62% 38%, hsl(38 62% 38%)));
+.cluster-notice-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
 }
 
-.cluster-notice .phone-note-group-icon[data-hue='0'] {
-  background: linear-gradient(155deg, hsl(0 62% 56%, hsl(0 62% 56%)), hsl(0 62% 38%, hsl(0 62% 38%)));
+/* The truck's own warning: what it is, what it says, and the reading behind it, read down as the cabin's cards are. */
+.cluster-notice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.cluster-notice-level {
+  color: var(--dim);
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cluster-notice-title {
+  color: var(--ink);
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.cluster-notice-detail {
+  color: var(--dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* How many other notices are waiting: the newest is the one read, the rest are counted at the card's end. */
+.cluster-notice-count {
+  align-self: center;
+  padding: calc(3px * var(--text-scale, 1)) calc(9px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--notice-tone) 18%, transparent);
+  color: var(--notice-tone);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The notice as a screen reader hears it. The line itself is drawn for the eye and comes and goes with its words,
@@ -985,7 +926,10 @@ body,
   height: 16px;
 }
 
+/* The bar's readings at its right end — cruise, the phone, the clock — never give up their width: a long route takes
+   the squeeze in the middle, where it is built to be cut, and the readings stay legible. */
 .cluster-status-right {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1126,21 +1070,25 @@ body,
    (ClusterScreen.tsx), so the leaving state no longer needs a rule of its own. */
 
 /*
- * The paired phone, closing the notice row at its right end, under the status bar: while it is there, the receiver
- * and the charge it has; while it isn't, the receiver and the words that say so, greyed but legible — a dash states
- * what is missing rather than leaving a dim icon to be interpreted. The battery is a phone's own mark (its terminal,
- * the level filled in, red under a fifth of it and green with the bolt that says charging) with the level in figures
- * beside it: the bar for a look, the numbers for the answer. Which phone it is isn't part of it: the cabin's sidebar
- * and the Phone app name it, and a name as wide as that took the width the message over the dial needs to stay on
- * the dial's centre (see `.cluster-message`). The cabin's sidebar keeps the same status with the way into the app; a
- * call is the notice's own, where it can be answered and read.
+ * The paired phone, in the status bar beside the clock: while it is there, the receiver and the charge it has;
+ * while it isn't, the receiver and the words that say so, greyed but legible — a dash states what is missing rather
+ * than leaving a dim icon to be interpreted. The battery is a phone's own mark (its terminal, the level filled in,
+ * red under a fifth of it and green with the bolt that says charging) with the level in figures beside it: the bar
+ * for a look, the numbers for the answer. Which phone it is isn't part of it: the cabin's sidebar and the Phone app
+ * name it, and a name as wide as that is the dash's room spent on something that never changes, while the line above
+ * the dial wants its row for the song (see `.cluster-message`). It stood in that line's right end until the line was
+ * given to what plays: a state of the cab sits in the bar with the cab's other states, and the bar takes a chip this
+ * wide without cutting the route (owner 2026-11-12). The cabin's sidebar keeps the same status with the way into the
+ * app; a message is the notice card's own, where it can be read and answered.
  */
 .cluster-phone {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* Close, not loose: the chip sits in a bar of readings and is the smallest of them — the route beside it is what
+     should keep the room, so the space inside the chip is kept to what its mark, its bar and its figures need. */
+  gap: 6px;
   height: 32px;
-  padding: 0 6px 0 4px;
+  padding: 0 5px 0 3px;
   color: var(--dim);
   /* Held back, not hidden: the icon and the words that say there is no phone are read at a glance, one step below
      the live status rather than at the edge of sight. */
@@ -1170,13 +1118,16 @@ body,
   filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 35%, transparent));
 }
 
-/* The words that say there is no phone, in the sidebar's own: short enough to sit beside the message without moving
-   it, clear enough that the greyed receiver doesn't have to be read as a symbol. */
+/* The words that say there is no phone, in the sidebar's own: clear enough that the greyed receiver doesn't have to
+   be read as a symbol, and no wider than they need to be in a bar that holds the route. */
 .cluster-phone-words {
   min-width: 0;
   overflow: hidden;
   color: var(--dim);
-  font-size: var(--type-sm);
+  /* A step under the live status's figure: the words that say there is no phone are a state, not a reading. They
+     still give up their end rather than widening the chip, so a language with a longer phrase than "Sin teléfono"
+     keeps the row's other readings whole. */
+  font-size: var(--type-unit);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1184,7 +1135,7 @@ body,
 
 /* The figure close to the battery it belongs to: nearer the bar than the receiver before it. */
 .cluster-phone-level {
-  margin-left: -3px;
+  margin-left: -4px;
   color: var(--ink);
   font-size: var(--type-sm);
   font-weight: 650;
@@ -1248,8 +1199,8 @@ body,
   clip-path: polygon(58% 0, 10% 58%, 44% 58%, 36% 100%, 90% 42%, 54% 42%);
 }
 
-/* One line of what plays: where it comes from, its title and who it's by, on the cab's own line above the dial (the
-   message's slot), with how far into it under the words. */
+/* One line of what plays: where it comes from, and the name and byline as one run of text, on the cab's own line
+   above the dial (the message's slot), with how far into it under the words. */
 .cluster-media {
   position: relative;
   display: flex;
@@ -1273,21 +1224,22 @@ body,
   color: var(--accent);
 }
 
-.cluster-media b {
-  max-width: 340px;
+/* The name and its byline are one run of text, cut once at the end of the line rather than twice: cut apart, they
+   split the room between them whatever each of them needed, so a long station took half the line from the song it
+   was playing and both were read as fragments (measured in the frame's own width: 145px of 320 for each, a 352px
+   station and a 349px song). One run keeps the name whole while it fits, gives the byline every pixel the name
+   leaves, and gives up the byline first when even that isn't enough. */
+.cluster-media-words {
   min-width: 0;
   overflow: hidden;
-  color: var(--ink);
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cluster-media span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* The name in the dash's ink, the byline in the line's own dim: the ink says what plays, the dim says behind whom. */
+.cluster-media b {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 /* The app the track plays from, as the screen's own Home grid draws it: the same icon at the line's size, so a glance
@@ -2422,4 +2374,24 @@ html[data-motion='reduced'] .cluster *::after {
    — so a driver who has cut the cabin's motion still sees the panel prove its lamps. */
 html[data-motion='reduced'] .cluster-telltales[data-check] .cluster-telltale {
   animation: cluster-bulb-check 1500ms linear !important;
+}
+
+/* The blinker is the other: a lamp that holds steady reads as one stuck on, and which way the truck is about to go is
+   the one thing on this glass its motion says that nothing else does. It is held as a step between lit and a third —
+   nothing travels, and the row never goes dark — and a shade slower than the truck's relay, so a cabin that asked for
+   less movement isn't given the same flicker. The bulb check above still outranks it: while the panel is proving its
+   lamps, they hold. */
+html[data-motion='reduced'] .cluster-telltale[data-blink] {
+  animation: telltale-steady 1.2s steps(1, end) infinite !important;
+}
+
+@keyframes telltale-steady {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.35;
+  }
 }

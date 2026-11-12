@@ -85,7 +85,7 @@ export function clockText(value: number, words: Strings['diagnostics']): string 
 
 /** The trip's time on the move, split for the dash's two sizes: "45" and "min" for the first hour, "3:24" and "h"
  *  past it — the same two readings the driver-hours rows give, in the trip panel's own layout. */
-function driveTime(seconds: number, words: Strings['diagnostics']): Figure {
+export function driveTime(seconds: number, words: Strings['diagnostics']): Figure {
   const whole = Math.max(0, Math.round(seconds / 60))
   if (whole < 60) return { value: String(whole), unit: words.minutes }
   return { value: `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`, unit: words.hours }
@@ -104,8 +104,12 @@ export function meterZone(read: { warnPercent: number } | null, side: 'low' | 'h
   }
 }
 
-/** Below this the engine is still warming up: the dash reads its coolant and oil blue, not just red when hot. */
-const COLD_C = 60
+/**
+ * Below this the engine is still warming up: the dash reads its coolant and oil blue, not just red when hot. It is one
+ * reading for the whole panel — the cards' cold flags here, and the coolant's own glyph on the dash (ClusterScreen) —
+ * so the two can't draw the engine at two different temperatures.
+ */
+export const COLD_C = 60
 
 /**
  * The four cards' readings, from the same live state the dash reads: the drive since the engine came on, the tank,

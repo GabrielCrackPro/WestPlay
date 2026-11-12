@@ -7,19 +7,17 @@ interface NoteCardProps {
   app: string
   icon?: string
   dismissLabel: string
-  onDismiss(id: string): void
+  /** What takes the notification down. Left out by a screen that only shows it: the cluster's notice is a glance, and
+   * the dash has no room to be dismissing what the cabin's stack and the Phone app already can (owner 2026-11-12). */
+  onDismiss?: (id: string) => void
   textScale?: number
 }
 
-/** One notification, as the phone's own shade shows it: its app tile, its title and text, its time, and its dismissal
- * at the end. It is a card the phone app groups under an app header, and the cluster shows alone as the dash's notice. */
-const NoteCard = memo(function NoteCard({
-  notification,
-  app,
-  dismissLabel,
-  onDismiss,
-  textScale = 1,
-}: NoteCardProps) {
+/** One notification, as the phone's own shade shows it: its app tile, its title and text, its time, and, where the
+ * screen asks for it, its dismissal. It is a card the phone app groups under an app header, and the cluster shows
+ * alone as the dash's notice. */
+const NoteCard = memo(function NoteCard({ notification, app, dismissLabel, onDismiss, textScale = 1 }: NoteCardProps) {
+  // The dismissal is the screen's to ask for: the cluster's notice shows a notification without one (see NoteCardProps).
   const time = notification.time !== undefined ? formatRealTime(notification.time * 1000) : null
   const [replying, setReplying] = useState(false)
   const [reply, setReply] = useState('')
@@ -92,29 +90,31 @@ const NoteCard = memo(function NoteCard({
           </div>
         </div>
       )}
-      <div className="phone-note-foot">
-        <button
-          type="button"
-          className="phone-note-dismiss"
-          aria-label={`${dismissLabel}: ${notification.title ?? app}`}
-          onClick={() => onDismiss(notification.id)}
-        >
-          <svg
-            className="phone-note-dismiss-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+      {onDismiss && (
+        <div className="phone-note-foot">
+          <button
+            type="button"
+            className="phone-note-dismiss"
+            aria-label={`${dismissLabel}: ${notification.title ?? app}`}
+            onClick={() => onDismiss(notification.id)}
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-          {dismissLabel}
-        </button>
-      </div>
+            <svg
+              className="phone-note-dismiss-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            {dismissLabel}
+          </button>
+        </div>
+      )}
     </div>
   )
 })
