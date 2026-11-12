@@ -6,13 +6,15 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
-import androidx.core.app.NotificationManagerCompat
 
 /**
  * The bridge's one screen: where the PC is, the pairing code from the Cabin Play companion, and the access that lets
@@ -26,11 +28,20 @@ class MainActivity : ComponentActivity() {
     private val notice = mutableStateOf<String?>(null)
     private val hideContent = mutableStateOf(false)
     private val pairingSaved = mutableStateOf(false)
+    private val lastError = mutableStateOf<String?>(null)
+
+    /** Re-reads the grants a moment after the screen comes back: the listener binding Android is asked for below is
+     *  answered asynchronously, so reading the state once would show the warning for a link that is already back. */
+    private val resumer = Handler(Looper.getMainLooper())
+    private val refreshSoon = Runnable { refreshAccess() }
 
     private val statusListener: (String) -> Unit = { value ->
         runOnUiThread {
             status.value = value
             phase.value = PhoneHub.phase
+            lastError.value = PhoneHub.lastError
+            // A link coming up or going down changes what the listener is doing too, and the screen draws both.
+            refreshAccess()
         }
     }
 
@@ -54,6 +65,7 @@ class MainActivity : ComponentActivity() {
                 BridgeScreen(
                     status = status.value,
                     phase = phase.value,
+                    lastError = lastError.value,
                     access = access.value,
                     notice = notice.value,
                     hideContent = hideContent.value,
@@ -64,6 +76,7 @@ class MainActivity : ComponentActivity() {
                     onDisconnect = ::disconnect,
                     onRequestPermissions = ::requestAccess,
                     onNotificationSettings = ::notificationAccess,
+                    onAppInfo = ::appInfo,
                     onBatteryOptimization = ::batteryOptimization,
                     onForget = ::forget,
                 )
@@ -76,12 +89,24 @@ class MainActivity : ComponentActivity() {
         PhoneHub.addStatusListener(statusListener)
         status.value = PhoneHub.status
         phase.value = PhoneHub.phase
+        lastError.value = PhoneHub.lastError
     }
 
     override fun onResume() {
         super.onResume()
         refreshAccess()
         pairingSaved.value = Pairing.load(this) != null
+        // The screen comes back to the front after the player granted something, and notification access is granted
+        // on another screen entirely: Android binds the listener for a grant only sometimes, so the return is when
+        // the app asks for the binding instead of making the player reinstall to get one (owner 2026-11-12).
+        NotificationListener.ensureBound(this)
+        resumer.postDelayed(refreshSoon, 400)
+        resumer.postDelayed(refreshSoon, 1_600)
+    }
+
+    override fun onPause() {
+        resumer.removeCallbacks(refreshSoon)
+        super.onPause()
     }
 
     override fun onStop() {
@@ -102,12 +127,18 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshAccess() {
         access.value = PhoneAccess(
-            notifications = NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName),
+            // The grant and the binding are two different things: the screen says which it has.
+            notifications = NotificationListener.granted(this),
+            listening = PhoneHub.listening,
             contacts = Contacts.allowed(this),
             phone = allowed(Manifest.permission.READ_PHONE_STATE),
             answer = allowed(Manifest.permission.ANSWER_PHONE_CALLS),
+            batteryExempt = batteryExempt(),
         )
     }
+
+    private fun batteryExempt(): Boolean =
+        getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(packageName) == true
 
     private fun requestAccess() {
         val needed = listOf(
@@ -153,21 +184,64 @@ class MainActivity : ComponentActivity() {
     private fun forget() {
         LinkService.stop(this)
         Pairing.clear(this)
+        PhoneHub.clearError()
         PhoneHub.setStatus(getString(R.string.disconnected), LinkPhase.Idle)
         pairingSaved.value = false
         recreate()
     }
 
+    /**
+     * The screen where this app is allowed to read notifications, opened in the order that reaches it.
+     *
+     * The list of listeners is the page to aim at: it is the one every build has, and on HyperOS it is the real
+     * screen — Settings › Privacy protection › Special permissions › Notification access — while the MIUI intent this
+     * used to open first is the Security Center's app-permissions editor, a different page that has no notification
+     * access on it (owner 2026-11-12). The fragment arguments scroll that list to this app where the Settings build
+     * reads them. Android 11's per-app page is this app alone, with its toggle, where the build answers it — kept
+     * second because an OEM Settings that doesn't would open nothing at all. The MIUI editor stays as a route into
+     * special permissions for builds that answer neither, and the app's own info page is the last resort, because
+     * that is where Android 13's *Allow restricted settings* lives — on HyperOS a switch under App info › Advanced
+     * settings — without which a sideloaded app's notification toggle is greyed out. That page also has a button of
+     * its own on the warning card, for a toggle the player has now seen greyed out.
+     */
     private fun notificationAccess() {
-        // MIUI / HyperOS drops third-party captures even when the listener is enabled, so route the user to the
-        // Privacy protection -> Special permissions -> Notification access editor instead of the stock page.
-        val miuiIntent = Intent("miui.intent.action.APP_PERM_EDITOR")
-        miuiIntent.setClassName(
-            "com.miui.securitycenter",
-            "com.miui.permcenter.permissions.PermissionsEditorActivity",
-        )
-        miuiIntent.putExtra("extra_pkgname", packageName)
-        startActivity(miuiIntent)
+        val listener = NotificationListener.component(this).flattenToString()
+        val key = ":settings:fragment_args_key"
+        val candidates = buildList {
+            add(
+                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                    putExtra(key, listener)
+                    putExtra(":settings:show_fragment_args", Bundle().apply { putString(key, listener) })
+                },
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                add(
+                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+                        .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, listener),
+                )
+            }
+            add(
+                Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+                    setClassName(
+                        "com.miui.securitycenter",
+                        "com.miui.permcenter.permissions.PermissionsEditorActivity",
+                    )
+                    putExtra("extra_pkgname", packageName)
+                },
+            )
+            add(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+        }
+        // Whichever screen answers first is the one the player sees; a build that has none throws instead.
+        for (candidate in candidates) {
+            if (runCatching { startActivity(candidate) }.isSuccess) return
+        }
+    }
+
+    /** This app's own info page: where *Allow restricted settings* is, for a notification toggle that is greyed. */
+    private fun appInfo() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+        }
     }
 
     private fun allowed(permission: String): Boolean =

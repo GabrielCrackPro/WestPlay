@@ -225,7 +225,8 @@ export interface PhoneNotificationAction {
 }
 
 export interface PhoneNotification {
-  /** Stable for the phone's notification: the package, its id and its post time. */
+  /** One post's id: the package, Android's id and its post time. The same notification can be posted more than
+   * once, and each post comes with its own id. */
   id: string
   package: string
   /** The app's own name, as the phone shows it. */

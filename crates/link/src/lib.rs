@@ -84,7 +84,8 @@ pub struct Action {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Notification {
-    /// Stable for the phone's notification: the package, its id and its post time.
+    /// One post's id: the package, Android's id and its post time. A notification can appear more than once — an app
+    /// updating it posts it again — and each post is its own id, so the cab lists it again instead of rewriting it.
     pub id: String,
     pub package: String,
     /// The app's own name, as the phone shows it.

@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import java.util.concurrent.Executors
 
 /**
  * Keeps the phone's link to Cabin Play alive while the phone sleeps: a foreground service with a quiet
@@ -22,6 +23,14 @@ import androidx.core.app.NotificationCompat
  */
 class LinkService : Service() {
     private val handler = Handler(Looper.getMainLooper())
+    /**
+     * What reads the phone's own data for the link. The address book is a `ContentResolver` query over every
+     * contact with every number they have; the service's callbacks run on the main thread, so sending it from there
+     * held up Connect, the tile's tap and a permission grant for as long as the query took (owner 2026-11-12).
+     */
+    private val readers = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "bridge-readers").apply { isDaemon = true }
+    }
     private var link: PhoneLink? = null
     private lateinit var calls: CallMonitor
     /** Invalidates the callbacks of a link that has been replaced or stopped. */
@@ -41,9 +50,12 @@ class LinkService : Service() {
 
     private val reconnect = Runnable { connect() }
     private val phoneStatus: (String) -> Unit = { statusChanged(it) }
-    private val batteryTick = object : Runnable {
+    private val tick = object : Runnable {
         override fun run() {
             link?.sendBattery()
+            // The listener can be dropped while the link is up (an app update, or the OEM's clean-up): the service
+            // is the one thing running then, so it asks for the binding back, and a bound listener ignores it.
+            NotificationListener.ensureBound(this@LinkService)
             handler.postDelayed(this, BATTERY_EVERY)
         }
     }
@@ -74,7 +86,12 @@ class LinkService : Service() {
         }
         // The player may have granted call or contact access since the service last started.
         if (::calls.isInitialized) calls.start()
-        link?.sendContacts()
+        // And notification access: granting it binds the listener only sometimes, so the start of the link (a tap on
+        // Connect, a reboot, a grant) is when Android is asked to bind it if it isn't.
+        NotificationListener.ensureBound(this)
+        // Off the main thread: the service's callbacks wait on it, the query doesn't.
+        val current = link
+        if (current != null) readers.execute { current.sendContacts() }
         if (intent?.action == ACTION_RECONNECT) {
             handler.removeCallbacks(reconnect)
             attempt = 0
@@ -92,6 +109,7 @@ class LinkService : Service() {
         cancelAlert()
         PhoneHub.removeStatusListener(phoneStatus)
         if (::calls.isInitialized) calls.stop()
+        readers.shutdownNow()
         link?.stop()
         link = null
         PhoneHub.bind(null)
@@ -123,15 +141,17 @@ class LinkService : Service() {
                 PhoneHub.notifyLinked()
                 // A call already ringing or answered when the link came back.
                 calls.current()?.let { link?.sendCall(it) }
-                handler.removeCallbacks(batteryTick)
-                handler.postDelayed(batteryTick, BATTERY_EVERY)
+                handler.removeCallbacks(tick)
+                handler.postDelayed(tick, BATTERY_EVERY)
             }
 
             override fun onClosed(reason: String) {
                 if (current != generation) return
                 link = null
                 PhoneHub.bind(null)
-                handler.removeCallbacks(batteryTick)
+                handler.removeCallbacks(tick)
+                // Kept for the diagnostics row: the status line moves on, the reason it moved stays.
+                PhoneHub.fail(reason)
                 PhoneHub.setStatus(reason, LinkPhase.Idle)
                 failures++
                 if (failures >= ALERT_AFTER && !alertShown) {

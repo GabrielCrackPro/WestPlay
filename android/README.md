@@ -29,10 +29,18 @@ Kotlin 2.0.21).
 2. In Cabin Play Bridge, scan the code or enter the address and code (or paste the `cabinplay://pair?...`
    line) and press **Connect**. The foreground service keeps the link while the phone sleeps. To forget the
    phone again, press **Unpair Phone** in that same Setup group.
-3. Grant **Notification access** when asked. Android 13+ sideloaded apps may need **Allow restricted
-   settings** in App info first.
+3. Grant **Notification access** when asked; the app opens that screen directly (on HyperOS it is
+   Settings › Privacy protection › Special permissions › Notification access, and on Android 11+ the app
+   asks for its own page first). Android 13+ sideloaded apps may need **Allow restricted settings** before
+   the toggle works — App info › ⋮ › Allow restricted settings on stock Android, or App info › Advanced
+   settings on HyperOS — because a sideloaded app's notification toggle is greyed out until then.
 4. Press **Permissions** to grant contacts, phone state, the call log and call control. The Phone app's
    Contacts, Recents and call banner fill in only after those grants.
+
+If the screen says **Notifications aren’t arriving**, the access is granted but Android has dropped the listener
+(it also does this on an app update, after a force-stop, and in some OEMs’ background clean-up). Bridge asks for the
+binding again whenever the screen opens and every minute the link is up, so reopening the app is enough in most
+cases; if the warning stays, switch the app off and on again in **Notification access**.
 
 If the bridge says **Can’t reach the PC**, check Windows Defender Firewall first: the PC's door is ordinary
 traffic on port 47654, and Windows often classes a home Wi-Fi as *public*, where it blocks that port without

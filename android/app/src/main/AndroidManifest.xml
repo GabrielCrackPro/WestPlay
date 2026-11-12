@@ -63,12 +63,15 @@
             </intent-filter>
         </service>
 
+        <!-- Both actions are exempt from Android 12's rules against starting a foreground service from the
+             background, so a paired phone reconnects after a reboot and after an update without being opened. -->
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

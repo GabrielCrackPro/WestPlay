@@ -44,6 +44,11 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    // The screen's states in Android Studio's preview pane, so a card can be looked at without a phone.
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // The pairing-code rule the phone shares with the PC is worth a test that runs without a phone.
+    testImplementation("junit:junit:4.13.2")
 }

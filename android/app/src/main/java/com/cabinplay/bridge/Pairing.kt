@@ -43,6 +43,16 @@ data class Pairing(val host: String, val port: Int, val token: String) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
         }
 
+        /**
+         * Whether a code is one Cabin Play could have made. The PC writes sixteen characters of URL-safe base64 from
+         * twelve random bytes and reads back a saved token of 8–128 (`token_from` in crates/link), so anything
+         * outside that shape is not a code from any Cabin Play: a pasted line break, an obscured character, a code
+         * from another PC's screen. It used to be sent to the socket anyway and come back as the PC closing the link
+         * with a numeric code, which says nothing about the code the player is looking at (owner 2026-11-12).
+         */
+        fun isValidToken(token: String): Boolean =
+            token.length in 8..128 && token.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '-' || it == '_' }
+
         /** A `cabinplay://pair?...` line, as the Cabin Play companion shows it. */
         fun parse(raw: String): Pairing? {
             val uri = runCatching { Uri.parse(raw.trim()) }.getOrNull() ?: return null

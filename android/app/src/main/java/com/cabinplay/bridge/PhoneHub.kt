@@ -56,6 +56,17 @@ object PhoneHub {
     @SuppressLint("StaticFieldLeak")
     @Volatile private var link: PhoneLink? = null
     @Volatile private var listener: NotificationListener? = null
+
+    /**
+     * Whether Android has the notification listener bound right now. Access being granted is not the same thing:
+     * the system also drops the binding without revoking the grant (an app update, a force-stop, or the OEM's own
+     * background clean-up), and from then on nothing is posted to this hub while the settings still say it is on.
+     * `NotificationListener.ensureBound` is what gets it back.
+     */
+    @Volatile
+    var listening: Boolean = false
+        private set
+
     private val statusListeners = mutableSetOf<(String) -> Unit>()
 
     @Volatile
@@ -65,6 +76,24 @@ object PhoneHub {
     @Volatile
     var phase: LinkPhase = LinkPhase.Idle
         private set
+
+    /**
+     * Why the link last dropped, kept after it came back: the status line says how things are now, and the
+     * diagnostics row is where the answer to "it did that again" lives. Nothing here is a permission the cab has to
+     * ask for — a close reason is what the phone's own socket said (a timeout, a reset, a refused token).
+     */
+    @Volatile
+    var lastError: String? = null
+        private set
+
+    fun fail(reason: String) {
+        lastError = reason
+    }
+
+    /** Unpairing throws away what the phone said; the reason the last link dropped goes with it. */
+    fun clearError() {
+        lastError = null
+    }
 
     /** Whether the cab is only told an app posted something, not what it says. */
     @Volatile
@@ -98,6 +127,7 @@ object PhoneHub {
 
     fun listenerConnected(service: NotificationListener) {
         listener = service
+        listening = true
     }
 
     /** The socket has connected: flush any notifications that arrived before the handshake. */
@@ -111,9 +141,13 @@ object PhoneHub {
 
     fun listenerDisconnected() {
         listener = null
+        listening = false
     }
 
-    /** One notification posted (or updated: Android posts it again with the same id). */
+    /**
+     * One notification posted — or posted again: an app updating its words or its progress bar posts it a second
+     * time, and that second post is its own card (see [idOf]).
+     */
     @Synchronized
     fun notificationPosted(context: Context, posted: StatusBarNotification) {
         val entry = entryOf(context, posted) ?: return
@@ -140,10 +174,20 @@ object PhoneHub {
         link?.sendNotifications()
     }
 
+    /**
+     * Android took the notification down: every card filed under it goes, and the cab is told each one, because the
+     * cab dismisses by the post's id and only the phone knows which posts were the same notification.
+     */
     @Synchronized
     fun notificationRemoved(posted: StatusBarNotification) {
-        val id = idOf(posted)
-        if (notifications.remove(id) != null) link?.sendNotificationRemoved(id)
+        removeAll(posted.key).forEach { id -> link?.sendNotificationRemoved(id) }
+    }
+
+    /** Takes every card filed under Android's key out of the list, and hands back the ids it took. */
+    private fun removeAll(key: String): List<String> {
+        val ids = notifications.filterValues { it.key == key }.keys.toList()
+        ids.forEach(notifications::remove)
+        return ids
     }
 
     private fun entryOf(context: Context, posted: StatusBarNotification): Entry? {
@@ -168,6 +212,17 @@ object PhoneHub {
         }
     }
 
+    /**
+     * The id the cab files one post under: the package, Android's id and the post time.
+     *
+     * A notification can appear more than once, and this is what lets it: an app that updates its notification
+     * posts it again with a new post time (and is free to do that as often as it likes), so every post is its own
+     * card rather than a card that quietly rewrites itself under the driver's eyes (owner 2026-11-12).
+     *
+     * Android's own key ([StatusBarNotification.key]) is deliberately not in the id: it names the notification,
+     * not the post, so it would make the posts one card again. It is kept on the [Entry] instead, because that is
+     * what Android cancels by, and a removal or a dismissal sweeps every card filed under it.
+     */
     private fun idOf(posted: StatusBarNotification): String =
         "${posted.packageName}|${posted.id}|${posted.postTime}"
 
@@ -212,9 +267,10 @@ object PhoneHub {
     @Synchronized
     fun dismiss(id: String): Boolean {
         val entry = notifications[id] ?: return false
-        notifications.remove(id)
         listener?.cancelNotification(entry.key)
-        link?.sendNotificationRemoved(id)
+        // The posts of one notification are one notification in Android's shade: taking one card down takes the
+        // others down with it, or the cab would keep cards for something the phone no longer has (owner 2026-11-12).
+        removeAll(entry.key).forEach { removed -> link?.sendNotificationRemoved(removed) }
         return true
     }
 
