@@ -1119,6 +1119,163 @@ button.ob-row:active {
   filter: drop-shadow(0 0 4px var(--blue));
 }
 
+/* ---------- Profile input ---------- */
+
+.ob-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fill-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: box-shadow 200ms ease;
+  box-sizing: border-box;
+}
+
+.ob-input::placeholder {
+  color: var(--text-faint);
+}
+
+.ob-input:focus {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+
+/* ---------- Profile onboarding step ---------- */
+
+/* Centered avatar preview stage — sits above the input groups */
+
+.ob-profile-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+
+/* Large circular avatar — grows subtly when typing */
+
+.ob-profile-avatar-lg {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--fill-strong);
+  box-shadow:
+    0 2px 12px rgb(0 0 0 / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  transition: transform 300ms var(--ease);
+}
+
+.ob-profile-avatar-lg[data-photo] {
+  background: transparent;
+}
+
+.ob-profile-avatar-lg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ob-profile-avatar-lg-initial {
+  color: var(--text-faint);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Clickable label wrapper for the avatar — makes the whole circle trigger file upload */
+
+.ob-profile-avatar-click {
+  cursor: pointer;
+  display: inline-block;
+}
+
+.ob-profile-avatar-click:hover .ob-profile-avatar-lg {
+  transform: scale(1.05);
+}
+
+/* Large circular avatar — grows subtly on hover */
+
+.ob-profile-avatar-lg {
+  transform: scale(1);
+}
+
+/* Hint text below the avatar — subtle camera icon + label */
+
+.ob-profile-photo-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Photo upload button — REMOVED: avatar is now clickable instead */
+
+/* ---------- Profile row in ProfilesPage ---------- */
+
+.cp-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.cp-profile-row + .cp-profile-row {
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.cp-profile-pic-btn {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cp-profile-row .cp-profile-pic {
+  width: 40px;
+  height: 40px;
+}
+
+.cp-profile-row .cp-profile-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+.cp-profile-row-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.cp-profile-row-name > span:first-child {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cp-profile-row-current {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* ---------- Final steps, in a row ---------- */
 
 .ob-steps {

@@ -72,6 +72,16 @@
 
 .phone-state-dot.on {
   background: var(--apple-green);
+  animation: phone-pulse 2s ease-in-out infinite;
+}
+
+@keyframes phone-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(52 199 89 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(52 199 89 / 0);
+  }
 }
 
 /* --- A call: ringing or answered, with its buttons ------------------------------------------------ */
@@ -87,6 +97,7 @@
 
 .phone-call.ringing {
   background: color-mix(in srgb, var(--apple-green) 18%, var(--apple-card));
+  box-shadow: 0 0 24px rgb(52 199 89 / 0.15);
 }
 
 .phone-call-glyph {
@@ -95,9 +106,10 @@
   width: calc(46px * var(--text-scale, 1));
   height: calc(46px * var(--text-scale, 1));
   border-radius: 50%;
-  background: var(--apple-green);
+  background: linear-gradient(135deg, #4ce57a, var(--apple-green));
   color: #fff;
   place-items: center;
+  box-shadow: 0 2px 12px rgb(52 199 89 / 0.3);
 }
 
 .phone-call-glyph svg {

@@ -151,6 +151,8 @@ export interface Words {
   accounts: {
     title: string
     sub: string
+    /** Label for the services group; English where a language hasn't one yet. */
+    services?: string
     signIn: string
     signOut: string
     signedIn: string
@@ -172,6 +174,30 @@ export interface Words {
     sub: string
     finishInWindow: string
     signingIn: Note
+  }
+  /** Create a driver profile: each keeps its own settings. */
+  profile: {
+    title: string
+    sub: string
+    namePlaceholder: string
+    create: string
+    skip: string
+    tooShort: string
+    required: string
+    uploadPhoto: string
+    changePhoto: string
+    clickPhoto: string
+    done: string
+  }
+  /** Connect a phone with Cabin Play Bridge. */
+  phone: {
+    title: string
+    sub: string
+    connected: string
+    waiting: string
+    scan: string
+    noDoor: string
+    skip: string
   }
   launch: {
     title: string

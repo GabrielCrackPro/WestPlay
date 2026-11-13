@@ -17,6 +17,7 @@ import { PhonePage } from './pages/PhonePage'
 import { screenState } from './pages/page'
 import { ScreenPage } from './pages/ScreenPage'
 import { Setup } from './pages/Setup'
+import { ProfilesPage } from './pages/ProfilesPage'
 import { UninstallSheet } from './pages/UninstallSheet'
 import { FinishUpdate } from './pages/FinishUpdate'
 import { type CompanionWords, companionWords, type Section } from './pages/words'
@@ -79,7 +80,7 @@ export function Companion() {
 
 const SECTIONS: Section[][] = [
   ['screen', 'controls', 'customize'],
-  ['accounts', 'map'],
+  ['accounts', 'map', 'profiles'],
   ['phone', 'setup', 'about'],
 ]
 /** The sections in order: the tutorial's tour goes through them, the phone's aside (it has no step of its own). */
@@ -234,6 +235,13 @@ function Room({
 
   // The maps being prepared, worked out once: the Map page's bar and the sidebar show the same.
   const mapProgress = useMapProgress(status)
+  const switchProfile = (id: string) => {
+    const s = settings.settings
+    if (s?.cabin) {
+      s.cabin.currentProfileId = id
+      settings.update(s)
+    }
+  }
   const page = {
     status,
     settings,
@@ -314,6 +322,7 @@ function Room({
                 settings={settings}
                 setup={setup}
                 mapProgress={mapProgress}
+                switchProfile={switchProfile}
               />
             )}
             {roomShown && section === 'screen' && <ScreenPage {...page} />}
@@ -321,6 +330,7 @@ function Room({
             {roomShown && section === 'customize' && <Customize {...page} />}
             {roomShown && section === 'accounts' && <Accounts {...page} />}
             {roomShown && section === 'map' && <MapPage {...page} />}
+            {roomShown && section === 'profiles' && <ProfilesPage cw={cw} />}
             {roomShown && section === 'phone' && <PhonePage {...page} />}
             {roomShown && section === 'setup' && <Setup {...page} />}
             {roomShown && section === 'about' && <About {...page} />}
@@ -353,6 +363,7 @@ function SectionList({
   settings,
   setup,
   mapProgress,
+  switchProfile,
 }: {
   section: Section
   open(section: Section): void
@@ -363,6 +374,7 @@ function SectionList({
   settings: SettingsState
   setup: SetupState
   mapProgress: MapProgress
+  switchProfile(id: string): void
 }) {
   const list = useRef<HTMLElement>(null)
   const [lit, setLit] = useState<{ top: number; height: number } | null>(null)
@@ -397,6 +409,7 @@ function SectionList({
     map: mapValue(status, mapProgress, cw, words),
     // The phone's own line: the name it gave, while it's connected.
     phone: status?.phone?.connected ? (status.phone.device?.name ?? cw.phone.connected) : '',
+    profiles: '',
     setup: setup.game?.version ?? '',
     about: version,
   }
@@ -414,35 +427,38 @@ function SectionList({
           {cw.state[state]}
         </span>
       </header>
-      {lit && <i className="cp-lit" style={{ top: lit.top, height: lit.height }} />}
-      {SECTIONS.map((group, g) => (
-        <div key={g} className="cp-group">
-          {group.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className="cp-row ob-in"
-              style={n(place++)}
-              data-section={id}
-              data-here={id === section || undefined}
-              aria-current={id === section ? 'page' : undefined}
-              onClick={() => open(id)}
-            >
-              <span className="cp-row-icon">
-                <SectionGlyph id={id} />
-              </span>
-              {/* What it is now under what it is: the rail is narrow, so they stack rather than push each other
-                  out (companion.css .cp-row-text). */}
-              <span className="cp-row-text">
-                <b>{sectionName(cw, id)}</b>
-                <span key={value[id]} className="cp-row-value" data-value="">
-                  {value[id]}
+      <ProfileSelector settings={settings} switchProfile={switchProfile} />
+      <div className="cp-nav-scroll">
+        {lit && <i className="cp-lit" style={{ top: lit.top, height: lit.height }} />}
+        {SECTIONS.map((group, g) => (
+          <div key={g} className="cp-group">
+            {group.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="cp-row ob-in"
+                style={n(place++)}
+                data-section={id}
+                data-here={id === section || undefined}
+                aria-current={id === section ? 'page' : undefined}
+                onClick={() => open(id)}
+              >
+                <span className="cp-row-icon">
+                  <SectionGlyph id={id} />
                 </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      ))}
+                {/* What it is now under what it is: the rail is narrow, so they stack rather than push each other
+                    out (companion.css .cp-row-text). */}
+                <span className="cp-row-text">
+                  <b>{sectionName(cw, id)}</b>
+                  <span key={value[id]} className="cp-row-value" data-value="">
+                    {value[id]}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
     </nav>
   )
 }
@@ -477,6 +493,53 @@ function useVersion(): string {
     appVersion().then(setVersion, () => setVersion(''))
   }, [])
   return version
+}
+
+/** The current profile at the top of the sidebar: shows the profile picture and name, and opens a dropdown
+ * to switch profiles. */
+function ProfileSelector({ settings, switchProfile }: { settings: SettingsState; switchProfile(id: string): void }) {
+  const profiles = settings.settings?.cabin.profiles ?? []
+  const currentId = settings.settings?.cabin.currentProfileId ?? ''
+  const current = profiles.find((p) => p.id === currentId)
+  const [open, setOpen] = useState(false)
+
+  if (profiles.length === 0) return null
+
+  return (
+    <div className="cp-profile-selector" data-open={open ? '' : undefined}>
+      <button type="button" className="cp-profile-btn" onClick={() => setOpen(!open)}>
+        {current?.picture ? (
+          <img className="cp-profile-pic" src={current.picture} alt="" />
+        ) : (
+          <span className="cp-profile-avatar">{(current?.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
+        )}
+        <span className="cp-profile-name">{current?.name ?? ''}</span>
+      </button>
+      {open && (
+        <div className="cp-profile-dropdown">
+          {profiles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`cp-profile-option${p.id === currentId ? ' active' : ''}`}
+              onClick={() => {
+                switchProfile(p.id)
+                setOpen(false)
+              }}
+            >
+              {p.picture ? (
+                <img className="cp-profile-pic" src={p.picture} alt="" />
+              ) : (
+                <span className="cp-profile-avatar">{(p.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
+              )}
+              <span className="cp-profile-name">{p.name}</span>
+              {p.id === currentId && <span className="cp-profile-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 /** The window starts hidden (so it never shows blank while this page loads): it shows once `ready`, after the

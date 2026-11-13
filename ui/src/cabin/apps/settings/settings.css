@@ -73,6 +73,7 @@
   border-radius: 20px;
   background: var(--apple-fill-secondary);
   color: var(--apple-label);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--apple-separator), transparent 50%);
 }
 
 .settings-search .text-field.typing {
@@ -406,7 +407,7 @@
 }
 
 .apple-switch.on {
-  background: var(--apple-green);
+  background: linear-gradient(135deg, #4ce57a, var(--apple-green));
 }
 
 .apple-switch-thumb {
@@ -425,6 +426,10 @@
 
 .apple-switch.on .apple-switch-thumb {
   transform: translateX(26px);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 3px 8px rgb(0 0 0 / 0.16),
+    0 0 8px rgb(52 199 89 / 0.2);
 }
 
 /* Appearance: Light and Dark side by side, each a picture of the screen, its name and a round tick. */
@@ -3051,4 +3056,129 @@ html[data-motion='reduced'] .settings-more {
 .appearance-light .shell .overview-preview-tray-card:hover {
   color: rgb(0 0 0 / 0.82);
   border-color: rgb(0 0 0 / 0.36);
+}
+
+/* --- General page: info rows (version, storage) and reset confirmation ---------------------------------------- */
+
+/* A row that shows a value (version number, storage used) rather than navigating somewhere. */
+.settings-info-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: calc(44px * var(--text-scale, 1));
+  padding: calc(11px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  cursor: default;
+}
+
+/* Reset confirmation: two buttons side by side (confirm in red, cancel in blue). */
+.settings-reset-confirm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5px;
+  background: var(--apple-separator);
+}
+
+.settings-reset-confirm > button:first-child {
+  border-radius: calc(10px * var(--text-scale, 1)) 0 0 calc(10px * var(--text-scale, 1));
+}
+
+.settings-reset-confirm > button:last-child {
+  border-radius: 0 calc(10px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1)) 0;
+  color: var(--apple-blue);
+}
+
+/* --- Theme Presets page: color swatches and active state ------------------------------------------------ */
+
+.theme-preset-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: calc(12px * var(--text-scale, 1));
+  min-height: calc(44px * var(--text-scale, 1));
+  padding: calc(11px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  text-align: left;
+  width: 100%;
+}
+
+.theme-preset-row.active {
+  background: color-mix(in srgb, var(--accent, var(--apple-blue)) 12%, transparent);
+}
+
+.theme-preset-swatch {
+  width: calc(20px * var(--text-scale, 1));
+  height: calc(20px * var(--text-scale, 1));
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  flex-shrink: 0;
+}
+
+/* --- Profiles page: profile rows and add profile input --------------------------------------------------- */
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.profile-remove {
+  padding: calc(6px * var(--text-scale, 1)) calc(12px * var(--text-scale, 1));
+  font-size: calc(13px * var(--text-scale, 1));
+  white-space: nowrap;
+}
+
+.add-profile-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(11px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+}
+
+.add-profile-row .settings-input {
+  flex: 1;
+  min-width: 0;
+  padding: calc(8px * var(--text-scale, 1)) calc(12px * var(--text-scale, 1));
+  border-radius: calc(10px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  background: var(--apple-tertiary-system-grouped-background);
+  color: var(--apple-label-color);
+  font: -apple-system-controls-body;
+  outline: none;
+}
+
+.add-profile-row .settings-input:focus {
+  border-color: var(--accent, var(--apple-blue));
+}
+
+/* Profile picture avatar in settings */
+
+.settings-profile-pic {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.settings-profile-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--apple-tertiary-system-fill);
+  color: var(--apple-label-secondary);
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.settings-profile-value {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--text-scale, 1));
+}
+
+.profile-row .settings-row {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--text-scale, 1));
 }

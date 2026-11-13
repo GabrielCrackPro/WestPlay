@@ -6,6 +6,19 @@ import { words as american } from './en_us'
 export const words: Words = {
   ...american,
   locale: 'en-GB',
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+    clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
   launch: {
     ...american.launch,
     steps: [

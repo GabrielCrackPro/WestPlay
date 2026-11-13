@@ -53,8 +53,9 @@
   width: calc(84px * var(--text-scale, 1));
   height: calc(84px * var(--text-scale, 1));
   border-radius: 50%;
-  background: var(--apple-fill);
-  color: var(--apple-blue);
+  background: linear-gradient(135deg, var(--apple-blue), color-mix(in srgb, var(--apple-blue) 70%, white));
+  color: #fff;
+  box-shadow: 0 4px 16px rgb(0 122 255 / 0.25);
 }
 
 .driver-portrait svg {
@@ -92,11 +93,25 @@
 .driver-card {
   border-radius: 34px;
   background: var(--apple-card);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%),
+              inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Subtle top-edge highlight on the card for a physical panel aesthetic. */
+.driver-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+  pointer-events: none;
 }
 
 .driver-totals {
   padding: calc(20px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(6px * var(--text-scale, 1));
+  position: relative;
 }
 
 /* The one figure the app is about, at the size Weather's readings have. */
@@ -118,6 +133,10 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1.1;
+  background: linear-gradient(135deg, var(--apple-label), color-mix(in srgb, var(--apple-label) 80%, var(--apple-blue)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .driver-career-value span {

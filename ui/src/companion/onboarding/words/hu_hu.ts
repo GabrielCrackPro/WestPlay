@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'hu-HU',
@@ -149,15 +149,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Bejelentkezés a YouTube-ba',
-    sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén a saját ajánlásaidat, feliratkozásaidat és előzményeidet látod. A Google-bejelentkezés külön ablakban történik, és a Cabin Play soha nem látja a fiókodat.',
+    title: 'Bejelentkezés-ba',
+    sub: 'Opcionális. Jelentkezz be, hogy lásd a saját tartalmaid a teherautó képernyőjén. Egy külön ablakban jelentkezel be, és a Cabin Play soha nem látja a fiókodat.',
+    services: 'Services',
     signIn: 'Bejelentkezés',
     signOut: 'Kijelentkezés',
     signedIn: 'Bejelentkezve',
     notSignedIn: 'Nincs bejelentkezve',
-    finishInWindow: 'Fejezd be a bejelentkezést a Google-ablakban',
+    finishInWindow: 'Fejezd be a bejelentkezést a-ablakban',
     notNow: 'Kihagyás',
-    signingIn: { title: 'Bejelentkezés a YouTube-ba', text: 'Folytasd a Google-ablakban' },
+    signingIn: { title: 'Bejelentkezés-ba', text: 'Folytasd a-ablakban' },
   },
   spotify: {
     title: 'Bejelentkezés a Spotifyba',
@@ -170,6 +171,28 @@ export const words: Words = {
     sub: 'Nem kötelező. Jelentkezz be, és a kamion képernyőjén Apple Musicot hallgathatsz a saját lejátszási listáiddal és könyvtáraddal. Az Apple Music-bejelentkezés külön ablakban történik, és a Cabin Play soha nem látja a fiókodat.',
     finishInWindow: 'Fejezd be a bejelentkezést az Apple Music-ablakban',
     signingIn: { title: 'Bejelentkezés az Apple Musicba', text: 'Folytasd az Apple Music-ablakban' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Minden kész',

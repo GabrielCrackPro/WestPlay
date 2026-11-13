@@ -10,6 +10,36 @@
   overflow: hidden;
   background: var(--map-ground);
   box-shadow: var(--shadow-raised-large);
+  z-index: 1;
+}
+
+/* Subtle ambient glow behind the tile — gives the map a physical-instrument feel, like light catching
+   the edge of a dashboard panel. */
+.map-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgb(10 132 255 / 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle top-edge highlight on the tile — a physical panel aesthetic. */
+.map-tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.appearance-light .map-tile::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
 }
 
 .map-open-app {
@@ -135,11 +165,13 @@
   font-weight: 500;
   color: #fff;
   background: rgb(20 22 26 / 0.55);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.18);
 }
 
 .appearance-light .eta-pill {
   color: #14161a;
-  background: rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.78);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.1);
 }
 
 .eta-pill b {
@@ -225,6 +257,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.3));
 }
 
 .speed-badge {
@@ -241,11 +274,13 @@
   font-size: calc(30px * var(--text-scale, 1));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
 }
 
 .appearance-light .speed-badge {
   color: #14161a;
-  background: rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.08);
 }
 
 /* Faster than the limit: the speed turns red, as on Apple's, and the badge gives two rings to say so (once,

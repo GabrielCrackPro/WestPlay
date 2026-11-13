@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { formatGameTime, formatTripDistance, formatTripTime } from '../../shared/format'
 import { hvtMapMessage } from '../maps/blockedMap'
 import { GuidanceCard } from '../maps/GuidanceCard'
+import { EtaNotifications } from '../maps/EtaNotifications'
 import { DashboardMapControls, MapControls } from '../maps/MapControls'
 import { DriveStatus } from '../maps/DriveStatus'
 import { MapSearch } from '../maps/MapSearch'
@@ -36,6 +37,7 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
   // The badge's number eased like a speedo, not the game's twenty frames a second (state/ticker.ts).
   const shownSpeed = Math.round(useTicker(speed))
   const limit = useLive((state) => (state.telemetry ? units.limit(state.telemetry.navigationSpeedLimit) : 0))
+  const limitAvailable = useLive((state) => (state.telemetry?.navigationSpeedLimit ?? 0) > 0)
   const data = useMapData()
   const hvtMap = useLive((state) => state.hvtMap)
   const showLimit = useCabin((state) => state.mapLimit)
@@ -116,9 +118,9 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
       <ArrivalCard arrived={routeLeft > 0 ? null : arrived} />
       <div className="speed-stack">
         <DriveStatus />
-        {limit > 0 && showLimit && (
-          <div className="speed-limit" aria-label={text.speedLimit(limit)}>
-            {limit}
+        {showLimit && (limit > 0 || !limitAvailable) && (
+          <div className={`speed-limit${limit > 0 ? '' : ' unavailable'}`} aria-label={text.speedLimit(limit)}>
+            {limit > 0 ? limit : '—'}
           </div>
         )}
         {speed > 0 && (
@@ -129,6 +131,7 @@ export function MapView({ interactive = false }: { interactive?: boolean }) {
           has no card of its own for either). */}
       <div className="map-guidance-stack">
         <GuidanceCard />
+        <EtaNotifications />
         {!interactive && <ServicesStrip />}
         {interactive && <NearbyStopCard />}
       </div>

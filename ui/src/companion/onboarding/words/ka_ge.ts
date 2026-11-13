@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 /** Georgian. The game calls mods "დანამატები" (add-ons): so does this. */
 export const words: Words = {
@@ -150,15 +150,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'YouTube-ში შესვლა',
-    sub: 'არასავალდებულოა. შედით, რომ სატვირთოს ეკრანზე საკუთარი რეკომენდაციები, გამოწერები და ისტორია ნახოთ. Google-ში ცალკე ფანჯარაში შედიხართ და Cabin Play თქვენს ანგარიშს ვერასდროს ხედავს.',
+    title: 'შესვლა',
+    sub: 'არასავალდებულოა. შედით, რომ სატვირთოს ეკრანზე საკუთარი კონტენტი ნახოთ. ცალკე ფანჯარაში შედიხართ და Cabin Play თქვენს ანგარიშს ვერასდროს ხედავს.',
+    services: 'Services',
     signIn: 'შესვლა',
     signOut: 'გასვლა',
     signedIn: 'შესული ხართ',
     notSignedIn: 'არ ხართ შესული',
-    finishInWindow: 'დაასრულეთ შესვლა Google-ის ფანჯარაში',
+    finishInWindow: 'დაასრულეთ შესვლა-ის ფანჯარაში',
     notNow: 'გამოტოვება',
-    signingIn: { title: 'YouTube-ში შესვლა', text: 'გააგრძელეთ Google-ის ფანჯარაში' },
+    signingIn: { title: 'შესვლა', text: 'გააგრძელეთ-ის ფანჯარაში' },
   },
   spotify: {
     title: 'Spotify-ში შესვლა',
@@ -171,6 +172,28 @@ export const words: Words = {
     sub: 'არასავალდებულოა. შედით, რომ სატვირთოს ეკრანზე Apple Music მოუსმინოთ საკუთარი ფლეილისტებითა და ბიბლიოთეკით. Apple Music-ში ცალკე ფანჯარაში შედიხართ და Cabin Play თქვენს ანგარიშს ვერასდროს ხედავს.',
     finishInWindow: 'დაასრულეთ შესვლა Apple Music-ის ფანჯარაში',
     signingIn: { title: 'Apple Music-ში შესვლა', text: 'გააგრძელეთ Apple Music-ის ფანჯარაში' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'ყველაფერი მზადაა',

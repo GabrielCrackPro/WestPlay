@@ -124,6 +124,12 @@ export function DiagnosticsApp() {
     : 'ok'
   const overall = [engineState, brakeState, fuelState, chassisState, trailerState].reduce(worst, 'ok')
 
+  // Overall truck health score (0-100%): averages the wear percentages of all components
+  const allWear = [engineWear, tireWear, gearboxWear, cabWear, chassisWear]
+  if (t.trailerAttached) allWear.push(trailerWear, trailerBody, trailerChassis)
+  const healthScore = Math.round(allWear.reduce((sum, w) => sum + w.percent, 0) / allWear.length)
+  const healthState: State = healthScore >= 70 ? 'ok' : healthScore >= 40 ? 'warn' : 'alarm'
+
   const byOverall: Record<State, string> = { ok: words.normal, warn: words.check, alarm: words.service }
 
   const celsius = (value: number) => units.temperature(value, text.decimal)
@@ -250,6 +256,17 @@ export function DiagnosticsApp() {
                 </section>
 
                 <Card title={words.overview}>
+                  {/* Overall truck health score */}
+                  <div className="diag-lead">
+                    <div className="diag-reading">
+                      <span className={`diag-value ${healthState}`}>{healthScore}</span>
+                      <span className="diag-unit">%</span>
+                    </div>
+                    <span className="diag-label">{words.healthScore}</span>
+                    <div className={`diag-meter ${healthState}`}>
+                      <span style={{ width: `${healthScore}%` }} />
+                    </div>
+                  </div>
                   <div className="diag-glance">
                     <Cell
                       read={heat}

@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 /** Latvian. The game itself has some of its texts in English in Latvian (its Mod Manager's title, its SDK
  * question): those are quoted as the game shows them. */
@@ -150,15 +150,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Pierakstīties YouTube',
-    sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā redzētu savus ieteikumus, abonementus un vēsturi. Tu pierakstīsies ar Google atsevišķā logā, un Cabin Play nekad neredz tavu kontu.',
+    title: 'Pierakstīties',
+    sub: 'Neobligāti. Pierakstieties, lai redzētu savu saturu kravas automašīnas ekrānā. Pierakstāties atsevišķā logā, un Cabin Play nekad neredz jūsu kontu.',
+    services: 'Services',
     signIn: 'Pierakstīties',
     signOut: 'Izrakstīties',
     signedIn: 'Pierakstījies',
     notSignedIn: 'Nav pierakstījies',
-    finishInWindow: 'Pabeidz pierakstīšanos Google logā',
+    finishInWindow: 'Pabeidz pierakstīšanos logā',
     notNow: 'Izlaist',
-    signingIn: { title: 'Pierakstīšanās YouTube', text: 'Turpini Google logā' },
+    signingIn: { title: 'Pierakstīšanās', text: 'Turpini logā' },
   },
   spotify: {
     title: 'Pierakstīties Spotify',
@@ -171,6 +172,28 @@ export const words: Words = {
     sub: 'Nav obligāti. Pieraksties, lai kravas auto ekrānā klausītos Apple Music ar saviem atskaņošanas sarakstiem un bibliotēku. Tu pierakstīsies Apple Music atsevišķā logā, un Cabin Play nekad neredz tavu kontu.',
     finishInWindow: 'Pabeidz pierakstīšanos Apple Music logā',
     signingIn: { title: 'Pierakstīšanās Apple Music', text: 'Turpini Apple Music logā' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Viss gatavs',

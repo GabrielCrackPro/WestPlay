@@ -97,7 +97,16 @@ export interface Strings {
     mapOver: string
     mapCompass: string
     mapScale: string
+    mapStyle: string
+    mapStyleStandard: string
+    mapStyleSatellite: string
+    mapStyleTerrain: string
     mapNightFrom: string
+    /** ETA milestone alerts. */
+    etaMinutesAway: (minutes: number) => string
+    etaMilesAway: (distance: string) => string
+    etaApproaching: string
+    unreachableDestination: string
     pinStyle: string
     pinFilled: string
     pinOutlined: string
@@ -705,6 +714,61 @@ export interface Strings {
     stopCardRest: string
     stopCardFooter: string
     back: string
+    /** General: the app's version, and the controls to reset or back up the player's choices. */
+    general: string
+    generalSection: string
+    version: string
+    resetAllSettings: string
+    resetAllSettingsFooter: string
+    exportSettings: string
+    exportSettingsFooter: string
+    importSettings: string
+    importSettingsFooter: string
+    storageManagement: string
+    storageUsed: string
+    clearCache: string
+    clearCacheFooter: string
+    /** Theme presets: pre-built combinations of accent color, appearance, and wallpaper. */
+    themePresets: string
+    themePresetsFooter: string
+    themePresetMidnight: string
+    themePresetSunrise: string
+    themePresetForest: string
+    themePresetOcean: string
+    themePresetEmber: string
+    themePresetDefault: string
+    accentColor: string
+    accentColorFooter: string
+    /** Multi-profile support: driver profiles with their own settings. */
+    profiles: string
+    profilesSection: string
+    profilesFooter: string
+    currentProfile: string
+    addProfile: string
+    addProfileFooter: string
+    removeProfile: string
+    removeProfileFooter: string
+    profileName: string
+    profileNamePlaceholder: string
+    /** Quick Access Control Center: quick toggles for common settings. */
+    controlCenter: string
+    quickAccess: string
+    doNotDisturb: string
+    uiSoundsToggle: string
+    voiceAssistantToggle: string
+    volume: string
+    /** Dashboard widgets: new widget types. */
+    widgetJob: string
+    widgetFuel: string
+    widgetSpeed: string
+    widgetJobFooter: string
+    widgetFuelFooter: string
+    widgetSpeedFooter: string
+    /** Cross-app now playing bar. */
+    nowPlayingBar: string
+    nowPlayingBarFooter: string
+    /** Customization section in settings list. */
+    customization: string
   }
   /** Apps. */
   /** The Diagnostics app: the truck's engine, tires and brakes, and what each reading says. */
@@ -761,6 +825,7 @@ export interface Strings {
     wearChassis: string
     wearTrailer: string
     trailerWear: string
+    healthScore: string
     running: string
     engineOff: string
     check: string

@@ -66,12 +66,14 @@ import {
   MAP_PIN_STYLES,
   MAP_ROUTE_COLOURS,
   MAP_ROUTE_WEIGHTS,
+  MAP_STYLES,
   MAP_TRAFFIC_AROUND,
   type MapMarker,
   type MapMarkerSize,
   type MapPinStyle,
   type MapRouteColour,
   type MapRouteWeight,
+  type MapStyle,
 } from '../maps/routeLook'
 import { afterRunningTransition, animateNavigation, launchFor, type LaunchOrigin } from './launch'
 import {
@@ -108,6 +110,38 @@ export const DASHBOARD_WIDGETS: readonly DashboardWidget[] = [
 export type DashboardWidgetSize = 'compact' | 'standard' | 'expanded'
 
 export const DASHBOARD_WIDGET_SIZES: readonly DashboardWidgetSize[] = ['compact', 'standard', 'expanded']
+
+/** Theme preset identifiers. */
+export type ThemePresetId = 'midnight' | 'sunrise' | 'forest' | 'ocean' | 'ember'
+
+export const THEME_PRESETS: readonly ThemePresetId[] = ['midnight', 'sunrise', 'forest', 'ocean', 'ember']
+
+/** A theme preset: accent color, appearance mode, and optional wallpaper hint. */
+export interface ThemePreset {
+  id: ThemePresetId
+  accentColor: string
+  appearanceMode: 'dark' | 'light'
+}
+
+/** Pre-built theme combinations. */
+export const THEME_PRESET_DEFINITIONS: Record<ThemePresetId, ThemePreset> = {
+  midnight: { id: 'midnight', accentColor: '#5e81ac', appearanceMode: 'dark' },
+  sunrise: { id: 'sunrise', accentColor: '#d08770', appearanceMode: 'light' },
+  forest: { id: 'forest', accentColor: '#a3be8c', appearanceMode: 'dark' },
+  ocean: { id: 'ocean', accentColor: '#88c0d0', appearanceMode: 'dark' },
+  ember: { id: 'ember', accentColor: '#bf616a', appearanceMode: 'dark' },
+}
+
+/** A driver profile: keeps its own settings snapshot. */
+export interface DriverProfile {
+  id: string
+  name: string
+  /** A profile picture as a data URL; empty when none is set. */
+  picture?: string
+}
+
+/** The default profile. */
+export const DEFAULT_PROFILE: DriverProfile = { id: 'default', name: 'Default', picture: '' }
 
 /** The Overview screen's cards the player can turn off (Settings › Dashboard); the speed is always there. */
 export type OverviewCard = 'trip' | 'truck' | 'hours' | 'media' | 'weather'
@@ -350,6 +384,7 @@ interface CabinState {
   mapOver: boolean
   mapCompass: boolean
   mapScale: boolean
+  mapStyle: MapStyle
   mapNightStart: number
   /** The map's pins: filled or outlined, and which kinds it shows. */
   mapPins: MapPinStyle
@@ -369,6 +404,13 @@ interface CabinState {
    * (Recommended, flat): kept with WestPlay's settings, the host sends them. */
   equalizer: Equalizer
   equalizerCustom: boolean
+  /** The cabin's accent color (Settings › Theme Presets): used for interactive elements and highlights. */
+  accentColor: string
+  /** Driver profiles (Settings › Profiles): each keeps its own settings. */
+  profiles: DriverProfile[]
+  currentProfileId: string
+  /** Whether the cross-app Now Playing bar is shown at the bottom of every screen. */
+  nowPlayingBar: boolean
   power: PowerState
   /**
    * The screen handed back to the truck (its stock screen shows, with Cabin Play's button to come back), like
@@ -451,6 +493,7 @@ interface CabinState {
   setMapOver(mapOver: boolean): void
   setMapCompass(mapCompass: boolean): void
   setMapScale(mapScale: boolean): void
+  setMapStyle(mapStyle: MapStyle): void
   setMapNightStart(mapNightStart: number): void
   setMapPins(mapPins: MapPinStyle): void
   setMapPinFuel(mapPinFuel: boolean): void
@@ -484,6 +527,17 @@ interface CabinState {
   setOemMode(mode: OemMode): void
   /** The player's choice, in Settings: applied, and kept with WestPlay's settings. */
   chooseOemMode(mode: OemMode): void
+  /** Apply a theme preset: sets accent color and appearance mode. */
+  applyThemePreset(preset: ThemePresetId): void
+  /** Set the accent color directly. */
+  setAccentColor(color: string): void
+  /** Profile management. */
+  addProfile(name: string, picture?: string): void
+  removeProfile(id: string): void
+  switchProfile(id: string): void
+  updateProfilePicture(id: string, picture: string): void
+  /** Now Playing bar toggle. */
+  setNowPlayingBar(on: boolean): void
   powerEvent(event: PowerEvent): void
   /** Kept for the shell's hand-over pieces: whatever is asked, Cabin Play stays up (`truckScreen` false). */
   setTruckScreen(shown: boolean): void
@@ -537,6 +591,7 @@ type Persisted = Pick<
   | 'mapOver'
   | 'mapCompass'
   | 'mapScale'
+  | 'mapStyle'
   | 'mapNightStart'
   | 'mapPins'
   | 'mapPinFuel'
@@ -550,6 +605,10 @@ type Persisted = Pick<
   | 'gpsDuck'
   | 'gpsDuckLead'
   | 'gpsVoiceOnScreen'
+  | 'accentColor'
+  | 'profiles'
+  | 'currentProfileId'
+  | 'nowPlayingBar'
 >
 
 /** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
@@ -697,6 +756,7 @@ export const useCabin = create<CabinState>()(
       mapOver: true,
       mapCompass: true,
       mapScale: false,
+      mapStyle: 'standard',
       mapNightStart: 20,
       mapPins: 'filled',
       mapPinFuel: true,
@@ -716,6 +776,10 @@ export const useCabin = create<CabinState>()(
       oemMode: 'auto',
       equalizer: FLAT,
       equalizerCustom: false,
+      accentColor: '#5e81ac',
+      profiles: [DEFAULT_PROFILE],
+      currentProfileId: 'default',
+      nowPlayingBar: true,
       power: INITIAL_POWER,
       navigate: (action) => set((state) => ({ navigation: navigate(state.navigation, action) })),
       setAppearanceMode: (appearanceMode) => set({ appearanceMode }),
@@ -913,6 +977,7 @@ export const useCabin = create<CabinState>()(
       setMapOver: (mapOver) => set({ mapOver }),
       setMapCompass: (mapCompass) => set({ mapCompass }),
       setMapScale: (mapScale) => set({ mapScale }),
+      setMapStyle: (mapStyle) => set({ mapStyle }),
       setMapNightStart: (mapNightStart) => set({ mapNightStart }),
       setMapPins: (mapPins) => set({ mapPins }),
       setMapPinFuel: (mapPinFuel) => set({ mapPinFuel }),
@@ -952,6 +1017,36 @@ export const useCabin = create<CabinState>()(
         set({ oemMode })
         if (isInHost()) postToHost({ type: 'truckStrip', strip: oemMode })
       },
+      applyThemePreset: (preset) => {
+        const def = THEME_PRESET_DEFINITIONS[preset]
+        if (def) set({ accentColor: def.accentColor, appearanceMode: def.appearanceMode })
+      },
+      setAccentColor: (accentColor) => set({ accentColor }),
+      addProfile: (name, picture?) =>
+        set((state) => {
+          const trimmed = name.trim().slice(0, 32)
+          if (!trimmed || state.profiles.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return {}
+          const id = `profile-${Date.now()}`
+          return { profiles: [...state.profiles, { id, name: trimmed, picture: picture ?? '' }] }
+        }),
+      removeProfile: (id) =>
+        set((state) => {
+          if (id === 'default') return {}
+          const profiles = state.profiles.filter((p) => p.id !== id)
+          if (profiles.length === 0) return {}
+          const currentProfileId = state.currentProfileId === id ? 'default' : state.currentProfileId
+          return { profiles, currentProfileId }
+        }),
+      switchProfile: (id) =>
+        set((state) => {
+          if (!state.profiles.some((p) => p.id === id)) return {}
+          return { currentProfileId: id }
+        }),
+      updateProfilePicture: (id, picture) =>
+        set((state) => ({
+          profiles: state.profiles.map((p) => p.id === id ? { ...p, picture } : p),
+        })),
+      setNowPlayingBar: (nowPlayingBar) => set({ nowPlayingBar }),
       powerEvent: (event) =>
         set((state) => {
           const next = power(state.power, event)
@@ -1048,6 +1143,7 @@ export const useCabin = create<CabinState>()(
         mapOver: state.mapOver,
         mapCompass: state.mapCompass,
         mapScale: state.mapScale,
+        mapStyle: state.mapStyle,
         mapNightStart: state.mapNightStart,
         mapPins: state.mapPins,
         mapPinFuel: state.mapPinFuel,
@@ -1061,6 +1157,10 @@ export const useCabin = create<CabinState>()(
         gpsDuck: state.gpsDuck,
         gpsDuckLead: state.gpsDuckLead,
         gpsVoiceOnScreen: state.gpsVoiceOnScreen,
+        accentColor: state.accentColor,
+        profiles: state.profiles,
+        currentProfileId: state.currentProfileId,
+        nowPlayingBar: state.nowPlayingBar,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -1192,6 +1292,7 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.mapOver === 'boolean') result.mapOver = stored.mapOver
   if (typeof stored.mapCompass === 'boolean') result.mapCompass = stored.mapCompass
   if (typeof stored.mapScale === 'boolean') result.mapScale = stored.mapScale
+  if (MAP_STYLES.includes(stored.mapStyle as MapStyle)) result.mapStyle = stored.mapStyle as MapStyle
   if (MAP_NIGHT_STARTS.includes(stored.mapNightStart as number)) result.mapNightStart = stored.mapNightStart as number
   if (MAP_PIN_STYLES.includes(stored.mapPins as MapPinStyle)) result.mapPins = stored.mapPins as MapPinStyle
   if (typeof stored.mapPinFuel === 'boolean') result.mapPinFuel = stored.mapPinFuel
@@ -1216,6 +1317,31 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.uiSoundVolume === 'number' && Number.isFinite(stored.uiSoundVolume)) {
     result.uiSoundVolume = Math.max(0, Math.min(1, stored.uiSoundVolume))
   }
+  // Accent color: a hex string
+  if (typeof stored.accentColor === 'string' && stored.accentColor.startsWith('#')) {
+    result.accentColor = stored.accentColor
+  }
+  // Profiles: array of {id, name}
+  if (Array.isArray(stored.profiles)) {
+    const profiles: DriverProfile[] = []
+    for (const p of stored.profiles) {
+      if (typeof p === 'object' && p !== null) {
+        const { id, name } = p as { id?: unknown; name?: unknown }
+        if (typeof id === 'string' && typeof name === 'string' && name.trim()) {
+          profiles.push({ id, name: name.trim().slice(0, 32) })
+        }
+      }
+    }
+    // Always keep the default profile
+    if (!profiles.some((p) => p.id === 'default')) profiles.unshift(DEFAULT_PROFILE)
+    result.profiles = profiles
+  }
+  // Current profile id
+  if (typeof stored.currentProfileId === 'string') {
+    result.currentProfileId = stored.currentProfileId
+  }
+  // Now Playing bar
+  if (typeof stored.nowPlayingBar === 'boolean') result.nowPlayingBar = stored.nowPlayingBar
   return result
 }
 

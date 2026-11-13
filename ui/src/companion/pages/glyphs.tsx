@@ -43,6 +43,15 @@ const PATHS: Record<Section, ReactNode> = {
       <path d="M9 4.6v12.8M15 6.7v12.8" />
     </>
   ),
+  // Driver profiles: two people side by side.
+  profiles: (
+    <>
+      <circle cx="8.4" cy="8.4" r="3" />
+      <path d="M2.6 20a5.8 5.8 0 0 1 11.6 0" />
+      <circle cx="18" cy="10" r="2.4" />
+      <path d="M18 12.4v3" />
+    </>
+  ),
   // The paired phone: a handset, as the cabin's Phone app draws one.
   phone: (
     <>

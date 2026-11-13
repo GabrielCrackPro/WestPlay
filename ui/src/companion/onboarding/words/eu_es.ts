@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'eu-ES',
@@ -147,15 +147,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Hasi saioa YouTube-n',
-    sub: 'Aukerakoa. Hasi saioa zure gomendioak, harpidetzak eta historia kamioiaren pantailan ikusteko. Google-n leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
+    title: 'Hasi saio-n',
+    sub: 'Aukerakoa. Hasi saioa zure edukia kamioiaren pantailan ikusteko. Leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
+    services: 'Services',
     signIn: 'Hasi saioa',
     signOut: 'Amaitu saioa',
     signedIn: 'Saioa hasita',
     notSignedIn: 'Saioa hasi gabe',
-    finishInWindow: 'Amaitu saio-hasiera Google-ren leihoan',
+    finishInWindow: 'Amaitu saio-hasiera-ren leihoan',
     notNow: 'Saltatu',
-    signingIn: { title: 'YouTube-n saioa hasten', text: 'Jarraitu Google-ren leihoan' },
+    signingIn: { title: '-n saioa hasten', text: 'Jarraitu-ren leihoan' },
   },
   spotify: {
     title: 'Hasi saioa Spotify-n',
@@ -168,6 +169,28 @@ export const words: Words = {
     sub: 'Aukerakoa. Hasi saioa Apple Music kamioiaren pantailan entzuteko, zure erreprodukzio-zerrenda eta liburutegiarekin. Apple Music-en leiho bereizi batean hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
     finishInWindow: 'Amaitu saio-hasiera Apple Music-en leihoan',
     signingIn: { title: 'Apple Music-en saioa hasten', text: 'Jarraitu Apple Music-en leihoan' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Dena prest dago',

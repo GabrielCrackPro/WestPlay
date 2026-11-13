@@ -10,6 +10,7 @@ import { type Strings, useText } from '../state/text'
 import { placesAhead } from './alongRoute'
 import { liveRouteProgress, showNearbyPins, showOfferedRoutes, showTraffic } from './liveMap'
 import { PlaceBadge } from './PlaceBadge'
+import { useMapData } from './mapData'
 import {
   type Destination,
   type DestinationKind,
@@ -28,6 +29,7 @@ import { estimatedTraffic } from './estimatedTraffic'
 import { cabClock } from '../../shared/host'
 import { corridorOf, trafficAlong } from './traffic'
 import { setRouteCorridor, useTruckersMp } from './truckersmp'
+import { getCachedRoutes, putCachedRoutes } from './routeCache'
 
 /** The kinds Find nearby offers, in its order. */
 const NEARBY: DestinationKind[] = ['fuel', 'parking', 'service', 'hotel', 'company', 'dealer', 'ferry', 'city']
@@ -410,11 +412,25 @@ function PlaceCard({
   const name = nameOf(place, kindName)
   // Without a job: Go, and on a route also Add stop; on a job only stops.
   const actions: ('go' | 'addStop')[] = job ? ['addStop'] : route ? ['go', 'addStop'] : ['go']
+  // Validate destination: check if coordinates are within the map bounds.
+  const mapData = useMapData()
+  const unreachable = mapData && place.at && (
+    place.at[0] < mapData.bounds[0] - 1 || place.at[0] > mapData.bounds[2] + 1 ||
+    place.at[1] < mapData.bounds[1] - 1 || place.at[1] > mapData.bounds[3] + 1
+  )
 
   const offer = async () => {
     setProblem(null)
     setDirections('finding')
+    // Check cache first for repeated queries
+    const cached = getCachedRoutes(place.node)
+    if (cached) {
+      setDirections({ id: cached.id, routes: cached.routes, picked: 0 })
+      return
+    }
     const { id, routes } = await planRoutes(place.node)
+    // Cache the result for future queries
+    putCachedRoutes(place.node, id, routes)
     // None (a map built before WestPlay planned routes, no way there): straight to the game, as before.
     if (routes.length === 0) {
       setDirections(null)
@@ -510,6 +526,11 @@ function PlaceCard({
         </p>
       ) : (
         from && <p className="destination-away">{text.destinations.straightLine(distanceText(place, from, text))}</p>
+      )}
+      {unreachable && (
+        <p className="destination-problem" role="alert">
+          {text.destinations.unreachableDestination}
+        </p>
       )}
       {problem && (
         <p key={problem.id} className="destination-problem" role="status">

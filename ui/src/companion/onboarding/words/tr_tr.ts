@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'tr-TR',
@@ -148,15 +148,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'YouTube’da oturum aç',
-    sub: 'İsteğe bağlı. Oturum açarsan kendi önerilerini, aboneliklerini ve geçmişini kamyonun ekranında görürsün. Google ile ayrı bir pencerede oturum açarsın; Cabin Play hesabını asla görmez.',
+    title: 'oturum aç',
+    sub: 'İsteğe bağlı. Oturum açarsan kendi içeriğini kamyonun ekranında görürsün. Ayrı bir pencerede oturum açarsın; Cabin Play hesabını asla görmez.',
+    services: 'Services',
     signIn: 'Oturum aç',
     signOut: 'Oturumu kapat',
     signedIn: 'Oturum açık',
     notSignedIn: 'Oturum açılmadı',
-    finishInWindow: 'Google penceresinde oturum açmayı tamamla',
+    finishInWindow: 'penceresinde oturum açmayı tamamla',
     notNow: 'Atla',
-    signingIn: { title: 'YouTube’da oturum açılıyor', text: 'Google penceresinden devam et' },
+    signingIn: { title: 'oturum açılıyor', text: 'penceresinden devam et' },
   },
   spotify: {
     title: 'Spotify’da oturum aç',
@@ -169,6 +170,28 @@ export const words: Words = {
     sub: 'İsteğe bağlı. Oturum açarsan kamyonun ekranında kendi çalma listelerin ve kitaplığınla Apple Music dinlersin. Apple Music’te ayrı bir pencerede oturum açarsın; Cabin Play hesabını asla görmez.',
     finishInWindow: 'Apple Music penceresinde oturum açmayı tamamla',
     signingIn: { title: 'Apple Music’te oturum açılıyor', text: 'Apple Music penceresinden devam et' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Her şey hazır',

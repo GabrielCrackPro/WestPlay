@@ -354,6 +354,34 @@ button {
   animation: cp-dock-in 620ms var(--ease) backwards;
 }
 
+/* The scrollable navigation area: fills the remaining height after the fixed header and profile selector. */
+
+.cp-nav-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Smooth, thin scrollbar for the navigation list. */
+
+.cp-nav-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cp-nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cp-nav-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.cp-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.2);
+}
+
 @keyframes cp-dock-in {
   from {
     opacity: 0;
@@ -443,6 +471,139 @@ button {
 .cp-state[data-state='notInCab'] i {
   background: var(--signal);
   animation: cp-pulse 1.2s ease-in-out infinite;
+}
+
+/* ---------- Profile selector ---------- */
+
+.cp-profile-selector {
+  position: relative;
+  margin: 0 2px;
+  padding: 0 4px 10px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.09);
+}
+
+.cp-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+
+.cp-profile-btn:hover {
+  background: rgb(255 255 255 / 0.055);
+}
+
+.cp-profile-btn:active {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.cp-profile-pic {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+}
+
+.cp-profile-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cp-profile-name {
+  overflow: hidden;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-profile-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 4px;
+  right: 4px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgb(35 36 40 / 0.97), rgb(22 23 26 / 0.98));
+  box-shadow: 0 12px 36px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(22px) saturate(1.3);
+  animation: cp-dropdown-in 200ms var(--ease) backwards;
+}
+
+@keyframes cp-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.cp-profile-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.cp-profile-option:hover {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.cp-profile-option.active {
+  background: rgb(255 255 255 / 0.04);
+}
+
+.cp-profile-option .cp-profile-pic {
+  width: 28px;
+  height: 28px;
+}
+
+.cp-profile-option .cp-profile-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.cp-profile-option .cp-profile-name {
+  font-size: 12.5px;
+}
+
+.cp-profile-check {
+  margin-left: auto;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 /* The sections, in three quiet groups. */

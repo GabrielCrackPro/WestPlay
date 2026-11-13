@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'ja-JP',
@@ -146,15 +146,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'YouTube にログイン',
-    sub: '任意です。ログインすると、トラックの画面にあなたのおすすめ、登録チャンネル、履歴が表示されます。Google へのログインは別のウィンドウで行い、Cabin Play があなたのアカウントを見ることはありません。',
+    title: 'ログイン',
+    sub: '任意です。ログインすると、トラックの画面にあなたのお気に入りコンテンツが表示されます。別のウィンドウでログインし、Cabin Play があなたのアカウントを見ることはありません。',
+    services: 'Services',
     signIn: 'ログイン',
     signOut: 'ログアウト',
     signedIn: 'ログイン済み',
     notSignedIn: 'ログインしていません',
-    finishInWindow: 'Google のウィンドウでログインを完了してください',
+    finishInWindow: 'のウィンドウでログインを完了してください',
     notNow: 'スキップ',
-    signingIn: { title: 'YouTube にログインしています', text: 'Google のウィンドウで続けてください' },
+    signingIn: { title: 'ログインしています', text: 'のウィンドウで続けてください' },
   },
   spotify: {
     title: 'Spotify にログイン',
@@ -167,6 +168,28 @@ export const words: Words = {
     sub: '任意です。ログインすると、トラックの画面で自分のプレイリストやライブラリから Apple Music を聴けます。Apple Music へのログインは別のウィンドウで行い、Cabin Play があなたのアカウントを見ることはありません。',
     finishInWindow: 'Apple Music のウィンドウでログインを完了してください',
     signingIn: { title: 'Apple Music にログインしています', text: 'Apple Music のウィンドウで続けてください' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: '準備が整いました',

@@ -2,7 +2,7 @@ import type { PhoneContact } from '../../shared/host'
 import { contactsMatching, sendPhoneCommand } from '../apps/phone/phone'
 import { changeRoute } from '../maps/routeChange'
 import { type Destination, fold, searchPlaces } from '../maps/places'
-import { go } from '../state/store'
+import { go, useCabin } from '../state/store'
 import type { Strings } from '../state/strings'
 import { appFrom, mediaAction, normalizeSaid } from './commands'
 import { mediaCommand, type Showing } from './media'
@@ -120,6 +120,88 @@ const DASHBOARD = [
   'abre el panel',
   'muestra el panel',
 ]
+const WEATHER_COMMANDS = [
+  'what is the weather',
+  'what is the weather like',
+  'how is the weather',
+  'weather',
+  'show weather',
+  'open weather',
+  'hava nasil',
+  'hava durumu',
+  'hava durumunu goster',
+  'que tiempo hace',
+  'como esta el tiempo',
+  'mostrar el tiempo',
+]
+const DIAGNOSTICS_COMMANDS = [
+  'how is the truck',
+  'how is the truck doing',
+  'truck status',
+  'truck health',
+  'diagnostics',
+  'show diagnostics',
+  'open diagnostics',
+  'camak nasil',
+  'kamyon durumu',
+  'tanilama',
+  'como esta el camión',
+  'estado del camión',
+  'diagnostico',
+]
+const DRIVER_COMMANDS = [
+  'show me my stats',
+  'show my stats',
+  'my stats',
+  'driver stats',
+  'driver profile',
+  'show driver',
+  'open driver',
+  'istatistiklerimi goster',
+  'surucu istatistikleri',
+  'surucu profili',
+  'mostrar mis estadisticas',
+  'estadisticas del conductor',
+  'perfil del conductor',
+]
+const NIGHT_MODE_ON = [
+  'turn on night mode',
+  'enable night mode',
+  'night mode on',
+  'go to dark mode',
+  'switch to dark',
+  'gece modunu ac',
+  'karanlik moda gec',
+  'activar modo noche',
+  'activar modo oscuro',
+  'cambiar a oscuro',
+]
+const NIGHT_MODE_OFF = [
+  'turn off night mode',
+  'disable night mode',
+  'night mode off',
+  'go to light mode',
+  'switch to light',
+  'gece modunu kapat',
+  'aydinli moda gec',
+  'desactivar modo noche',
+  'desactivar modo oscuro',
+  'cambiar a claro',
+]
+const DND_TOGGLE = [
+  'toggle do not disturb',
+  'turn on do not disturb',
+  'turn off do not disturb',
+  'enable do not disturb',
+  'disable do not disturb',
+  'do not disturb',
+  'rahatsiz etme',
+  'rahatsiz etmeyi ac',
+  'rahatsiz etmeyi kapat',
+  'activar no molestar',
+  'desactivar no molestar',
+  'no molestar',
+]
 
 /** Reads one transcript and carries out the command it names. */
 export async function handleVoice(transcript: string, context: VoiceContext, showing: Showing): Promise<VoiceOutcome> {
@@ -193,6 +275,43 @@ export async function handleVoice(transcript: string, context: VoiceContext, sho
   }
   if (DASHBOARD.includes(said)) {
     go({ type: 'showDashboard' })
+    return { message: done, spoken: done }
+  }
+
+  // Weather: open the weather app
+  if (WEATHER_COMMANDS.includes(said)) {
+    go({ type: 'openApp', app: 'weather' })
+    return { message: done, spoken: done }
+  }
+
+  // Diagnostics: open the diagnostics app
+  if (DIAGNOSTICS_COMMANDS.includes(said)) {
+    go({ type: 'openApp', app: 'diagnostics' })
+    return { message: done, spoken: done }
+  }
+
+  // Driver stats: open the driver app
+  if (DRIVER_COMMANDS.includes(said)) {
+    go({ type: 'openApp', app: 'driver' })
+    return { message: done, spoken: done }
+  }
+
+  // Night mode: switch appearance to dark or light
+  if (NIGHT_MODE_ON.includes(said)) {
+    useCabin.getState().setAppearanceMode('dark')
+    return { message: done, spoken: done }
+  }
+  if (NIGHT_MODE_OFF.includes(said)) {
+    useCabin.getState().setAppearanceMode('light')
+    return { message: done, spoken: done }
+  }
+
+  // Do Not Disturb: toggle
+  if (DND_TOGGLE.includes(said)) {
+    const state = useCabin.getState()
+    // DND is controlled by the notifications store; we toggle the dnd flag
+    const currentDnd = state.uiSounds === false
+    state.setUiSounds(!currentDnd)
     return { message: done, spoken: done }
   }
 

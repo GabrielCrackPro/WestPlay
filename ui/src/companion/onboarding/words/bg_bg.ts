@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'bg-BG',
@@ -148,15 +148,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Вход в YouTube',
-    sub: 'По желание. Влезте, за да виждате на екрана на камиона своите препоръки, абонаменти и история. Влизате с Google в отделен прозорец и Cabin Play никога не вижда профила ви.',
+    title: 'Вход',
+    sub: 'По желание. Влезте, за да виждате съдържанието си на екрана на камиона. Влизате в отделен прозорец и Cabin Play никога не вижда профила ви.',
+    services: 'Услуги',
     signIn: 'Вход',
     signOut: 'Изход',
     signedIn: 'Влезли сте',
     notSignedIn: 'Не сте влезли',
-    finishInWindow: 'Довършете влизането в прозореца на Google',
+    finishInWindow: 'Довършете влизането в прозореца',
     notNow: 'Пропусни',
-    signingIn: { title: 'Влизане в YouTube', text: 'Продължете в прозореца на Google' },
+    signingIn: { title: 'Влизане', text: 'Продължете в прозореца' },
   },
   spotify: {
     title: 'Вход в Spotify',
@@ -169,6 +170,28 @@ export const words: Words = {
     sub: 'По желание. Влезте, за да пускате Apple Music на екрана на камиона, със своите плейлисти и библиотека. Влизате в Apple Music в отделен прозорец и Cabin Play никога не вижда профила ви.',
     finishInWindow: 'Довършете влизането в прозореца на Apple Music',
     signingIn: { title: 'Влизане в Apple Music', text: 'Продължете в прозореца на Apple Music' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Всичко е готово',

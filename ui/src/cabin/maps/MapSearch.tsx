@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SearchGlyph } from '../keyboard/glyphs'
 import { useKeyboard } from '../keyboard/store'
 import { TextField } from '../keyboard/TextField'
@@ -14,6 +14,8 @@ import { nearestPlace } from './tapPick'
 
 /** How long the word that the game took a change stays over the map, ms. */
 const CONFIRMATION_MS = 2500
+/** How long to wait after the player stops typing before searching, ms. */
+const SEARCH_DEBOUNCE_MS = 300
 /** Must match the panel's closing animation in maps.css: how long it takes to shrink back, ms. */
 const CLOSING_MS = 280
 const FIELD = 'map-search'
@@ -32,7 +34,20 @@ export function MapSearch() {
   // stays on that side: Go hands the route to the game, whose route comes, goes and comes back as it takes it
   // (the hand-over), and the panel jumped from side to side with it (owner 2026-10-21).
   const [openedRight, setOpenedRight] = useState(false)
+  const [rawQuery, setRawQuery] = useState('')
+  // Debounced query: the search results update only after the player stops typing.
   const [query, setQuery] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const setDebouncedQuery = (value: string) => {
+    setRawQuery(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (value.trim()) {
+      debounceRef.current = setTimeout(() => setQuery(value), SEARCH_DEBOUNCE_MS)
+    } else {
+      setQuery('')
+    }
+  }
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
   const [confirmation, setConfirmation] = useState<{ text: string; id: number } | null>(null)
   const typing = useKeyboard((state) => state.field?.id === FIELD)
   const guided = useLive(({ route, routeNext, telemetry }) => {
@@ -76,6 +91,7 @@ export function MapSearch() {
     if (phase !== 'closing') return
     const timer = setTimeout(() => {
       setPhase('closed')
+      setRawQuery('')
       setQuery('')
       // Gone from the map only now that it has shrunk away: the Stops button comes back with it (maps.css) rather
       // than appearing over the panel as it closes.
@@ -94,6 +110,7 @@ export function MapSearch() {
 
   const close = () => {
     useKeyboard.getState().detach(FIELD)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setPhase('closing')
   }
   const side = openedRight ? ' right' : ''
@@ -105,8 +122,8 @@ export function MapSearch() {
           <div className="map-search-top">
             <TextField
               id={FIELD}
-              value={query}
-              onChange={setQuery}
+              value={rawQuery}
+              onChange={setDebouncedQuery}
               returnKind="search"
               hint={text.searchPlaces}
               label={text.search}

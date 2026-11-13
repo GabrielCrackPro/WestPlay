@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use setup::SetupStore;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WebviewWindow};
 use westplay_host::maps::SetUpGame;
-use westplay_host::settings::{Settings, SettingsFile, SharedSettings};
+use westplay_host::settings::{DriverProfile, Settings, SettingsFile, SharedSettings};
 use westplay_host::{
     AccountAction, AccountRequests, BrowserGone, Config, Content, OpenRequest, SCREEN_HEIGHT, SCREEN_WIDTH, Status,
     UnpairRequest,
@@ -152,6 +152,57 @@ fn update_settings(settings: Settings, store: State<SettingsStore>, app: AppHand
     Ok(settings)
 }
 
+/// Adds a driver profile. Returns the updated settings.
+#[tauri::command]
+fn add_profile(name: String, picture: Option<String>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    let id = format!("profile-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+    settings.cabin.profiles.push(DriverProfile { id: id.clone(), name: name.trim().to_string(), picture: picture.unwrap_or_default() });
+    settings.cabin.ensure_default();
+    store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+    store.shared.set(settings.clone());
+    let _ = app.emit("settings-changed", &settings);
+    Ok(settings)
+}
+
+/// Removes a driver profile by id. Returns the updated settings.
+#[tauri::command]
+fn remove_profile(id: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    settings.cabin.profiles.retain(|p| p.id != id);
+    settings.cabin.ensure_default();
+    store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+    store.shared.set(settings.clone());
+    let _ = app.emit("settings-changed", &settings);
+    Ok(settings)
+}
+
+/// Switches the active driver profile. Returns the updated settings.
+#[tauri::command]
+fn switch_profile(id: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    if settings.cabin.profiles.iter().any(|p| p.id == id) {
+        settings.cabin.current_profile_id = id;
+        store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+        store.shared.set(settings.clone());
+        let _ = app.emit("settings-changed", &settings);
+    }
+    Ok(settings)
+}
+
+/// Updates a driver profile's picture. Returns the updated settings.
+#[tauri::command]
+fn update_profile_picture(id: String, picture: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    if let Some(profile) = settings.cabin.profiles.iter_mut().find(|p| p.id == id) {
+        profile.picture = picture;
+        store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+        store.shared.set(settings.clone());
+        let _ = app.emit("settings-changed", &settings);
+    }
+    Ok(settings)
+}
+
 fn main() {
     // Started as administrator only to copy the plugin into the game (setup asked for it): that, and done.
     let args: Vec<String> = std::env::args().collect();
@@ -196,6 +247,10 @@ fn main() {
             customize::remove_icon_set,
             get_settings,
             update_settings,
+            add_profile,
+            remove_profile,
+            switch_profile,
+            update_profile_picture,
             key_name,
             setup::setup_state,
             setup::game_running,

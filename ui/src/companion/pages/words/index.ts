@@ -220,6 +220,22 @@ export interface CompanionWords {
     nothingAdded: string
     problems: { notAnImage: string; tooLarge: string; unknownName: string; twice: string; unreadable: string }
   }
+  /** Driver profiles: each keeps its own settings. */
+  profiles: {
+    title: string
+    sub: string
+    currentProfile: string
+    noProfile: string
+    current: string
+    photo: string
+    addProfile: string
+    addProfileFooter: string
+    profileNamePlaceholder: string
+    save: string
+    cancel: string
+    removeProfile: string
+    removeConfirm: string
+  }
   /** After a manual app upgrade: putting its new plugin and mod into the game. */
   update: {
     later: string
@@ -270,7 +286,7 @@ export interface TutorialWords {
   finish: string
 }
 
-export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'setup' | 'about'
+export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'profiles' | 'setup' | 'about'
 
 /** A section of the companion's list. The phone has a page of its own, whose words are `phone`'s (already in every
  * language), so a new one costs the other languages nothing. */

@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'sl-SI',
@@ -150,15 +150,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Prijava v YouTube',
+    title: 'Prijava v',
     sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka videl svoja priporočila, naročnine in zgodovino. Prijaviš se z Googlom v ločenem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
+    services: 'Services',
     signIn: 'Prijava',
     signOut: 'Odjava',
     signedIn: 'Prijavljen',
     notSignedIn: 'Ni prijave',
-    finishInWindow: 'Dokončaj prijavo v oknu Google',
+    finishInWindow: 'Dokončaj prijavo v oknu',
     notNow: 'Preskoči',
-    signingIn: { title: 'Prijava v YouTube', text: 'Nadaljuj v oknu Google' },
+    signingIn: { title: 'Prijava v', text: 'Nadaljuj v oknu' },
   },
   spotify: {
     title: 'Prijava v Spotify',
@@ -171,6 +172,28 @@ export const words: Words = {
     sub: 'Neobvezno. Prijavi se, da boš na zaslonu tovornjaka poslušal Apple Music s svojimi seznami predvajanja in knjižnico. V Apple Music se prijaviš v ločenem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
     finishInWindow: 'Dokončaj prijavo v oknu Apple Music',
     signingIn: { title: 'Prijava v Apple Music', text: 'Nadaljuj v oknu Apple Music' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Vse je pripravljeno',

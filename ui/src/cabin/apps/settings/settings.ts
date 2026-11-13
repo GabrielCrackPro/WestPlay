@@ -4,6 +4,7 @@ import { create } from 'zustand'
  * Size, Dashboard's Overview, Sound's Equalizer). */
 export type SettingsPage =
   | 'list'
+  | 'general'
   | 'appearance'
   | 'textSize'
   | 'wallpaper'
@@ -24,6 +25,8 @@ export type SettingsPage =
   | 'mapRoute'
   | 'mapMarkers'
   | 'mapStopCard'
+  | 'themePresets'
+  | 'profiles'
 
 /** The page a page is within, where its back button goes (the list, but for the pages within a page). */
 export const PARENT: Partial<Record<SettingsPage, SettingsPage>> = {

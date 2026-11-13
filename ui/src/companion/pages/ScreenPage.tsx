@@ -44,7 +44,7 @@ export function ScreenPage({ status, settings, cw }: PageProps) {
               <Switch
                 on={saved.cabin.resume}
                 label={w.resume}
-                change={(resume) => void settings.update({ ...saved, cabin: { resume } })}
+                change={(resume) => void settings.update({ ...saved, cabin: { ...saved.cabin, resume } })}
               />
             }
           />

@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'ko-KR',
@@ -146,15 +146,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'YouTube에 로그인',
-    sub: '선택 사항이에요. 로그인하면 트럭 화면에서 내 추천, 구독, 시청 기록을 볼 수 있어요. Google 로그인은 별도의 창에서 하며, Cabin Play는 내 계정을 절대 볼 수 없어요.',
+    title: '로그인',
+    sub: '선택 사항이에요. 로그인하면 트럭 화면에서 내 콘텐츠를 볼 수 있어요. 별도의 창에서 로그인하며, Cabin Play는 내 계정을 절대 볼 수 없어요.',
+    services: 'Services',
     signIn: '로그인',
     signOut: '로그아웃',
     signedIn: '로그인됨',
     notSignedIn: '로그인 안 됨',
-    finishInWindow: 'Google 창에서 로그인을 마치세요',
+    finishInWindow: '창에서 로그인을 마치세요',
     notNow: '건너뛰기',
-    signingIn: { title: 'YouTube에 로그인하는 중', text: 'Google 창에서 계속하세요' },
+    signingIn: { title: '로그인하는 중', text: '창에서 계속하세요' },
   },
   spotify: {
     title: 'Spotify에 로그인',
@@ -167,6 +168,28 @@ export const words: Words = {
     sub: '선택 사항이에요. 로그인하면 트럭 화면에서 내 플레이리스트와 라이브러리로 Apple Music을 들을 수 있어요. Apple Music 로그인은 별도의 창에서 하며, Cabin Play는 내 계정을 절대 볼 수 없어요.',
     finishInWindow: 'Apple Music 창에서 로그인을 마치세요',
     signingIn: { title: 'Apple Music에 로그인하는 중', text: 'Apple Music 창에서 계속하세요' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: '모든 준비가 끝났어요',

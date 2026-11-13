@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'it-IT',
@@ -149,15 +149,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Accedi a YouTube',
-    sub: 'Facoltativo. Accedi per vedere i tuoi consigli, le tue iscrizioni e la tua cronologia sullo schermo del camion. Accedi con Google in una finestra a parte, e Cabin Play non vede mai il tuo account.',
+    title: 'Accedi',
+    sub: 'Opzionale. Accedi per vedere i tuoi contenuti sullo schermo del camion. Accedi in una finestra separata, e Cabin Play non vede mai il tuo account.',
+    services: 'Services',
     signIn: 'Accedi',
     signOut: 'Esci',
     signedIn: 'Accesso effettuato',
     notSignedIn: 'Accesso non effettuato',
-    finishInWindow: 'Completa l’accesso nella finestra di Google',
+    finishInWindow: 'Completa l’accesso nella finestra di',
     notNow: 'Salta',
-    signingIn: { title: 'Accesso a YouTube', text: 'Continua nella finestra di Google' },
+    signingIn: { title: 'Accesso', text: 'Continua nella finestra di' },
   },
   spotify: {
     title: 'Accedi a Spotify',
@@ -170,6 +171,28 @@ export const words: Words = {
     sub: 'Facoltativo. Accedi per ascoltare Apple Music sullo schermo del camion, con le tue playlist e la tua libreria. Accedi ad Apple Music in una finestra a parte, e Cabin Play non vede mai il tuo account.',
     finishInWindow: 'Completa l’accesso nella finestra di Apple Music',
     signingIn: { title: 'Accesso ad Apple Music', text: 'Continua nella finestra di Apple Music' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'È tutto pronto',

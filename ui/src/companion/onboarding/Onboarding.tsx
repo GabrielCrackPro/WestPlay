@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import { hvtMapMessage } from '../../cabin/maps/blockedMap'
+import { call } from '../bridge'
 import {
   checkGame,
   defaultMapAddress,
@@ -25,6 +26,7 @@ import {
 import { DEFAULT_KEY, type SettingsState } from '../useSettings'
 import { memoryNote } from '../pages/page'
 import { companionWords } from '../pages/words'
+import { qrCode } from '../qr'
 import '../room/room.css'
 import { type Banner, GlassCursor, type Pose, TruckScreen } from '../room/TruckScreen'
 import {
@@ -75,8 +77,8 @@ const STEPS = [
   'map',
   'controls',
   'accounts',
-  'spotify',
-  'appleMusic',
+  'profile',
+  'phone',
   'tutorial',
 ] as const
 type StepId = (typeof STEPS)[number]
@@ -89,8 +91,8 @@ const POSES: Record<StepId, Pose> = {
   map: 'side',
   controls: 'side',
   accounts: 'side',
-  spotify: 'side',
-  appleMusic: 'side',
+  profile: 'side',
+  phone: 'side',
   tutorial: 'final',
 }
 
@@ -279,8 +281,8 @@ export function Onboarding({
             {step === 'map' && <MapStep status={status} next={next} back={back} />}
             {step === 'controls' && <Controls settings={settings} next={next} back={back} />}
             {step === 'accounts' && <Accounts status={status} next={next} back={back} />}
-            {step === 'spotify' && <ServiceSignIn service="spotify" status={status} next={next} back={back} />}
-            {step === 'appleMusic' && <ServiceSignIn service="appleMusic" status={status} next={next} back={back} />}
+            {step === 'profile' && <ProfileStep settings={settings} next={next} back={back} />}
+            {step === 'phone' && <PhoneStep status={status} next={next} back={back} />}
             {step === 'tutorial' && <TutorialIntro code={code} finish={finish} back={back} />}
           </ScreenContext.Provider>
         </RoomText.Provider>
@@ -782,15 +784,41 @@ function Controls({ settings, next, back }: { settings: SettingsState; next(): v
   )
 }
 
+/** Sign in to YouTube, Spotify, and Apple Music. */
 function Accounts({ status, next, back }: { status: HostStatus | null; next(): void; back?: () => void }) {
-  const signedIn = status?.youtubeSignedIn ?? false
-  const signingIn = status?.youtubeSigningIn ?? false
-  // Signed in already? Found out first (YouTube run, hidden, to say so).
-  const checking = useChecking(status?.youtubeSignedIn != null, youtubeCheck)
-  const signOut = useSignOut(signedIn, youtubeSignOut)
   const words = useWords()
   const w = words.accounts
-  useScreenAt('youtube', GLOW.youtube, signingIn ? banner(w.signingIn, true) : null)
+
+  // YouTube
+  const ytSignedIn = status?.youtubeSignedIn ?? false
+  const ytSigningIn = status?.youtubeSigningIn ?? false
+  const ytChecking = useChecking(status?.youtubeSignedIn != null, youtubeCheck)
+  const ytSignOut = useSignOut(ytSignedIn, youtubeSignOut)
+
+  // Spotify
+  const spSignedIn = status?.spotifySignedIn ?? false
+  const spSigningIn = status?.spotifySigningIn ?? false
+  const spChecking = useChecking(status?.spotifySignedIn != null, spotifyCheck)
+  const spSignOut = useSignOut(spSignedIn, spotifySignOut)
+
+  // Apple Music
+  const amSignedIn = status?.appleMusicSignedIn ?? false
+  const amSigningIn = status?.appleMusicSigningIn ?? false
+  const amChecking = useChecking(status?.appleMusicSignedIn != null, appleMusicCheck)
+  const amSignOut = useSignOut(amSignedIn, appleMusicSignOut)
+
+  const anyChecking = ytChecking || spChecking || amChecking
+
+  // Show the screen for the first service that is signing in, otherwise YouTube.
+  const signingBanner = ytSigningIn
+    ? banner(w.signingIn, true)
+    : spSigningIn
+      ? banner(words.spotify.signingIn, true)
+      : amSigningIn
+        ? banner(words.appleMusic.signingIn, true)
+        : null
+  useScreenAt('youtube', GLOW.youtube, signingBanner)
+
   return (
     <Panel
       place="side"
@@ -798,24 +826,56 @@ function Accounts({ status, next, back }: { status: HostStatus | null; next(): v
       sub={w.sub}
       back={back}
       action={
-        <Button onClick={next} disabled={checking}>
-          {signedIn ? words.continue : w.notNow}
-        </Button>
+        <Button onClick={next} disabled={anyChecking}>{words.continue}</Button>
       }
     >
-      <Group place={4}>
+      <Group title={w.services} place={4}>
         <Row
           title="YouTube"
-          detail={checking ? undefined : signingIn ? w.finishInWindow : signedIn ? w.signedIn : w.notSignedIn}
+          detail={ytChecking ? undefined : ytSigningIn ? w.finishInWindow : ytSignedIn ? w.signedIn : w.notSignedIn}
           accessory={
-            checking ? (
+            ytChecking ? (
               <Checking />
-            ) : signedIn ? (
-              <Button glass small busy={signOut.signingOut} onClick={signOut.start}>
+            ) : ytSignedIn ? (
+              <Button glass small busy={ytSignOut.signingOut} onClick={ytSignOut.start}>
                 {w.signOut}
               </Button>
             ) : (
-              <Button glass small busy={signingIn} onClick={() => youtubeSignIn()}>
+              <Button glass small busy={ytSigningIn} onClick={() => youtubeSignIn()}>
+                {w.signIn}
+              </Button>
+            )
+          }
+        />
+        <Row
+          title="Spotify"
+          detail={spChecking ? undefined : spSigningIn ? words.spotify.finishInWindow : spSignedIn ? w.signedIn : w.notSignedIn}
+          accessory={
+            spChecking ? (
+              <Checking />
+            ) : spSignedIn ? (
+              <Button glass small busy={spSignOut.signingOut} onClick={spSignOut.start}>
+                {w.signOut}
+              </Button>
+            ) : (
+              <Button glass small busy={spSigningIn} onClick={() => spotifySignIn()}>
+                {w.signIn}
+              </Button>
+            )
+          }
+        />
+        <Row
+          title="Apple Music"
+          detail={amChecking ? undefined : amSigningIn ? words.appleMusic.finishInWindow : amSignedIn ? w.signedIn : w.notSignedIn}
+          accessory={
+            amChecking ? (
+              <Checking />
+            ) : amSignedIn ? (
+              <Button glass small busy={amSignOut.signingOut} onClick={amSignOut.start}>
+                {w.signOut}
+              </Button>
+            ) : (
+              <Button glass small busy={amSigningIn} onClick={() => appleMusicSignIn()}>
                 {w.signIn}
               </Button>
             )
@@ -826,85 +886,188 @@ function Accounts({ status, next, back }: { status: HostStatus | null; next(): v
   )
 }
 
-/** Spotify's and Apple Music's sign-ins, as YouTube's: the service's own page in a window on the desktop, its
- * app on the screen meanwhile. Their buttons and states are YouTube's step's words; their own say what each
- * is for. */
-const SERVICE_STEPS = {
-  spotify: {
-    name: 'Spotify',
-    app: 'spotify',
-    glow: GLOW.spotify,
-    signedIn: (status: HostStatus | null) => status?.spotifySignedIn,
-    signingIn: (status: HostStatus | null) => status?.spotifySigningIn ?? false,
-    check: spotifyCheck,
-    signIn: spotifySignIn,
-    signOut: spotifySignOut,
-  },
-  appleMusic: {
-    name: 'Apple Music',
-    app: 'music',
-    glow: GLOW.music,
-    signedIn: (status: HostStatus | null) => status?.appleMusicSignedIn,
-    signingIn: (status: HostStatus | null) => status?.appleMusicSigningIn ?? false,
-    check: appleMusicCheck,
-    signIn: appleMusicSignIn,
-    signOut: appleMusicSignOut,
-  },
-} as const
-
-function ServiceSignIn({
-  service,
-  status,
-  next,
-  back,
-}: {
-  service: keyof typeof SERVICE_STEPS
-  status: HostStatus | null
-  next(): void
-  back?: () => void
-}) {
-  const it = SERVICE_STEPS[service]
-  const signedIn = it.signedIn(status) ?? false
-  const signingIn = it.signingIn(status)
-  // Signed in already? Found out first (the service's web player run, hidden, to say so).
-  const checking = useChecking(it.signedIn(status) != null, it.check)
-  const signOut = useSignOut(signedIn, it.signOut)
+/** Create the first driver profile — required before continuing. */
+function ProfileStep({ settings, next, back }: { settings: SettingsState; next(): void; back?: () => void }) {
   const words = useWords()
-  const w = words.accounts
-  const s = words[service]
-  useScreenAt(it.app, it.glow, signingIn ? banner(s.signingIn, true) : null)
+  const p = words.profile
+  const [name, setName] = useState('')
+  const [picture, setPicture] = useState<string>('')
+  const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const hasProfile = settings.settings?.cabin.profiles.length ?? 0 > 0
+
+  useScreenAt('dashboard', GLOW.dashboard, null)
+
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const size = 128
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')!
+        const min = Math.min(img.width, img.height)
+        const sx = (img.width - min) / 2
+        const sy = (img.height - min) / 2
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size)
+        setPicture(canvas.toDataURL('image/jpeg', 0.7))
+      }
+      img.src = String(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleContinue = async () => {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setError(p.tooShort)
+      return
+    }
+    if (!hasProfile) {
+      setCreating(true)
+      setError(null)
+      try {
+        await call('add_profile', { name: trimmed, picture })
+      } catch {
+        /* settings-changed event will propagate */
+      } finally {
+        setCreating(false)
+      }
+    }
+    next()
+  }
+
+  /** Derive initials from the name for the avatar preview. */
+  const initials = name.trim().length > 0
+    ? name.trim().split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+    : ''
+
   return (
     <Panel
       place="side"
-      title={s.title}
-      sub={s.sub}
+      title={p.title}
+      sub={p.sub}
       back={back}
       action={
-        <Button onClick={next} disabled={checking}>
-          {signedIn ? words.continue : w.notNow}
+        <Button onClick={handleContinue} busy={creating} disabled={!name.trim()}>
+          {words.continue}
         </Button>
       }
     >
-      <Group place={4}>
-        <Row
-          title={it.name}
-          detail={checking ? undefined : signingIn ? s.finishInWindow : signedIn ? w.signedIn : w.notSignedIn}
-          accessory={
-            checking ? (
-              <Checking />
-            ) : signedIn ? (
-              <Button glass small busy={signOut.signingOut} onClick={signOut.start}>
-                {w.signOut}
-              </Button>
+      {/* Avatar preview — centered, prominent, clickable to upload photo */}
+      <div className="ob-profile-preview">
+        <label className="ob-profile-avatar-click">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePictureChange}
+            style={{ display: 'none' }}
+          />
+          <div
+            className="ob-profile-avatar-lg"
+            data-photo={picture ? '' : undefined}
+          >
+            {picture ? (
+              <img className="ob-profile-avatar-lg-img" src={picture} alt="" />
             ) : (
-              <Button glass small busy={signingIn} onClick={() => it.signIn()}>
-                {w.signIn}
-              </Button>
-            )
-          }
+              <span className="ob-profile-avatar-lg-initial">{initials || '?'}</span>
+            )}
+          </div>
+        </label>
+        <span className="ob-profile-photo-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          {p.clickPhoto}
+        </span>
+      </div>
+
+      {/* Name input */}
+      <Group place={4}>
+        <input
+          type="text"
+          className="ob-input"
+          placeholder={p.namePlaceholder}
+          value={name}
+          onChange={(e) => { setName(e.target.value); setError(null) }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleContinue() }}
+          autoFocus
+          maxLength={32}
         />
+        {error && <Note tone="bad">{error}</Note>}
       </Group>
     </Panel>
+  )
+}
+
+/** Connect a phone with Cabin Play Bridge: shows the QR code and pairing info. */
+function PhoneStep({ status, next, back }: { status: HostStatus | null; next(): void; back?: () => void }) {
+  const words = useWords()
+  const p = words.phone
+  const phone = status?.phone ?? null
+  const pairing = phone?.pairing ?? null
+  const device = phone?.device ?? null
+  const phoneDetail = phone?.connected
+    ? [device?.name ?? p.connected, device?.appVersion && `Bridge ${device.appVersion}`].filter(Boolean).join(' · ')
+    : p.waiting
+
+  useScreenAt('dashboard', GLOW.dashboard, null)
+
+  return (
+    <Panel
+      place="side"
+      title={p.title}
+      sub={p.sub}
+      back={back}
+      action={
+        <>
+          <Button glass onClick={next}>{p.skip}</Button>
+          <Button onClick={next}>{words.continue}</Button>
+        </>
+      }
+    >
+      <Group place={4}>
+        <Row title={p.connected} detail={phoneDetail} accessory={phone?.connected ? <Tick done /> : undefined} />
+      </Group>
+      {pairing ? (
+        <div className="cp-phone-pair ob-in">
+          <PhoneQr uri={pairing.uri} label={p.scan} />
+          <div className="cp-phone-pair-words">
+            <p>{p.scan}</p>
+          </div>
+        </div>
+      ) : (
+        phone && <Note>{p.noDoor}</Note>
+      )}
+    </Panel>
+  )
+}
+
+/** The QR code for phone pairing, on a white plate with the quiet zone a phone's camera needs. */
+function PhoneQr({ uri, label }: { uri: string; label: string }) {
+  const code = qrCode(uri)
+  if (!code) return null
+  const quiet = 4
+  const side = code.size + quiet * 2
+  return (
+    <svg
+      className="cp-phone-qr"
+      viewBox={`0 0 ${side} ${side}`}
+      role="img"
+      aria-label={label}
+      shapeRendering="crispEdges"
+    >
+      <rect width={side} height={side} fill="#fff" />
+      <path d={code.path} transform={`translate(${quiet} ${quiet})`} fill="#000" />
+    </svg>
   )
 }
 

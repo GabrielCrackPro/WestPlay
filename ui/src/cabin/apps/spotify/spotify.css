@@ -1267,11 +1267,11 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: var(--sp-green);
+  background: linear-gradient(135deg, #2de06a, var(--sp-green));
   color: #000;
   display: grid;
   place-items: center;
-  box-shadow: var(--sp-shadow);
+  box-shadow: var(--sp-shadow), 0 0 20px rgb(30 215 96 / 0.25);
 }
 
 .spotify-app .sp-play svg {
@@ -1316,6 +1316,7 @@
   padding: 0 10px 0 13px;
   gap: 16px;
   background: color-mix(in srgb, var(--song) 52%, #000);
+  box-shadow: var(--sp-shadow-foot), 0 0 24px color-mix(in srgb, var(--song) 30%, transparent);
 }
 
 .spotify-app .sp-mini-cover {

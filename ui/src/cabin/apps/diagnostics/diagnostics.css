@@ -81,6 +81,11 @@
   color: var(--apple-label-secondary);
 }
 
+.diag-status {
+  background: linear-gradient(135deg, var(--apple-fill-tertiary), color-mix(in srgb, var(--apple-fill-tertiary) 80%, transparent));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
 .diag-status.warn {
   color: var(--apple-orange);
 }
@@ -106,6 +111,16 @@
 
 .diag-tab.alarm .app-tab-icon {
   color: var(--apple-red);
+  animation: diag-alarm-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes diag-alarm-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* --- The cards ---------------------------------------------------------------------------------------- */
@@ -338,16 +353,19 @@ html[data-motion='reduced'] .diag-warning.blink {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--apple-green);
+  background: linear-gradient(90deg, var(--apple-green), color-mix(in srgb, var(--apple-green) 80%, white));
   transition: width 320ms var(--motion-ease);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--apple-green) 40%, transparent);
 }
 
 .diag-meter.warn span {
-  background: var(--apple-orange);
+  background: linear-gradient(90deg, var(--apple-orange), color-mix(in srgb, var(--apple-orange) 80%, white));
+  box-shadow: 0 0 4px color-mix(in srgb, var(--apple-orange) 40%, transparent);
 }
 
 .diag-meter.alarm span {
-  background: var(--apple-red);
+  background: linear-gradient(90deg, var(--apple-red), color-mix(in srgb, var(--apple-red) 80%, white));
+  box-shadow: 0 0 4px color-mix(in srgb, var(--apple-red) 40%, transparent);
 }
 
 /* The reading's last minute and a half as a line under its gauge. */
@@ -356,6 +374,7 @@ html[data-motion='reduced'] .diag-warning.blink {
   height: calc(30px * var(--text-scale, 1));
   color: var(--apple-label-secondary);
   opacity: 0.7;
+  filter: drop-shadow(0 0 2px currentColor);
 }
 
 /* --- The four readings of the overview --------------------------------------------------------------- */

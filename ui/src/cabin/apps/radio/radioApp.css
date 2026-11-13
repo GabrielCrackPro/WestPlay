@@ -1,13 +1,27 @@
-/* The Radio app (RadioApp.tsx), in CarPlay’s shape: the station playing across the top as CarPlay draws a track
-   — a square of its own colour, its name and the song it plays, the transport under them — and under it the
-   game’s stations as CarPlay lists them: one tall row each, hit easily while driving, by genre. Drawn on Apple’s
-   colours (shell/apple.css) in the cab’s appearance, at the cab’s text size. */
+/* The Radio app (RadioApp.tsx): a warm, analog-meets-digital dashboard — the station playing as a full-width hero
+   with its own colour, the song it plays, and tactile transport; under it, the game's stations in a spacious list
+   by genre. Drawn on Apple's colours (shell/apple.css) in the cab's appearance, at the cab's text size. */
 
 .radio-app {
+  position: relative;
   border-radius: var(--panel-radius);
   background: var(--apple-background);
   color: var(--apple-label);
   overflow: hidden;
+}
+
+/* Subtle ambient glow behind the whole panel — warm, like a radio dial at night. */
+.radio-app::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--hue, 210) 70% 50% / 0.08), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .radio-scroll {
@@ -16,6 +30,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  z-index: 1;
 }
 
 .radio-scroll::-webkit-scrollbar {
@@ -25,11 +40,11 @@
 .radio-page {
   display: flex;
   flex-direction: column;
-  gap: calc(22px * var(--text-scale, 1));
+  gap: calc(18px * var(--text-scale, 1));
   width: min(100%, 1200px);
   min-height: 100%;
   margin: 0 auto;
-  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(34px * var(--text-scale, 1));
+  padding: calc(22px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(34px * var(--text-scale, 1));
 }
 
 /* --- The head: the title, and Refresh --------------------------------------------------------------- */
@@ -72,6 +87,7 @@
   font-size: calc(21px * var(--text-scale, 1));
   font-weight: 650;
   cursor: pointer;
+  transition: background-color 140ms ease;
 }
 
 .radio-refresh:hover {
@@ -83,7 +99,7 @@
   height: calc(24px * var(--text-scale, 1));
 }
 
-/* --- Now Playing: CarPlay’s, the station where a track is -------------------------------------------- */
+/* --- Now Playing: the full-width hero card ---------------------------------------------------------- */
 
 .radio-now {
   position: relative;
@@ -96,11 +112,26 @@
   align-items: center;
   column-gap: calc(30px * var(--text-scale, 1));
   row-gap: calc(20px * var(--text-scale, 1));
-  padding: calc(26px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1));
+  padding: calc(28px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1));
   border-radius: calc(28px * var(--text-scale, 1));
+  overflow: hidden;
   background:
     radial-gradient(130% 150% at 100% 0%, hsl(var(--hue, 218) 74% 54% / 0.34), transparent 62%), var(--apple-card);
-  box-shadow: inset 0 0 0 1px var(--apple-separator);
+  box-shadow:
+    inset 0 0 0 1px var(--apple-separator),
+    0 calc(4px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) rgb(0 0 0 / 12%);
+}
+
+/* Subtle inner glow along the top edge — like light catching the edge of a physical panel. */
+.radio-now::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(1px * var(--text-scale, 1));
+  background: linear-gradient(90deg, transparent, hsl(var(--hue, 218) 74% 70% / 0.4), transparent);
+  pointer-events: none;
 }
 
 .radio-now-text {
@@ -128,7 +159,7 @@
   font-weight: 650;
 }
 
-/* The song the station says it plays, where a track’s artist is. */
+/* The song the station says it plays, where a track's artist is. */
 .radio-now-title {
   margin: calc(2px * var(--text-scale, 1)) 0 0;
   overflow: hidden;
@@ -151,8 +182,8 @@
   white-space: nowrap;
 }
 
-/* The streams a station’s playlist offers (a station at more than one bitrate), under its face: the one playing
-   picked out in the face’s own blue, the others a press away. */
+/* The streams a station's playlist offers (a station at more than one bitrate), under its face: the one playing
+   picked out in the face's own blue, the others a press away. */
 .radio-channels {
   grid-column: 1 / -1;
   display: flex;
@@ -188,7 +219,7 @@
   color: #fff;
 }
 
-/* What it’s doing: Now playing as CarPlay’s badge, paused, or why it didn’t play. */
+/* What it's doing: Now playing as CarPlay's badge, paused, or why it didn't play. */
 .radio-now-state {
   min-height: calc(28px * var(--text-scale, 1));
   margin: calc(6px * var(--text-scale, 1)) 0 0;
@@ -275,7 +306,7 @@ html[data-motion='reduced'] .radio-waves path {
   letter-spacing: 0.02em;
 }
 
-/* Its star, at the end of the transport: pressed, the station is one of the player’s favourites. */
+/* Its star, at the end of the transport: pressed, the station is one of the player's favourites. */
 .radio-now-star {
   display: grid;
   place-items: center;
@@ -306,7 +337,7 @@ html[data-motion='reduced'] .radio-waves path {
   height: calc(26px * var(--text-scale, 1));
 }
 
-/* The transport under them, a row across the card: the tuning, then the volume (as CarPlay’s extras). */
+/* The transport under them, a row across the card: the tuning, then the volume (as CarPlay's extras). */
 .radio-now-controls {
   display: flex;
   grid-area: controls;
@@ -356,7 +387,7 @@ html[data-motion='reduced'] .radio-waves path {
   height: calc(30px * var(--text-scale, 1));
 }
 
-/* The face’s one button: it plays the station, and pauses it. */
+/* The face's one button: it plays the station, and pauses it. */
 .radio-power {
   display: grid;
   place-items: center;
@@ -479,7 +510,7 @@ html[data-motion='reduced'] .radio-waves path {
   gap: calc(12px * var(--text-scale, 1));
 }
 
-/* The search for a station by name: the cabin’s own field, drawn on a card and tall enough to read easily. */
+/* The search for a station by name: the cabin's own field, drawn on a card and tall enough to read easily. */
 .radio-search {
   display: flex;
   flex: none;
@@ -501,7 +532,7 @@ html[data-motion='reduced'] .radio-waves path {
   height: calc(26px * var(--text-scale, 1));
 }
 
-/* The genres: the shared pill rail (shell/appTabs.css), one compact line the player scrolls when they don’t all
+/* The genres: the shared pill rail (shell/appTabs.css), one compact line the player scrolls when they don't all
    fit. Each genre is one pill of one word, so the rail is what gives way, never the name. */
 .radio-chips {
   flex: none;
@@ -516,7 +547,7 @@ html[data-motion='reduced'] .radio-waves path {
   font-size: calc(21px * var(--text-scale, 1));
 }
 
-/* --- The stations: CarPlay’s list, one row each, by genre --------------------------------------------- */
+/* --- The stations: the list, one row each, by genre -------------------------------------------------- */
 
 .radio-groups {
   display: flex;
@@ -537,14 +568,14 @@ html[data-motion='reduced'] .radio-waves path {
 .radio-list {
   display: flex;
   flex-direction: column;
-  gap: calc(10px * var(--text-scale, 1));
+  gap: calc(2px * var(--text-scale, 1));
 }
 
 .radio-row {
   display: flex;
   align-items: center;
   gap: calc(6px * var(--text-scale, 1));
-  border-radius: calc(18px * var(--text-scale, 1));
+  border-radius: calc(14px * var(--text-scale, 1));
   background: var(--apple-card);
   transition: background-color 140ms ease;
 }
@@ -554,7 +585,8 @@ html[data-motion='reduced'] .radio-waves path {
 }
 
 .radio-row.now {
-  box-shadow: inset 0 0 0 calc(2px * var(--text-scale, 1)) var(--apple-blue);
+  background: color-mix(in srgb, var(--apple-blue) 12%, var(--apple-card));
+  box-shadow: inset 0 0 0 calc(2px * var(--text-scale, 1)) color-mix(in srgb, var(--apple-blue) 50%, transparent);
 }
 
 /* The row proper, pressed to play it (or to stop the one playing): the whole of it but its star. */
@@ -662,7 +694,7 @@ html[data-motion='reduced'] .radio-waves path {
   white-space: nowrap;
 }
 
-/* What the row playing says of itself, at the row’s right, where CarPlay puts a track’s state. */
+/* What the row playing says of itself, at the row's right, where CarPlay puts a track's state. */
 .radio-row-live {
   flex: none;
   color: var(--apple-blue);

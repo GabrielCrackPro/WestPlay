@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'lt-LT',
@@ -150,15 +150,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Prisijunk prie „YouTube“',
-    sub: 'Neprivaloma. Prisijunk, kad sunkvežimio ekrane matytum savo rekomendacijas, prenumeratas ir istoriją. Prie „Google“ jungiesi atskirame lange, o Cabin Play niekada nemato tavo paskyros.',
+    title: 'Prisijunk prie “',
+    sub: 'Neprivaloma. Prisijunk, kad sunkvežimio ekrane matytum savo turinį. Prisijungi atskirame lange, o Cabin Play niekada nemato tavo paskyros.',
+    services: 'Services',
     signIn: 'Prisijungti',
     signOut: 'Atsijungti',
     signedIn: 'Prisijungta',
     notSignedIn: 'Neprisijungta',
-    finishInWindow: 'Užbaik prisijungimą „Google“ lange',
+    finishInWindow: 'Užbaik prisijungimą „“ lange',
     notNow: 'Praleisti',
-    signingIn: { title: 'Jungiamasi prie „YouTube“', text: 'Tęsk „Google“ lange' },
+    signingIn: { title: 'Jungiamasi prie “', text: 'Tęsk „“ lange' },
   },
   spotify: {
     title: 'Prisijunk prie „Spotify“',
@@ -171,6 +172,28 @@ export const words: Words = {
     sub: 'Neprivaloma. Prisijunk, kad sunkvežimio ekrane klausytumeisi „Apple Music“ su savo grojaraščiais ir biblioteka. Prie „Apple Music“ jungiesi atskirame lange, o Cabin Play niekada nemato tavo paskyros.',
     finishInWindow: 'Užbaik prisijungimą „Apple Music“ lange',
     signingIn: { title: 'Jungiamasi prie „Apple Music“', text: 'Tęsk „Apple Music“ lange' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Viskas paruošta',

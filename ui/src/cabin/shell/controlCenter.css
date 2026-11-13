@@ -1,0 +1,140 @@
+/* --- Quick Access Control Center ----------------------------------------------------------------------- */
+
+/* Trigger button: top-right corner, subtle glass pill */
+.control-center-btn {
+  position: fixed;
+  top: calc(12px * var(--text-scale, 1));
+  right: calc(12px * var(--text-scale, 1));
+  z-index: 1000;
+  width: calc(32px * var(--text-scale, 1));
+  height: calc(32px * var(--text-scale, 1));
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--apple-secondary-system-grouped-background) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--apple-label-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.control-center-btn:hover {
+  opacity: 0.8;
+}
+
+.control-center-btn.active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--apple-secondary-system-grouped-background) 95%, transparent);
+}
+
+/* Panel: slides down from the top-right */
+.control-center-panel {
+  position: fixed;
+  top: calc(50px * var(--text-scale, 1));
+  right: calc(12px * var(--text-scale, 1));
+  z-index: 999;
+  pointer-events: none;
+}
+
+.control-center-inner {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(14px * var(--text-scale, 1));
+  min-width: calc(220px * var(--text-scale, 1));
+  max-width: calc(280px * var(--text-scale, 1));
+  border-radius: calc(14px * var(--text-scale, 1));
+  background: color-mix(in srgb, var(--apple-secondary-system-grouped-background) 92%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  border: 1px solid var(--apple-separator);
+}
+
+/* Rows */
+.cc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12px * var(--text-scale, 1));
+}
+
+.cc-label {
+  font: -apple-system-controls-caption;
+  letter-spacing: 0.01em;
+  color: var(--apple-secondary-label-color);
+  white-space: nowrap;
+}
+
+/* Volume slider */
+.cc-volume input[type='range'] {
+  width: calc(100px * var(--text-scale, 1));
+  height: calc(4px * var(--text-scale, 1));
+  accent-color: var(--accent, var(--apple-blue));
+  cursor: pointer;
+}
+
+/* Toggle switch */
+.cc-switch {
+  position: relative;
+  width: calc(51px * var(--text-scale, 1));
+  height: calc(31px * var(--text-scale, 1));
+  border-radius: calc(15.5px * var(--text-scale, 1));
+  border: none;
+  background: var(--apple-tertiary-label-color);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.cc-switch.on {
+  background: var(--accent, var(--apple-blue));
+}
+
+.cc-switch-knob {
+  position: absolute;
+  top: calc(2px * var(--text-scale, 1));
+  left: calc(2px * var(--text-scale, 1));
+  width: calc(27px * var(--text-scale, 1));
+  height: calc(27px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+  transition: transform 0.2s ease;
+}
+
+.cc-switch.on .cc-switch-knob {
+  transform: translateX(calc(20px * var(--text-scale, 1)));
+}
+
+/* Cycle button */
+.cc-cycle-btn {
+  padding: calc(4px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
+  border-radius: calc(8px * var(--text-scale, 1));
+  border: 1px solid var(--apple-separator);
+  background: var(--apple-secondary-system-grouped-background);
+  color: var(--accent, var(--apple-blue));
+  font: -apple-system-controls-body2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.cc-cycle-btn:hover {
+  background: var(--apple-tertiary-label);
+}
+
+/* Light appearance adjustments */
+.appearance-light .control-center-btn {
+  background: color-mix(in srgb, var(--apple-secondary-system-grouped-background) 70%, transparent);
+}
+
+.appearance-light .control-center-inner {
+  background: color-mix(in srgb, var(--apple-secondary-system-grouped-background) 88%, transparent);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.5);
+}

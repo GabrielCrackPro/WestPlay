@@ -23,6 +23,16 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
   const d = text.destinations
   const words = text.diagnostics
   return [
+    { label: s.general, page: 'general', section: s.generalSection },
+    { label: s.resetAllSettings, page: 'general', section: s.general },
+    { label: s.exportSettings, page: 'general', section: s.general },
+    { label: s.importSettings, page: 'general', section: s.general },
+    { label: s.storageManagement, page: 'general', section: s.general },
+    { label: s.clearCache, page: 'general', section: s.general },
+    { label: s.themePresets, page: 'themePresets', section: s.customization },
+    { label: s.profiles, page: 'profiles', section: s.customization },
+    { label: s.nowPlayingBar, page: 'list', section: s.customization },
+    { label: s.accentColor, page: 'themePresets', section: s.customization },
     { label: s.appearance, page: 'appearance', section: s.appearance },
     { label: s.light, page: 'appearance', section: s.appearance },
     { label: s.dark, page: 'appearance', section: s.appearance },
@@ -115,6 +125,7 @@ export function settingsEntries(text: Strings): SettingsEntry[] {
     { label: d.mapOver, page: 'mapDisplay', section: s.mapsDisplay },
     { label: d.mapCompass, page: 'mapDisplay', section: s.mapsDisplay },
     { label: d.mapScale, page: 'mapDisplay', section: s.mapsDisplay },
+    { label: d.mapStyle, page: 'mapDisplay', section: s.mapsDisplay },
     { label: d.mapRecentre, page: 'mapDisplay', section: s.mapsDisplay },
     { label: d.mapTraffic, page: 'mapTraffic', section: d.mapTraffic },
     { label: d.mapJunction, page: 'mapTraffic', section: d.mapTraffic },

@@ -13,6 +13,18 @@ function TileGlyph({ children }: { children: ReactNode }) {
   )
 }
 
+/** General: a gear, the cog that turns everything. */
+export function GeneralGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M12 2.6a1.4 1.4 0 0 1 1.4 1.4v1.1a6.9 6.9 0 0 1 3.1 1.8l1-.5a1.4 1.4 0 0 1 1.8.6l.9 1.6a1.4 1.4 0 0 1-.6 1.8l-1 .5a6.9 6.9 0 0 1 0 3.6l1 .5a1.4 1.4 0 0 1 .6 1.8l-.9 1.6a1.4 1.4 0 0 1-1.8.6l-1-.5a6.9 6.9 0 0 1-3.1 1.8v1.1a1.4 1.4 0 0 1-1.4 1.4h-0a1.4 1.4 0 0 1-1.4-1.4V19a6.9 6.9 0 0 1-3.1-1.8l-1 .5a1.4 1.4 0 0 1-1.8-.6l-.9-1.6a1.4 1.4 0 0 1 .6-1.8l1-.5a6.9 6.9 0 0 1 0-3.6l-1-.5a1.4 1.4 0 0 1-.6-1.8l.9-1.6a1.4 1.4 0 0 1 1.8-.6l1 .5A6.9 6.9 0 0 1 10.6 5.1V4a1.4 1.4 0 0 1 1.4-1.4h0Zm0 4.8a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Z"
+      />
+    </TileGlyph>
+  )
+}
+
 /** Appearance: a circle half dark, half light. */
 export function AppearanceGlyph() {
   return (
@@ -238,5 +250,28 @@ export function CheckGlyph() {
     >
       <path d="m5 12.5 4.6 4.6L19 7.5" />
     </svg>
+  )
+}
+
+/** Theme Presets: a palette with color swatches. */
+export function PaletteGlyph() {
+  return (
+    <TileGlyph>
+      <ellipse cx="12" cy="12" rx="5.5" ry="7.5" />
+      <circle cx="8" cy="7" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="16" cy="7" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="8" cy="17" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="16" cy="17" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+    </TileGlyph>
+  )
+}
+
+/** Profiles: a person silhouette. */
+export function PersonGlyph() {
+  return (
+    <TileGlyph>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.4 19.4c0-3.6 3.4-6.4 7.6-6.4s7.6 2.8 7.6 6.4" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    </TileGlyph>
   )
 }

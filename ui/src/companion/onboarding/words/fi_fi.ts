@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'fi-FI',
@@ -148,15 +148,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Kirjaudu YouTubeen',
-    sub: 'Valinnainen. Kirjaudu sisään, niin näet omat suosituksesi, tilauksesi ja historiasi rekan näytöllä. Kirjaudut Googleen erillisessä ikkunassa, eikä Cabin Play koskaan näe tiliäsi.',
+    title: 'Kirjauduen',
+    sub: 'Valinnainen. Kirjaudu sisään nähdäksesi oman sisällön rekan näytöllä. Kirjaudut sisään erillisessä ikkunassa, eikä Cabin Play koskaan näe tiliäsi.',
+    services: 'Services',
     signIn: 'Kirjaudu sisään',
     signOut: 'Kirjaudu ulos',
     signedIn: 'Kirjautunut',
     notSignedIn: 'Ei kirjautunut',
-    finishInWindow: 'Viimeistele kirjautuminen Google-ikkunassa',
+    finishInWindow: 'Viimeistele kirjautuminen-ikkunassa',
     notNow: 'Ohita',
-    signingIn: { title: 'Kirjaudutaan YouTubeen', text: 'Jatka Google-ikkunassa' },
+    signingIn: { title: 'Kirjaudutaanen', text: 'Jatka-ikkunassa' },
   },
   spotify: {
     title: 'Kirjaudu Spotifyhin',
@@ -169,6 +170,28 @@ export const words: Words = {
     sub: 'Valinnainen. Kirjaudu sisään, niin voit kuunnella Apple Musicia rekan näytöllä omilla soittolistoillasi ja kirjastollasi. Kirjaudut Apple Musiciin erillisessä ikkunassa, eikä Cabin Play koskaan näe tiliäsi.',
     finishInWindow: 'Viimeistele kirjautuminen Apple Music-ikkunassa',
     signingIn: { title: 'Kirjaudutaan Apple Musiciin', text: 'Jatka Apple Music-ikkunassa' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Kaikki on valmista',

@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'zh-TW',
@@ -143,15 +143,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: '登入 YouTube',
-    sub: '選用。登入後，你可以在卡車螢幕上看到自己的推薦內容、訂閱內容和觀看記錄。你會在獨立的視窗中登入 Google，Cabin Play 絕不會看到你的帳戶。',
+    title: '登入',
+    sub: '選填。登入後，您可以在卡車畫面上查看自己的內容。登入在單獨的視窗中進行，Cabin Play 不會查看您的帳戶。',
+    services: 'Services',
     signIn: '登入',
     signOut: '登出',
     signedIn: '已登入',
     notSignedIn: '未登入',
-    finishInWindow: '請在 Google 視窗中完成登入',
+    finishInWindow: '請在 視窗中完成登入',
     notNow: '略過',
-    signingIn: { title: '正在登入 YouTube', text: '請在 Google 視窗中繼續' },
+    signingIn: { title: '正在登入', text: '請在 視窗中繼續' },
   },
   spotify: {
     title: '登入 Spotify',
@@ -164,6 +165,28 @@ export const words: Words = {
     sub: '選用。登入後，你可以在卡車螢幕上用自己的播放清單和音樂庫收聽 Apple Music。你會在獨立的視窗中登入 Apple Music，Cabin Play 絕不會看到你的帳戶。',
     finishInWindow: '請在 Apple Music 視窗中完成登入',
     signingIn: { title: '正在登入 Apple Music', text: '請在 Apple Music 視窗中繼續' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: '一切就緒',

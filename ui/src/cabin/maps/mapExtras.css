@@ -15,16 +15,18 @@
   padding: calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
   border-radius: 999px;
   color: #fff;
-  background: rgb(20 22 26 / 0.55);
+  background: rgb(20 22 26 / 0.6);
   font-size: calc(17px * var(--text-scale, 1));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.18);
 }
 
 .appearance-light .map-stops {
   color: #14161a;
-  background: rgb(255 255 255 / 0.78);
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.08);
 }
 
 .map-stop {
@@ -42,10 +44,11 @@
   height: calc(22px * var(--text-scale, 1));
   padding: 0 calc(6px * var(--text-scale, 1));
   border-radius: 999px;
-  background: #0a84ff;
+  background: linear-gradient(135deg, #40a0ff, #0a84ff);
   color: #fff;
   font-size: calc(12px * var(--text-scale, 1));
   font-weight: 700;
+  box-shadow: 0 1px 4px rgb(10 132 255 / 0.3);
 }
 
 .map-stop-time {
@@ -91,14 +94,19 @@
   padding: calc(12px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
   border-radius: calc(20px * var(--text-scale, 1));
   color: #fff;
-  background: rgb(20 22 26 / 0.62);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.28);
+  background: rgb(20 22 26 / 0.68);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.28),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
   animation: map-arrived-in 420ms var(--motion-ease);
 }
 
 .appearance-light .map-arrived {
   color: #14161a;
-  background: rgb(255 255 255 / 0.82);
+  background: rgb(255 255 255 / 0.88);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.5);
 }
 
 .map-arrived-title {
@@ -141,7 +149,8 @@
    chase view back). */
 .map-controls .map-overview.on {
   color: #fff;
-  background: #0a84ff;
+  background: linear-gradient(135deg, #40a0ff, #0a84ff);
+  box-shadow: 0 2px 8px rgb(10 132 255 / 0.35);
 }
 
 /* Destinations' recents heading, with the button that empties them. */
@@ -230,12 +239,53 @@
   inset: 0;
   background: linear-gradient(
     110deg,
-    rgb(120 132 148 / 0.2) 25%,
-    rgb(150 162 178 / 0.32) 37%,
-    rgb(120 132 148 / 0.2) 63%
+    rgb(120 132 148 / 0.15) 25%,
+    rgb(150 162 178 / 0.28) 37%,
+    rgb(120 132 148 / 0.15) 63%
   );
   background-size: 400% 100%;
-  animation: map-warm 1.6s linear infinite;
+  animation: map-warm 1.8s linear infinite;
+}
+
+/* ETA milestone alert: a brief toast that fades in over the map. */
+.eta-alert {
+  position: absolute;
+  top: calc(10px * var(--text-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: calc(8px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(20 22 26 / 0.65);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+  animation: eta-alert-in 300ms var(--motion-ease) both;
+  pointer-events: none;
+}
+
+.appearance-light .eta-alert {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.85);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
+}
+
+@keyframes eta-alert-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Speed limit sign: shows a faint outline when data is unavailable rather than hiding entirely. */
+.speed-limit.unavailable {
+  opacity: 0.35;
 }
 
 @keyframes map-warm {

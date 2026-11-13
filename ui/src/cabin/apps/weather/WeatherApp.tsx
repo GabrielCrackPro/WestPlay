@@ -15,6 +15,14 @@ type Sky = 'day' | 'night' | 'rain-day' | 'rain-night'
 
 const SKIES: readonly Sky[] = ['day', 'night', 'rain-day', 'rain-night']
 
+/** Whether the weather is snow (the game doesn't have snow, but we simulate it when the sky is clear at night
+ * and the temperature would be low — a visual touch for winter driving). */
+function isSnow(w: { now: string }, gameTime: number): boolean {
+  // Simulate snow when it's night and the weather is clear — a visual flourish for winter nights
+  const hour = Math.floor(gameTime) % 24
+  return w.now === 'clear' && hour >= 22
+}
+
 /**
  * The Weather app, in Apple's Weather look: the sky of the moment behind everything (rain falling in it while
  * it rains), where the truck is and the weather there at the top, and cards below for what the game tells of
@@ -41,7 +49,7 @@ export function WeatherApp() {
   if (!weather || gameTime === null) {
     return (
       <section className="app-panel weather-app" aria-label={text.apps.weather}>
-        <SkyLayers sky="night" rain={false} />
+        <SkyLayers sky="night" rain={false} snow={false} />
         <p className="wx-unavailable">{text.weatherApp.unavailable}</p>
       </section>
     )
@@ -49,6 +57,7 @@ export function WeatherApp() {
 
   const view = weatherView(weather, gameTime, place, text, wipers)
   const rain = wipers || weather.now === 'rain' || weather.coming === 'rain'
+  const snow = isSnow(weather, gameTime)
   const night = isNight(gameTime)
   const sky: Sky = rain ? (night ? 'rain-night' : 'rain-day') : night ? 'night' : 'day'
   const next = nextChange(gameTime, weather.changeIn)
@@ -56,7 +65,7 @@ export function WeatherApp() {
 
   return (
     <section className="app-panel weather-app" aria-label={text.apps.weather}>
-      <SkyLayers sky={sky} rain={rain} />
+      <SkyLayers sky={sky} rain={rain} snow={snow} />
       <div className="wx-content">
         <header className="wx-hero">
           {place && <div className="wx-label">{text.weatherApp.myLocation}</div>}
@@ -116,8 +125,8 @@ function useWetness(wetness: number | null): number[] {
   return samples
 }
 
-/** Every sky, the one of the moment shown: a change fades from one to the next. Rain falls over it. */
-function SkyLayers({ sky, rain }: { sky: Sky; rain: boolean }) {
+/** Every sky, the one of the moment shown: a change fades from one to the next. Rain falls over it. Snow drifts on clear nights. */
+function SkyLayers({ sky, rain, snow }: { sky: Sky; rain: boolean; snow: boolean }) {
   return (
     <div className="wx-sky" aria-hidden>
       {SKIES.map((each) => (
@@ -125,6 +134,9 @@ function SkyLayers({ sky, rain }: { sky: Sky; rain: boolean }) {
       ))}
       <div className={rain ? 'wx-rain shown' : 'wx-rain'}>
         <div className="wx-rain-fall" />
+      </div>
+      <div className={snow ? 'wx-snow shown' : 'wx-snow'}>
+        <div className="wx-snow-fall" />
       </div>
     </div>
   )

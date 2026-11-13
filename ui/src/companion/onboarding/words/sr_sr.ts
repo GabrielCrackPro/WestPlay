@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 /** Serbian, in Cyrillic (the game's `sr_sr`; its Latin `sr_sp` is this, transliterated). */
 export const words: Words = {
@@ -150,15 +150,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Пријава на YouTube',
-    sub: 'Опционално. Пријавите се да бисте на екрану камиона видели своје препоруке, праћења и историју. Пријављујете се преко Google-а у засебном прозору, а Cabin Play никада не види ваш налог.',
+    title: 'Пријава на',
+    sub: 'Опционално. Пријавите се да бисте видели свој садржај на екрану камиона. Пријављујете се у засебном прозору, а Cabin Play никада не види ваш налог.',
+    services: 'Services',
     signIn: 'Пријави се',
     signOut: 'Одјави се',
     signedIn: 'Пријављени сте',
     notSignedIn: 'Нисте пријављени',
-    finishInWindow: 'Довршите пријаву у Google прозору',
+    finishInWindow: 'Довршите пријаву у прозору',
     notNow: 'Прескочи',
-    signingIn: { title: 'Пријава на YouTube', text: 'Наставите у Google прозору' },
+    signingIn: { title: 'Пријава на', text: 'Наставите у прозору' },
   },
   spotify: {
     title: 'Пријава на Spotify',
@@ -171,6 +172,28 @@ export const words: Words = {
     sub: 'Опционално. Пријавите се да бисте на екрану камиона слушали Apple Music, са својим плејлистама и библиотеком. На Apple Music се пријављујете у засебном прозору, а Cabin Play никада не види ваш налог.',
     finishInWindow: 'Довршите пријаву у Apple Music прозору',
     signingIn: { title: 'Пријава на Apple Music', text: 'Наставите у Apple Music прозору' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Све је спремно',

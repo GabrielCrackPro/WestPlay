@@ -529,6 +529,16 @@
   pointer-events: none;
 }
 
+/* Subtle overlay gradient at the bottom of the thumbnail for title readability. */
+.yt-cover::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.5));
+  pointer-events: none;
+}
+
 .yt-cover img {
   position: absolute;
   inset: 0;
@@ -621,7 +631,7 @@
   background: rgb(0 0 0 / 0.3);
   backdrop-filter: blur(16px);
   /* A faint rim: the shape still reads over a dark picture. */
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 4px 16px rgb(0 0 0 / 0.2);
 }
 
 .yt-player .yt-round.big {

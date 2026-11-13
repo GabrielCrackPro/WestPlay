@@ -41,14 +41,59 @@ pub struct Settings {
     pub companion: CompanionSettings,
 }
 
-/// The cabin's own session between launches: whether it opens where the last game left it.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// A driver profile: keeps its own settings snapshot.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DriverProfile {
+    pub id: String,
+    pub name: String,
+    /// A profile picture as a data URL (e.g. `data:image/png;base64,…`); empty when none is set.
+    #[serde(default)]
+    pub picture: String,
+}
+
+static PROFILE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+impl Default for DriverProfile {
+    fn default() -> Self {
+        Self {
+            id: format!("profile-{}", PROFILE_COUNTER.fetch_add(1, Ordering::Relaxed)),
+            name: String::new(),
+            picture: String::new(),
+        }
+    }
+}
+
+/// The cabin's own session between launches: whether it opens where the last game left it, and the driver
+/// profiles each with their own settings.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct CabinSettings {
     /// Whether the screen and app the player was in come back at the next launch (the cab page keeps them). Off:
     /// Cabin Play opens on the Dashboard every time.
     #[serde(deserialize_with = "lenient")]
     pub resume: bool,
+    /// Driver profiles: each keeps its own settings.
+    #[serde(deserialize_with = "lenient")]
+    pub profiles: Vec<DriverProfile>,
+    /// The active profile's id.
+    #[serde(deserialize_with = "lenient")]
+    pub current_profile_id: String,
+}
+
+impl CabinSettings {
+    /// Ensure the current profile id is valid. If no profiles exist yet, leave it empty — the onboarding
+    /// will create the first profile.
+    pub fn ensure_default(&mut self) {
+        // If the current profile was removed, fall back to the first available profile
+        if !self.profiles.iter().any(|p| p.id == self.current_profile_id) {
+            if let Some(first) = self.profiles.first() {
+                self.current_profile_id = first.id.clone();
+            } else {
+                self.current_profile_id = String::new();
+            }
+        }
+    }
 }
 
 /// The companion window's own look: the color its chrome lights up with (the Customize picker).
@@ -461,20 +506,9 @@ impl SettingsFile {
 
     /// The saved settings, or the defaults when there are none. A file that can't be read is set aside.
     pub fn load(&self) -> Settings {
-        let json = match std::fs::read_to_string(&self.path) {
-            Ok(json) => json,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Settings::default(),
-            Err(e) => {
-                log!("cannot read {}: {e}", self.path.display());
-                return Settings::default();
-            }
-        };
-        parse(&json).unwrap_or_else(|e| {
-            let aside = self.path.with_extension("json.bad");
-            log!("{} is not valid ({e}); moved to {}", self.path.display(), aside.display());
-            let _ = std::fs::rename(&self.path, aside);
-            Settings::default()
-        })
+        let mut settings = load_settings(&self.path);
+        settings.cabin.ensure_default();
+        settings
     }
 
     /// Writes the settings; a crash midway leaves the previous file intact.
@@ -486,6 +520,23 @@ impl SettingsFile {
         std::fs::write(&partial, to_json(settings))?;
         std::fs::rename(partial, &self.path)
     }
+}
+
+fn load_settings(path: &Path) -> Settings {
+    let json = match std::fs::read_to_string(path) {
+        Ok(json) => json,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Settings::default(),
+        Err(e) => {
+            log!("cannot read {}: {e}", path.display());
+            return Settings::default();
+        }
+    };
+    parse(&json).unwrap_or_else(|e| {
+        let aside = path.with_extension("json.bad");
+        log!("{} is not valid ({e}); moved to {}", path.display(), aside.display());
+        let _ = std::fs::rename(path, aside);
+        Settings::default()
+    })
 }
 
 /// The current settings, shared between the app (which changes them) and the host thread (which applies
@@ -552,7 +603,14 @@ mod tests {
                 custom: true,
             },
             voice: VoiceSettings { enabled: false, wake: true, ..VoiceSettings::default() },
-            cabin: CabinSettings { resume: true },
+            cabin: CabinSettings {
+                resume: true,
+                profiles: vec![
+                    DriverProfile { id: "home".into(), name: "Home".into() },
+                    DriverProfile { id: "work".into(), name: "Work".into() },
+                ],
+                current_profile_id: "work".into(),
+            },
             companion: CompanionSettings { accent: Accent::Gold },
         };
         let json = to_json(&settings);

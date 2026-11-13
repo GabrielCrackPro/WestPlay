@@ -28,6 +28,8 @@ import { useWhatsApp } from '../apps/whatsapp/whatsapp'
 import type { Hole } from '../apps/youtube/youtube'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
+import { ControlCenter } from './ControlCenter'
+import { NowPlayingBar } from './NowPlayingBar'
 
 interface ShellProps {
   /** The current screen, placed in the CarPlay area. */
@@ -174,6 +176,8 @@ export function Shell({ children, overlay, voice = true }: ShellProps) {
           <VolumeHud />
           <Notifications />
           {voice && <VoiceAssistant />}
+          <ControlCenter />
+          <NowPlayingBar />
           {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
           {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>

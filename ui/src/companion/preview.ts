@@ -50,7 +50,7 @@ let settings: Settings = {
   },
   voice: { enabled: true, wake: false, hotkey: { key: 0x20, ctrl: true, shift: true, alt: false } },
   screen: { truckStrip: 'auto' },
-  cabin: { resume: false },
+  cabin: { resume: false, profiles: [], currentProfileId: '' },
   companion: { accent: 'ember' },
   look: { wallpaper: null, iconSet: null, iconStyle: 'auto' },
   graphics: { gpu: null },
@@ -289,6 +289,41 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
       settings = args?.settings as Settings
       emit('settings-changed', settings)
       return later(settings, 60)
+    case 'add_profile': {
+      const name = String(args?.name ?? 'New Profile')
+      const id = `profile-${Date.now()}`
+      const picture = args?.picture ? String(args.picture) : ''
+      settings.cabin.profiles.push({ id, name, picture })
+      emit('settings-changed', settings)
+      return later(settings, 60)
+    }
+    case 'remove_profile': {
+      const id = String(args?.id)
+      settings.cabin.profiles = settings.cabin.profiles.filter((p) => p.id !== id)
+      if (settings.cabin.currentProfileId === id) {
+        settings.cabin.currentProfileId = settings.cabin.profiles[0]?.id ?? ''
+      }
+      emit('settings-changed', settings)
+      return later(settings, 60)
+    }
+    case 'switch_profile': {
+      const id = String(args?.id)
+      if (settings.cabin.profiles.some((p) => p.id === id)) {
+        settings.cabin.currentProfileId = id
+        emit('settings-changed', settings)
+      }
+      return later(settings, 60)
+    }
+    case 'update_profile_picture': {
+      const id = String(args?.id)
+      const picture = String(args?.picture ?? '')
+      const profile = settings.cabin.profiles.find((p) => p.id === id)
+      if (profile) {
+        profile.picture = picture
+        emit('settings-changed', settings)
+      }
+      return later(settings, 60)
+    }
     case 'set_westplay_open':
       westplayOpen = Boolean(args?.open)
       return later(undefined, 200)

@@ -13,7 +13,8 @@ import { type AppIconRole, appIcon, type IconLook } from '../../../shared/icons'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import type { Appearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import { type GpsDuckLead, type MapDetail, useCabin, useLive } from '../../state/store'
+import { type GpsDuckLead, type MapDetail, type ThemePresetId, useCabin, useLive } from '../../state/store'
+import { THEME_PRESET_DEFINITIONS, THEME_PRESETS, DEFAULT_PROFILE } from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
 import { useLanguage, useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
@@ -23,9 +24,12 @@ import {
   ChevronGlyph,
   ClusterGlyph,
   DashboardGlyph,
+  GeneralGlyph,
   HomeGlyph,
   IconsGlyph,
   NowPlayingGlyph,
+  PaletteGlyph,
+  PersonGlyph,
   SoundGlyph,
   UnitsGlyph,
   VoiceGlyph,
@@ -40,6 +44,9 @@ import { ClusterPage } from './clusterPage'
 import { DashboardPage, OverviewPage } from './dashboardPage'
 import { MapDisplayPage, MapMarkersPage, MapRoutePage, MapStopCardPage, MapTrafficPage, MapsPage } from './mapsPages'
 import { useWantedAppearance } from './useWantedAppearance'
+
+/** The app's version, from package.json (Vite replaces it at build time, or we fall back to the literal). */
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '2.1.4'
 
 /**
  * The Settings app, in iOS 26's Settings look: a large title, inset grouped cards, coloured tiles, chevrons
@@ -79,6 +86,8 @@ function PageContent({ page }: { page: SettingsPage }) {
   switch (page) {
     case 'list':
       return <ListPage />
+    case 'general':
+      return <GeneralPage />
     case 'appearance':
       return <AppearancePage />
     case 'wallpaper':
@@ -119,11 +128,170 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <VoicePage />
     case 'textSize':
       return <TextSizePage />
+    case 'themePresets':
+      return <ThemePresetsPage />
+    case 'profiles':
+      return <ProfilesPage />
   }
 }
 
 /** The Settings search field's id (one on screen: the keyboard types into it). */
 const SEARCH_FIELD = 'settings-search'
+
+/**
+ * General: the app's version, and the controls to reset or back up the player's choices.
+ * Reset clears every setting to its default. Export saves a JSON file. Import restores from one.
+ * Storage shows how much localStorage Cabin Play uses and offers to clear the cache.
+ */
+function GeneralPage() {
+  const text = useText()
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [storageBytes, setStorageBytes] = useState<number | null>(null)
+
+  // Estimate localStorage usage on mount
+  useEffect(() => {
+    let bytes = 0
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('westplay')) {
+        bytes += (key ?? '').length + (localStorage.getItem(key) ?? '').length
+      }
+    }
+    setStorageBytes(bytes)
+  }, [])
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const resetAll = () => {
+    // Clear all westplay.* keys from localStorage
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('westplay')) keysToRemove.push(key)
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
+    // Reload the page to restore defaults
+    window.location.reload()
+  }
+
+  const exportSettings = () => {
+    const settings: Record<string, unknown> = {}
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('westplay')) {
+        settings[key] = JSON.parse(localStorage.getItem(key) ?? '{}')
+      }
+    }
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'cabin-play-settings.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importSettings = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        try {
+          const settings = JSON.parse(ev.target?.result as string) as Record<string, unknown>
+          // Clear existing westplay keys
+          const keysToRemove: string[] = []
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+            if (key?.startsWith('westplay')) keysToRemove.push(key)
+          }
+          keysToRemove.forEach((key) => localStorage.removeItem(key))
+          // Write imported settings
+          for (const [key, value] of Object.entries(settings)) {
+            localStorage.setItem(key, JSON.stringify(value))
+          }
+          window.location.reload()
+        } catch {
+          alert('Invalid settings file.')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }
+
+  const clearCache = () => {
+    // Clear cached thumbnails and other caches
+    if (typeof caches !== 'undefined') {
+      caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))))
+    }
+    // Clear the wallpaper thumbnails cache (SettingsApp.tsx)
+    ;(thumbnails as any).clear?.()
+    window.location.reload()
+  }
+
+  return (
+    <Page title={text.settings.general}>
+      <Group>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.version}</span>
+          <span className="settings-value">{APP_VERSION}</span>
+        </div>
+      </Group>
+      <Group footer={text.settings.resetAllSettingsFooter}>
+        {confirmReset ? (
+          <div className="settings-reset-confirm">
+            <button type="button" className="settings-row settings-action" onClick={resetAll}>
+              {text.settings.resetAllSettings}
+            </button>
+            <button type="button" className="settings-row" onClick={() => setConfirmReset(false)}>
+              {text.settings.cancel}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="settings-row" onClick={() => setConfirmReset(true)}>
+            <span className="settings-label">{text.settings.resetAllSettings}</span>
+            <span className="settings-chevron">
+              <ChevronGlyph />
+            </span>
+          </button>
+        )}
+      </Group>
+      <Group footer={text.settings.exportSettingsFooter}>
+        <button type="button" className="settings-row" onClick={exportSettings}>
+          <span className="settings-label">{text.settings.exportSettings}</span>
+          <span className="settings-chevron">
+            <ChevronGlyph />
+          </span>
+        </button>
+      </Group>
+      <Group footer={text.settings.importSettingsFooter}>
+        <button type="button" className="settings-row" onClick={importSettings}>
+          <span className="settings-label">{text.settings.importSettings}</span>
+          <span className="settings-chevron">
+            <ChevronGlyph />
+          </span>
+        </button>
+      </Group>
+      <Group footer={text.settings.clearCacheFooter}>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.storageUsed}</span>
+          <span className="settings-value">{storageBytes !== null ? formatBytes(storageBytes) : '…'}</span>
+        </div>
+        <button type="button" className="settings-row settings-action" onClick={clearCache}>
+          {text.settings.clearCache}
+        </button>
+      </Group>
+    </Page>
+  )
+}
 
 function ListPage() {
   const text = useText()
@@ -198,6 +366,16 @@ function ListPage() {
         <SearchResults results={results} onOpen={openResult} />
       ) : (
         <>
+          {/* General: version, reset, export/import, storage — the first thing a driver reaches for when
+              something feels off. */}
+          <Group header={text.settings.generalSection}>
+            <NavRow
+              tile="var(--apple-gray)"
+              icon={<GeneralGlyph />}
+              label={text.settings.general}
+              onOpen={() => open('general')}
+            />
+          </Group>
           {/* The list in four sections, by the question a driver is asking: how the screen looks, what the truck's
               own displays show, the navigation, and the apps. The cab's displays sit together — the dash, its
               Overview, the cluster — with the units and clock every reading is in, one page of their own rather than
@@ -290,6 +468,25 @@ function ListPage() {
               label={text.settings.voiceAssistant}
               value={voice ? text.diagnostics.on : text.diagnostics.off}
               onOpen={() => open('voice')}
+            />
+          </Group>
+          <Group header={text.settings.customization}>
+            <NavRow
+              tile="var(--apple-purple)"
+              icon={<PaletteGlyph />}
+              label={text.settings.themePresets}
+              onOpen={() => open('themePresets')}
+            />
+            <NavRow
+              tile="var(--apple-indigo)"
+              icon={<PersonGlyph />}
+              label={text.settings.profiles}
+              onOpen={() => open('profiles')}
+            />
+            <SwitchRow
+              label={text.settings.nowPlayingBar}
+              on={useCabin((state) => state.nowPlayingBar)}
+              onToggle={useCabin((state) => state.setNowPlayingBar)}
             />
           </Group>
         </>
@@ -974,6 +1171,163 @@ function EqualizerPage() {
         <button type="button" className="settings-row settings-action" disabled={!custom || flat} onClick={reset}>
           {text.settings.resetEqualizer}
         </button>
+      </Group>
+    </Page>
+  )
+}
+
+/** Theme Presets: pre-built combinations of accent color and appearance mode. */
+function ThemePresetsPage() {
+  const text = useText()
+  const accentColor = useCabin((state) => state.accentColor)
+  const applyPreset = useCabin((state) => state.applyThemePreset)
+  const presetNames: Record<ThemePresetId, string> = {
+    midnight: text.settings.themePresetMidnight,
+    sunrise: text.settings.themePresetSunrise,
+    forest: text.settings.themePresetForest,
+    ocean: text.settings.themePresetOcean,
+    ember: text.settings.themePresetEmber,
+  }
+  return (
+    <Page title={text.settings.themePresets}>
+      <Group footer={text.settings.themePresetsFooter}>
+        {THEME_PRESETS.map((id) => {
+          const def = THEME_PRESET_DEFINITIONS[id]
+          const isActive = def.accentColor === accentColor
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`settings-row theme-preset-row${isActive ? ' active' : ''}`}
+              onClick={() => applyPreset(id)}
+            >
+              <span className="theme-preset-swatch" style={{ background: def.accentColor }} />
+              <span className="settings-label">{presetNames[id]}</span>
+              {isActive && (
+                <span className="settings-check">
+                  <CheckGlyph />
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </Group>
+    </Page>
+  )
+}
+
+/** Profiles: manage driver profiles with their own settings. */
+function ProfilesPage() {
+  const text = useText()
+  const profiles = useCabin((state) => state.profiles)
+  const currentProfileId = useCabin((state) => state.currentProfileId)
+  const addProfile = useCabin((state) => state.addProfile)
+  const removeProfile = useCabin((state) => state.removeProfile)
+  const switchProfile = useCabin((state) => state.switchProfile)
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+
+  const handleAdd = () => {
+    if (name.trim()) {
+      addProfile(name.trim())
+      setName('')
+      setAdding(false)
+    }
+  }
+
+  const ProfileAvatar = ({ profile, size = 36 }: { profile: { name: string; picture?: string }; size?: number }) => {
+    if (profile.picture) {
+      return <img className="settings-profile-pic" src={profile.picture} alt="" style={{ width: size, height: size }} />
+    }
+    return (
+      <span className="settings-profile-avatar" style={{ width: size, height: size, fontSize: size * 0.45 }}>
+        {(profile.name ?? '?')[0]?.toUpperCase() ?? '?'}
+      </span>
+    )
+  }
+
+  return (
+    <Page title={text.settings.profiles}>
+      <Group footer={text.settings.profilesFooter}>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.currentProfile}</span>
+          <span className="settings-value settings-profile-value">
+            {(profiles.find((p) => p.id === currentProfileId) ?? null) ? (
+              <>
+                <ProfileAvatar profile={profiles.find((p) => p.id === currentProfileId)!} size={24} />
+                {profiles.find((p) => p.id === currentProfileId)?.name}
+              </>
+            ) : (
+              DEFAULT_PROFILE.name
+            )}
+          </span>
+        </div>
+        {profiles.map((profile) => {
+          const isCurrent = profile.id === currentProfileId
+          const isDefault = profile.id === 'default'
+          return (
+            <div key={profile.id} className="settings-row profile-row">
+              <button
+                type="button"
+                className={`settings-row${isCurrent ? ' active' : ''}`}
+                onClick={() => switchProfile(profile.id)}
+                style={{ flex: 1 }}
+              >
+                <ProfileAvatar profile={profile} />
+                <span className="settings-label">{profile.name}</span>
+                {isCurrent && (
+                  <span className="settings-check">
+                    <CheckGlyph />
+                  </span>
+                )}
+              </button>
+              {!isDefault && !isCurrent && (
+                <button
+                  type="button"
+                  className="settings-action profile-remove"
+                  onClick={() => removeProfile(profile.id)}
+                  aria-label={text.settings.removeProfile}
+                >
+                  {text.settings.removeProfile}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </Group>
+      <Group footer={text.settings.addProfileFooter}>
+        {adding ? (
+          <div className="settings-row add-profile-row">
+            <input
+              type="text"
+              className="settings-input"
+              placeholder={text.settings.profileNamePlaceholder}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdd()
+                if (e.key === 'Escape') {
+                  setAdding(false)
+                  setName('')
+                }
+              }}
+              autoFocus
+            />
+            <button type="button" className="settings-action" onClick={handleAdd}>
+              {text.settings.save}
+            </button>
+            <button type="button" className="settings-row" onClick={() => { setAdding(false); setName('') }}>
+              {text.settings.cancel}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="settings-row" onClick={() => setAdding(true)}>
+            <span className="settings-label">{text.settings.addProfile}</span>
+            <span className="settings-chevron">
+              <ChevronGlyph />
+            </span>
+          </button>
+        )}
       </Group>
     </Page>
   )

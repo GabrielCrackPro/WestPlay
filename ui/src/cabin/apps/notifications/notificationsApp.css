@@ -91,8 +91,9 @@
 }
 
 .notes-filter.on {
-  background: var(--apple-fill-secondary);
+  background: linear-gradient(135deg, var(--apple-fill-secondary), color-mix(in srgb, var(--apple-fill-secondary) 85%, var(--apple-label)));
   color: var(--apple-label);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1);
 }
 
 /* A filter with none of its tone in the list. */
@@ -130,6 +131,18 @@
 
 .notes-count.warn .notes-count-value {
   color: var(--apple-orange);
+}
+
+/* Priority level indicator: a subtle dot next to the count value for critical items. */
+.notes-count.alarm .notes-count-value::before {
+  content: '';
+  display: inline-block;
+  width: calc(6px * var(--text-scale, 1));
+  height: calc(6px * var(--text-scale, 1));
+  margin-right: calc(4px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: var(--apple-red);
+  vertical-align: middle;
 }
 
 /* The bin that empties the history: red, no word. */
@@ -180,6 +193,14 @@
   min-height: calc(82px * var(--text-scale, 1));
   padding: calc(12px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1));
   text-align: left;
+  animation: notes-row-in 280ms var(--motion-ease) both;
+}
+
+@keyframes notes-row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
 }
 
 .notes-row.link {
@@ -277,6 +298,17 @@
 
 .notes-item.alarm .notes-tone {
   color: var(--apple-red);
+}
+
+/* Color-coded left border accent on notification rows. */
+.notes-item.alarm .notes-row {
+  border-left: calc(3px * var(--text-scale, 1)) solid var(--apple-red);
+  padding-left: calc(19px * var(--text-scale, 1));
+}
+
+.notes-item.warn .notes-row {
+  border-left: calc(3px * var(--text-scale, 1)) solid var(--apple-orange);
+  padding-left: calc(19px * var(--text-scale, 1));
 }
 
 /* Nothing shown yet: the bell, and when notes come. */

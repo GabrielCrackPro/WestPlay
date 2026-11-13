@@ -32,6 +32,14 @@ export function accentOf(id: AccentId | undefined): Accent {
   return (id ? ACCENT_BY_ID[id] : undefined) ?? ACCENT_BY_ID[DEFAULT_ACCENT]
 }
 
+/** A driver profile: keeps its own settings snapshot. */
+export interface DriverProfile {
+  id: string
+  name: string
+  /** A profile picture as a data URL; empty when none is set. */
+  picture?: string
+}
+
 /** The player's settings. Mirrors `westplay_host::settings::Settings`; the app owns and saves them. */
 export interface Settings {
   interaction: {
@@ -58,6 +66,10 @@ export interface Settings {
   cabin: {
     /** Whether the screen and app the player was in come back at the next launch; off, the Dashboard every time. */
     resume: boolean
+    /** Driver profiles: each keeps its own settings. */
+    profiles: DriverProfile[]
+    /** The active profile's id. */
+    currentProfileId: string
   }
   /** The companion's own look: the color its chrome lights up with. */
   companion: {

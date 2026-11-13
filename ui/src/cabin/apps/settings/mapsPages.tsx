@@ -5,12 +5,14 @@ import {
   MAP_PIN_STYLES,
   MAP_ROUTE_COLOURS,
   MAP_ROUTE_WEIGHTS,
+  MAP_STYLES,
   MAP_TRAFFIC_AROUND,
   type MapMarker,
   type MapMarkerSize,
   type MapPinStyle,
   type MapRouteColour,
   type MapRouteWeight,
+  type MapStyle,
 } from '../../maps/routeLook'
 import { STOP_CARD_FUEL_LEVELS, STOP_CARD_REST_MINUTES } from '../../maps/nearbyStop'
 import { MAP_DETAILS, MAP_RECENTRES, type MapDetail, useCabin } from '../../state/store'
@@ -22,6 +24,11 @@ import { useSettings } from './settings'
 
 /** The words the map's settings read from (the text store's). */
 type Words = ReturnType<typeof useText>
+
+function mapStyleNames(text: Words): Record<MapStyle, string> {
+  const words = text.destinations
+  return { standard: words.mapStyleStandard, satellite: words.mapStyleSatellite, terrain: words.mapStyleTerrain }
+}
 
 /** The map's words for each choice: they live across the app's own words and the destinations'. */
 function detailNames(text: Words): Record<MapDetail, string> {
@@ -124,6 +131,8 @@ export function MapDisplayPage() {
   const words = text.destinations
   const detail = useCabin((state) => state.mapDetail)
   const setDetail = useCabin((state) => state.setMapDetail)
+  const style = useCabin((state) => state.mapStyle)
+  const setStyle = useCabin((state) => state.setMapStyle)
   const night = useCabin((state) => state.mapNight)
   const setNight = useCabin((state) => state.setMapNight)
   const nightStart = useCabin((state) => state.mapNightStart)
@@ -141,6 +150,7 @@ export function MapDisplayPage() {
   const recentre = useCabin((state) => state.mapRecentre)
   const setRecentre = useCabin((state) => state.setMapRecentre)
   const details = detailNames(text)
+  const styles = mapStyleNames(text)
   return (
     <Page title={text.settings.mapsDisplay}>
       <ChoiceRows
@@ -149,6 +159,13 @@ export function MapDisplayPage() {
         options={MAP_DETAILS.map((each) => ({ id: each, label: details[each] }))}
         value={detail}
         onPick={setDetail}
+      />
+      <ChoiceRows
+        header={words.mapStyle}
+        radio={words.mapStyle}
+        options={MAP_STYLES.map((each) => ({ id: each, label: styles[each] }))}
+        value={style}
+        onPick={setStyle}
       />
       {/* The night switch and the hour it starts at, side by side on the page: the choice under the switch is that
           switch's own, so the pair reads as one thing rather than two. */}

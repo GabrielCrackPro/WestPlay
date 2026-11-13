@@ -1,4 +1,4 @@
-import type { Words } from '.'
+﻿import type { Words } from '.'
 
 export const words: Words = {
   locale: 'el-GR',
@@ -149,15 +149,16 @@ export const words: Words = {
     ctrl: 'Ctrl',
   },
   accounts: {
-    title: 'Σύνδεση στο YouTube',
-    sub: 'Προαιρετικό. Συνδέσου για να βλέπεις τις προτάσεις, τις εγγραφές και το ιστορικό σου στην οθόνη του φορτηγού. Συνδέεσαι με το Google σε ξεχωριστό παράθυρο και το Cabin Play δεν βλέπει ποτέ τον λογαριασμό σου.',
+    title: 'Σύνδεση στο',
+    sub: 'Προαιρετικό. Συνδέσου για να βλέπεις τα δικά σου περιεχόμενα στην οθόνη του φορτηγού. Συνδέεσαι σε ξεχωριστό παράθυρο και το Cabin Play δεν βλέπει ποτέ τον λογαριασμό σου.',
+    services: 'Services',
     signIn: 'Σύνδεση',
     signOut: 'Αποσύνδεση',
     signedIn: 'Συνδεδεμένος',
     notSignedIn: 'Μη συνδεδεμένος',
-    finishInWindow: 'Ολοκλήρωσε τη σύνδεση στο παράθυρο του Google',
+    finishInWindow: 'Ολοκλήρωσε τη σύνδεση στο παράθυρο του',
     notNow: 'Παράλειψη',
-    signingIn: { title: 'Σύνδεση στο YouTube', text: 'Συνέχισε στο παράθυρο του Google' },
+    signingIn: { title: 'Σύνδεση στο', text: 'Συνέχισε στο παράθυρο του' },
   },
   spotify: {
     title: 'Σύνδεση στο Spotify',
@@ -170,6 +171,28 @@ export const words: Words = {
     sub: 'Προαιρετικό. Συνδέσου για να ακούς Apple Music στην οθόνη του φορτηγού, με τις δικές σου λίστες και τη βιβλιοθήκη σου. Συνδέεσαι στο Apple Music σε ξεχωριστό παράθυρο και το Cabin Play δεν βλέπει ποτέ τον λογαριασμό σου.',
     finishInWindow: 'Ολοκλήρωσε τη σύνδεση στο παράθυρο του Apple Music',
     signingIn: { title: 'Σύνδεση στο Apple Music', text: 'Συνέχισε στο παράθυρο του Apple Music' },
+  },
+  profile: {
+    title: 'Your profile',
+    sub: 'Each driver profile keeps its own settings.',
+    namePlaceholder: 'Your name',
+    create: 'Create Profile',
+    skip: 'Skip for now',
+    tooShort: 'Please enter a name',
+    required: 'Your profile name is needed to continue',
+    uploadPhoto: 'Upload photo',
+    changePhoto: 'Change photo',
+        clickPhoto: 'Click to add a photo',
+    done: 'Profile created',
+  },
+  phone: {
+    title: 'Connect your phone',
+    sub: "Optional. Connect Cabin Play Bridge on your phone to control the truck's screen from your pocket.",
+    connected: 'Connected',
+    waiting: 'Waiting for phone',
+    scan: 'Open Cabin Play Bridge and scan the code to connect.',
+    noDoor: 'No network connection available to pair a phone.',
+    skip: 'Skip',
   },
   launch: {
     title: 'Όλα είναι έτοιμα',
