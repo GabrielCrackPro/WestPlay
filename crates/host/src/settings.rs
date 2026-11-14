@@ -50,6 +50,9 @@ pub struct DriverProfile {
     /// A profile picture as a data URL (e.g. `data:image/png;base64,…`); empty when none is set.
     #[serde(default)]
     pub picture: String,
+    /// Cabin settings snapshot as JSON, stored when the profile is switched away from.
+    #[serde(default)]
+    pub settings_snapshot: Option<serde_json::Value>,
 }
 
 static PROFILE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -60,6 +63,7 @@ impl Default for DriverProfile {
             id: format!("profile-{}", PROFILE_COUNTER.fetch_add(1, Ordering::Relaxed)),
             name: String::new(),
             picture: String::new(),
+            settings_snapshot: None,
         }
     }
 }
@@ -256,8 +260,8 @@ pub struct InteractionSettings {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum InteractionMode {
-    #[default]
     Hold,
+    #[default]
     Toggle,
 }
 
@@ -412,8 +416,8 @@ pub struct ScreenSettings {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TruckStrip {
-    #[default]
     Auto,
+    #[default]
     Off,
 }
 
@@ -606,8 +610,8 @@ mod tests {
             cabin: CabinSettings {
                 resume: true,
                 profiles: vec![
-                    DriverProfile { id: "home".into(), name: "Home".into(), picture: String::new() },
-                    DriverProfile { id: "work".into(), name: "Work".into(), picture: String::new() },
+                    DriverProfile { id: "home".into(), name: "Home".into(), picture: String::new(), settings_snapshot: None },
+                    DriverProfile { id: "work".into(), name: "Work".into(), picture: String::new(), settings_snapshot: Some(serde_json::json!({"accentColor": "#ff0000"})) },
                 ],
                 current_profile_id: "work".into(),
             },
@@ -629,7 +633,7 @@ mod tests {
         assert_eq!(parse(r#"{"version": 1}"#).unwrap(), Settings::default());
         let partial = parse(r#"{"version": 1, "interaction": {"sensitivity": 2.0}}"#).unwrap();
         assert_eq!(partial.interaction.key, KeyCode::LEFT_ALT);
-        assert_eq!(partial.interaction.mode, InteractionMode::Hold);
+        assert_eq!(partial.interaction.mode, InteractionMode::Toggle);
         assert_eq!(partial.interaction.sensitivity.get(), 2.0);
         // From before the keybinds: the interaction key with 1 (down), 2 (play/pause) and 3 (up).
         assert_eq!(partial.keybinds, Keybinds::default());
@@ -638,8 +642,8 @@ mod tests {
             [partial.keybinds.volume_down, partial.keybinds.play_pause, partial.keybinds.volume_up],
             [with_key(0x31), with_key(0x32), with_key(0x33)]
         );
-        // Files from before the truck strip was a setting keep it on Auto.
-        assert_eq!(partial.screen.truck_strip, TruckStrip::Auto);
+        // Files from before the truck strip was a setting keep it off by default.
+        assert_eq!(partial.screen.truck_strip, TruckStrip::Off);
         // And from before the GPU was: WestPlay picks it.
         assert_eq!(partial.graphics.gpu, None);
         // The voice assistant is on for a file from before it was a setting, listening for Ctrl+Shift+Space;
@@ -665,7 +669,7 @@ mod tests {
         assert_eq!(settings.interaction.key.virtual_key(), 0xa3);
         assert_eq!(settings.interaction.sensitivity, Sensitivity::default());
         let settings = parse(r#"{"screen": {"truckStrip": "sideways"}, "interaction": {"key": "rightCtrl"}}"#).unwrap();
-        assert_eq!(settings.screen.truck_strip, TruckStrip::Auto);
+        assert_eq!(settings.screen.truck_strip, TruckStrip::Off);
         assert_eq!(settings.interaction.key.virtual_key(), 0xa3);
         // A key no keyboard has, and a binding missing its key: their defaults.
         let settings =

@@ -154,10 +154,15 @@ fn update_settings(settings: Settings, store: State<SettingsStore>, app: AppHand
 
 /// Adds a driver profile. Returns the updated settings.
 #[tauri::command]
-fn add_profile(name: String, picture: Option<String>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+fn add_profile(name: String, picture: Option<String>, settings_snapshot: Option<serde_json::Value>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
     let mut settings = store.shared.get();
     let id = format!("profile-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
-    settings.cabin.profiles.push(DriverProfile { id: id.clone(), name: name.trim().to_string(), picture: picture.unwrap_or_default() });
+    settings.cabin.profiles.push(DriverProfile { 
+        id: id.clone(), 
+        name: name.trim().to_string(), 
+        picture: picture.unwrap_or_default(),
+        settings_snapshot,
+    });
     settings.cabin.ensure_default();
     store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
     store.shared.set(settings.clone());
@@ -177,10 +182,18 @@ fn remove_profile(id: String, store: State<SettingsStore>, app: AppHandle) -> Re
     Ok(settings)
 }
 
-/// Switches the active driver profile. Returns the updated settings.
+/// Switches the active driver profile. Saves the current profile's cabin snapshot and loads the new one.
+/// Returns the updated settings.
 #[tauri::command]
-fn switch_profile(id: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+fn switch_profile(id: String, current_snapshot: Option<serde_json::Value>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
     let mut settings = store.shared.get();
+    // Save the current profile's snapshot before switching
+    let old_id = settings.cabin.current_profile_id.clone();
+    if !old_id.is_empty() {
+        if let Some(profile) = settings.cabin.profiles.iter_mut().find(|p| p.id == old_id) {
+            profile.settings_snapshot = current_snapshot;
+        }
+    }
     if settings.cabin.profiles.iter().any(|p| p.id == id) {
         settings.cabin.current_profile_id = id;
         store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;

@@ -1,5 +1,5 @@
 import { call } from '../bridge'
-import { Button, Group, Note, Panel, Row } from '../room/parts'
+import { Button, Group, Note, Panel, Row, Tick } from '../room/parts'
 import { type Settings, useSettings } from '../useSettings'
 import { SectionGlyph } from './glyphs'
 import { type CompanionWords } from './words'
@@ -28,6 +28,84 @@ function readPicture(file: File): Promise<string> {
   })
 }
 
+function RemoveGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M8 8l8 8M16 8l-8 8" />
+    </svg>
+  )
+}
+
+function CameraGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+  )
+}
+
+/** A single profile card: avatar (clickable for photo), name, current badge, and remove button. */
+function ProfileCard({
+  profile,
+  isCurrent,
+  onSwitch,
+  onPhoto,
+  onRemove,
+  cw,
+}: {
+  profile: { id: string; name: string; picture?: string }
+  isCurrent: boolean
+  onSwitch: () => void
+  onPhoto: () => void
+  onRemove: () => void
+  cw: CompanionWords
+}) {
+  return (
+    <div className="cp-profile-card" data-current={isCurrent || undefined}>
+      <button type="button" className="cp-profile-card-switch" onClick={onSwitch} aria-pressed={isCurrent}>
+        <label className="cp-profile-card-avatar-wrap" onClick={(e) => {
+          e.stopPropagation()
+          onPhoto()
+        }}>
+          <div className="cp-profile-card-avatar">
+            {profile.picture ? (
+              <img className="cp-profile-card-pic" src={profile.picture} alt="" />
+            ) : (
+              <span className="cp-profile-card-initial">
+                {(profile.name ?? '?')[0]?.toUpperCase() ?? '?'}
+              </span>
+            )}
+            {isCurrent && <span className="cp-profile-card-ring" />}
+            <span className="cp-profile-card-camera">
+              <CameraGlyph />
+            </span>
+          </div>
+        </label>
+        <div className="cp-profile-card-info">
+          <span className="cp-profile-card-name">{profile.name}</span>
+          {isCurrent ? (
+            <span className="cp-profile-card-badge">
+              <i className="cp-profile-card-check" />
+              {cw.profiles.current}
+            </span>
+          ) : (
+            <span className="cp-profile-card-hint">{cw.profiles.switch}</span>
+          )}
+        </div>
+        {isCurrent && <Tick done />}
+      </button>
+      <div className="cp-profile-card-actions">
+        {!isCurrent && (
+          <Button small glass danger onClick={onRemove}>
+            <RemoveGlyph />
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /** The profiles page: manage driver profiles with their own settings. */
 export function ProfilesPage({ cw }: { cw: CompanionWords }) {
   const { settings, update, error } = useSettings()
@@ -35,6 +113,7 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
   const [name, setName] = useState('')
   const [picture, setPicture] = useState<string>('')
   const [editingPicId, setEditingPicId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const addFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -46,7 +125,7 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
   const handleAdd = async () => {
     if (!name.trim()) return
     try {
-      const updated = await call<Settings>('add_profile', { name: name.trim(), picture })
+      const updated = await call<Settings>('add_profile', { name: name.trim(), picture, settingsSnapshot: null })
       update(updated)
       setName('')
       setPicture('')
@@ -56,9 +135,17 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
 
   const handleSwitch = async (id: string) => {
     try {
-      const updated = await call<Settings>('switch_profile', { id })
+      const updated = await call<Settings>('switch_profile', { id, currentSnapshot: null })
       update(updated)
     } catch { /* settings-changed event will update */ }
+  }
+
+  const handleRemove = async (id: string) => {
+    try {
+      const updated = await call<Settings>('remove_profile', { id })
+      update(updated)
+    } catch { /* settings-changed event will update */ }
+    setRemovingId(null)
   }
 
   const handleUpdatePicture = async (id: string, pic: string) => {
@@ -75,27 +162,44 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
     <Panel place="page" title={cw.profiles.title} sub={cw.profiles.sub} icon={<SectionGlyph id="profiles" />}>
       {error && <Note tone="bad">{error}</Note>}
 
-      <Group place={4}>
-        {profiles.length === 0 && (
-          <Row title={cw.profiles.currentProfile} value={cw.profiles.noProfile} />
-        )}
-        {profiles.length > 0 && (
+      {profiles.length > 0 && (
+        <Group place={4}>
           <Row title={cw.profiles.currentProfile} value={currentProfile?.name} />
+        </Group>
+      )}
+
+      <Group place={5}>
+        {profiles.length === 0 && (
+          <div className="cp-profiles-empty">
+            <span className="cp-profiles-empty-icon" aria-hidden>+</span>
+            <span>{cw.profiles.noProfilesYet}</span>
+          </div>
         )}
-        {profiles.map((profile) => {
-          const isCurrent = profile.id === currentId
-          const isEditing = editingPicId === profile.id
-          return (
-            <div key={profile.id} className="cp-profile-row">
-              <label
-                className="cp-profile-pic-btn"
-                onClick={() => !isCurrent && handleSwitch(profile.id)}
-              >
-                {profile.picture ? (
-                  <img className="cp-profile-pic" src={profile.picture} alt="" />
-                ) : (
-                  <span className="cp-profile-avatar">{(profile.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
-                )}
+        <div className="cp-profile-grid">
+          {profiles.map((profile) => {
+            const isCurrent = profile.id === currentId
+            const isEditing = editingPicId === profile.id
+            const isRemoving = removingId === profile.id
+            return (
+              <div key={profile.id} className="cp-profile-grid-item">
+                <ProfileCard
+                  profile={profile}
+                  isCurrent={isCurrent}
+                  onSwitch={() => !isCurrent && handleSwitch(profile.id)}
+                  onPhoto={() => {
+                    setEditingPicId(profile.id)
+                    window.setTimeout(() => fileInputRef.current?.click(), 50)
+                  }}
+                  onRemove={() => {
+                    if (isRemoving) {
+                      handleRemove(profile.id)
+                    } else {
+                      setRemovingId(profile.id)
+                      window.setTimeout(() => setRemovingId(null), 3000)
+                    }
+                  }}
+                  cw={cw}
+                />
                 <input
                   ref={isEditing ? fileInputRef : null}
                   type="file"
@@ -109,49 +213,24 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
                     }
                   }}
                 />
-              </label>
-              <span className="cp-profile-row-name">
-                <span onClick={() => !isCurrent && handleSwitch(profile.id)}>{profile.name}</span>
-                {isCurrent && <span className="cp-profile-row-current">{cw.profiles.current}</span>}
-              </span>
-              <Button
-                small
-                glass
-                onClick={() => {
-                  setEditingPicId(profile.id)
-                  window.setTimeout(() => fileInputRef.current?.click(), 50)
-                }}
-              >
-                {cw.profiles.photo}
-              </Button>
-            </div>
-          )
-        })}
+              </div>
+            )
+          })}
+        </div>
       </Group>
 
-      <Group place={5}>
+      <Group place={6}>
         {adding ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="cp-add-profile">
+            <div className="cp-add-profile-row">
               <label
-                style={{
-                  display: 'grid',
-                  width: 40,
-                  height: 40,
-                  placeItems: 'center',
-                  borderRadius: '50%',
-                  border: '2px dashed rgb(255 255 255 / 0.2)',
-                  background: 'var(--fill)',
-                  cursor: 'pointer',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
+                className="cp-add-profile-pic"
                 onClick={() => addFileInputRef.current?.click()}
               >
                 {picture ? (
-                  <img style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={picture} alt="" />
+                  <img className="cp-add-profile-pic-img" src={picture} alt="" />
                 ) : (
-                  <span style={{ color: 'var(--text-faint)', fontSize: 18 }}>+</span>
+                  <span aria-hidden>+</span>
                 )}
                 <input
                   ref={addFileInputRef}
@@ -175,19 +254,22 @@ export function ProfilesPage({ cw }: { cw: CompanionWords }) {
                   if (e.key === 'Escape') { setAdding(false); setName(''); setPicture('') }
                 }}
                 autoFocus
-                style={{ flex: 1 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button small onClick={handleAdd} disabled={!name.trim()}>{cw.profiles.save}</Button>
-              <Button glass small onClick={() => { setAdding(false); setName(''); setPicture('') }}>{cw.profiles.cancel}</Button>
+            <div className="cp-add-profile-buttons">
+              <Button small onClick={handleAdd} disabled={!name.trim()}>
+                {cw.profiles.save}
+              </Button>
+              <Button glass small onClick={() => { setAdding(false); setName(''); setPicture('') }}>
+                {cw.profiles.cancel}
+              </Button>
             </div>
           </div>
         ) : (
           <Row title={cw.profiles.addProfile} link onClick={() => setAdding(true)} />
         )}
       </Group>
-      <Note>{cw.profiles.addProfileFooter}</Note>
+      <Note tone="calm">{cw.profiles.addProfileFooter}</Note>
     </Panel>
   )
 }

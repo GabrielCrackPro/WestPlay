@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Сметки',
     sub: 'Најавете се за да ги имате вашата музика и видеа на екранот на камионот. На секоја услуга се најавувате во нејзиниот сопствен прозорец, а Cabin Play никогаш не ја гледа вашата сметка.',
+    noAccountsYet: 'Сè уште не сте се пријавиле во ниедна услуга',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'втора икона за истата апликација',
       unreadable: 'не може да се прочита',
     },
+    noWallpapersYet: 'Сè уште нема прилагодени позадини',
+    noIconsYet: 'Сè уште нема прилагодени сетови икони',
   },
   profiles: {
     title: 'Profiles',

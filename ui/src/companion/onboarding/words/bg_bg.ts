@@ -146,6 +146,8 @@ export const words: Words = {
     },
     alt: 'Alt',
     ctrl: 'Ctrl',
+    keyTitle: 'Изберете клавиш за взаимодействие',
+    selected: 'Избран',
   },
   accounts: {
     title: 'Вход',

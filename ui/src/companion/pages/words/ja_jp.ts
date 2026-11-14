@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'アカウント',
     sub: 'ログインすると、あなたの音楽や動画をトラックの画面で楽しめます。各サービスへのログインはそれぞれのウィンドウで行い、Cabin Play があなたのアカウントを見ることはありません。',
+    noAccountsYet: 'まだサービスにサインインしていません',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: '同じアプリの 2 つ目のアイコン',
       unreadable: '読み込めませんでした',
     },
+    noWallpapersYet: 'カスタム壁紙はまだありません',
+    noIconsYet: 'カスタムアイコンセットはまだありません',
   },
   profiles: {
     title: 'Profiles',

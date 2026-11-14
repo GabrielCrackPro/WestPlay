@@ -122,6 +122,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Kontod',
     sub: 'Logi sisse, et saada veoki ekraanile oma muusika ja videod. Logid igasse teenusesse sisse selle enda aknas ja Cabin Play ei näe kunagi sinu kontot.',
+    noAccountsYet: 'Te pole veel ühtegi teenust sisse loginud',
   },
   map: {
     titles: {
@@ -296,6 +297,8 @@ export const words: CompanionWords = {
       twice: 'teine ikoon sama rakenduse jaoks',
       unreadable: 'ei saanud lugeda',
     },
+    noWallpapersYet: 'Kohandatud taustapilte pole veel',
+    noIconsYet: 'Kohandatud ikoonide komplekte pole veel',
   },
   profiles: {
     title: 'Profiles',

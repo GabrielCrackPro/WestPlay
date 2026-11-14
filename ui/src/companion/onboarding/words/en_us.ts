@@ -146,6 +146,8 @@ export const words: Words = {
     },
     alt: 'Alt',
     ctrl: 'Ctrl',
+    keyTitle: 'Choose interaction key',
+    selected: 'Selected',
   },
   accounts: {
     title: 'Sign in',

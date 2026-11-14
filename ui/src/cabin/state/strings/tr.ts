@@ -743,6 +743,8 @@ export const TURKISH_STRINGS: Strings = {
       'Seçili profili ve tüm ayarlarını siler. Bu işlem geri alınamaz.',
     profileName: 'Profil adı',
     profileNamePlaceholder: 'örn. Sürücü 2',
+    manageProfilesHint:
+      'Profil eklemek veya kaldırmak için eşlikçi penceresini açın ve Ayarlar → Profiller bölümüne gidin.',
     controlCenter: 'Kontrol Merkezi',
     quickAccess: 'Hızlı Erişim',
     doNotDisturb: 'Rahatsız Etme',

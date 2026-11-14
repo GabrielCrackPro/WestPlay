@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { type SignedIn, useAskOnce, useSignedIn } from './accounts'
 import { appVersion, call, PREVIEW_TUTORIAL } from './bridge'
 import { Onboarding } from './onboarding/Onboarding'
@@ -124,7 +124,7 @@ function Room({
   const [arrivedPose, setArrivedPose] = useState(false)
   const pose: Pose = arrivedPose ? POSE[phase] : 'dive'
   const interactionKey = settings.settings?.interaction.key ?? DEFAULT_KEY
-  const held = useHeldKey(interactionKey, settings.settings?.interaction.mode ?? 'hold', phase === 'lesson')
+  const held = useHeldKey(interactionKey, settings.settings?.interaction.mode ?? 'toggle', phase === 'lesson')
   const demo = useDemo()
   const [powered, setPowered] = useState(false)
   const [banner, setBanner] = useState<Banner | null>(null)
@@ -387,7 +387,7 @@ function SectionList({
     if (row) setLit({ top: row.offsetTop, height: row.offsetHeight })
   }, [section])
 
-  const value: Record<Section, string> = {
+  const value = useMemo<Record<Section, string>>(() => ({
     screen:
       state === 'live'
         ? cw.values.on
@@ -412,7 +412,7 @@ function SectionList({
     profiles: '',
     setup: setup.game?.version ?? '',
     about: version,
-  }
+  }), [state, cw.values.on, cw.values.off, cw.values.waiting, cw.screen.screenUnsupported, keyName, signedIn.youtube, signedIn.spotify, signedIn.appleMusic, cw.values.none, mapValue(status, mapProgress, cw, words), status?.phone?.connected, status?.phone?.device?.name, cw.phone.connected, setup.game?.version, version])
 
   let place = 2
   return (
@@ -422,7 +422,7 @@ function SectionList({
       <header className="cp-brand ob-in" style={n(0)}>
         <img src="/cabinplay.png" alt="" />
         <b>Cabin Play</b>
-        <span className="cp-state" data-state={state}>
+        <span className="cp-state" data-state={state} aria-live="polite">
           <i />
           {cw.state[state]}
         </span>
@@ -495,19 +495,59 @@ function useVersion(): string {
   return version
 }
 
-/** The current profile at the top of the sidebar: shows the profile picture and name, and opens a dropdown
- * to switch profiles. */
+/** A sidebar row that shows the current profile and opens a dropdown to switch profiles. */
 function ProfileSelector({ settings, switchProfile }: { settings: SettingsState; switchProfile(id: string): void }) {
   const profiles = settings.settings?.cabin.profiles ?? []
   const currentId = settings.settings?.cabin.currentProfileId ?? ''
   const current = profiles.find((p) => p.id === currentId)
   const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   if (profiles.length === 0) return null
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        setOpen(true)
+      }
+      return
+    }
+    const options = dropdownRef.current?.querySelectorAll<HTMLButtonElement>('.cp-profile-option')
+    if (!options || options.length === 0) return
+    const active = dropdownRef.current?.querySelector<HTMLButtonElement>('.cp-profile-option:focus')
+    const idx = active ? Array.from(options).indexOf(active) : -1
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        options[(idx + 1) % options.length]?.focus()
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        options[(idx - 1 + options.length) % options.length]?.focus()
+        break
+      case 'Escape':
+        e.preventDefault()
+        setOpen(false)
+        ;(e.target as HTMLElement).closest<HTMLButtonElement>('.cp-profile-btn')?.focus()
+        break
+      case 'Tab':
+        setOpen(false)
+        break
+    }
+  }
+
   return (
     <div className="cp-profile-selector" data-open={open ? '' : undefined}>
-      <button type="button" className="cp-profile-btn" onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className="cp-profile-btn"
+        onClick={() => setOpen(!open)}
+        onKeyDown={handleKeyDown}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
         {current?.picture ? (
           <img className="cp-profile-pic" src={current.picture} alt="" />
         ) : (
@@ -516,11 +556,13 @@ function ProfileSelector({ settings, switchProfile }: { settings: SettingsState;
         <span className="cp-profile-name">{current?.name ?? ''}</span>
       </button>
       {open && (
-        <div className="cp-profile-dropdown">
+        <div className="cp-profile-dropdown" ref={dropdownRef} role="listbox" aria-label="Profiles">
           {profiles.map((p) => (
             <button
               key={p.id}
               type="button"
+              role="option"
+              aria-selected={p.id === currentId}
               className={`cp-profile-option${p.id === currentId ? ' active' : ''}`}
               onClick={() => {
                 switchProfile(p.id)
@@ -532,7 +574,7 @@ function ProfileSelector({ settings, switchProfile }: { settings: SettingsState;
               ) : (
                 <span className="cp-profile-avatar">{(p.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
               )}
-              <span className="cp-profile-name">{p.name}</span>
+              <span className="cp-profile-option-name">{p.name}</span>
               {p.id === currentId && <span className="cp-profile-check">✓</span>}
             </button>
           ))}

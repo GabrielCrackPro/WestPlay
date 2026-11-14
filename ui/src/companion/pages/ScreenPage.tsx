@@ -106,7 +106,7 @@ function ConnectionPath({
         state === 'unsupported'
           ? w.screenUnsupported
           : status?.screenDrawing
-            ? w.screenLive.replace('{fps}', String(fps))
+            ? w.screenLive.replace('{fps}', new Intl.NumberFormat(navigator.language).format(fps))
             : w.screenNotInView,
       tone: state === 'unsupported' ? 'idle' : status?.screenDrawing ? 'good' : status?.gameConnected ? 'busy' : 'idle',
     },
@@ -149,7 +149,7 @@ function ConnectionPath({
           <b>{cw.state[state]}</b>
           {state === 'live' ? (
             <span className="cp-link-hero-stats">
-              <span>{w.screenLive.replace('{fps}', String(fps))}</span>
+              <span>{w.screenLive.replace('{fps}', new Intl.NumberFormat(navigator.language).format(fps))}</span>
               {dropped > 0 && (
                 <span>
                   {dropped} {cw.about.dropped}

@@ -147,6 +147,10 @@ export interface Words {
     /** The keys' own labels, as on the language's keyboards. */
     alt: string
     ctrl: string
+    /** Accessibility label for the key chooser radiogroup. */
+    keyTitle?: string
+    /** Accessibility suffix for the selected key. */
+    selected?: string
   }
   accounts: {
     title: string

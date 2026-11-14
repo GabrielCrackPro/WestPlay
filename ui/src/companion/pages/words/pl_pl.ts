@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Konta',
     sub: 'Zaloguj się, aby mieć swoją muzykę i filmy na ekranie ciężarówki. Do każdej usługi logujesz się w jej własnym oknie, a Cabin Play nigdy nie widzi twojego konta.',
+    noAccountsYet: 'Nie jesteś jeszcze zalogowany do żadnej usługi',
   },
   map: {
     titles: {
@@ -299,6 +300,8 @@ export const words: CompanionWords = {
       twice: 'druga ikona tej samej aplikacji',
       unreadable: 'nie można odczytać',
     },
+    noWallpapersYet: 'Brak niestandardowych tapet',
+    noIconsYet: 'Brak niestandardowych zestawów ikon',
   },
   profiles: {
     title: 'Profiles',

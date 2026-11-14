@@ -124,6 +124,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Kontuak',
     sub: 'Hasi saioa zure musika eta bideoak kamioiaren pantailan izateko. Zerbitzu bakoitzean bere leihoan hasten duzu saioa, eta Cabin Play-k ez du inoiz zure kontua ikusten.',
+    noAccountsYet: 'Oraindik ez duzu zerbitzarik hasi',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'aplikazio bererako bigarren ikonoa',
       unreadable: 'ezin izan da irakurri',
     },
+    noWallpapersYet: 'Oraindik ez dago pertsonalizatutako atzeko-irudirik',
+    noIconsYet: 'Oraindik ez dago pertsonalizatutako ikono-multzorik',
   },
   profiles: {
     title: 'Profiles',

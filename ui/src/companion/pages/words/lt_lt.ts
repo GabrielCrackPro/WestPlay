@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Paskyros',
     sub: 'Prisijunk, kad sunkvežimio ekrane turėtum savo muziką ir vaizdo įrašus. Prie kiekvienos paslaugos jungiesi jos pačios lange, o Cabin Play niekada nemato tavo paskyros.',
+    noAccountsYet: 'Dar nesate prisijungę prie jokių paslaugų',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'antra piktograma tai pačiai programėlei',
       unreadable: 'nepavyko perskaityti',
     },
+    noWallpapersYet: 'Dar nėra pritaikytų fonų',
+    noIconsYet: 'Dar nėra pritaikytų piktogramų rinkinių',
   },
   profiles: {
     title: 'Profiles',

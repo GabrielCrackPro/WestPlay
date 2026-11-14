@@ -56,11 +56,32 @@
   background: linear-gradient(135deg, var(--apple-blue), color-mix(in srgb, var(--apple-blue) 70%, white));
   color: #fff;
   box-shadow: 0 4px 16px rgb(0 122 255 / 0.25);
+  overflow: hidden;
 }
 
 .driver-portrait svg {
   width: 88%;
   height: 88%;
+}
+
+/* Profile picture from the cabin profile */
+.driver-portrait--photo {
+  background: var(--apple-separator);
+  padding: 0;
+}
+
+.driver-portrait-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Profile initial when no picture is set */
+.driver-portrait--initial {
+  font-size: calc(40px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
 }
 
 .driver-identity {

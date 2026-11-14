@@ -122,6 +122,7 @@ export const words: CompanionWords = {
   accounts: {
     title: '계정',
     sub: '로그인하면 내 음악과 동영상을 트럭 화면에서 볼 수 있어요. 각 서비스에는 해당 서비스의 창에서 로그인하며, Cabin Play는 내 계정을 절대 볼 수 없어요.',
+    noAccountsYet: '아직 서비스에 로그인하지 않았습니다',
   },
   map: {
     titles: {
@@ -296,6 +297,8 @@ export const words: CompanionWords = {
       twice: '같은 앱의 두 번째 아이콘',
       unreadable: '읽을 수 없어요',
     },
+    noWallpapersYet: '사용자 정의 배경화면이 아직 없습니다',
+    noIconsYet: '사용자 정의 아이콘 세트가 아직 없습니다',
   },
   profiles: {
     title: 'Profiles',

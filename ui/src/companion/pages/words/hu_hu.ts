@@ -124,6 +124,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Fiókok',
     sub: 'Jelentkezz be, hogy a saját zenéd és videóid a kamion képernyőjén legyenek. Minden szolgáltatásba a saját ablakában jelentkezel be, és a Cabin Play soha nem látja a fiókodat.',
+    noAccountsYet: 'Még nem léptél be egyetlen szolgáltatásba sem',
   },
   map: {
     titles: {
@@ -299,6 +300,8 @@ export const words: CompanionWords = {
       twice: 'második ikon ugyanahhoz az alkalmazáshoz',
       unreadable: 'nem olvasható',
     },
+    noWallpapersYet: 'Még nincsenek egyedi háttérképek',
+    noIconsYet: 'Még nincsenek egyedi ikoncsomagok',
   },
   profiles: {
     title: 'Profiles',

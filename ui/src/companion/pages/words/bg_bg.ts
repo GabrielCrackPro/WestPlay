@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Акаунти',
     sub: 'Влезте, за да виждате своята музика и видеоклипове на екрана на камиона. Във всяка услуга влизате в собствения ѝ прозорец и Cabin Play никога не вижда профила ви.',
+    noAccountsYet: 'Все още не сте влезли в услуга',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'втора икона за същото приложение',
       unreadable: 'не може да бъде прочетен',
     },
+    noWallpapersYet: 'Все още няма персонализирани тапети',
+    noIconsYet: 'Все още няма персонализирани набори от икони',
   },
   profiles: {
     title: 'Profiles',

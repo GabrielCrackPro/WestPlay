@@ -122,6 +122,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Konti',
     sub: 'Pieraksties, lai kravas auto ekrānā būtu tava mūzika un video. Katrā pakalpojumā tu pierakstīsies tā paša logā, un Cabin Play nekad neredz tavu kontu.',
+    noAccountsYet: 'Joprojām neesat pierakstījies nevienā pakalpojumā',
   },
   map: {
     titles: {
@@ -297,6 +298,8 @@ export const words: CompanionWords = {
       twice: 'otra ikona tai pašai lietotnei',
       unreadable: 'neizdevās nolasīt',
     },
+    noWallpapersYet: 'Vēl nav pielāgotu fona attēlu',
+    noIconsYet: 'Vēl nav pielāgotu ikonu kopu',
   },
   profiles: {
     title: 'Profiles',

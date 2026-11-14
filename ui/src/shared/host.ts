@@ -368,8 +368,8 @@ export type HostMessage =
       /** Whether the cab comes back where the last launch left it (the screen and app it was in), the companion's
        * switch. Off, Cabin Play opens on the Dashboard. */
       resume?: boolean
-      /** Driver profiles from the companion, so the cabin shows the same profile. */
-      profiles?: { id: string; name: string; picture?: string }[]
+      /** Driver profiles from the companion, so the cabin shows the same profile, with their settings snapshots. */
+       profiles?: { id: string; name: string; picture?: string; settingsSnapshot?: Record<string, unknown> }[]
       /** The active profile id from the companion. */
       currentProfileId?: string
     }

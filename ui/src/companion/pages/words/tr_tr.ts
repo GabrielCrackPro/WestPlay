@@ -124,6 +124,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Hesaplar',
     sub: 'Kendi müziklerini ve videolarını kamyonun ekranında görmek için oturum aç. Her hizmette kendi penceresinde oturum açarsın; Cabin Play hesabını asla görmez.',
+    noAccountsYet: 'Henüz hiçbir hizmete giriş yapmadınız',
   },
   map: {
     titles: {
@@ -293,6 +294,8 @@ export const words: CompanionWords = {
       twice: 'aynı uygulama için ikinci bir simge',
       unreadable: 'okunamadı',
     },
+    noWallpapersYet: 'Henüz özel duvar kağıdı yok',
+    noIconsYet: 'Henüz özel simge seti yok',
   },
   profiles: {
     title: 'Profiles',

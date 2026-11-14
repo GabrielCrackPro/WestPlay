@@ -752,6 +752,8 @@ export interface Strings {
     removeProfileFooter: string
     profileName: string
     profileNamePlaceholder: string
+    /** Hint in the cabin ProfilesPage directing users to the companion for profile management. */
+    manageProfilesHint: string
     /** Quick Access Control Center: quick toggles for common settings. */
     controlCenter: string
     quickAccess: string

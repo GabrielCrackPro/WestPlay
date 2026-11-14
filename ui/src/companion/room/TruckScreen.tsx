@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, type RefObject, useEffect, useState } from 'react'
+import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
 
 /** Where the screen stands: centre stage (`hero`, `final`), aside for the steps (`side`), the player
  * diving into it at the end (`dive`), turned aside beside the companion's pages (`aside`), or full size, to
@@ -39,6 +39,14 @@ export function TruckScreen({
   /** More over the glass, in the screen's own pixels. */
   children?: ReactNode
 }) {
+  // Lazy-load the iframe: defer until the screen is visible (not in initial 'dive' pose).
+  const [iframeLoaded, setIframeLoaded] = useState(pose !== 'dive')
+  const prevPose = useRef(pose)
+  useEffect(() => {
+    if (prevPose.current === 'dive' && pose !== 'dive') setIframeLoaded(true)
+    prevPose.current = pose
+  }, [pose])
+
   return (
     <div className="ts" data-pose={pose} style={{ '--glow': glow } as CSSProperties}>
       <div className="ts-light" />
@@ -46,13 +54,15 @@ export function TruckScreen({
         <div className="ts-bezel">
           <div className="ts-glass">
             <div className="ts-frame">
-              <iframe
-                ref={frame}
-                src="/cabin.html?demo&power"
-                title="Cabin Play"
-                tabIndex={-1}
-                data-ready={ready || undefined}
-              />
+              {iframeLoaded && (
+                <iframe
+                  ref={frame}
+                  src="/cabin.html?demo&power"
+                  title="Cabin Play"
+                  tabIndex={-1}
+                  data-ready={ready || undefined}
+                />
+              )}
               {scanning && <div className="ts-scan" />}
               <BannerView banner={banner} />
               {children}

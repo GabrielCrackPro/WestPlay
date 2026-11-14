@@ -109,6 +109,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Accounts',
     sub: 'Sign in to see your own music and videos on the truck’s screen. You sign in to each service in its own window, and Cabin Play never sees your account.',
+    noAccountsYet: 'You haven\'t signed in to any service yet',
   },
   map: {
     titles: {
@@ -292,6 +293,8 @@ export const words: CompanionWords = {
       twice: 'a second icon for the same app',
       unreadable: 'couldn’t be read',
     },
+    noWallpapersYet: 'No custom wallpapers yet',
+    noIconsYet: 'No custom icon sets yet',
   },
   profiles: {
     title: 'Profiles',
@@ -307,6 +310,8 @@ export const words: CompanionWords = {
     cancel: 'Cancel',
     removeProfile: 'Remove',
     removeConfirm: 'Remove this profile?',
+    noProfilesYet: 'Add your first profile to get started.',
+    switch: 'Click to switch',
   },
   update: {
     later: 'Later',

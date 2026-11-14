@@ -111,6 +111,12 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
     <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="customize" />}>
       <AccentPicker accent={accent} label={w.accent ?? 'Accent'} choose={chooseAccent} />
       <Group title={w.wallpapers} place={4}>
+        {custom?.wallpapers && custom.wallpapers.length === 0 && (
+          <div className="cp-empty">
+            <span className="cp-empty-icon" aria-hidden>🖼</span>
+            <span>{w.noWallpapersYet ?? 'No custom wallpapers yet'}</span>
+          </div>
+        )}
         <div className="cz-wallpapers">
           {wallpapers.map((wallpaper) => (
             <WallpaperTile
@@ -148,6 +154,12 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
       {report?.section === 'wallpapers' && <AddReport report={report.added} cw={cw} />}
       <p className="cz-note ob-in">{w.wallpapersNote}</p>
       <Group title={w.icons} place={5}>
+        {(custom?.iconSets ?? []).length === 0 && !look?.iconSet && !androidLook && (
+          <div className="cp-empty">
+            <span className="cp-empty-icon" aria-hidden>🎨</span>
+            <span>{w.noIconsYet ?? 'No custom icon sets yet'}</span>
+          </div>
+        )}
         <IconSetRow
           name={w.westplay}
           icons={null}

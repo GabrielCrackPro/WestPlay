@@ -124,6 +124,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Accounts',
     sub: 'Log in om je eigen muziek en video’s op het scherm van de truck te zien. Je logt bij elke dienst in een eigen venster in, en Cabin Play ziet je account nooit.',
+    noAccountsYet: 'Nog geen diensten aangemeld',
   },
   map: {
     titles: {
@@ -299,6 +300,8 @@ export const words: CompanionWords = {
       twice: 'een tweede symbool voor dezelfde app',
       unreadable: 'kon niet worden gelezen',
     },
+    noWallpapersYet: 'Nog geen aangepaste achtergronden',
+    noIconsYet: 'Nog geen aangepaste pictogramsets',
   },
   profiles: {
     title: 'Profiles',

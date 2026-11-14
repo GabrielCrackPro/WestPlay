@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Tài khoản',
     sub: 'Đăng nhập để có nhạc và video của riêng bạn trên màn hình xe tải. Bạn đăng nhập từng dịch vụ trong cửa sổ riêng của nó, và Cabin Play không bao giờ thấy tài khoản của bạn.',
+    noAccountsYet: 'Chưa đăng nhập vào dịch vụ nào',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'biểu tượng thứ hai cho cùng ứng dụng',
       unreadable: 'không đọc được',
     },
+    noWallpapersYet: 'Chưa có hình nền tùy chỉnh',
+    noIconsYet: 'Chưa có bộ biểu tượng tùy chỉnh',
   },
   profiles: {
     title: 'Profiles',

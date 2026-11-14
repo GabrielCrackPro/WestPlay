@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Comptes',
     sub: 'Connectez-vous pour retrouver votre musique et vos vidéos sur l’écran du camion. La connexion à chaque service se fait dans sa propre fenêtre, et Cabin Play ne voit jamais votre compte.',
+    noAccountsYet: 'Aucun service connecté pour le moment',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'une deuxième icône pour la même app',
       unreadable: 'illisible',
     },
+    noWallpapersYet: "Aucun fond d'écran personnalisé pour le moment",
+    noIconsYet: "Aucun jeu d'icônes personnalisé pour le moment",
   },
   profiles: {
     title: 'Profiles',

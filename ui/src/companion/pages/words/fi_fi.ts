@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Tilit',
     sub: 'Kirjaudu sisään, niin saat oman musiikkisi ja videosi rekan näytölle. Kirjaudut jokaiseen palveluun sen omassa ikkunassa, eikä Cabin Play koskaan näe tiliäsi.',
+    noAccountsYet: 'Et ole vielä kirjautunut mihinkään palveluun',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'toinen kuvake samalle sovellukselle',
       unreadable: 'ei voitu lukea',
     },
+    noWallpapersYet: 'Ei vielä mukautettuja taustakuvia',
+    noIconsYet: 'Ei vielä mukautettuja kuvakkeiden sarjoja',
   },
   profiles: {
     title: 'Profiles',

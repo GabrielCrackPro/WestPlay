@@ -760,6 +760,8 @@ export const SPANISH_STRINGS: Strings = {
       'Elimina el perfil seleccionado y todos sus ajustes. Esta acción no se puede deshacer.',
     profileName: 'Nombre del perfil',
     profileNamePlaceholder: 'p. ej. Conductor 2',
+    manageProfilesHint:
+      'Para añadir o eliminar perfiles, abre la ventana del acompañante y ve a Ajustes → Perfiles.',
     controlCenter: 'Centro de control',
     quickAccess: 'Acceso rápido',
     doNotDisturb: 'No molestar',

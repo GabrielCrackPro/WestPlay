@@ -124,6 +124,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Conturi',
     sub: 'Conectează-te ca să ai muzica și videoclipurile tale pe ecranul camionului. Te conectezi la fiecare serviciu în propria lui fereastră, iar Cabin Play nu îți vede niciodată contul.',
+    noAccountsYet: 'Nu sunteți conectat încă la niciun serviciu',
   },
   map: {
     titles: {
@@ -305,6 +306,8 @@ export const words: CompanionWords = {
       twice: 'a doua pictogramă pentru aceeași aplicație',
       unreadable: 'nu a putut fi citit',
     },
+    noWallpapersYet: 'Încă nu există fundaluri personalizate',
+    noIconsYet: 'Încă nu există seturi de pictograme personalizate',
   },
   profiles: {
     title: 'Profiles',

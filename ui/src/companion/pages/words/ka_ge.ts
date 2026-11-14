@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'ანგარიშები',
     sub: 'შედით, რომ სატვირთოს ეკრანზე თქვენი მუსიკა და ვიდეოები გქონდეთ. თითოეულ სერვისში მის საკუთარ ფანჯარაში შედიხართ და Cabin Play თქვენს ანგარიშს ვერასდროს ხედავს.',
+    noAccountsYet: 'ჯერ არ ხართ შესული არცერთ სერვისში',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'მეორე ხატულა იმავე აპისთვის',
       unreadable: 'ვერ წაიკითხა',
     },
+    noWallpapersYet: 'პერსონალიზებული ფონები ჯერ არ არის',
+    noIconsYet: 'პერსონალიზებული ხატულების ნაკრები ჯერ არ არის',
   },
   profiles: {
     title: 'Profiles',

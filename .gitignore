@@ -23,6 +23,7 @@ dist/
 
 # Local Claude Code settings
 /.claude/
+/.junie/
 
 # Signing keys (the updater's private key stays with its owner, outside the repository)
 *.key

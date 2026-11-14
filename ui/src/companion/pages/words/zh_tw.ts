@@ -121,6 +121,7 @@ export const words: CompanionWords = {
   accounts: {
     title: '帳戶',
     sub: '登入後，你的音樂和影片就會出現在卡車螢幕上。每個服務都在它自己的視窗中登入，Cabin Play 絕不會看到你的帳戶。',
+    noAccountsYet: '尚未登入任何服務',
   },
   map: {
     titles: {
@@ -293,6 +294,8 @@ export const words: CompanionWords = {
       twice: '同一個 App 的第二個圖像',
       unreadable: '無法讀取',
     },
+    noWallpapersYet: '暫無自訂桌布',
+    noIconsYet: '暫無自訂圖示集',
   },
   profiles: {
     title: 'Profiles',

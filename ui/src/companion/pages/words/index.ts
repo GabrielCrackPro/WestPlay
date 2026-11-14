@@ -119,6 +119,7 @@ export interface CompanionWords {
   accounts: {
     title: string
     sub: string
+    noAccountsYet?: string
   }
   map: {
     titles: { ready: string; building: string; waiting: string; failed: string; unknown: string; noGame: string }
@@ -219,6 +220,8 @@ export interface CompanionWords {
     added: string
     nothingAdded: string
     problems: { notAnImage: string; tooLarge: string; unknownName: string; twice: string; unreadable: string }
+    noWallpapersYet?: string
+    noIconsYet?: string
   }
   /** Driver profiles: each keeps its own settings. */
   profiles: {
@@ -235,6 +238,8 @@ export interface CompanionWords {
     cancel: string
     removeProfile: string
     removeConfirm: string
+    noProfilesYet?: string
+    switch?: string
   }
   /** After a manual app upgrade: putting its new plugin and mod into the game. */
   update: {

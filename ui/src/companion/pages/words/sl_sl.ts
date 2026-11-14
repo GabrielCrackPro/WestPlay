@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Računi',
     sub: 'Prijavi se, da boš na zaslonu tovornjaka imel svojo glasbo in videe. V vsako storitev se prijaviš v njenem lastnem oknu, Cabin Play pa tvojega računa nikoli ne vidi.',
+    noAccountsYet: 'Še niste prijavljeni v nobeni storitvi',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'druga ikona za isto aplikacijo',
       unreadable: 'ni je bilo mogoče prebrati',
     },
+    noWallpapersYet: 'Še ni prilagojenih ozadij',
+    noIconsYet: 'Še ni prilagojenih nizov ikon',
   },
   profiles: {
     title: 'Profiles',

@@ -1,17 +1,21 @@
 import { DriverPortrait } from './DriverPortrait'
-import { useLive } from '../../state/store'
+import { useCabin, useLive } from '../../state/store'
 import { useText } from '../../state/text'
 import './driver.css'
 
 /**
  * The Driver app: the driver's game profile and the lifetime totals the game keeps for it. Laid out as the native
  * apps are — a profile heading over iOS 26's grouped cards, hairline-separated rows and sentence-case labels — so
- * it reads as part of the cab rather than as a dashboard of its own.
+ * it reads as part of the cab rather than as a dashboard of its own. Shows the active cabin profile alongside
+ * game career data.
  */
 export function DriverApp() {
   const text = useText()
   const words = text.driver
   const career = useLive((state) => state.career)
+  const profiles = useCabin((state) => state.profiles)
+  const currentProfileId = useCabin((state) => state.currentProfileId)
+  const currentProfile = profiles.find((p) => p.id === currentProfileId)
   const number = (value: number | null | undefined, digits = 0) =>
     value == null ? '—' : text.number(Number(value.toFixed(digits)))
   const distance =
@@ -29,12 +33,28 @@ export function DriverApp() {
       <div className="driver-scroll">
         <div className="driver-page">
           <header className="driver-profile">
-            <div className="driver-portrait">
-              <DriverPortrait />
-            </div>
+            {currentProfile?.picture ? (
+              <div className="driver-portrait driver-portrait--photo">
+                <img className="driver-portrait-photo" src={currentProfile.picture} alt="" />
+              </div>
+            ) : currentProfile ? (
+              <div className="driver-portrait driver-portrait--initial">
+                <span>{(currentProfile.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
+              </div>
+            ) : (
+              <div className="driver-portrait">
+                <DriverPortrait />
+              </div>
+            )}
             <div className="driver-identity">
               <h1>{career?.profileName || (career ? words.profile : words.noProfile)}</h1>
-              <p>{career ? words.savedCareer : words.saveUnavailable}</p>
+              <p>
+                {currentProfile
+                  ? `${text.settings.driverProfile}: ${currentProfile.name}`
+                  : career
+                    ? words.savedCareer
+                    : words.saveUnavailable}
+              </p>
             </div>
           </header>
 

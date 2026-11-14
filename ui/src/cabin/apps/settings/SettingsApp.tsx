@@ -1182,24 +1182,12 @@ function ProfileCard({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-/** Profiles: manage driver profiles with their own settings. */
+/** Profiles: switch between driver profiles. Creating or removing profiles is done via the companion. */
 function ProfilesPage() {
   const text = useText()
   const profiles = useCabin((state) => state.profiles)
   const currentProfileId = useCabin((state) => state.currentProfileId)
-  const addProfile = useCabin((state) => state.addProfile)
-  const removeProfile = useCabin((state) => state.removeProfile)
   const switchProfile = useCabin((state) => state.switchProfile)
-  const [adding, setAdding] = useState(false)
-  const [name, setName] = useState('')
-
-  const handleAdd = () => {
-    if (name.trim()) {
-      addProfile(name.trim())
-      setName('')
-      setAdding(false)
-    }
-  }
 
   const ProfileAvatar = ({ profile, size = 36 }: { profile: { name: string; picture?: string }; size?: number }) => {
     if (profile.picture) {
@@ -1246,53 +1234,14 @@ function ProfilesPage() {
                   </span>
                 )}
               </button>
-              {!isCurrent && (
-                <button
-                  type="button"
-                  className="settings-action profile-remove"
-                  onClick={() => removeProfile(profile.id)}
-                  aria-label={text.settings.removeProfile}
-                >
-                  {text.settings.removeProfile}
-                </button>
-              )}
             </div>
           )
         })}
       </Group>
-      <Group footer={text.settings.addProfileFooter}>
-        {adding ? (
-          <div className="settings-row add-profile-row">
-            <input
-              type="text"
-              className="settings-input"
-              placeholder={text.settings.profileNamePlaceholder}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAdd()
-                if (e.key === 'Escape') {
-                  setAdding(false)
-                  setName('')
-                }
-              }}
-              autoFocus
-            />
-            <button type="button" className="settings-action" onClick={handleAdd}>
-              {text.settings.save}
-            </button>
-            <button type="button" className="settings-row" onClick={() => { setAdding(false); setName('') }}>
-              {text.settings.cancel}
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="settings-row" onClick={() => setAdding(true)}>
-            <span className="settings-label">{text.settings.addProfile}</span>
-            <span className="settings-chevron">
-              <ChevronGlyph />
-            </span>
-          </button>
-        )}
+      <Group>
+        <div className="settings-row settings-info-row">
+          <span className="settings-hint">{text.settings.manageProfilesHint}</span>
+        </div>
       </Group>
     </Page>
   )

@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Аккаунты',
     sub: 'Войдите, чтобы видеть свою музыку и видео на экране грузовика. Вход в каждый сервис выполняется в его собственном окне, и Cabin Play никогда не видит ваш аккаунт.',
+    noAccountsYet: 'Вы пока не вошли ни в одну службу',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'второй значок для того же приложения',
       unreadable: 'не удалось прочитать',
     },
+    noWallpapersYet: 'Пока нет пользовательских обоев',
+    noIconsYet: 'Пока нет пользовательских наборов значков',
   },
   profiles: {
     title: 'Profiles',

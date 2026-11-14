@@ -123,6 +123,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Kontoer',
     sub: 'Logg på for å få din egen musikk og dine videoer på skjermen i lastebilen. Du logger på hver tjeneste i et eget vindu, og Cabin Play ser aldri kontoen din.',
+    noAccountsYet: 'Du er ikke logget inn på noen tjenester ennå',
   },
   map: {
     titles: {
@@ -298,6 +299,8 @@ export const words: CompanionWords = {
       twice: 'et symbol til for samme app',
       unreadable: 'kunne ikke leses',
     },
+    noWallpapersYet: 'Ingen tilpassede bakgrunner ennå',
+    noIconsYet: 'Ingen tilpassede ikonsett ennå',
   },
   profiles: {
     title: 'Profiles',

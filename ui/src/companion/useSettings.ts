@@ -38,6 +38,8 @@ export interface DriverProfile {
   name: string
   /** A profile picture as a data URL; empty when none is set. */
   picture?: string
+  /** Cabin settings snapshot, saved on profile switch. */
+  settingsSnapshot?: Record<string, unknown>
 }
 
 /** The player's settings. Mirrors `westplay_host::settings::Settings`; the app owns and saves them. */

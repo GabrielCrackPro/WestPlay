@@ -125,6 +125,7 @@ export const words: CompanionWords = {
   accounts: {
     title: 'Cuentas',
     sub: 'Inicia sesión para ver tu música y tus vídeos en la pantalla del camión. Inicias sesión en cada servicio en su propia ventana, y Cabin Play nunca ve tu cuenta.',
+    noAccountsYet: 'Aún no has iniciado sesión en ningún servicio',
   },
   map: {
     titles: {
@@ -300,6 +301,8 @@ export const words: CompanionWords = {
       twice: 'un segundo icono para la misma app',
       unreadable: 'no se pudo leer',
     },
+    noWallpapersYet: 'Aún no hay fondos de pantalla personalizados',
+    noIconsYet: 'Aún no hay conjuntos de iconos personalizados',
   },
   profiles: {
     title: 'Perfiles',

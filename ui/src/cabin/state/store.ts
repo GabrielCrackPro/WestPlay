@@ -138,6 +138,204 @@ export interface DriverProfile {
   name: string
   /** A profile picture as a data URL; empty when none is set. */
   picture?: string
+  /** Cabin settings snapshot, saved on profile switch. */
+  settingsSnapshot?: Record<string, unknown>
+}
+
+/** Cabin settings fields that are saved per profile (excluding runtime state like power, telemetry). */
+export interface ProfileSnapshot extends Record<string, unknown> {
+  appearanceMode: string
+  wallpaperId: string
+  accentColor: string
+  textSize: number
+  reduceMotion: boolean
+  dashboardWidgets: Record<string, boolean>
+  dashboardWidgetSizes: Record<string, string>
+  dashboardOrder: string[]
+  autoOrder: boolean
+  savedDashboardLayouts: unknown[]
+  overviewShown: boolean
+  overviewDefault: boolean
+  overviewCards: Record<string, boolean>
+  clusterShown: boolean
+  clusterCards: Record<string, boolean>
+  clusterGaugePercent: boolean
+  clusterAccent: string
+  clusterTacho: boolean
+  clusterBrand: boolean
+  clusterReadings: string[]
+  clusterLayout: unknown
+  homeOrder: string[]
+  homeHidden: string[]
+  pinnedApps: string[]
+  navigation: unknown
+  diagnosticsPage: string
+  mapDetail: string
+  mapNight: boolean
+  mapJunction: boolean
+  mapTrucks: boolean
+  mapTraffic: boolean
+  mapTrafficAround: number
+  mapRecentre: unknown
+  mapRoute: unknown
+  mapWeight: unknown
+  mapNorth: boolean
+  mapMarker: unknown
+  mapMarkerSize: unknown
+  mapLimit: boolean
+  mapOver: boolean
+  mapCompass: boolean
+  mapScale: boolean
+  mapStyle: unknown
+  mapNightStart: number
+  mapPins: unknown
+  mapPinFuel: boolean
+  mapPinParking: boolean
+  mapPinService: boolean
+  mapStopCardAlways: boolean
+  mapStopCardFuel: number
+  mapStopCardRest: number
+  clock: string
+  units: string
+  clockFormat: string
+  albumArt: boolean
+  uiSounds: boolean
+  uiSoundVolume: number
+  gpsDuck: boolean
+  gpsDuckLead: unknown
+  gpsVoiceOnScreen: boolean
+}
+
+/** Extract the current cabin state as a profile snapshot (only the per-profile fields). */
+export function getProfileSnapshot(state: CabinState): ProfileSnapshot {
+  return {
+    appearanceMode: state.appearanceMode,
+    wallpaperId: state.wallpaperId,
+    accentColor: state.accentColor,
+    textSize: state.textSize,
+    reduceMotion: state.reduceMotion,
+    dashboardWidgets: state.dashboardWidgets,
+    dashboardWidgetSizes: state.dashboardWidgetSizes,
+    dashboardOrder: state.dashboardOrder,
+    autoOrder: state.autoOrder,
+    savedDashboardLayouts: state.savedDashboardLayouts,
+    overviewShown: state.overviewShown,
+    overviewDefault: state.overviewDefault,
+    overviewCards: state.overviewCards,
+    clusterShown: state.clusterShown,
+    clusterCards: state.clusterCards,
+    clusterGaugePercent: state.clusterGaugePercent,
+    clusterAccent: state.clusterAccent,
+    clusterTacho: state.clusterTacho,
+    clusterBrand: state.clusterBrand,
+    clusterReadings: state.clusterReadings,
+    clusterLayout: state.clusterLayout,
+    homeOrder: state.homeOrder,
+    homeHidden: state.homeHidden,
+    pinnedApps: state.pinnedApps,
+    navigation: state.navigation,
+    diagnosticsPage: state.diagnosticsPage,
+    mapDetail: state.mapDetail,
+    mapNight: state.mapNight,
+    mapJunction: state.mapJunction,
+    mapTrucks: state.mapTrucks,
+    mapTraffic: state.mapTraffic,
+    mapTrafficAround: state.mapTrafficAround,
+    mapRecentre: state.mapRecentre,
+    mapRoute: state.mapRoute,
+    mapWeight: state.mapWeight,
+    mapNorth: state.mapNorth,
+    mapMarker: state.mapMarker,
+    mapMarkerSize: state.mapMarkerSize,
+    mapLimit: state.mapLimit,
+    mapOver: state.mapOver,
+    mapCompass: state.mapCompass,
+    mapScale: state.mapScale,
+    mapStyle: state.mapStyle,
+    mapNightStart: state.mapNightStart,
+    mapPins: state.mapPins,
+    mapPinFuel: state.mapPinFuel,
+    mapPinParking: state.mapPinParking,
+    mapPinService: state.mapPinService,
+    mapStopCardAlways: state.mapStopCardAlways,
+    mapStopCardFuel: state.mapStopCardFuel,
+    mapStopCardRest: state.mapStopCardRest,
+    clock: state.clock,
+    units: state.units,
+    clockFormat: state.clockFormat,
+    albumArt: state.albumArt,
+    uiSounds: state.uiSounds,
+    uiSoundVolume: state.uiSoundVolume,
+    gpsDuck: state.gpsDuck,
+    gpsDuckLead: state.gpsDuckLead,
+    gpsVoiceOnScreen: state.gpsVoiceOnScreen,
+  }
+}
+
+/** Apply a profile snapshot to the current cabin state, restoring only known fields. */
+export function applyProfileSnapshot(snapshot: Record<string, unknown>): Partial<CabinState> {
+  const result: Partial<CabinState> = {}
+  if (typeof snapshot.appearanceMode === 'string') result.appearanceMode = snapshot.appearanceMode as any
+  if (typeof snapshot.wallpaperId === 'string') result.wallpaperId = snapshot.wallpaperId
+  if (typeof snapshot.accentColor === 'string') result.accentColor = snapshot.accentColor
+  if (typeof snapshot.textSize === 'number') result.textSize = snapshot.textSize
+  if (typeof snapshot.reduceMotion === 'boolean') result.reduceMotion = snapshot.reduceMotion
+  if (typeof snapshot.dashboardWidgets === 'object') result.dashboardWidgets = snapshot.dashboardWidgets as any
+  if (typeof snapshot.dashboardWidgetSizes === 'object') result.dashboardWidgetSizes = snapshot.dashboardWidgetSizes as any
+  if (Array.isArray(snapshot.dashboardOrder)) result.dashboardOrder = snapshot.dashboardOrder as any
+  if (typeof snapshot.autoOrder === 'boolean') result.autoOrder = snapshot.autoOrder
+  if (Array.isArray(snapshot.savedDashboardLayouts)) result.savedDashboardLayouts = snapshot.savedDashboardLayouts as any
+  if (typeof snapshot.overviewShown === 'boolean') result.overviewShown = snapshot.overviewShown
+  if (typeof snapshot.overviewDefault === 'boolean') result.overviewDefault = snapshot.overviewDefault
+  if (typeof snapshot.overviewCards === 'object') result.overviewCards = snapshot.overviewCards as any
+  if (typeof snapshot.clusterShown === 'boolean') result.clusterShown = snapshot.clusterShown
+  if (typeof snapshot.clusterCards === 'object') result.clusterCards = snapshot.clusterCards as any
+  if (typeof snapshot.clusterGaugePercent === 'boolean') result.clusterGaugePercent = snapshot.clusterGaugePercent
+  if (typeof snapshot.clusterAccent === 'string') result.clusterAccent = snapshot.clusterAccent as any
+  if (typeof snapshot.clusterTacho === 'boolean') result.clusterTacho = snapshot.clusterTacho
+  if (typeof snapshot.clusterBrand === 'boolean') result.clusterBrand = snapshot.clusterBrand
+  if (Array.isArray(snapshot.clusterReadings)) result.clusterReadings = snapshot.clusterReadings as any
+  if (typeof snapshot.clusterLayout === 'object') result.clusterLayout = snapshot.clusterLayout as any
+  if (Array.isArray(snapshot.homeOrder)) result.homeOrder = snapshot.homeOrder as any
+  if (Array.isArray(snapshot.homeHidden)) result.homeHidden = snapshot.homeHidden as any
+  if (Array.isArray(snapshot.pinnedApps)) result.pinnedApps = snapshot.pinnedApps as any
+  if (typeof snapshot.navigation === 'object') result.navigation = snapshot.navigation as any
+  if (typeof snapshot.diagnosticsPage === 'string') result.diagnosticsPage = snapshot.diagnosticsPage as any
+  if (typeof snapshot.mapDetail === 'string') result.mapDetail = snapshot.mapDetail as any
+  if (typeof snapshot.mapNight === 'boolean') result.mapNight = snapshot.mapNight
+  if (typeof snapshot.mapJunction === 'boolean') result.mapJunction = snapshot.mapJunction
+  if (typeof snapshot.mapTrucks === 'boolean') result.mapTrucks = snapshot.mapTrucks
+  if (typeof snapshot.mapTraffic === 'boolean') result.mapTraffic = snapshot.mapTraffic
+  if (typeof snapshot.mapTrafficAround === 'number') result.mapTrafficAround = snapshot.mapTrafficAround as any
+  if (snapshot.mapRecentre !== undefined) result.mapRecentre = snapshot.mapRecentre as any
+  if (snapshot.mapRoute !== undefined) result.mapRoute = snapshot.mapRoute as any
+  if (snapshot.mapWeight !== undefined) result.mapWeight = snapshot.mapWeight as any
+  if (typeof snapshot.mapNorth === 'boolean') result.mapNorth = snapshot.mapNorth
+  if (snapshot.mapMarker !== undefined) result.mapMarker = snapshot.mapMarker as any
+  if (snapshot.mapMarkerSize !== undefined) result.mapMarkerSize = snapshot.mapMarkerSize as any
+  if (typeof snapshot.mapLimit === 'boolean') result.mapLimit = snapshot.mapLimit
+  if (typeof snapshot.mapOver === 'boolean') result.mapOver = snapshot.mapOver
+  if (typeof snapshot.mapCompass === 'boolean') result.mapCompass = snapshot.mapCompass
+  if (typeof snapshot.mapScale === 'boolean') result.mapScale = snapshot.mapScale
+  if (snapshot.mapStyle !== undefined) result.mapStyle = snapshot.mapStyle as any
+  if (typeof snapshot.mapNightStart === 'number') result.mapNightStart = snapshot.mapNightStart as any
+  if (snapshot.mapPins !== undefined) result.mapPins = snapshot.mapPins as any
+  if (typeof snapshot.mapPinFuel === 'boolean') result.mapPinFuel = snapshot.mapPinFuel
+  if (typeof snapshot.mapPinParking === 'boolean') result.mapPinParking = snapshot.mapPinParking
+  if (typeof snapshot.mapPinService === 'boolean') result.mapPinService = snapshot.mapPinService
+  if (typeof snapshot.mapStopCardAlways === 'boolean') result.mapStopCardAlways = snapshot.mapStopCardAlways
+  if (typeof snapshot.mapStopCardFuel === 'number') result.mapStopCardFuel = snapshot.mapStopCardFuel as any
+  if (typeof snapshot.mapStopCardRest === 'number') result.mapStopCardRest = snapshot.mapStopCardRest as any
+  if (typeof snapshot.clock === 'string') result.clock = snapshot.clock as any
+  if (typeof snapshot.units === 'string') result.units = snapshot.units as any
+  if (typeof snapshot.clockFormat === 'string') result.clockFormat = snapshot.clockFormat as any
+  if (typeof snapshot.albumArt === 'boolean') result.albumArt = snapshot.albumArt
+  if (typeof snapshot.uiSounds === 'boolean') result.uiSounds = snapshot.uiSounds
+  if (typeof snapshot.uiSoundVolume === 'number') result.uiSoundVolume = snapshot.uiSoundVolume
+  if (typeof snapshot.gpsDuck === 'boolean') result.gpsDuck = snapshot.gpsDuck
+  if (snapshot.gpsDuckLead !== undefined) result.gpsDuckLead = snapshot.gpsDuckLead as any
+  if (typeof snapshot.gpsVoiceOnScreen === 'boolean') result.gpsVoiceOnScreen = snapshot.gpsVoiceOnScreen
+  return result
 }
 
 
@@ -1014,26 +1212,50 @@ export const useCabin = create<CabinState>()(
         if (def) set({ accentColor: def.accentColor, appearanceMode: def.appearanceMode })
       },
       setAccentColor: (accentColor) => set({ accentColor }),
-      addProfile: (name, picture?) =>
-        set((state) => {
-          const trimmed = name.trim().slice(0, 32)
-          if (!trimmed || state.profiles.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return {}
-          const id = `profile-${Date.now()}`
-          return { profiles: [...state.profiles, { id, name: trimmed, picture: picture ?? '' }] }
-        }),
-      removeProfile: (id) =>
-        set((state) => {
-          if (id === 'default') return {}
-          const profiles = state.profiles.filter((p) => p.id !== id)
-          if (profiles.length === 0) return {}
-          const currentProfileId = state.currentProfileId === id ? 'default' : state.currentProfileId
-          return { profiles, currentProfileId }
-        }),
-      switchProfile: (id) =>
-        set((state) => {
-          if (!state.profiles.some((p) => p.id === id)) return {}
-          return { currentProfileId: id }
-        }),
+      addProfile: (name, picture?) => {
+        const state = useCabin.getState()
+        const trimmed = name.trim().slice(0, 32)
+        if (!trimmed || state.profiles.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) return
+        const id = `profile-${Date.now()}`
+        const snapshot = getProfileSnapshot(state)
+        const newProfile: DriverProfile = { id, name: trimmed, picture: picture ?? '', settingsSnapshot: snapshot }
+        set({ profiles: [...state.profiles, newProfile] })
+      },
+      removeProfile: (id) => {
+        const state = useCabin.getState()
+        if (id === 'default') return
+        const profiles = state.profiles.filter((p) => p.id !== id)
+        if (profiles.length === 0) return
+        let currentProfileId = state.currentProfileId
+        if (state.currentProfileId === id) {
+          // Saving current profile snapshot before switching away
+          const snapshot = getProfileSnapshot(state)
+          const updatedProfiles = profiles.map(p => p.id === profiles[0].id ? { ...p, settingsSnapshot: snapshot } : p)
+          currentProfileId = profiles[0].id
+          set({ profiles: updatedProfiles, currentProfileId })
+          // Apply the new profile's snapshot
+          const newProfile = updatedProfiles[0]
+          if (newProfile?.settingsSnapshot) {
+            set(applyProfileSnapshot(newProfile.settingsSnapshot))
+          }
+        } else {
+          set({ profiles, currentProfileId })
+        }
+      },
+      switchProfile: (id) => {
+        const state = useCabin.getState()
+        if (!state.profiles.some((p) => p.id === id)) return
+        if (state.currentProfileId === id) return
+        // Save current profile's snapshot
+        const snapshot = getProfileSnapshot(state)
+        const profiles = state.profiles.map((p) =>
+          p.id === state.currentProfileId ? { ...p, settingsSnapshot: snapshot } : p
+        )
+        // Load new profile's snapshot
+        const newProfile = profiles.find((p) => p.id === id)
+        const applied = newProfile?.settingsSnapshot ? applyProfileSnapshot(newProfile.settingsSnapshot) : {}
+        set({ profiles, currentProfileId: id, ...applied })
+      },
       updateProfilePicture: (id, picture) =>
         set((state) => ({
           profiles: state.profiles.map((p) => p.id === id ? { ...p, picture } : p),
@@ -1311,14 +1533,21 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.accentColor === 'string' && stored.accentColor.startsWith('#')) {
     result.accentColor = stored.accentColor
   }
-  // Profiles: array of {id, name, picture}
+  // Profiles: array of {id, name, picture, settingsSnapshot}
   if (Array.isArray(stored.profiles)) {
     const profiles: DriverProfile[] = []
     for (const p of stored.profiles) {
       if (typeof p === 'object' && p !== null) {
-        const { id, name, picture } = p as { id?: unknown; name?: unknown; picture?: unknown }
+        const { id, name, picture, settingsSnapshot } = p as { id?: unknown; name?: unknown; picture?: unknown; settingsSnapshot?: unknown }
         if (typeof id === 'string' && typeof name === 'string' && name.trim()) {
-          profiles.push({ id, name: name.trim().slice(0, 32), picture: typeof picture === 'string' ? picture : undefined })
+          profiles.push({
+            id,
+            name: name.trim().slice(0, 32),
+            picture: typeof picture === 'string' ? picture : undefined,
+            settingsSnapshot: typeof settingsSnapshot === 'object' && settingsSnapshot !== null
+              ? settingsSnapshot as Record<string, unknown>
+              : undefined,
+          })
         }
       }
     }
@@ -1793,7 +2022,7 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
           iconSet: message.iconSet ?? null,
           iconStyle: isIconStyle(message.iconStyle) ? message.iconStyle : 'auto',
         })
-        // Sync profiles from the companion so the cabin shows the same selected profile.
+        // Sync profiles from the companion so the cabin shows the same selected profile, with their settings snapshots.
         if (Array.isArray(message.profiles)) {
           const profiles: DriverProfile[] = []
           for (const p of message.profiles) {
@@ -1802,15 +2031,30 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
                 id: p.id,
                 name: p.name.trim().slice(0, 32),
                 picture: typeof p.picture === 'string' ? p.picture : undefined,
+                settingsSnapshot: typeof p.settingsSnapshot === 'object' && p.settingsSnapshot !== null
+                  ? p.settingsSnapshot as Record<string, unknown>
+                  : undefined,
               })
             }
           }
           if (profiles.length > 0) {
-            const currentProfileId =
+            const incomingCurrentProfileId =
               typeof message.currentProfileId === 'string' && profiles.some((p) => p.id === message.currentProfileId)
                 ? message.currentProfileId
                 : profiles[0].id
-            useCabin.setState({ profiles, currentProfileId })
+            const cabin = useCabin.getState()
+            // If the profile actually changed, save the current snapshot and apply the new one
+            if (cabin.currentProfileId && cabin.currentProfileId !== incomingCurrentProfileId) {
+              const snapshot = getProfileSnapshot(cabin)
+              const profilesWithSaved = profiles.map((pr) =>
+                pr.id === cabin.currentProfileId ? { ...pr, settingsSnapshot: snapshot } : pr
+              )
+              const newProfile = profilesWithSaved.find((pr) => pr.id === incomingCurrentProfileId)
+              const applied = newProfile?.settingsSnapshot ? applyProfileSnapshot(newProfile.settingsSnapshot) : {}
+              useCabin.setState({ profiles: profilesWithSaved, currentProfileId: incomingCurrentProfileId, ...applied })
+            } else {
+              useCabin.setState({ profiles, currentProfileId: incomingCurrentProfileId })
+            }
           }
         }
         break

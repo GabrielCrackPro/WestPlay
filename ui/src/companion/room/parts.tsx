@@ -221,10 +221,17 @@ export function Status({ tone }: { tone: 'good' | 'bad' | 'busy' | 'idle' }) {
   return <i className="ob-status" data-tone={tone} />
 }
 
-export function Note({ tone, children }: { tone?: 'bad' | 'calm'; children: ReactNode }) {
+export function Note({ tone, children, dismissible, onDismiss }: { tone?: 'bad' | 'calm'; children: ReactNode; dismissible?: boolean; onDismiss?: () => void }) {
   return (
-    <p className="ob-note ob-in" data-tone={tone} style={n(5)}>
+    <p className="ob-note ob-in" data-tone={tone} data-dismissible={dismissible || undefined} style={n(5)}>
       <span>{children}</span>
+      {dismissible && onDismiss && (
+        <button type="button" className="ob-note-dismiss" onClick={onDismiss} aria-label="Dismiss">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M8 8l8 8M16 8l-8 8" />
+          </svg>
+        </button>
+      )}
     </p>
   )
 }
@@ -331,12 +338,15 @@ export function KeyChooser({
 }) {
   const words = useWords()
   return (
-    <div className="ob-keys ob-in" style={n(place)}>
+    <div className="ob-keys ob-in" style={n(place)} role="radiogroup" aria-label={words.controls.keyTitle ?? 'Choose interaction key'}>
       {KEYS.map((key) => (
         <button
           type="button"
           key={key.value}
           className="ob-key"
+          role="radio"
+          aria-checked={KEY_PRESETS[key.value] === value}
+          aria-label={`${words.controls.keys[key.value]}${KEY_PRESETS[key.value] === value ? ', ' + (words.controls.selected ?? 'Selected') : ''}`}
           data-chosen={KEY_PRESETS[key.value] === value || undefined}
           disabled={disabled}
           onClick={() => choose(KEY_PRESETS[key.value])}
@@ -401,6 +411,8 @@ export function Slider({
     return Math.round((min + share * (max - min)) / step) * step
   }
   const share = (value - min) / (max - min)
+  const stepCount = Math.round((max - min) / step)
+  const valueStep = Math.round((value - min) / step)
   return (
     <div
       className="ob-slider"
@@ -409,6 +421,7 @@ export function Slider({
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={value}
+      aria-valuetext={`${valueStep} out of ${stepCount}`}
       style={{ '--share': share } as CSSProperties}
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId)

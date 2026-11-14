@@ -42,14 +42,14 @@ const setup: SetupState = {
 }
 
 let settings: Settings = {
-  interaction: { key: 0xa4, mode: 'hold', sensitivity: 1.4 },
+  interaction: { key: 0xa4, mode: 'toggle', sensitivity: 1.4 },
   keybinds: {
     volumeDown: { key: 0x31, withInteractionKey: true },
     playPause: { key: 0x32, withInteractionKey: true },
     volumeUp: { key: 0x33, withInteractionKey: true },
   },
   voice: { enabled: true, wake: false, hotkey: { key: 0x20, ctrl: true, shift: true, alt: false } },
-  screen: { truckStrip: 'auto' },
+  screen: { truckStrip: 'off' },
   cabin: { resume: false, profiles: [], currentProfileId: '' },
   companion: { accent: 'ember' },
   look: { wallpaper: null, iconSet: null, iconStyle: 'auto' },

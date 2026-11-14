@@ -743,6 +743,8 @@ export const ENGLISH_STRINGS: Strings = {
       'Deletes the selected profile and all its settings. This cannot be undone.',
     profileName: 'Profile name',
     profileNamePlaceholder: 'e.g. Driver 2',
+    manageProfilesHint:
+      'To add or remove profiles, open the companion window and go to Settings → Profiles.',
     controlCenter: 'Control Center',
     quickAccess: 'Quick Access',
     doNotDisturb: 'Do Not Disturb',

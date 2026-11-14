@@ -3119,7 +3119,7 @@ mod tests {
             message,
             serde_json::json!({
                 "type": "settings",
-                "truckStrip": "auto",
+                "truckStrip": "off",
                 "wallpaper": null,
                 "iconSet": null,
                 "iconStyle": "auto",
