@@ -750,6 +750,8 @@ export const SPANISH_STRINGS: Strings = {
     profilesFooter:
       'Cada perfil de conductor guarda sus propios ajustes, aplicaciones fijadas y orden de inicio. Cambiar de perfil no afecta a la partida guardada.',
     currentProfile: 'Perfil actual',
+    noProfile: 'Sin perfil',
+    driverProfile: 'Perfil del conductor',
     addProfile: 'Añadir perfil',
     addProfileFooter:
       'Crea un nuevo perfil de conductor con ajustes predeterminados. Puedes renombrarlo y personalizarlo después.',
@@ -770,9 +772,6 @@ export const SPANISH_STRINGS: Strings = {
     widgetJobFooter: 'Muestra los detalles del encargo actual, la fecha límite y la distancia.',
     widgetFuelFooter: 'Muestra el nivel de combustible, la autonomía y el consumo.',
     widgetSpeedFooter: 'Muestra la velocidad actual, el límite y el estado del control de crucero.',
-    nowPlayingBar: 'Barra de reproducción',
-    nowPlayingBarFooter:
-      'Un mini reproductor persistente en la parte inferior de cada pantalla. Tócalo para abrir la vista completa.',
     customization: 'Personalización',
   },
   diagnostics: {

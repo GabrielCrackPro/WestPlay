@@ -606,8 +606,8 @@ mod tests {
             cabin: CabinSettings {
                 resume: true,
                 profiles: vec![
-                    DriverProfile { id: "home".into(), name: "Home".into() },
-                    DriverProfile { id: "work".into(), name: "Work".into() },
+                    DriverProfile { id: "home".into(), name: "Home".into(), picture: String::new() },
+                    DriverProfile { id: "work".into(), name: "Work".into(), picture: String::new() },
                 ],
                 current_profile_id: "work".into(),
             },

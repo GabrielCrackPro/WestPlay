@@ -140,8 +140,6 @@ export interface DriverProfile {
   picture?: string
 }
 
-/** The default profile. */
-export const DEFAULT_PROFILE: DriverProfile = { id: 'default', name: 'Default', picture: '' }
 
 /** The Overview screen's cards the player can turn off (Settings › Dashboard); the speed is always there. */
 export type OverviewCard = 'trip' | 'truck' | 'hours' | 'media' | 'weather'
@@ -409,8 +407,6 @@ interface CabinState {
   /** Driver profiles (Settings › Profiles): each keeps its own settings. */
   profiles: DriverProfile[]
   currentProfileId: string
-  /** Whether the cross-app Now Playing bar is shown at the bottom of every screen. */
-  nowPlayingBar: boolean
   power: PowerState
   /**
    * The screen handed back to the truck (its stock screen shows, with Cabin Play's button to come back), like
@@ -536,8 +532,6 @@ interface CabinState {
   removeProfile(id: string): void
   switchProfile(id: string): void
   updateProfilePicture(id: string, picture: string): void
-  /** Now Playing bar toggle. */
-  setNowPlayingBar(on: boolean): void
   powerEvent(event: PowerEvent): void
   /** Kept for the shell's hand-over pieces: whatever is asked, Cabin Play stays up (`truckScreen` false). */
   setTruckScreen(shown: boolean): void
@@ -608,7 +602,6 @@ type Persisted = Pick<
   | 'accentColor'
   | 'profiles'
   | 'currentProfileId'
-  | 'nowPlayingBar'
 >
 
 /** Whether the PC asks for reduced motion (Windows' Animation effects off): the first-run default. */
@@ -777,9 +770,8 @@ export const useCabin = create<CabinState>()(
       equalizer: FLAT,
       equalizerCustom: false,
       accentColor: '#5e81ac',
-      profiles: [DEFAULT_PROFILE],
-      currentProfileId: 'default',
-      nowPlayingBar: true,
+      profiles: [],
+      currentProfileId: '',
       power: INITIAL_POWER,
       navigate: (action) => set((state) => ({ navigation: navigate(state.navigation, action) })),
       setAppearanceMode: (appearanceMode) => set({ appearanceMode }),
@@ -1046,7 +1038,6 @@ export const useCabin = create<CabinState>()(
         set((state) => ({
           profiles: state.profiles.map((p) => p.id === id ? { ...p, picture } : p),
         })),
-      setNowPlayingBar: (nowPlayingBar) => set({ nowPlayingBar }),
       powerEvent: (event) =>
         set((state) => {
           const next = power(state.power, event)
@@ -1160,7 +1151,6 @@ export const useCabin = create<CabinState>()(
         accentColor: state.accentColor,
         profiles: state.profiles,
         currentProfileId: state.currentProfileId,
-        nowPlayingBar: state.nowPlayingBar,
       }),
       // Stored data comes from an earlier version of WestPlay (or was edited): keep only what is valid.
       merge: (stored, current) => ({ ...current, ...sanitize(stored as Partial<Persisted> | undefined) }),
@@ -1321,27 +1311,23 @@ function sanitize(stored: Partial<Persisted> | undefined): Partial<Persisted> {
   if (typeof stored.accentColor === 'string' && stored.accentColor.startsWith('#')) {
     result.accentColor = stored.accentColor
   }
-  // Profiles: array of {id, name}
+  // Profiles: array of {id, name, picture}
   if (Array.isArray(stored.profiles)) {
     const profiles: DriverProfile[] = []
     for (const p of stored.profiles) {
       if (typeof p === 'object' && p !== null) {
-        const { id, name } = p as { id?: unknown; name?: unknown }
+        const { id, name, picture } = p as { id?: unknown; name?: unknown; picture?: unknown }
         if (typeof id === 'string' && typeof name === 'string' && name.trim()) {
-          profiles.push({ id, name: name.trim().slice(0, 32) })
+          profiles.push({ id, name: name.trim().slice(0, 32), picture: typeof picture === 'string' ? picture : undefined })
         }
       }
     }
-    // Always keep the default profile
-    if (!profiles.some((p) => p.id === 'default')) profiles.unshift(DEFAULT_PROFILE)
     result.profiles = profiles
   }
   // Current profile id
   if (typeof stored.currentProfileId === 'string') {
     result.currentProfileId = stored.currentProfileId
   }
-  // Now Playing bar
-  if (typeof stored.nowPlayingBar === 'boolean') result.nowPlayingBar = stored.nowPlayingBar
   return result
 }
 
@@ -1807,6 +1793,26 @@ function receiveHostMessage(now: () => number): (message: HostMessage) => void {
           iconSet: message.iconSet ?? null,
           iconStyle: isIconStyle(message.iconStyle) ? message.iconStyle : 'auto',
         })
+        // Sync profiles from the companion so the cabin shows the same selected profile.
+        if (Array.isArray(message.profiles)) {
+          const profiles: DriverProfile[] = []
+          for (const p of message.profiles) {
+            if (typeof p.id === 'string' && typeof p.name === 'string' && p.name.trim()) {
+              profiles.push({
+                id: p.id,
+                name: p.name.trim().slice(0, 32),
+                picture: typeof p.picture === 'string' ? p.picture : undefined,
+              })
+            }
+          }
+          if (profiles.length > 0) {
+            const currentProfileId =
+              typeof message.currentProfileId === 'string' && profiles.some((p) => p.id === message.currentProfileId)
+                ? message.currentProfileId
+                : profiles[0].id
+            useCabin.setState({ profiles, currentProfileId })
+          }
+        }
         break
       }
       case 'spectrum':

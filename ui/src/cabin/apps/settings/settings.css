@@ -3087,32 +3087,152 @@ html[data-motion='reduced'] .settings-more {
   color: var(--apple-blue);
 }
 
-/* --- Theme Presets page: color swatches and active state ------------------------------------------------ */
+/* --- Theme Presets in Appearance: grid of mini screen previews ------------------------------------------ */
 
-.theme-preset-row {
+/* The grid of preset cards: 3 columns on wide screens, wrapping on narrower ones. */
+.theme-preset-choices {
   display: grid;
-  grid-template-columns: 28px 1fr auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 16px;
+  padding: 24px;
+  justify-items: center;
+}
+
+/* Each preset card: preview, name, and radio tick stacked vertically. */
+.shell .theme-preset-choice {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: calc(12px * var(--text-scale, 1));
-  min-height: calc(44px * var(--text-scale, 1));
-  padding: calc(11px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
-  cursor: pointer;
+  gap: 10px;
   background: transparent;
+  color: var(--apple-label);
   border: none;
-  text-align: left;
+  cursor: pointer;
+  padding: 0;
   width: 100%;
+  max-width: 160px;
 }
 
-.theme-preset-row.active {
-  background: color-mix(in srgb, var(--accent, var(--apple-blue)) 12%, transparent);
+.theme-preset-choice.active {
+  background: transparent;
 }
 
-.theme-preset-swatch {
-  width: calc(20px * var(--text-scale, 1));
-  height: calc(20px * var(--text-scale, 1));
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+/* The mini screen preview: smaller than the Appearance light/dark ScreenPicture. */
+.theme-preview {
+  width: 140px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--apple-separator);
+}
+
+.theme-preview.light {
+  --picture-glass: rgb(255 255 255 / 0.62);
+  --picture-widget: rgb(255 255 255 / 0.82);
+  background: linear-gradient(155deg, #bcd8ff, #f3ddff 70%, #ffe9d6);
+}
+
+.theme-preview.dark {
+  --picture-glass: rgb(255 255 255 / 0.14);
+  --picture-widget: rgb(44 44 48 / 0.88);
+  background: linear-gradient(155deg, #1d3160, #160f2c 65%, #050508);
+}
+
+/* Accent-colored widget bar on the preview to show the preset's accent. */
+.theme-preview .screen-picture-widget.large {
+  background: var(--preset-accent, var(--picture-widget));
+  opacity: 0.85;
+}
+
+.theme-preset-name {
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  color: var(--apple-label-secondary);
+}
+
+.theme-preset-choice.active .theme-preset-name {
+  color: var(--apple-label);
+}
+
+/* The radio indicator for the active preset uses the preset's accent color. */
+.theme-preset-choice.active .settings-radio.on {
+  background: var(--preset-accent, var(--apple-blue));
+}
+
+/* --- Profile card (iCloud-style, at the top of the settings list) ------------------------------------ */
+
+.settings-profile-card {
+  display: flex;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  width: 100%;
+  padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1));
+  border-radius: calc(22px * var(--text-scale, 1));
+  background: var(--apple-card);
+  box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--apple-separator), transparent 20%);
+  cursor: pointer;
+  border: none;
+  color: var(--apple-label);
+  text-align: left;
+}
+
+.shell .settings-profile-card:active {
+  background: var(--apple-card-raised);
+}
+
+.settings-profile-card-avatar {
   flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(60px * var(--text-scale, 1));
+}
+
+.settings-profile-card-pic {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: calc(2px * var(--text-scale, 1)) solid color-mix(in srgb, var(--apple-separator), transparent 60%);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+}
+
+.settings-profile-card-initial {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--apple-indigo), var(--apple-purple));
+  color: #fff;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
+}
+
+.settings-profile-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(3px * var(--text-scale, 1));
+}
+
+.settings-profile-card-name {
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--apple-label);
+  line-height: 1.2;
+}
+
+.settings-profile-card-sub {
+  font-size: calc(15px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  line-height: 1.3;
+}
+
+.settings-profile-card-chevron {
+  flex-shrink: 0;
+  color: var(--apple-label-tertiary);
+  display: flex;
+  align-items: center;
 }
 
 /* --- Profiles page: profile rows and add profile input --------------------------------------------------- */

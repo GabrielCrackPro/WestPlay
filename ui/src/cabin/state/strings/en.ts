@@ -733,6 +733,8 @@ export const ENGLISH_STRINGS: Strings = {
     profilesFooter:
       'Each driver profile keeps its own settings, pinned apps and home order. Switching profiles does not affect your game save.',
     currentProfile: 'Current profile',
+    noProfile: 'No profile',
+    driverProfile: 'Driver profile',
     addProfile: 'Add Profile',
     addProfileFooter:
       'Creates a new driver profile with default settings. You can rename and customize it afterwards.',
@@ -753,9 +755,6 @@ export const ENGLISH_STRINGS: Strings = {
     widgetJobFooter: 'Shows the current job details, deadline and distance.',
     widgetFuelFooter: 'Shows fuel level, range and consumption.',
     widgetSpeedFooter: 'Shows current speed, speed limit and cruise control status.',
-    nowPlayingBar: 'Now Playing Bar',
-    nowPlayingBarFooter:
-      'A persistent mini-player at the bottom of every screen. Tap it to open the full Now Playing view.',
     customization: 'Customization',
   },
   diagnostics: {

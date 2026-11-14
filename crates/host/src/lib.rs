@@ -2379,7 +2379,8 @@ fn screen_message(layout: u32) -> String {
 }
 
 /// `{"type":"settings","truckStrip":"auto","wallpaper":"plain","iconSet":null,"iconStyle":"auto","equalizer":…}`: the
-/// settings the cabin page applies itself, `resume` saying whether the cab comes back where the last launch left it.
+/// settings the cabin page applies itself, `resume` saying whether the cab comes back where the last launch left it,
+/// and `profiles` / `currentProfileId` so the cabin shows the same profile the companion has selected.
 fn settings_message(settings: &settings::Settings) -> String {
     serde_json::json!({
         "type": "settings",
@@ -2393,6 +2394,8 @@ fn settings_message(settings: &settings::Settings) -> String {
         "voiceKey": settings.voice.hotkey.label(),
         "voiceWake": settings.voice.wake,
         "resume": settings.cabin.resume,
+        "profiles": settings.cabin.profiles,
+        "currentProfileId": settings.cabin.current_profile_id,
     })
     .to_string()
 }
@@ -3126,6 +3129,8 @@ mod tests {
                 "voiceKey": settings.voice.hotkey.label(),
                 "voiceWake": false,
                 "resume": false,
+                "profiles": [],
+                "currentProfileId": "",
             })
         );
         settings.screen.truck_strip = crate::settings::TruckStrip::Off;

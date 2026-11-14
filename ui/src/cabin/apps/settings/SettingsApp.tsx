@@ -14,7 +14,7 @@ import { pickVariant, prepareWallpaper } from '../../wallpapers'
 import type { Appearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
 import { type GpsDuckLead, type MapDetail, type ThemePresetId, useCabin, useLive } from '../../state/store'
-import { THEME_PRESET_DEFINITIONS, THEME_PRESETS, DEFAULT_PROFILE } from '../../state/store'
+import { THEME_PRESET_DEFINITIONS, THEME_PRESETS } from '../../state/store'
 import { PINNED_LIMIT } from '../../state/apps'
 import { useLanguage, useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
@@ -28,8 +28,6 @@ import {
   HomeGlyph,
   IconsGlyph,
   NowPlayingGlyph,
-  PaletteGlyph,
-  PersonGlyph,
   SoundGlyph,
   UnitsGlyph,
   VoiceGlyph,
@@ -128,8 +126,6 @@ function PageContent({ page }: { page: SettingsPage }) {
       return <VoicePage />
     case 'textSize':
       return <TextSizePage />
-    case 'themePresets':
-      return <ThemePresetsPage />
     case 'profiles':
       return <ProfilesPage />
   }
@@ -178,54 +174,6 @@ function GeneralPage() {
     window.location.reload()
   }
 
-  const exportSettings = () => {
-    const settings: Record<string, unknown> = {}
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key?.startsWith('westplay')) {
-        settings[key] = JSON.parse(localStorage.getItem(key) ?? '{}')
-      }
-    }
-    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'cabin-play-settings.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const importSettings = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        try {
-          const settings = JSON.parse(ev.target?.result as string) as Record<string, unknown>
-          // Clear existing westplay keys
-          const keysToRemove: string[] = []
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i)
-            if (key?.startsWith('westplay')) keysToRemove.push(key)
-          }
-          keysToRemove.forEach((key) => localStorage.removeItem(key))
-          // Write imported settings
-          for (const [key, value] of Object.entries(settings)) {
-            localStorage.setItem(key, JSON.stringify(value))
-          }
-          window.location.reload()
-        } catch {
-          alert('Invalid settings file.')
-        }
-      }
-      reader.readAsText(file)
-    }
-    input.click()
-  }
 
   const clearCache = () => {
     // Clear cached thumbnails and other caches
@@ -263,22 +211,6 @@ function GeneralPage() {
             </span>
           </button>
         )}
-      </Group>
-      <Group footer={text.settings.exportSettingsFooter}>
-        <button type="button" className="settings-row" onClick={exportSettings}>
-          <span className="settings-label">{text.settings.exportSettings}</span>
-          <span className="settings-chevron">
-            <ChevronGlyph />
-          </span>
-        </button>
-      </Group>
-      <Group footer={text.settings.importSettingsFooter}>
-        <button type="button" className="settings-row" onClick={importSettings}>
-          <span className="settings-label">{text.settings.importSettings}</span>
-          <span className="settings-chevron">
-            <ChevronGlyph />
-          </span>
-        </button>
       </Group>
       <Group footer={text.settings.clearCacheFooter}>
         <div className="settings-row settings-info-row">
@@ -366,6 +298,8 @@ function ListPage() {
         <SearchResults results={results} onOpen={openResult} />
       ) : (
         <>
+          {/* Profile card: iCloud-style card at the top showing the current driver profile. */}
+          <ProfileCard onOpen={() => open('profiles')} />
           {/* General: version, reset, export/import, storage — the first thing a driver reaches for when
               something feels off. */}
           <Group header={text.settings.generalSection}>
@@ -470,25 +404,6 @@ function ListPage() {
               onOpen={() => open('voice')}
             />
           </Group>
-          <Group header={text.settings.customization}>
-            <NavRow
-              tile="var(--apple-purple)"
-              icon={<PaletteGlyph />}
-              label={text.settings.themePresets}
-              onOpen={() => open('themePresets')}
-            />
-            <NavRow
-              tile="var(--apple-indigo)"
-              icon={<PersonGlyph />}
-              label={text.settings.profiles}
-              onOpen={() => open('profiles')}
-            />
-            <SwitchRow
-              label={text.settings.nowPlayingBar}
-              on={useCabin((state) => state.nowPlayingBar)}
-              onToggle={useCabin((state) => state.setNowPlayingBar)}
-            />
-          </Group>
         </>
       )}
     </Page>
@@ -525,6 +440,15 @@ function AppearancePage() {
   const mode = useCabin((state) => state.appearanceMode)
   const setMode = useCabin((state) => state.setAppearanceMode)
   const wanted = useWantedAppearance()
+  const accentColor = useCabin((state) => state.accentColor)
+  const applyPreset = useCabin((state) => state.applyThemePreset)
+  const presetNames: Record<ThemePresetId, string> = {
+    midnight: text.settings.themePresetMidnight,
+    sunrise: text.settings.themePresetSunrise,
+    forest: text.settings.themePresetForest,
+    ocean: text.settings.themePresetOcean,
+    ember: text.settings.themePresetEmber,
+  }
   // The Vehicle Bar: only on a screen that has one (the truck's own bar, beside WestPlay).
   const hasBar = useScreenProfile().oemStrip !== null
   const oemMode = useCabin((state) => state.oemMode)
@@ -567,6 +491,32 @@ function AppearancePage() {
         />
       </Group>
 
+      {/* Theme presets: pre-built accent + appearance combos with a mini screen preview. */}
+      <Group footer={text.settings.themePresetsFooter}>
+        <div className="theme-preset-choices">
+          {THEME_PRESETS.map((id) => {
+            const def = THEME_PRESET_DEFINITIONS[id]
+            const isActive = def.accentColor === accentColor
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`theme-preset-choice${isActive ? ' active' : ''}`}
+                style={isActive ? ({ '--preset-accent': def.accentColor } as any) : undefined}
+                onClick={() => applyPreset(id)}
+                aria-pressed={isActive}
+              >
+                <ThemePreview appearance={def.appearanceMode} accentColor={def.accentColor} />
+                <span className="theme-preset-name">{presetNames[id]}</span>
+                <span className={isActive ? 'settings-radio on' : 'settings-radio'}>
+                  {isActive && <CheckGlyph />}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </Group>
+
       {hasBar && (
         <Group footer={text.settings.vehicleBarFooter}>
           <SwitchRow
@@ -577,6 +527,18 @@ function AppearancePage() {
         </Group>
       )}
     </Page>
+  )
+}
+
+/** A mini screen preview for a theme preset: smaller than ScreenPicture, with the accent color on widgets. */
+function ThemePreview({ appearance, accentColor }: { appearance: 'light' | 'dark'; accentColor: string }) {
+  return (
+    <span className={`theme-preview screen-picture ${appearance}`} style={({ '--preset-accent': accentColor } as any)} aria-hidden>
+      <span className="screen-picture-sidebar" />
+      <span className="screen-picture-widget large" />
+      <span className="screen-picture-widget" />
+      <span className="screen-picture-widget" />
+    </span>
   )
 }
 
@@ -958,7 +920,7 @@ function MapGlyph() {
   )
 }
 
-/** The album art on Now Playing and in Music. */
+/** The album art settings. */
 function NowPlayingPage() {
   const text = useText()
   const albumArt = useCabin((state) => state.albumArt)
@@ -1176,43 +1138,47 @@ function EqualizerPage() {
   )
 }
 
-/** Theme Presets: pre-built combinations of accent color and appearance mode. */
-function ThemePresetsPage() {
+
+/** iCloud-style profile card at the top of the settings list. */
+function ProfileCard({ onOpen }: { onOpen: () => void }) {
   const text = useText()
-  const accentColor = useCabin((state) => state.accentColor)
-  const applyPreset = useCabin((state) => state.applyThemePreset)
-  const presetNames: Record<ThemePresetId, string> = {
-    midnight: text.settings.themePresetMidnight,
-    sunrise: text.settings.themePresetSunrise,
-    forest: text.settings.themePresetForest,
-    ocean: text.settings.themePresetOcean,
-    ember: text.settings.themePresetEmber,
-  }
+  const profiles = useCabin((state) => state.profiles)
+  const currentProfileId = useCabin((state) => state.currentProfileId)
+  const current = profiles.find((p) => p.id === currentProfileId) ?? null
+
   return (
-    <Page title={text.settings.themePresets}>
-      <Group footer={text.settings.themePresetsFooter}>
-        {THEME_PRESETS.map((id) => {
-          const def = THEME_PRESET_DEFINITIONS[id]
-          const isActive = def.accentColor === accentColor
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`settings-row theme-preset-row${isActive ? ' active' : ''}`}
-              onClick={() => applyPreset(id)}
-            >
-              <span className="theme-preset-swatch" style={{ background: def.accentColor }} />
-              <span className="settings-label">{presetNames[id]}</span>
-              {isActive && (
-                <span className="settings-check">
-                  <CheckGlyph />
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </Group>
-    </Page>
+    <button type="button" className="settings-profile-card" onClick={onOpen}>
+      {current ? (
+        <>
+          <span className="settings-profile-card-avatar">
+            {current.picture ? (
+              <img className="settings-profile-card-pic" src={current.picture} alt="" />
+            ) : (
+              <span className="settings-profile-card-initial">
+                {(current.name ?? '?')[0]?.toUpperCase() ?? '?'}
+              </span>
+            )}
+          </span>
+          <div className="settings-profile-card-info">
+            <span className="settings-profile-card-name">{current.name}</span>
+            <span className="settings-profile-card-sub">{text.settings.driverProfile}</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <span className="settings-profile-card-avatar">
+            <span className="settings-profile-card-initial">?</span>
+          </span>
+          <div className="settings-profile-card-info">
+            <span className="settings-profile-card-name">{text.settings.noProfile}</span>
+            <span className="settings-profile-card-sub">{text.settings.driverProfile}</span>
+          </div>
+        </>
+      )}
+      <span className="settings-profile-card-chevron">
+        <ChevronGlyph />
+      </span>
+    </button>
   )
 }
 
@@ -1258,13 +1224,12 @@ function ProfilesPage() {
                 {profiles.find((p) => p.id === currentProfileId)?.name}
               </>
             ) : (
-              DEFAULT_PROFILE.name
+              text.settings.noProfile
             )}
           </span>
         </div>
         {profiles.map((profile) => {
           const isCurrent = profile.id === currentProfileId
-          const isDefault = profile.id === 'default'
           return (
             <div key={profile.id} className="settings-row profile-row">
               <button
@@ -1281,7 +1246,7 @@ function ProfilesPage() {
                   </span>
                 )}
               </button>
-              {!isDefault && !isCurrent && (
+              {!isCurrent && (
                 <button
                   type="button"
                   className="settings-action profile-remove"

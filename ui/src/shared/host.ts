@@ -368,6 +368,10 @@ export type HostMessage =
       /** Whether the cab comes back where the last launch left it (the screen and app it was in), the companion's
        * switch. Off, Cabin Play opens on the Dashboard. */
       resume?: boolean
+      /** Driver profiles from the companion, so the cabin shows the same profile. */
+      profiles?: { id: string; name: string; picture?: string }[]
+      /** The active profile id from the companion. */
+      currentProfileId?: string
     }
   /** The player's own wallpapers and icon sets (shared/customize.ts), their files at `CABIN_FILES`. */
   | { type: 'customize'; wallpapers: CustomWallpaper[]; iconSets: IconSet[] }

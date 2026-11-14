@@ -733,6 +733,8 @@ export const TURKISH_STRINGS: Strings = {
     profilesFooter:
       'Her sürücü profili kendi ayarlarını, sabitlenmiş uygulamalarını ve ana ekran sırasını tutar. Profil değiştirmek oyun kaydınızı etkilemez.',
     currentProfile: 'Mevcut profil',
+    noProfile: 'Profil yok',
+    driverProfile: 'Sürücü profili',
     addProfile: 'Profil Ekle',
     addProfileFooter:
       'Varsayılan ayarlarla yeni bir sürücü profili oluşturur. Daha sonra yeniden adlandırabilir ve özelleştirebilirsiniz.',
@@ -753,9 +755,6 @@ export const TURKISH_STRINGS: Strings = {
     widgetJobFooter: 'Mevcut iş ayrıntılarını, son tarihi ve mesafeyi gösterir.',
     widgetFuelFooter: 'Yakıt seviyesini, menzili ve tüketimi gösterir.',
     widgetSpeedFooter: 'Mevcut hızı, hız sınırını ve hız sabitleyici durumunu gösterir.',
-    nowPlayingBar: 'Şimdi Çalıyor Çubuğu',
-    nowPlayingBarFooter:
-      'Her ekranın altında kalıcı bir mini çalar. Tam "Şimdi Çalıyor" görünümünü açmak için dokunun.',
     customization: 'Özelleştirme',
   },
   diagnostics: {

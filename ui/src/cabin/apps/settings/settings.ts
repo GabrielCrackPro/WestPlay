@@ -25,7 +25,6 @@ export type SettingsPage =
   | 'mapRoute'
   | 'mapMarkers'
   | 'mapStopCard'
-  | 'themePresets'
   | 'profiles'
 
 /** The page a page is within, where its back button goes (the list, but for the pages within a page). */

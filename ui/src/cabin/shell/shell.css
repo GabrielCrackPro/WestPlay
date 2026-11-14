@@ -325,6 +325,7 @@ body,
   text-align: center;
 }
 
+
 /* The clock under the brand, at the sidebar's own scale (--sidebar-scale), the sidebar as wide as it needs. */
 .time {
   font-size: calc(34px * var(--sidebar-scale));
@@ -382,7 +383,7 @@ body,
   color: var(--text-dim);
 }
 
-/* The paired phone under the clock (Sidebar.tsx), as a head unit keeps its phone beside the time: a receiver with
+/* The paired phone at the bottom of the status area (Sidebar.tsx), as a head unit keeps its phone status compact: a receiver with
    its charge, or the call on it. A status line, not a card (owner 2026-11-06: the chip read as one more panel among
    the apps, and a phone's model name was cut to nothing at the sidebar's width): no surface of its own, so the
    clock's corner stays the clock's, and the press that opens the Phone app tints only under the pointer. */
@@ -392,8 +393,6 @@ body,
   flex-direction: column;
   align-items: center;
   gap: calc(7px * var(--sidebar-scale));
-  width: 100%;
-  margin-top: calc(11px * var(--sidebar-scale));
 }
 
 /* Its status, or its call: the way into the Phone app. A pill of the sidebar's own grey, so the line reads at a
@@ -1249,4 +1248,54 @@ html[data-motion='reduced'] *::after {
 .shell :is(button, [role='button']):active {
   scale: 0.97;
   transition: scale var(--motion-quick) var(--motion-ease);
+}
+
+/* --- Top bar (Shell.tsx) --------------------------------------------------------------------------- */
+
+/* Thin fixed bar at the top of the carplay content area: the profile avatar on the right, visible on all
+   screens. It sits over the wallpaper and screens but under PhoneAlerts. Hidden during boot (overlay present). */
+.top-bar {
+  position: fixed;
+  top: calc(10px * var(--text-scale, 1));
+  right: calc(12px * var(--text-scale, 1));
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: calc(6px * var(--text-scale, 1));
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.top-bar:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.top-bar:active {
+  scale: 0.94;
+}
+
+/* The profile picture in the top bar: a prominent circular avatar with border and shadow. */
+.top-bar-profile-pic {
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  border-radius: 50%;
+  object-fit: cover;
+  border: calc(2px * var(--text-scale, 1)) solid color-mix(in srgb, var(--text) 25%, transparent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Fallback avatar when no picture is set: a letter in a gradient circle. */
+.top-bar-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--apple-indigo, #5856d6), var(--apple-purple, #af52de));
+  color: #fff;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }

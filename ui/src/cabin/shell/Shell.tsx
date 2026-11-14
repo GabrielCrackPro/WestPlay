@@ -10,7 +10,7 @@ import { motionEase, useMotionReduced } from '../motion'
 import { frameInsets, NO_INSETS, OEM_STRIPS } from '../state/oem'
 import { RETURN_BUTTON_SIZE, returnButtonCentre } from '../state/screen'
 import { textScale } from '../state/textSize'
-import { useCabin, useLive } from '../state/store'
+import { go, useCabin, useLive } from '../state/store'
 import { useNightDim } from '../state/nightDim'
 import { useClock } from '../state/clock'
 import { type Appearance } from '../state/appearance'
@@ -28,8 +28,7 @@ import { useWhatsApp } from '../apps/whatsapp/whatsapp'
 import type { Hole } from '../apps/youtube/youtube'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
-import { ControlCenter } from './ControlCenter'
-import { NowPlayingBar } from './NowPlayingBar'
+import { useSettings } from '../apps/settings/settings'
 
 interface ShellProps {
   /** The current screen, placed in the CarPlay area. */
@@ -176,8 +175,7 @@ export function Shell({ children, overlay, voice = true }: ShellProps) {
           <VolumeHud />
           <Notifications />
           {voice && <VoiceAssistant />}
-          <ControlCenter />
-          <NowPlayingBar />
+          {!overlay && <TopBar />}
           {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
           {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>
@@ -254,6 +252,35 @@ function GameStripPreview({ name }: { name: string }) {
   return (
     <div className="game-strip-preview" aria-hidden>
       <span>{name} strip (drawn by the game)</span>
+    </div>
+  )
+}
+
+/**
+ * Thin top bar that spans all cabin screens: the current driver profile avatar on the right.
+ * Clicking the avatar opens Settings directly to the Profiles section.
+ */
+export function TopBar() {
+  const profiles = useCabin((state) => state.profiles)
+  const currentId = useCabin((state) => state.currentProfileId)
+  const current = profiles.find((p) => p.id === currentId)
+
+  if (!current) return null
+
+  const initial = (current.name ?? '?')[0]?.toUpperCase() ?? '?'
+
+  const handleClick = () => {
+    useSettings.getState().open('profiles')
+    go({ type: 'openApp', app: 'settings' })
+  }
+
+  return (
+    <div className="top-bar" onClick={handleClick} title={current.name}>
+      {current.picture ? (
+        <img className="top-bar-profile-pic" src={current.picture} alt="" />
+      ) : (
+        <span className="top-bar-profile-avatar">{initial}</span>
+      )}
     </div>
   )
 }

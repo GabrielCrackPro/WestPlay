@@ -744,6 +744,8 @@ export interface Strings {
     profilesSection: string
     profilesFooter: string
     currentProfile: string
+    noProfile: string
+    driverProfile: string
     addProfile: string
     addProfileFooter: string
     removeProfile: string
@@ -764,9 +766,6 @@ export interface Strings {
     widgetJobFooter: string
     widgetFuelFooter: string
     widgetSpeedFooter: string
-    /** Cross-app now playing bar. */
-    nowPlayingBar: string
-    nowPlayingBarFooter: string
     /** Customization section in settings list. */
     customization: string
   }
