@@ -2,6 +2,46 @@ import type { IconStyle } from '../shared/customize'
 import { call, on } from './bridge'
 import { useCallback, useEffect, useState } from 'react'
 
+/** The accent colors the companion's chrome can light up with. */
+export type AccentId = 'ember' | 'mint' | 'sky' | 'rose' | 'violet' | 'gold'
+
+export interface Accent {
+  id: AccentId
+  /** The color's name, as the Customize picker shows it. */
+  name: string
+  /** The bright signal color. */
+  signal: string
+  /** Its channels for translucent glows, as CSS `rgb()` takes them. */
+  rgb: string
+}
+
+const ACCENT_BY_ID: Record<AccentId, Accent> = {
+  ember: { id: 'ember', name: 'Ember', signal: '#ff5a1f', rgb: '255 90 31' },
+  mint: { id: 'mint', name: 'Mint', signal: '#5ee0a0', rgb: '94 224 160' },
+  sky: { id: 'sky', name: 'Sky', signal: '#62b0ff', rgb: '98 176 255' },
+  rose: { id: 'rose', name: 'Rose', signal: '#ff6f9f', rgb: '255 111 159' },
+  violet: { id: 'violet', name: 'Violet', signal: '#b28cff', rgb: '178 140 255' },
+  gold: { id: 'gold', name: 'Gold', signal: '#ffc857', rgb: '255 200 87' },
+}
+
+export const ACCENTS = Object.values(ACCENT_BY_ID)
+export const DEFAULT_ACCENT: AccentId = 'ember'
+
+/** An accent by id, or the default for a setting from an older build. */
+export function accentOf(id: AccentId | undefined): Accent {
+  return (id ? ACCENT_BY_ID[id] : undefined) ?? ACCENT_BY_ID[DEFAULT_ACCENT]
+}
+
+/** A driver profile: keeps its own settings snapshot. */
+export interface DriverProfile {
+  id: string
+  name: string
+  /** A profile picture as a data URL; empty when none is set. */
+  picture?: string
+  /** Cabin settings snapshot, saved on profile switch. */
+  settingsSnapshot?: Record<string, unknown>
+}
+
 /** The player's settings. Mirrors `westplay_host::settings::Settings`; the app owns and saves them. */
 export interface Settings {
   interaction: {
@@ -12,13 +52,33 @@ export interface Settings {
     /** Cursor speed multiplier, `SENSITIVITY.min`..`SENSITIVITY.max`. */
     sensitivity: number
   }
-  /** What WestPlay does from the game, by the player's keys. */
+  /** What Cabin Play does from the game, by the player's keys. */
   keybinds: Record<KeybindId, Binding>
+  /** The cabin's voice assistant, the chord that starts it, and whether the wake phrase listens. */
+  voice: {
+    enabled: boolean
+    hotkey: VoiceHotkey
+    /** Kept so a companion save doesn't turn the cabin's wake phrase off. */
+    wake: boolean
+  }
   screen: {
     truckStrip: TruckStrip
   }
+  /** The cabin's own session between launches (the Screen page's switch). */
+  cabin: {
+    /** Whether the screen and app the player was in come back at the next launch; off, the Dashboard every time. */
+    resume: boolean
+    /** Driver profiles: each keeps its own settings. */
+    profiles: DriverProfile[]
+    /** The active profile's id. */
+    currentProfileId: string
+  }
+  /** The companion's own look: the color its chrome lights up with. */
+  companion: {
+    accent: AccentId
+  }
   /** How the screen looks (Customize): a wallpaper's id and one of the player's icon sets, by name; `null`:
-   * none chosen (the cab's default wallpaper, WestPlay's own icons). */
+   * none chosen (the cab's default wallpaper, Cabin Play's own icons). */
   look: {
     wallpaper: string | null
     iconSet: string | null
@@ -26,13 +86,13 @@ export interface Settings {
     iconStyle: IconStyle
   }
   /** The graphics card the screen is drawn on: one the player chose (an `Adapter`'s id), or `null`:
-   * WestPlay picks (the game's). */
+   * Cabin Play picks (the game's). */
   graphics: {
     gpu: string | null
   }
 }
 
-/** Mirrors `westplay_host::settings::TruckStrip`: the truck's own strip beside WestPlay, kept or not. */
+/** Mirrors `westplay_host::settings::TruckStrip`: the truck's own strip beside Cabin Play, kept or not. */
 export type TruckStrip = 'auto' | 'off'
 
 /** Mirrors `westplay_host::settings::KeyCode`: a key of the keyboard or a button of the mouse, as Windows
@@ -49,7 +109,7 @@ export const KEY_PRESETS: Record<KeyPreset, KeyCode> = {
   mouseForward: 0x06,
 }
 
-/** The key WestPlay starts with: Left Alt. */
+/** The key Cabin Play starts with: Left Alt. */
 export const DEFAULT_KEY = KEY_PRESETS.leftAlt
 
 /** Mirrors `westplay_host::settings::InteractionMode`. */
@@ -66,6 +126,14 @@ export const KEYBIND_IDS: KeybindId[] = ['volumeDown', 'playPause', 'volumeUp']
 export interface Binding {
   key: KeyCode
   withInteractionKey: boolean
+}
+
+/** Mirrors `westplay_host::settings::VoiceHotkey`: a key, with Ctrl, Shift or Alt held around it. */
+export interface VoiceHotkey {
+  key: KeyCode
+  ctrl: boolean
+  shift: boolean
+  alt: boolean
 }
 
 /** Mirrors `westplay_host::settings::Sensitivity` (the app corrects anything outside it). */

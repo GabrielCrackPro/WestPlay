@@ -1,0 +1,234 @@
+/* The Driver app (DriverApp.tsx): the driver's game profile and the lifetime totals the game keeps for it, drawn
+   as the native apps are — iOS 26's grouped cards and rows, on Apple's colours (shell/apple.css), with the same
+   hairline separators, sentence-case labels and secondary-label text Settings and Weather use.
+
+   It is drawn on Settings' own cab scale (settings.css: 1.35 px per iPhone point, so a 52 pt row is 70 px and
+   17 pt text is 24 px), not one of its own: the native apps' pages are one size in this cab, as they are on a
+   phone. */
+
+.driver-app {
+  border-radius: var(--panel-radius);
+  background: var(--apple-background);
+  color: var(--apple-label);
+  overflow: hidden;
+}
+
+/* The page scrolls: a short screen keeps the profile and the totals, and the note under them follows. */
+.driver-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.driver-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.driver-page {
+  display: flex;
+  flex-direction: column;
+  /* Settings' gap between groups of cards. */
+  gap: calc(34px * var(--text-scale, 1));
+  width: min(100%, 1120px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(24px * var(--text-scale, 1)) calc(30px * var(--text-scale, 1)) calc(36px * var(--text-scale, 1));
+}
+
+/* The profile: the driver's portrait beside their name, as Contacts and Settings' account row have them. The
+   portrait is a tinted fill, not a bordered badge. */
+.driver-profile {
+  display: flex;
+  align-items: center;
+  gap: calc(18px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.driver-portrait {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(84px * var(--text-scale, 1));
+  height: calc(84px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--apple-blue), color-mix(in srgb, var(--apple-blue) 70%, white));
+  color: #fff;
+  box-shadow: 0 4px 16px rgb(0 122 255 / 0.25);
+  overflow: hidden;
+}
+
+.driver-portrait svg {
+  width: 88%;
+  height: 88%;
+}
+
+/* Profile picture from the cabin profile */
+.driver-portrait--photo {
+  background: var(--apple-separator);
+  padding: 0;
+}
+
+.driver-portrait-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Profile initial when no picture is set */
+.driver-portrait--initial {
+  font-size: calc(40px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.driver-identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.driver-identity h1 {
+  overflow: hidden;
+  margin: 0;
+  font-size: calc(34px * var(--text-scale, 1));
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-identity p {
+  overflow: hidden;
+  margin: calc(4px * var(--text-scale, 1)) 0 0;
+  color: var(--apple-label-secondary);
+  font-size: calc(18px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A card, as Settings draws one: the raised fill, its corners (the card's 34, not the panel's), and a hairline
+   round the edge. */
+.driver-card {
+  border-radius: 34px;
+  background: var(--apple-card);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--apple-separator), transparent 35%),
+              inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Subtle top-edge highlight on the card for a physical panel aesthetic. */
+.driver-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+  pointer-events: none;
+}
+
+.driver-totals {
+  padding: calc(20px * var(--text-scale, 1)) calc(22px * var(--text-scale, 1)) calc(6px * var(--text-scale, 1));
+  position: relative;
+}
+
+/* The one figure the app is about, at the size Weather's readings have. */
+.driver-career {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--text-scale, 1));
+}
+
+.driver-label {
+  color: var(--apple-label-secondary);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.driver-career-value {
+  font-size: calc(46px * var(--text-scale, 1));
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--apple-label), color-mix(in srgb, var(--apple-label) 80%, var(--apple-blue)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.driver-career-value span {
+  color: var(--apple-label-secondary);
+  font-size: 0.44em;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+/* The totals: the name on the left, the figure on the right, a hairline under each but the first. */
+.driver-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: calc(14px * var(--text-scale, 1));
+  border-top: 1px solid var(--apple-separator);
+}
+
+.driver-row {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--text-scale, 1));
+  /* Settings' 52 pt row. */
+  min-height: calc(70px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.driver-row + .driver-row {
+  border-top: 1px solid var(--apple-separator);
+}
+
+.driver-row-label {
+  overflow: hidden;
+  /* A row's 17 pt. */
+  font-size: calc(24px * var(--text-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-row-value {
+  margin-left: auto;
+  color: var(--apple-label-secondary);
+  font-size: calc(24px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .driver-page {
+    gap: calc(22px * var(--text-scale, 1));
+    padding: calc(18px * var(--text-scale, 1)) calc(20px * var(--text-scale, 1)) calc(28px * var(--text-scale, 1));
+  }
+
+  .driver-profile {
+    gap: calc(14px * var(--text-scale, 1));
+  }
+
+  .driver-portrait {
+    width: calc(64px * var(--text-scale, 1));
+    height: calc(64px * var(--text-scale, 1));
+  }
+
+  .driver-identity h1 {
+    font-size: calc(28px * var(--text-scale, 1));
+  }
+
+  .driver-career-value {
+    font-size: calc(38px * var(--text-scale, 1));
+  }
+
+  .driver-row {
+    min-height: calc(62px * var(--text-scale, 1));
+  }
+}

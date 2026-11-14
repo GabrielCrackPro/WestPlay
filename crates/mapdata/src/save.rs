@@ -21,6 +21,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::{BlockDecryptMut, KeyIvInit};
@@ -401,23 +402,65 @@ pub fn latest(documents: &Path, steam_userdata: Option<&Path>) -> Option<PathBuf
 }
 
 /// [`latest`], of the profiles whose folder's name (the profile's name in hexadecimal) `profile` takes.
+/// When Steam Cloud saves exist for a matching profile, they are preferred over local saves, because
+/// Steam Cloud is the authoritative source — a local save may be stale but recently touched by the game.
 pub fn latest_of(documents: &Path, steam_userdata: Option<&Path>, profile: impl Fn(&str) -> bool) -> Option<PathBuf> {
-    let mut profile_dirs = vec![documents.join("profiles"), documents.join("steam_profiles")];
+    let local_dirs = vec![documents.join("profiles"), documents.join("steam_profiles")];
+    let mut cloud_dirs: Vec<PathBuf> = Vec::new();
     if let Some(userdata) = steam_userdata {
         for user in std::fs::read_dir(userdata).into_iter().flatten().flatten() {
-            profile_dirs.push(user.path().join("227300/remote/profiles"));
+            cloud_dirs.push(user.path().join("227300/remote/profiles"));
         }
     }
-    let saves = profile_dirs
-        .iter()
-        .flat_map(|dir| std::fs::read_dir(dir).into_iter().flatten().flatten())
-        .filter(|folder| folder.file_name().to_str().is_some_and(&profile))
-        .flat_map(|profile| std::fs::read_dir(profile.path().join("save")).into_iter().flatten().flatten())
-        .map(|slot| slot.path().join("game.sii"));
-    saves
-        .filter_map(|path| Some((std::fs::metadata(&path).ok()?.modified().ok()?, path)))
-        .max_by_key(|(modified, _)| *modified)
-        .map(|(_, path)| path)
+    // Collect saves from all directories, tagging each with whether it's from Steam Cloud.
+    fn collect_saves(dirs: &[PathBuf], profile: impl Fn(&str) -> bool, from_cloud: bool) -> Vec<(PathBuf, bool)> {
+        dirs.iter()
+            .flat_map(|dir| {
+                std::fs::read_dir(dir)
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter(|folder| folder.file_name().to_str().is_some_and(&profile))
+                    .flat_map(|p| {
+                        std::fs::read_dir(p.path().join("save"))
+                            .into_iter()
+                            .flatten()
+                            .flatten()
+                            .map(|slot| (slot.path().join("game.sii"), from_cloud))
+                    })
+            })
+            .collect()
+    }
+    let mut all_saves: Vec<(SystemTime, PathBuf, bool)> = collect_saves(&local_dirs, &profile, false)
+        .into_iter()
+        .filter_map(|(path, from_cloud)| {
+            std::fs::metadata(&path)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .map(|t| (t, path, from_cloud))
+        })
+        .collect();
+    all_saves.extend(
+        collect_saves(&cloud_dirs, &profile, true)
+            .into_iter()
+            .filter_map(|(path, from_cloud)| {
+                std::fs::metadata(&path)
+                    .ok()
+                    .and_then(|m| m.modified().ok())
+                    .map(|t| (t, path, from_cloud))
+            }),
+    );
+    // Prefer Steam Cloud saves over local saves; within the same source, pick the newest.
+    all_saves
+        .into_iter()
+        .max_by(|(lt, _, lcloud), (rt, _, rcloud)| {
+            match (lcloud, rcloud) {
+                (true, false) => std::cmp::Ordering::Greater,
+                (false, true) => std::cmp::Ordering::Less,
+                _ => lt.cmp(rt),
+            }
+        })
+        .map(|(_, path, _)| path)
 }
 
 #[cfg(test)]

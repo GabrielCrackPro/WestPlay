@@ -1,40 +1,76 @@
-import { type CSSProperties, type PointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
-import { NoteGlyph, PauseGlyph, PlayGlyph } from '../music/glyphs'
-import { useNowPlayingTrack } from '../../dashboard/useNowPlaying'
-import { smoothThrough } from './curve'
-import { useWallpapers } from '../../state/looks'
+import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { SearchGlyph } from '../../keyboard/glyphs'
+import { useKeyboard } from '../../keyboard/store'
+import { wakePhrase } from '../../voice/wake'
+import { TextField } from '../../keyboard/TextField'
+import { EqualizerGraph, TrackRow } from './equalizer'
+import { ChoiceRows, Group, NavRow, Page, SwitchOrderRow, SwitchRow } from './rows'
+import { setIcons, useLooks, useWallpapers } from '../../state/looks'
+import { fileUrl, type IconSet, type IconStyle } from '../../../shared/customize'
+import type { ClockChoice } from '../../../shared/clock'
+import type { UnitsChoice } from '../../../shared/units'
+import { type AppIconRole, appIcon, type IconLook } from '../../../shared/icons'
 import { pickVariant, prepareWallpaper } from '../../wallpapers'
-import { type Appearance, resolveAppearance } from '../../state/appearance'
+import type { Appearance } from '../../state/appearance'
 import { useLook, useScreenProfile } from '../../state/hooks'
-import { DASHBOARD_WIDGETS, type DashboardWidget, useCabin, useLive } from '../../state/store'
-import { useText } from '../../state/text'
+import { type GpsDuckLead, type MapDetail, type ThemePresetId, useCabin, useLive } from '../../state/store'
+import { THEME_PRESET_DEFINITIONS, THEME_PRESETS } from '../../state/store'
+import { PINNED_LIMIT } from '../../state/apps'
+import { useLanguage, useText } from '../../state/text'
 import { TEXT_SIZES } from '../../state/textSize'
 import {
   AppearanceGlyph,
   CheckGlyph,
   ChevronGlyph,
+  ClusterGlyph,
   DashboardGlyph,
+  GeneralGlyph,
+  HomeGlyph,
+  IconsGlyph,
   NowPlayingGlyph,
   SoundGlyph,
+  UnitsGlyph,
+  VoiceGlyph,
   WallpaperGlyph,
 } from './glyphs'
+import { type SettingsEntry, searchSettings, settingsEntries } from './search'
 import { type SettingsPage, useSettings } from './settings'
 import './settings.css'
-import { cabClock, EQUALIZER_BANDS, EQUALIZER_MOST, type Equalizer, isInHost, postToHost } from '../../../shared/host'
+import '../../cluster/telltales.css'
+import { EQUALIZER_BANDS, isInHost, postToHost } from '../../../shared/host'
+import { ClusterPage } from './clusterPage'
+import { DashboardPage, OverviewPage } from './dashboardPage'
+import { MapDisplayPage, MapMarkersPage, MapRoutePage, MapStopCardPage, MapTrafficPage, MapsPage } from './mapsPages'
+import { useWantedAppearance } from './useWantedAppearance'
+
+/** The app's version, from package.json (Vite replaces it at build time, or we fall back to the literal). */
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '2.1.4'
 
 /**
  * The Settings app, in iOS 26's Settings look: a large title, inset grouped cards, coloured tiles, chevrons
  * and pill switches, in Apple's colours (shell/apple.css). Only the player's own CarPlay choices live here;
  * WestPlay's management (the cab's sound, the companion's options) belongs to the companion window.
  *
- * Appearance (with Text Size), Wallpaper, the Dashboard's widgets, Now Playing's album art and the Equalizer.
+ * Its list is in four sections, by the question a driver is asking: Screen (Appearance with Text Size, Wallpaper, App
+ * Icons), The Cab (Dashboard with its Overview, Instrument Cluster, Units & Clock), Navigation (Maps, the game's GPS
+ * Voice), and Apps (Home Screen, Now Playing, Sound with its Equalizer, Voice Assistant).
  */
 export function SettingsApp() {
   const text = useText()
   const page = useSettings((state) => state.page)
   const went = useSettings((state) => state.went)
+  const back = useSettings((state) => state.back)
   // Opened again, the page it was left on comes with the window, without a slide of its own.
   useEffect(() => () => useSettings.setState({ went: 'none' }), [])
+  // Escape goes back a page, as its button does: the cab is driven by mouse, but the keyboard walks these too.
+  useEffect(() => {
+    if (page === 'list') return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') back()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [page, back])
   return (
     <section className="app-panel settings-app" aria-label={text.apps.settings}>
       <div key={page} className={`settings-page went-${went}`}>
@@ -48,76 +84,353 @@ function PageContent({ page }: { page: SettingsPage }) {
   switch (page) {
     case 'list':
       return <ListPage />
+    case 'general':
+      return <GeneralPage />
     case 'appearance':
       return <AppearancePage />
     case 'wallpaper':
       return <WallpaperPage />
+    case 'icons':
+      return <IconsPage />
     case 'dashboard':
       return <DashboardPage />
+    case 'overview':
+      return <OverviewPage />
+    case 'cluster':
+      return <ClusterPage />
+    case 'units':
+      return <UnitsPage />
+    case 'home':
+      return <HomeScreenPage />
+    case 'map':
+      return <MapsPage />
+    case 'mapDisplay':
+      return <MapDisplayPage />
+    case 'mapTraffic':
+      return <MapTrafficPage />
+    case 'mapRoute':
+      return <MapRoutePage />
+    case 'mapMarkers':
+      return <MapMarkersPage />
+    case 'mapStopCard':
+      return <MapStopCardPage />
     case 'nowPlaying':
       return <NowPlayingPage />
     case 'sound':
       return <SoundPage />
+    case 'gpsVoice':
+      return <GpsVoicePage />
     case 'equalizer':
       return <EqualizerPage />
+    case 'voice':
+      return <VoicePage />
     case 'textSize':
       return <TextSizePage />
+    case 'profiles':
+      return <ProfilesPage />
   }
 }
 
-/** The appearance the mode asks for now (before a wallpaper with one variant only overrules it). */
-function useWantedAppearance(): Appearance {
-  const mode = useCabin((state) => state.appearanceMode)
-  const gameTime = useLive((state) => (state.telemetry ? cabClock(state.telemetry, state.clockShift) : null))
-  const lowBeam = useLive((state) => state.telemetry?.lowBeam ?? false)
-  return resolveAppearance(mode, { gameTime, lowBeam })
+/** The Settings search field's id (one on screen: the keyboard types into it). */
+const SEARCH_FIELD = 'settings-search'
+
+/**
+ * General: the app's version, and the controls to reset or back up the player's choices.
+ * Reset clears every setting to its default. Export saves a JSON file. Import restores from one.
+ * Storage shows how much localStorage Cabin Play uses and offers to clear the cache.
+ */
+function GeneralPage() {
+  const text = useText()
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [storageBytes, setStorageBytes] = useState<number | null>(null)
+
+  // Estimate localStorage usage on mount
+  useEffect(() => {
+    let bytes = 0
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('westplay')) {
+        bytes += (key ?? '').length + (localStorage.getItem(key) ?? '').length
+      }
+    }
+    setStorageBytes(bytes)
+  }, [])
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const resetAll = () => {
+    // Clear all westplay.* keys from localStorage
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('westplay')) keysToRemove.push(key)
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
+    // Reload the page to restore defaults
+    window.location.reload()
+  }
+
+
+  const clearCache = () => {
+    // Clear cached thumbnails and other caches
+    if (typeof caches !== 'undefined') {
+      caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n))))
+    }
+    // Clear the wallpaper thumbnails cache (SettingsApp.tsx)
+    ;(thumbnails as any).clear?.()
+    window.location.reload()
+  }
+
+  return (
+    <Page title={text.settings.general}>
+      <Group>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.version}</span>
+          <span className="settings-value">{APP_VERSION}</span>
+        </div>
+      </Group>
+      <Group footer={text.settings.resetAllSettingsFooter}>
+        {confirmReset ? (
+          <div className="settings-reset-confirm">
+            <button type="button" className="settings-row settings-action" onClick={resetAll}>
+              {text.settings.resetAllSettings}
+            </button>
+            <button type="button" className="settings-row" onClick={() => setConfirmReset(false)}>
+              {text.settings.cancel}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="settings-row" onClick={() => setConfirmReset(true)}>
+            <span className="settings-label">{text.settings.resetAllSettings}</span>
+            <span className="settings-chevron">
+              <ChevronGlyph />
+            </span>
+          </button>
+        )}
+      </Group>
+      <Group footer={text.settings.clearCacheFooter}>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.storageUsed}</span>
+          <span className="settings-value">{storageBytes !== null ? formatBytes(storageBytes) : '…'}</span>
+        </div>
+        <button type="button" className="settings-row settings-action" onClick={clearCache}>
+          {text.settings.clearCache}
+        </button>
+      </Group>
+    </Page>
+  )
 }
 
 function ListPage() {
   const text = useText()
   const open = useSettings((state) => state.open)
+  const [query, setQuery] = useState('')
+  const entries = useMemo(() => settingsEntries(text), [text])
+  const results = useMemo(() => searchSettings(entries, query), [entries, query])
+  // A result opens its page, the keyboard going away with the results.
+  const openResult = (page: SettingsPage) => {
+    useKeyboard.getState().detach(SEARCH_FIELD)
+    open(page)
+  }
   const mode = useCabin((state) => state.appearanceMode)
   const wanted = useWantedAppearance()
+  const wallpapers = useWallpapers()
+  const wallpaperId = useCabin((state) => state.wallpaperId)
+  const iconSet = useLooks((state) => state.iconSet)
+  const iconStyle = useLooks((state) => state.iconStyle)
+  const detail = useCabin((state) => state.mapDetail)
+  const clusterShown = useCabin((state) => state.clusterShown)
+  const units = useCabin((state) => state.units)
+  const clockFormat = useCabin((state) => state.clockFormat)
+  const voice = useCabin((state) => state.voiceEnabled)
+  const duck = useCabin((state) => state.gpsDuck)
+  const lead = useCabin((state) => state.gpsDuckLead)
+  const sign = useCabin((state) => state.gpsVoiceOnScreen)
+  // What each row is set to now, as iOS's Settings says it: the screen's look, its wallpaper, its icons, how much the
+  // map draws, which units and clock the readings are in, and the game's voice's two answers.
+  const wallpaper = wallpapers.find((each) => each.id === wallpaperId) ?? wallpapers[0]
+  const icons = iconStyle === 'android' ? 'Android Auto' : (iconSet ?? 'Cabin Play')
+  const drawn: Record<MapDetail, string> = {
+    high: text.settings.high,
+    balanced: text.destinations.mapBalanced,
+    low: text.settings.low,
+  }
+  // Automatic when both simply follow the game's own: there is nothing of the player's in the row to report.
+  const unitsWords: Record<UnitsChoice, string> = {
+    game: text.settings.unitsGame,
+    metric: text.settings.unitsMetric,
+    uk: text.settings.unitsUk,
+    us: text.settings.unitsUs,
+  }
+  const clockWords: Record<ClockChoice, string> = {
+    game: text.settings.clockFormatGame,
+    '24': text.settings.clockFormat24,
+    '12': text.settings.clockFormat12,
+  }
+  const unitsValue =
+    [units === 'game' ? null : unitsWords[units], clockFormat === 'game' ? null : clockWords[clockFormat]]
+      .filter(Boolean)
+      .join(' · ') || text.settings.automatic
+  // The voice's own row: how early the music steps aside, and that the screen's sign is off when it is — and where
+  // neither is on, "Off". A dip switched off with the sign still on has its own words, so the row never says "Off"
+  // over a screen that is still glowing.
+  const voiceValue =
+    [duck ? leadNames(text)[lead] : null, sign ? null : text.settings.gpsVoiceOff].filter(Boolean).join(' · ') ||
+    (sign ? text.settings.gpsVoice : text.settings.gpsVoiceOff)
   return (
     <Page title={text.apps.settings} list>
-      <Group>
-        <NavRow
-          tile="var(--apple-blue)"
-          icon={<AppearanceGlyph />}
-          label={text.settings.appearance}
-          value={mode === 'auto' ? text.settings.automatic : text.settings[wanted]}
-          onOpen={() => open('appearance')}
+      <div className="settings-search">
+        <TextField
+          id={SEARCH_FIELD}
+          value={query}
+          onChange={setQuery}
+          returnKind="search"
+          hint={text.settings.search}
+          label={text.settings.search}
+          icon={<SearchGlyph />}
         />
-        <NavRow
-          tile="var(--apple-cyan)"
-          icon={<WallpaperGlyph />}
-          label={text.settings.wallpaper}
-          onOpen={() => open('wallpaper')}
-        />
-      </Group>
-      <Group>
-        <NavRow
-          tile="var(--apple-indigo)"
-          icon={<DashboardGlyph />}
-          label={text.settings.dashboard}
-          onOpen={() => open('dashboard')}
-        />
-        <NavRow
-          tile="var(--apple-pink)"
-          icon={<NowPlayingGlyph />}
-          label={text.nowPlaying}
-          onOpen={() => open('nowPlaying')}
-        />
-      </Group>
-      <Group>
-        <NavRow
-          tile="var(--apple-red)"
-          icon={<SoundGlyph />}
-          label={text.settings.sound}
-          onOpen={() => open('sound')}
-        />
-      </Group>
+      </div>
+      {query.trim() ? (
+        <SearchResults results={results} onOpen={openResult} />
+      ) : (
+        <>
+          {/* Profile card: iCloud-style card at the top showing the current driver profile. */}
+          <ProfileCard onOpen={() => open('profiles')} />
+          {/* General: version, reset, export/import, storage — the first thing a driver reaches for when
+              something feels off. */}
+          <Group header={text.settings.generalSection}>
+            <NavRow
+              tile="var(--apple-gray)"
+              icon={<GeneralGlyph />}
+              label={text.settings.general}
+              onOpen={() => open('general')}
+            />
+          </Group>
+          {/* The list in four sections, by the question a driver is asking: how the screen looks, what the truck's
+              own displays show, the navigation, and the apps. The cab's displays sit together — the dash, its
+              Overview, the cluster — with the units and clock every reading is in, one page of their own rather than
+              a footnote under Appearance. Navigation is apart from them because it follows the route rather than the
+              cab: the map, and the game's own voice speaking over it, whose music dip and on-screen sign are that
+              page's. */}
+          <Group header={text.settings.screenSection}>
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<AppearanceGlyph />}
+              label={text.settings.appearance}
+              value={mode === 'auto' ? text.settings.automatic : text.settings[wanted]}
+              onOpen={() => open('appearance')}
+            />
+            <NavRow
+              tile="var(--apple-cyan)"
+              icon={<WallpaperGlyph />}
+              label={text.settings.wallpaper}
+              value={wallpaper?.name}
+              onOpen={() => open('wallpaper')}
+            />
+            <NavRow
+              tile="var(--apple-purple)"
+              icon={<IconsGlyph />}
+              label={text.settings.icons}
+              value={icons}
+              onOpen={() => open('icons')}
+            />
+          </Group>
+          <Group header={text.settings.cabSection}>
+            <NavRow
+              tile="var(--apple-indigo)"
+              icon={<DashboardGlyph />}
+              label={text.settings.dashboard}
+              onOpen={() => open('dashboard')}
+            />
+            <NavRow
+              tile="var(--apple-teal)"
+              icon={<ClusterGlyph />}
+              label={text.settings.clusterScreen}
+              value={clusterShown ? text.diagnostics.on : text.diagnostics.off}
+              onOpen={() => open('cluster')}
+            />
+            <NavRow
+              tile="var(--apple-gray)"
+              icon={<UnitsGlyph />}
+              label={text.settings.unitsClock}
+              value={unitsValue}
+              onOpen={() => open('units')}
+            />
+          </Group>
+          <Group header={text.settings.navSection}>
+            <NavRow
+              tile="var(--apple-green)"
+              icon={<MapGlyph />}
+              label={text.apps.maps}
+              value={drawn[detail]}
+              onOpen={() => open('map')}
+            />
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<RouteGlyph />}
+              label={text.settings.gpsVoicePage}
+              value={voiceValue}
+              onOpen={() => open('gpsVoice')}
+            />
+          </Group>
+          <Group header={text.settings.appsSection}>
+            <NavRow
+              tile="var(--apple-blue)"
+              icon={<HomeGlyph />}
+              label={text.settings.homeScreen}
+              onOpen={() => open('home')}
+            />
+            <NavRow
+              tile="var(--apple-pink)"
+              icon={<NowPlayingGlyph />}
+              label={text.nowPlaying}
+              onOpen={() => open('nowPlaying')}
+            />
+            <NavRow
+              tile="var(--apple-red)"
+              icon={<SoundGlyph />}
+              label={text.settings.sound}
+              onOpen={() => open('sound')}
+            />
+            <NavRow
+              tile="var(--apple-orange)"
+              icon={<VoiceGlyph />}
+              label={text.settings.voiceAssistant}
+              value={voice ? text.diagnostics.on : text.diagnostics.off}
+              onOpen={() => open('voice')}
+            />
+          </Group>
+        </>
+      )}
     </Page>
+  )
+}
+
+/** Settings search's results: each row's name and the page it's on; a press opens that page. */
+function SearchResults({ results, onOpen }: { results: SettingsEntry[]; onOpen(page: SettingsPage): void }) {
+  const text = useText()
+  if (results.length === 0) return <p className="settings-search-empty">{text.settings.noResults}</p>
+  return (
+    <Group>
+      {results.map((entry) => (
+        <button
+          key={`${entry.page}:${entry.label}`}
+          type="button"
+          className="settings-row settings-search-row"
+          onClick={() => onOpen(entry.page)}
+        >
+          <span className="settings-label">{entry.label}</span>
+          <span className="settings-value">{entry.section}</span>
+          <span className="settings-chevron">
+            <ChevronGlyph />
+          </span>
+        </button>
+      ))}
+    </Group>
   )
 }
 
@@ -127,6 +440,15 @@ function AppearancePage() {
   const mode = useCabin((state) => state.appearanceMode)
   const setMode = useCabin((state) => state.setAppearanceMode)
   const wanted = useWantedAppearance()
+  const accentColor = useCabin((state) => state.accentColor)
+  const applyPreset = useCabin((state) => state.applyThemePreset)
+  const presetNames: Record<ThemePresetId, string> = {
+    midnight: text.settings.themePresetMidnight,
+    sunrise: text.settings.themePresetSunrise,
+    forest: text.settings.themePresetForest,
+    ocean: text.settings.themePresetOcean,
+    ember: text.settings.themePresetEmber,
+  }
   // The Vehicle Bar: only on a screen that has one (the truck's own bar, beside WestPlay).
   const hasBar = useScreenProfile().oemStrip !== null
   const oemMode = useCabin((state) => state.oemMode)
@@ -159,9 +481,42 @@ function AppearancePage() {
           onToggle={(on) => setMode(on ? 'auto' : wanted)}
         />
       </Group>
-      <Group>
+      {/* Text and motion together: how big the screen's words are, and whether it moves. */}
+      <Group footer={text.settings.reduceMotionFooter}>
         <NavRow label={text.settings.textSize} onOpen={() => open('textSize')} />
+        <SwitchRow
+          label={text.settings.reduceMotion}
+          on={useCabin((state) => state.reduceMotion)}
+          onToggle={useCabin((state) => state.setReduceMotion)}
+        />
       </Group>
+
+      {/* Theme presets: pre-built accent + appearance combos with a mini screen preview. */}
+      <Group footer={text.settings.themePresetsFooter}>
+        <div className="theme-preset-choices">
+          {THEME_PRESETS.map((id) => {
+            const def = THEME_PRESET_DEFINITIONS[id]
+            const isActive = def.accentColor === accentColor
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`theme-preset-choice${isActive ? ' active' : ''}`}
+                style={isActive ? ({ '--preset-accent': def.accentColor } as any) : undefined}
+                onClick={() => applyPreset(id)}
+                aria-pressed={isActive}
+              >
+                <ThemePreview appearance={def.appearanceMode} accentColor={def.accentColor} />
+                <span className="theme-preset-name">{presetNames[id]}</span>
+                <span className={isActive ? 'settings-radio on' : 'settings-radio'}>
+                  {isActive && <CheckGlyph />}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </Group>
+
       {hasBar && (
         <Group footer={text.settings.vehicleBarFooter}>
           <SwitchRow
@@ -172,6 +527,18 @@ function AppearancePage() {
         </Group>
       )}
     </Page>
+  )
+}
+
+/** A mini screen preview for a theme preset: smaller than ScreenPicture, with the accent color on widgets. */
+function ThemePreview({ appearance, accentColor }: { appearance: 'light' | 'dark'; accentColor: string }) {
+  return (
+    <span className={`theme-preview screen-picture ${appearance}`} style={({ '--preset-accent': accentColor } as any)} aria-hidden>
+      <span className="screen-picture-sidebar" />
+      <span className="screen-picture-widget large" />
+      <span className="screen-picture-widget" />
+      <span className="screen-picture-widget" />
+    </span>
   )
 }
 
@@ -210,6 +577,7 @@ function TextSizeSlider() {
     if (nearest !== step) setStep(nearest)
   }
   const at = (index: number) => `${(index / last) * 100}%`
+  const goTo = (index: number) => setStep(Math.max(0, Math.min(last, index)))
   return (
     <div className="text-size-row">
       <span className="text-size-a small" aria-hidden>
@@ -224,6 +592,18 @@ function TextSizeSlider() {
         aria-valuemin={0}
         aria-valuemax={last}
         aria-valuenow={step}
+        aria-valuetext={`${step + 1} / ${last + 1}`}
+        // Reached by Tab, the arrow keys step it as the finger's drag does.
+        tabIndex={0}
+        onKeyDown={(event) => {
+          const key = event.key
+          if (key === 'ArrowLeft' || key === 'ArrowDown') goTo(step - 1)
+          else if (key === 'ArrowRight' || key === 'ArrowUp') goTo(step + 1)
+          else if (key === 'Home') goTo(0)
+          else if (key === 'End') goTo(last)
+          else return
+          event.preventDefault()
+        }}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId)
           follow(event)
@@ -308,28 +688,239 @@ function WallpaperThumbnail({ src }: { src: string }) {
 /** Twice a thumbnail's width on the screen, so it stays sharp. */
 const THUMBNAIL_WIDTH = 600
 
-/** Which widgets the Dashboard shows (turn-by-turn always does while there's a route). */
-function DashboardPage() {
+/** Each icon style, and the words the list calls it by. */
+const ICON_STYLES = [
+  { id: 'auto', word: 'automatic' },
+  { id: 'light', word: 'light' },
+  { id: 'dark', word: 'dark' },
+] as const
+
+/** The apps an icon set's row shows: enough of them to tell one set's look from another's. */
+const ICON_STRIP: readonly AppIconRole[] = ['maps', 'music', 'spotify', 'youtube', 'youtubeMusic']
+
+/**
+ * App Icons (Settings › App Icons): the look the icons show in (Automatic, Light or Dark), and which icons — Cabin
+ * Play's own (with Android Auto's flat tiles as a choice of their own, under them as in the companion) or one of the
+ * player's sets, its row showing what it changes. Chosen here, it shows at once and is kept with Cabin Play's
+ * settings, where the companion's Customize sees it.
+ */
+function IconsPage() {
   const text = useText()
-  const widgets = useCabin((state) => state.dashboardWidgets)
-  const setWidget = useCabin((state) => state.setDashboardWidget)
-  const names: Record<DashboardWidget, string> = {
-    nowPlaying: text.nowPlaying,
-    destination: text.destination,
-    weather: text.apps.weather,
+  const { appearance } = useLook()
+  const iconSet = useLooks((state) => state.iconSet)
+  const iconStyle = useLooks((state) => state.iconStyle)
+  const sets = useLooks((state) => state.custom.iconSets)
+  const base = useLooks((state) => state.base)
+  const android = iconStyle === 'android'
+  // What the rows' strips show: the look chosen, or the screen's own.
+  const look: IconLook = android ? 'android' : iconStyle === 'auto' ? appearance : iconStyle
+  const choose = (next: { iconSet: string | null; iconStyle: IconStyle }) => {
+    setIcons(next)
+    if (isInHost()) postToHost({ type: 'icons', ...next })
   }
   return (
-    <Page title={text.settings.dashboard}>
-      <Group header={text.settings.widgets}>
-        {DASHBOARD_WIDGETS.map((widget) => (
-          <SwitchRow key={widget} label={names[widget]} on={widgets[widget]} onToggle={(on) => setWidget(widget, on)} />
+    <Page title={text.settings.icons}>
+      <ChoiceRows<IconStyle>
+        header={text.settings.iconStyle}
+        radio={text.settings.iconStyle}
+        value={android ? null : iconStyle}
+        onPick={(id) => choose({ iconSet, iconStyle: id })}
+        options={ICON_STYLES.map((style) => ({ id: style.id, label: text.settings[style.word] }))}
+      />
+      <Group radio={text.settings.icons}>
+        <IconSetRow
+          name="Cabin Play"
+          icons={null}
+          chosen={!android && !iconSet}
+          look={look}
+          base={base}
+          onPick={() => choose({ iconSet: null, iconStyle: android ? 'auto' : iconStyle })}
+        />
+        <IconSetRow
+          name="Android Auto"
+          icons={null}
+          chosen={android}
+          look="android"
+          base={base}
+          onPick={() => choose({ iconSet: null, iconStyle: 'android' })}
+        />
+        {sets.map((set) => (
+          <IconSetRow
+            key={set.name}
+            name={set.name}
+            icons={set}
+            chosen={!android && iconSet === set.name}
+            look={look}
+            base={base}
+            onPick={() => choose({ iconSet: set.name, iconStyle: 'auto' })}
+          />
         ))}
       </Group>
     </Page>
   )
 }
 
-/** The album art on Now Playing and in Music. */
+/** An icon set's row: its name, a strip of the icons it changes, and a tick when it's the one shown. */
+function IconSetRow({
+  name,
+  icons,
+  chosen,
+  look,
+  base,
+  onPick,
+}: {
+  name: string
+  /** `null`: Cabin Play's own icons in `look` (its own set's, or Android Auto's). */
+  icons: IconSet | null
+  chosen: boolean
+  look: IconLook
+  base: string
+  onPick(): void
+}) {
+  return (
+    <button type="button" role="radio" aria-checked={chosen} className="settings-row icon-set-row" onClick={onPick}>
+      <span className="settings-label">{name}</span>
+      <span className="icon-strip" aria-hidden>
+        {ICON_STRIP.map((role) => {
+          // A set has a light and a dark file per app; Android Auto's tiles are Cabin Play's own.
+          const path = look === 'android' ? null : icons?.icons[role]?.[look]
+          return <img key={role} src={path ? fileUrl(base, path) : appIcon(role, look)} alt="" />
+        })}
+      </span>
+      {chosen && (
+        <span className="settings-check">
+          <CheckGlyph />
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** The driver's units and the clock: both can follow the game's own settings, so they share one page rather than sit
+ * among the screen's look. The sidebar's own clock — the player's time or the game's — is here too: it is the clock
+ * the driver reads most. */
+function UnitsPage() {
+  const text = useText()
+  const units = useCabin((state) => state.units)
+  const setUnits = useCabin((state) => state.setUnits)
+  const clockFormat = useCabin((state) => state.clockFormat)
+  const setClockFormat = useCabin((state) => state.setClockFormat)
+  const clock = useCabin((state) => state.clock)
+  const setClock = useCabin((state) => state.setClock)
+  return (
+    <Page title={text.settings.unitsClock}>
+      <ChoiceRows<UnitsChoice>
+        header={text.settings.units}
+        footer={text.settings.unitsFooter}
+        radio="units"
+        value={units}
+        options={[
+          { id: 'game', label: text.settings.unitsGame },
+          { id: 'metric', label: text.settings.unitsMetric },
+          { id: 'uk', label: text.settings.unitsUk },
+          { id: 'us', label: text.settings.unitsUs },
+        ]}
+        onPick={setUnits}
+      />
+      <ChoiceRows<ClockChoice>
+        header={text.settings.clockFormat}
+        footer={text.settings.clockFormatFooter}
+        radio="clockFormat"
+        value={clockFormat}
+        options={[
+          { id: 'game', label: text.settings.clockFormatGame },
+          { id: '24', label: text.settings.clockFormat24 },
+          { id: '12', label: text.settings.clockFormat12 },
+        ]}
+        onPick={setClockFormat}
+      />
+      <Group footer={text.settings.clockFooter}>
+        <SwitchRow
+          label={text.settings.realClock}
+          on={clock === 'real'}
+          onToggle={(on) => setClock(on ? 'real' : 'game')}
+        />
+      </Group>
+    </Page>
+  )
+}
+
+/**
+ * Home Screen (Settings › Home Screen): one list of the apps, each with its switch (shown on Home or not), a pin
+ * toggle (the sidebar's few), and — in the order they appear — the arrows that move it, as the Dashboard's widgets
+ * are moved. An app hidden here keeps its place in the order, so showing it again puts it back where it was.
+ */
+function HomeScreenPage() {
+  const text = useText()
+  const order = useCabin((state) => state.homeOrder)
+  const hidden = useCabin((state) => state.homeHidden)
+  const setHidden = useCabin((state) => state.setHomeAppHidden)
+  const move = useCabin((state) => state.moveHomeApp)
+  const pinned = useCabin((state) => state.pinnedApps)
+  const setPinned = useCabin((state) => state.setPinnedApp)
+  const reset = useCabin((state) => state.resetHomeScreen)
+  const names = text.apps
+  return (
+    <Page title={text.settings.homeScreen}>
+      {/* One list per app: shown on Home or not, pinned to the sidebar or not (at its limit the rest are off), and
+          where it stands — the pin toggle and the arrows beside its switch. */}
+      <Group header={text.settings.showOnHome} footer={[text.settings.homeScreenFooter, text.settings.pinnedFooter]}>
+        {order.map((app, index) => (
+          <SwitchOrderRow
+            key={app}
+            label={names[app]}
+            on={!hidden.includes(app)}
+            onToggle={(on) => setHidden(app, !on)}
+            place={{ first: index === 0, last: index === order.length - 1, onMove: (by) => move(app, by) }}
+            pin={{
+              pinned: pinned.includes(app),
+              disabled: !pinned.includes(app) && pinned.length >= PINNED_LIMIT,
+              label: pinned.includes(app) ? text.settings.unpinFromSidebar : text.settings.pinToSidebar,
+              onToggle: () => setPinned(app, !pinned.includes(app)),
+            }}
+          />
+        ))}
+      </Group>
+      <Group>
+        <button type="button" className="settings-row settings-action" onClick={reset}>
+          {text.settings.resetHomeScreen}
+        </button>
+      </Group>
+    </Page>
+  )
+}
+
+/** The GPS Voice row's tile glyph: the turn onto the way, in white on the blue tile. */
+function RouteGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="25"
+      height="25"
+      fill="none"
+      stroke="#fff"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5.5 20v-6.5a5 5 0 0 1 5-5H18" />
+      <path d="m14.5 5 3.5 3.5-3.5 3.5" />
+    </svg>
+  )
+}
+
+/** The Maps row's tile glyph: the map's own folds, in white on the green tile. */
+function MapGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="#fff" strokeWidth="1.7" aria-hidden>
+      <path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5Z" strokeLinejoin="round" />
+      <path d="M9 4v13.5M15 6.5V20" />
+    </svg>
+  )
+}
+
+/** The album art settings. */
 function NowPlayingPage() {
   const text = useText()
   const albumArt = useCabin((state) => state.albumArt)
@@ -343,13 +934,31 @@ function NowPlayingPage() {
   )
 }
 
-/** Sound: the Equalizer (more of the sound's settings may come here). */
+/** The cabin's words, as the strings store hands them to a page (the same alias the map's pages keep). */
+type Words = ReturnType<typeof useText>
+
+/** The three How Early choices, as their rows read them. */
+function leadNames(text: Words): Record<GpsDuckLead, string> {
+  const s = text.settings
+  return { just: s.gpsDuckLeadJust, few: s.gpsDuckLeadFew, early: s.gpsDuckLeadEarly }
+}
+
+/**
+ * Sound: the cabin's own interface sounds and the Equalizer (the speakers' tone, per truck). The game's GPS voice is a
+ * navigation matter and has its page under Navigation on the list, though its music dip is as much a sound.
+ */
 function SoundPage() {
   const text = useText()
   const open = useSettings((state) => state.open)
   const custom = useCabin((state) => state.equalizerCustom)
+  const sounds = useCabin((state) => state.uiSounds)
+  const setSounds = useCabin((state) => state.setUiSounds)
   return (
     <Page title={text.settings.sound}>
+      <Group footer={text.settings.uiSoundsFooter}>
+        <SwitchRow label={text.settings.uiSounds} on={sounds} onToggle={setSounds} />
+        <InterfaceSoundVolume />
+      </Group>
       <Group>
         <NavRow
           label={text.settings.equalizer}
@@ -358,6 +967,128 @@ function SoundPage() {
         />
       </Group>
     </Page>
+  )
+}
+
+/**
+ * GPS Voice (Settings › GPS Voice): the game's navigation voice, given room. The cab can neither hear it nor
+ * set its volume, so all three settings here follow the turns it announces — the music dipping under it, how early
+ * that dip begins, and the sign the screens show while it talks. They answer separately: a driver can keep the music
+ * full and have only the sign, or have the music step aside with nothing on screen.
+ */
+function GpsVoicePage() {
+  const text = useText()
+  const duck = useCabin((state) => state.gpsDuck)
+  const setDuck = useCabin((state) => state.setGpsDuck)
+  const lead = useCabin((state) => state.gpsDuckLead)
+  const setLead = useCabin((state) => state.setGpsDuckLead)
+  const sign = useCabin((state) => state.gpsVoiceOnScreen)
+  const setSign = useCabin((state) => state.setGpsVoiceOnScreen)
+  return (
+    <Page title={text.settings.gpsVoicePage}>
+      <Group footer={text.settings.gpsDuckFooter}>
+        <SwitchRow label={text.settings.gpsDuck} on={duck} onToggle={setDuck} />
+      </Group>
+      {/* How early it opens is the player's — the game decides when its voice speaks — and it means nothing with the
+          dip switched off, so it is offered only while there is a dip to time. */}
+      {duck && (
+        <ChoiceRows<GpsDuckLead>
+          header={text.settings.gpsDuckLead}
+          footer={text.settings.gpsDuckLeadFooter}
+          radio="gpsDuckLead"
+          value={lead}
+          options={[
+            { id: 'just', label: text.settings.gpsDuckLeadJust },
+            { id: 'few', label: text.settings.gpsDuckLeadFew },
+            { id: 'early', label: text.settings.gpsDuckLeadEarly },
+          ]}
+          onPick={setLead}
+        />
+      )}
+      {/* The voice itself can't be heard by the cab, so the screens say when it is talking instead. */}
+      <Group footer={text.settings.gpsVoiceFooter}>
+        <SwitchRow label={text.settings.gpsVoice} on={sign} onToggle={setSign} />
+      </Group>
+    </Page>
+  )
+}
+
+/** The voice assistant: its switch, the push-to-talk chord the companion sets, and what the player can say. */
+function VoicePage() {
+  const text = useText()
+  const language = useLanguage()
+  const truck = useLive((state) => state.truck)
+  const phrase = wakePhrase(truck?.brand, language)
+  const enabled = useCabin((state) => state.voiceEnabled)
+  const setEnabled = useCabin((state) => state.setVoiceEnabled)
+  const hotkey = useCabin((state) => state.voiceKey)
+  const wake = useCabin((state) => state.voiceWake)
+  const setWake = useCabin((state) => state.setVoiceWake)
+  return (
+    <Page title={text.settings.voiceAssistant}>
+      <Group footer={text.settings.voiceAssistantFooter.replaceAll('{key}', hotkey)}>
+        <SwitchRow label={text.settings.voiceAssistant} on={enabled} onToggle={setEnabled} />
+        <div className="settings-row voice-hotkey-row">
+          <span className="settings-label">{text.settings.voiceHotkey}</span>
+          <kbd className="voice-hotkey">{hotkey}</kbd>
+        </div>
+      </Group>
+      <Group footer={text.settings.voiceWakeFooter}>
+        <SwitchRow label={text.settings.voiceWake} on={wake} onToggle={setWake} disabled={!enabled} />
+        <div className="settings-row voice-wake-row">
+          <span className="settings-label">{text.settings.voiceWakePhrase}</span>
+          <span className="voice-wake-phrase">“{phrase}”</span>
+        </div>
+      </Group>
+      <Group header={text.voice.commands} footer={text.voice.commandsHint}>
+        <div className="voice-command-groups">
+          {text.voice.groups.map((group) => (
+            <section key={group.title} className="voice-command-group">
+              <h3 className="voice-command-title">{group.title}</h3>
+              <div className="voice-command-chips">
+                {group.phrases.map((phrase) => (
+                  <span key={phrase} className="voice-command-chip">
+                    “{phrase}”
+                  </span>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </Group>
+    </Page>
+  )
+}
+
+/** The interface cues' own level, independent of music and game audio. */
+function InterfaceSoundVolume() {
+  const text = useText()
+  const volume = useCabin((state) => state.uiSoundVolume)
+  const setVolume = useCabin((state) => state.setUiSoundVolume)
+  const percent = Math.round(volume * 100)
+  return (
+    <div className="settings-volume">
+      <div className="settings-volume-heading">
+        <label htmlFor="interface-sound-volume">{text.settings.uiSoundVolume}</label>
+        <output htmlFor="interface-sound-volume">{percent}%</output>
+      </div>
+      <input
+        id="interface-sound-volume"
+        className="settings-volume-slider"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        value={percent}
+        aria-valuetext={`${percent}%`}
+        style={{ '--volume-fill': `${percent}%` } as CSSProperties}
+        onChange={(event) => setVolume(Number(event.currentTarget.value) / 100)}
+      />
+      <div className="settings-volume-scale" aria-hidden>
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+    </div>
   )
 }
 
@@ -381,10 +1112,16 @@ function EqualizerPage() {
   }, [])
   return (
     <Page title={text.settings.equalizer}>
-      <Group footer={text.settings.equalizerFooter}>
-        <CheckRow label={text.settings.recommended} on={!custom} onPick={() => choose(false)} />
-        <CheckRow label={text.settings.custom} on={custom} onPick={() => choose(true)} />
-      </Group>
+      <ChoiceRows
+        footer={text.settings.equalizerFooter}
+        radio={text.settings.equalizer}
+        value={custom ? 'custom' : 'recommended'}
+        onPick={(id) => choose(id === 'custom')}
+        options={[
+          { id: 'recommended', label: text.settings.recommended },
+          { id: 'custom', label: text.settings.custom },
+        ]}
+      />
       <Group>
         <TrackRow />
         {/* In a box of its own: the card's separator lines are drawn before its rows, which an svg can't take. */}
@@ -401,278 +1138,111 @@ function EqualizerPage() {
   )
 }
 
-/** A row picked from those in its card, a blue tick on the one picked. */
-function CheckRow({ label, on, onPick }: { label: string; on: boolean; onPick: () => void }) {
-  return (
-    <button type="button" role="radio" aria-checked={on} className="settings-row" onClick={onPick}>
-      <span className="settings-label">{label}</span>
-      {on && (
-        <span className="settings-check">
-          <CheckGlyph />
-        </span>
-      )}
-    </button>
-  )
-}
 
-/** The track Now Playing shows (the Dashboard's), to hear the tone by: its cover, title and artist, and a
- * button to play or pause it; none, an empty cover and the button greyed. */
-function TrackRow() {
+/** iCloud-style profile card at the top of the settings list. */
+function ProfileCard({ onOpen }: { onOpen: () => void }) {
   const text = useText()
-  const track = useNowPlayingTrack()
-  const albumArt = useCabin((state) => state.albumArt)
-  const cover = albumArt ? (track?.artwork ?? null) : null
-  return (
-    <div className="eq-track">
-      <span className="eq-track-art">{cover ? <img src={cover} alt="" /> : track && <NoteGlyph size={32} />}</span>
-      <span className="eq-track-lines">
-        {track && <span className="eq-track-title">{track.title}</span>}
-        {track && <span className="eq-track-by">{track.by}</span>}
-      </span>
-      <button
-        type="button"
-        className="eq-track-play"
-        aria-label={track?.playing ? text.pause : text.play}
-        disabled={!track?.playPause}
-        onClick={() => track?.playPause?.()}
-      >
-        {track?.playing ? <PauseGlyph size={34} /> : <PlayGlyph size={34} />}
-      </button>
-    </div>
-  )
-}
+  const profiles = useCabin((state) => state.profiles)
+  const currentProfileId = useCabin((state) => state.currentProfileId)
+  const current = profiles.find((p) => p.id === currentProfileId) ?? null
 
-/** The graph's drawing, in its own units: its width and height, where the three bands stand across it, and
- * how high a band is from its dB (flat in the middle, ±EQUALIZER_MOST at the top and bottom margins). */
-const GRAPH = { width: 600, height: 300, top: 24, bottom: 236 }
-const BAND_AT: Record<keyof Equalizer, number> = { bass: 100, mid: 300, treble: 500 }
-const heightOf = (db: number) =>
-  (GRAPH.top + GRAPH.bottom) / 2 - (db / EQUALIZER_MOST) * ((GRAPH.bottom - GRAPH.top) / 2)
-
-/**
- * The curve over the three bands (Low, Mid, High: each a dashed line down the graph, the middle one's column
- * shaded), as iOS draws it: the music's waveform along the middle and, Custom, a smooth line through each
- * band's point over it. A band follows the finger up and down anywhere in its third of the graph, in whole
- * dB; moving one picks Custom.
- */
-function EqualizerGraph() {
-  const text = useText()
-  const custom = useCabin((state) => state.equalizerCustom)
-  const curve = useCabin((state) => state.equalizer)
-  const setBand = useCabin((state) => state.setEqualizerBand)
-  const svg = useRef<SVGSVGElement>(null)
-  const [dragging, setDragging] = useState<keyof Equalizer | null>(null)
-  const inGraph = (event: PointerEvent) => {
-    const matrix = svg.current?.getScreenCTM()?.inverse()
-    if (!matrix) return null
-    return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix)
-  }
-  const drag = (band: keyof Equalizer, event: PointerEvent) => {
-    const at = inGraph(event)
-    if (!at) return
-    const middle = (GRAPH.top + GRAPH.bottom) / 2
-    const db = Math.round(((middle - at.y) / ((GRAPH.bottom - GRAPH.top) / 2)) * EQUALIZER_MOST)
-    const kept = Math.max(-EQUALIZER_MOST, Math.min(EQUALIZER_MOST, db))
-    if (kept !== curve[band] || !custom) setBand(band, kept)
-  }
-  const shown = custom ? curve : { bass: 0, mid: 0, treble: 0 }
-  const points: [number, number][] = [
-    [0, heightOf(shown.bass)],
-    ...EQUALIZER_BANDS.map((band): [number, number] => [BAND_AT[band], heightOf(shown[band])]),
-    [GRAPH.width, heightOf(shown.treble)],
-  ]
-  const names: Record<keyof Equalizer, string> = {
-    bass: text.settings.low,
-    mid: text.settings.mid,
-    treble: text.settings.high,
-  }
   return (
-    <svg
-      ref={svg}
-      className={dragging ? 'eq-graph dragging' : 'eq-graph'}
-      viewBox={`0 0 ${GRAPH.width} ${GRAPH.height}`}
-      role="group"
-      aria-label={text.settings.equalizer}
-      // Its own drags (the page's drag to scroll leaves them: shell/dragScroll.ts).
-      data-own-drag
-      onPointerDown={(event) => {
-        const at = inGraph(event)
-        if (!at) return
-        const band: keyof Equalizer = at.x < GRAPH.width / 3 ? 'bass' : at.x < (2 * GRAPH.width) / 3 ? 'mid' : 'treble'
-        event.currentTarget.setPointerCapture(event.pointerId)
-        setDragging(band)
-        drag(band, event)
-      }}
-      onPointerMove={(event) => dragging && drag(dragging, event)}
-      onPointerUp={() => setDragging(null)}
-      onPointerCancel={() => setDragging(null)}
-    >
-      <defs>
-        <linearGradient id="eq-middle-column" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" className="eq-column-edge" />
-          <stop offset="0.5" className="eq-column-middle" />
-          <stop offset="1" className="eq-column-edge" />
-        </linearGradient>
-      </defs>
-      <rect x={200} y={0} width={200} height={GRAPH.bottom + 14} fill="url(#eq-middle-column)" />
-      {EQUALIZER_BANDS.map((band) => (
-        <line key={band} className="eq-band-line" x1={BAND_AT[band]} x2={BAND_AT[band]} y1={8} y2={GRAPH.bottom + 6} />
-      ))}
-      <Waveform />
-      {custom && (
+    <button type="button" className="settings-profile-card" onClick={onOpen}>
+      {current ? (
         <>
-          <path className="eq-curve" d={smoothThrough(points)} />
-          {EQUALIZER_BANDS.map((band) => (
-            <circle
-              key={band}
-              className={dragging === band ? 'eq-point dragged' : 'eq-point'}
-              cx={BAND_AT[band]}
-              cy={heightOf(curve[band])}
-              r={14}
-              role="slider"
-              aria-label={names[band]}
-              aria-valuemin={-EQUALIZER_MOST}
-              aria-valuemax={EQUALIZER_MOST}
-              aria-valuenow={curve[band]}
-            />
-          ))}
+          <span className="settings-profile-card-avatar">
+            {current.picture ? (
+              <img className="settings-profile-card-pic" src={current.picture} alt="" />
+            ) : (
+              <span className="settings-profile-card-initial">
+                {(current.name ?? '?')[0]?.toUpperCase() ?? '?'}
+              </span>
+            )}
+          </span>
+          <div className="settings-profile-card-info">
+            <span className="settings-profile-card-name">{current.name}</span>
+            <span className="settings-profile-card-sub">{text.settings.driverProfile}</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <span className="settings-profile-card-avatar">
+            <span className="settings-profile-card-initial">?</span>
+          </span>
+          <div className="settings-profile-card-info">
+            <span className="settings-profile-card-name">{text.settings.noProfile}</span>
+            <span className="settings-profile-card-sub">{text.settings.driverProfile}</span>
+          </div>
         </>
       )}
-      {EQUALIZER_BANDS.map((band) => (
-        <text key={band} className="eq-band-name" x={BAND_AT[band]} y={GRAPH.height - 16}>
-          {names[band]}
-        </text>
-      ))}
-    </svg>
-  )
-}
-
-/** How many of the waveform's bars there are, and how far up and down from the middle the loudest reaches. */
-const WAVEFORM = { bars: 48, reach: 84, thick: 6 }
-
-/**
- * The music's waveform, as iOS draws it under the curve: a row of dots along the middle, each a part of the
- * music's spectrum (the lows on the left, the highs on the right, as the bands stand), growing up and down
- * with its loudness as it plays; stopped, or nothing playing, the dots at rest.
- */
-function Waveform() {
-  const bars = useLive((state) => state.spectrum)
-  const step = (GRAPH.width - 2 * WAVEFORM.thick) / (WAVEFORM.bars - 1)
-  return (
-    <g className="eq-waveform">
-      {Array.from({ length: WAVEFORM.bars }, (_, i) => {
-        const loud = Math.min(1, Math.max(0, (bars[i] ?? 0) / 255))
-        const tall = WAVEFORM.thick + loud * 2 * WAVEFORM.reach
-        return (
-          <rect
-            key={i}
-            x={WAVEFORM.thick / 2 + i * step}
-            y={heightOf(0) - tall / 2}
-            width={WAVEFORM.thick}
-            height={tall}
-            rx={WAVEFORM.thick / 2}
-          />
-        )
-      })}
-    </g>
-  )
-}
-
-/**
- * A page: its content scrolling under a bar that holds the back button and the page's title. On the list,
- * the title is large at the top of the content, and the bar's small one takes over once it scrolls under.
- * Content scrolled under the bar fades and blurs away, iOS 26's edge.
- */
-function Page({ title, list = false, children }: { title: string; list?: boolean; children: ReactNode }) {
-  const text = useText()
-  const back = useSettings((state) => state.back)
-  const [scrolled, setScrolled] = useState(false)
-  const [largeTitleGone, setLargeTitleGone] = useState(false)
-  return (
-    <>
-      <div
-        className={list ? 'settings-scroll list' : 'settings-scroll'}
-        onScroll={(event) => {
-          const top = event.currentTarget.scrollTop
-          setScrolled(top > 0)
-          setLargeTitleGone(top > LARGE_TITLE_HEIGHT)
-        }}
-      >
-        {list && <h1 className="settings-large-title">{title}</h1>}
-        {children}
-      </div>
-      <header className={scrolled ? 'settings-bar scrolled' : 'settings-bar'}>
-        {!list && (
-          <button type="button" className="settings-back" aria-label={text.settings.back} onClick={back}>
-            <ChevronGlyph back />
-          </button>
-        )}
-        <div className={!list || largeTitleGone ? 'settings-bar-title shown' : 'settings-bar-title'}>{title}</div>
-      </header>
-    </>
-  )
-}
-
-/** How far the list scrolls before its large title is under the bar (settings.css: .settings-large-title). */
-const LARGE_TITLE_HEIGHT = 56
-
-function Group({ header, footer, children }: { header?: string; footer?: string; children: ReactNode }) {
-  return (
-    <div className="settings-group">
-      {header && <h2 className="settings-group-header">{header}</h2>}
-      <div className="settings-card">{children}</div>
-      {footer && <p className="settings-group-footer">{footer}</p>}
-    </div>
-  )
-}
-
-interface RowLabel {
-  label: string
-  /** A coloured tile with a white glyph before the label (rows on the list have one). */
-  tile?: string
-  icon?: ReactNode
-}
-
-function RowStart({ label, tile, icon }: RowLabel) {
-  return (
-    <>
-      {tile && (
-        <span className="settings-tile" style={{ background: tile } as CSSProperties}>
-          {icon}
-        </span>
-      )}
-      <span className="settings-label">{label}</span>
-    </>
-  )
-}
-
-/** A row that opens a page: its value in grey, and a chevron. */
-function NavRow({ value, onOpen, ...start }: RowLabel & { value?: string; onOpen: () => void }) {
-  return (
-    <button type="button" className={start.tile ? 'settings-row with-tile' : 'settings-row'} onClick={onOpen}>
-      <RowStart {...start} />
-      {value && <span className="settings-value">{value}</span>}
-      <span className="settings-chevron">
+      <span className="settings-profile-card-chevron">
         <ChevronGlyph />
       </span>
     </button>
   )
 }
 
-/** A row with a switch; the whole row flips it (a big target on a truck's screen). */
-function SwitchRow({ on, onToggle, ...start }: RowLabel & { on: boolean; onToggle: (on: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      className={start.tile ? 'settings-row with-tile' : 'settings-row'}
-      onClick={() => onToggle(!on)}
-    >
-      <RowStart {...start} />
-      <span className={on ? 'apple-switch on' : 'apple-switch'} aria-hidden>
-        <span className="apple-switch-thumb" />
+/** Profiles: switch between driver profiles. Creating or removing profiles is done via the companion. */
+function ProfilesPage() {
+  const text = useText()
+  const profiles = useCabin((state) => state.profiles)
+  const currentProfileId = useCabin((state) => state.currentProfileId)
+  const switchProfile = useCabin((state) => state.switchProfile)
+
+  const ProfileAvatar = ({ profile, size = 36 }: { profile: { name: string; picture?: string }; size?: number }) => {
+    if (profile.picture) {
+      return <img className="settings-profile-pic" src={profile.picture} alt="" style={{ width: size, height: size }} />
+    }
+    return (
+      <span className="settings-profile-avatar" style={{ width: size, height: size, fontSize: size * 0.45 }}>
+        {(profile.name ?? '?')[0]?.toUpperCase() ?? '?'}
       </span>
-    </button>
+    )
+  }
+
+  return (
+    <Page title={text.settings.profiles}>
+      <Group footer={text.settings.profilesFooter}>
+        <div className="settings-row settings-info-row">
+          <span className="settings-label">{text.settings.currentProfile}</span>
+          <span className="settings-value settings-profile-value">
+            {(profiles.find((p) => p.id === currentProfileId) ?? null) ? (
+              <>
+                <ProfileAvatar profile={profiles.find((p) => p.id === currentProfileId)!} size={24} />
+                {profiles.find((p) => p.id === currentProfileId)?.name}
+              </>
+            ) : (
+              text.settings.noProfile
+            )}
+          </span>
+        </div>
+        {profiles.map((profile) => {
+          const isCurrent = profile.id === currentProfileId
+          return (
+            <div key={profile.id} className="settings-row profile-row">
+              <button
+                type="button"
+                className={`settings-row${isCurrent ? ' active' : ''}`}
+                onClick={() => switchProfile(profile.id)}
+                style={{ flex: 1 }}
+              >
+                <ProfileAvatar profile={profile} />
+                <span className="settings-label">{profile.name}</span>
+                {isCurrent && (
+                  <span className="settings-check">
+                    <CheckGlyph />
+                  </span>
+                )}
+              </button>
+            </div>
+          )
+        })}
+      </Group>
+      <Group>
+        <div className="settings-row settings-info-row">
+          <span className="settings-hint">{text.settings.manageProfilesHint}</span>
+        </div>
+      </Group>
+    </Page>
   )
 }

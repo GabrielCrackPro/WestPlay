@@ -1,4 +1,5 @@
 import { type CSSProperties, type UIEvent, useEffect, useState } from 'react'
+import { TrashGlyph } from '../../shell/TrashGlyph'
 import { useLive } from '../../state/store'
 import { languageOf } from '../../state/strings'
 import { useText } from '../../state/text'
@@ -311,10 +312,11 @@ export function Typing({ query, onPicked }: { query: string; onPicked(): void })
         {recent.length > 0 && (
           <button
             type="button"
-            className="sp-pill outline small sp-clear-recent"
+            className="sp-clear-recent"
+            aria-label={text.spotify.clearRecent}
             onClick={() => useSpotify.setState({ recent: [] })}
           >
-            {text.spotify.clearRecent}
+            <TrashGlyph />
           </button>
         )}
       </div>

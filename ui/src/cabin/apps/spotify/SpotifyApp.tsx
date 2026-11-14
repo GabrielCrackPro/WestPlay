@@ -7,7 +7,6 @@ import { BackGlyph, BrowseGlyph, HomeGlyph, LibraryGlyph, SearchGlyph } from './
 import { MiniPlayer, NowPlaying } from './NowPlaying'
 import { Browse, Home, Library, Page, Typing, Wash } from './pages'
 import { goBack, openTab, openView, showToast, type Tab, useSongsEnd, useSpotify, useWebPlayer } from './spotify'
-import '@fontsource-variable/figtree'
 import './spotify.css'
 
 const FIELD = 'spotify-search'

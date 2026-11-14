@@ -1,0 +1,32 @@
+/*
+ * Cluster styles — modular.
+ *
+ * Each module covers one area of the instrument cluster. The order matters for cascade:
+ * layout first (custom properties, base panel), then status bar, media, cards, dial, gauges,
+ * night dim, and finally motion overrides. Telltales lives in its own file so the Settings
+ * preview can load it alone.
+ */
+
+/* Base: custom properties, panel surface, appearance transitions, icon stroke weights, dim */
+@import 'cluster-layout.css';
+
+/* Top bar: telltales, route line, cruise pill, phone, clock, limit sign, notices */
+@import 'cluster-status.css';
+
+/* Now playing: app icon, title, artist, progress bar */
+@import 'cluster-media.css';
+
+/* Left column: trip, engine, hours cards */
+@import 'cluster-cards.css';
+
+/* Center column: dial, speed figure, gear, retarder, brand */
+@import 'cluster-dial.css';
+
+/* Right column: fuel, AdBlue, coolant, brakes, wear, instant consumption */
+@import 'cluster-gauges.css';
+
+/* Night dim overlay (moved from cluster-standby.css, which was removed) */
+@import 'cluster-night.css';
+
+/* Reduced motion: disables animations while preserving blinker and bulb check */
+@import 'cluster-motion.css';

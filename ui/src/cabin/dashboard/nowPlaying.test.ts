@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { type NowPlayingSource, shownSource } from './nowPlaying'
 
-const none: Record<NowPlayingSource, boolean> = { video: false, spotify: false, appleMusic: false, youtubeMusic: false }
+const none: Record<NowPlayingSource, boolean> = {
+  video: false,
+  spotify: false,
+  appleMusic: false,
+  youtubeMusic: false,
+  radio: false,
+}
 const only = (...sources: NowPlayingSource[]) => ({ ...none, ...Object.fromEntries(sources.map((s) => [s, true])) })
 
 describe("the Dashboard's Now Playing", () => {
@@ -19,6 +25,11 @@ describe("the Dashboard's Now Playing", () => {
     expect(shownSource(none, only('video', 'spotify'), 'spotify')).toBe('spotify')
     // Gone (signed out, say): the first that has something.
     expect(shownSource(none, only('video'), 'spotify')).toBe('video')
+  })
+
+  it('shows the station when the radio plays, and keeps it while it is paused', () => {
+    expect(shownSource(only('radio'), only('radio', 'spotify'), null)).toBe('radio')
+    expect(shownSource(none, only('radio'), 'radio')).toBe('radio')
   })
 
   it('shows the first that has something when nothing has played, and Not Playing with nothing at all', () => {

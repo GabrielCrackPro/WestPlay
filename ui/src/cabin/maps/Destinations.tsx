@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { formatTripDistance, formatTripTime } from '../../shared/format'
 import type { PlannedRoute, RouteAction, RouteAnswer } from '../../shared/host'
 import { useKeyboard } from '../keyboard/store'
+import { usePlacePick } from './placePick'
+import { TrashGlyph } from '../shell/TrashGlyph'
 import { useLive } from '../state/store'
 import { type Strings, useText } from '../state/text'
 import { placesAhead } from './alongRoute'
-import { liveRouteProgress, showOfferedRoutes, showTraffic } from './liveMap'
+import { liveRouteProgress, showNearbyPins, showOfferedRoutes, showTraffic } from './liveMap'
 import { PlaceBadge } from './PlaceBadge'
+import { useMapData } from './mapData'
 import {
   type Destination,
   type DestinationKind,
   distanceTo,
+  MAP_SCALE,
   nameOf,
   nearestOfKind,
   ownGarages,
@@ -21,28 +25,27 @@ import {
 import { toLngLat } from './projection'
 import { useRecents } from './recents'
 import { askDetours, changeRoute, followRoute, planRoutes } from './routeChange'
+import { estimatedTraffic } from './estimatedTraffic'
+import { cabClock } from '../../shared/host'
 import { corridorOf, trafficAlong } from './traffic'
 import { setRouteCorridor, useTruckersMp } from './truckersmp'
+import { getCachedRoutes, putCachedRoutes } from './routeCache'
 
 /** The kinds Find nearby offers, in its order. */
 const NEARBY: DestinationKind[] = ['fuel', 'parking', 'service', 'hotel', 'company', 'dealer', 'ferry', 'city']
 
-/** The game's map scale between cities (its world is this much smaller than the distances it gives), for
- * straight-line distances in the units its GPS uses (shared/format.ts). */
-const MAP_SCALE = 19
-
 /** How far the truck may move before the lists' distances are worked out again, metres. */
 const WHERE_STEP = 250
 
-/** Where the truck is (lng, lat), to the nearest `WHERE_STEP` (the lists don't redraw with every metre). */
+/**
+ * Where the truck is (lng, lat), to the nearest `WHERE_STEP` (the lists don't redraw with every metre). The two
+ * readings are kept apart as numbers: an array from a store read compares unequal every time, re-rendering for ever
+ * (the cab's crash, 2026-11-04).
+ */
 function useTruckAt(): [number, number] | null {
-  const at = useLive(
-    useShallow((state) => {
-      const t = state.telemetry
-      return t ? [Math.round(t.x / WHERE_STEP) * WHERE_STEP, Math.round(t.z / WHERE_STEP) * WHERE_STEP] : null
-    }),
-  )
-  return at ? toLngLat(at[0], at[1]) : null
+  const x = useLive((state) => (state.telemetry ? Math.round(state.telemetry.x / WHERE_STEP) * WHERE_STEP : null))
+  const z = useLive((state) => (state.telemetry ? Math.round(state.telemetry.z / WHERE_STEP) * WHERE_STEP : null))
+  return x !== null && z !== null ? toLngLat(x, z) : null
 }
 
 /** What the game's route allows: on a job, only stops (the destination is the job's). */
@@ -80,7 +83,23 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
   const ahead = live && places ? placesAhead(places, live.spans, live.progress) : null
   const along = ahead ? new Map(ahead.map(({ place, along }) => [place, along])) : undefined
   const [kind, setKind] = useState<DestinationKind | null>(null)
-  const [chosen, setChosen] = useState<Destination | null>(null)
+  // A place tapped on the map (MapSearch opened the panel for it): its card, right away — including a pick that was
+  // already waiting as this panel mounted.
+  const [chosen, setChosen] = useState<Destination | null>(() => usePlacePick.getState().picked?.place ?? null)
+  useEffect(() => {
+    // The mount's pick (if any) is already the chosen card; clear it so coming back doesn't show it again.
+    if (usePlacePick.getState().picked) {
+      useKeyboard.getState().detach(field)
+      usePlacePick.getState().clear()
+    }
+    return usePlacePick.subscribe((state) => {
+      if (!state.picked) return
+      useKeyboard.getState().detach(field)
+      setChosen(state.picked.place)
+      setKind(null)
+      usePlacePick.getState().clear()
+    })
+  }, [field])
   // Choosing a list or a place puts the keyboard away, as on the iPhone: what's chosen has the room.
   const choose = (place: Destination) => {
     useKeyboard.getState().detach(field)
@@ -101,8 +120,11 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
     setShown({ view, depth, direction })
   }
 
+  // The places the list shows, as pins over the map (nothing on Home: the list is what's being looked at).
   let content
+  let pins: Destination[] = []
   if (chosen) {
+    pins = [chosen]
     content = (
       <PlaceCard place={chosen} from={from} along={along?.get(chosen)} onBack={() => setChosen(null)} onDone={onDone} />
     )
@@ -114,6 +136,7 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
     const found = along
       ? searchPlaces([...along.keys()], query, from, text.destinations.kinds, (place) => along.get(place) ?? 0)
       : searchPlaces(places, query, from, text.destinations.kinds)
+    pins = found
     content =
       found.length === 0 ? (
         <p className="destinations-note">{text.destinations.noResults}</p>
@@ -121,30 +144,37 @@ export function Destinations({ query, field, onDone }: DestinationsProps) {
         <PlaceList places={found} from={from} along={along} onChoose={choose} />
       )
   } else if (kind) {
+    const listed = ahead
+      ? ahead
+          .filter(({ place }) => place.kind === kind)
+          .map(({ place }) => place)
+          .slice(0, AHEAD_RESULTS)
+      : nearestOfKind(places, kind, from)
+    pins = listed
     content = (
       <>
         <button type="button" className="destinations-back" onClick={() => setKind(null)}>
           <BackGlyph />
           {text.destinations.nearby[kind]}
         </button>
-        <PlaceList
-          places={
-            ahead
-              ? ahead
-                  .filter(({ place }) => place.kind === kind)
-                  .map(({ place }) => place)
-                  .slice(0, AHEAD_RESULTS)
-              : nearestOfKind(places, kind, from)
-          }
-          from={from}
-          along={along}
-          onChoose={choose}
-        />
+        <PlaceList places={listed} from={from} along={along} onChoose={choose} />
       </>
     )
   } else {
     content = <Home places={places} from={from} onKind={open} onChoose={choose} onDone={onDone} />
   }
+  // Pinned as the list changes (a new list, a place opened), cleared when the panel closes.
+  const pinKey = pins.map((place) => place.node).join(',')
+  const pinned = useRef<Destination[]>(pins)
+  // The ref follows the list after each render; the effect below only draws when the set of places changes.
+  useEffect(() => {
+    pinned.current = pins
+  })
+  useEffect(() => {
+    showNearbyPins(pinned.current)
+  }, [pinKey])
+  useEffect(() => () => showNearbyPins([]), [])
+
   return (
     <div key={view} className={`destinations-view ${shown.direction}`}>
       {content}
@@ -169,6 +199,7 @@ function Home({
   const owned = useLive((state) => state.ownedGarages)
   const headquarters = useLive((state) => state.headquarters)
   const recents = useRecents((state) => state.places)
+  const clearRecents = useRecents((state) => state.clear)
   const { job, route } = useRouteState()
   const garages = ownGarages(places, owned, headquarters)
   const [ending, setEnding] = useState<string | null>(null)
@@ -216,7 +247,17 @@ function Home({
       </section>
       {recents.length > 0 && (
         <section>
-          <h3>{text.destinations.recents}</h3>
+          <div className="destinations-heading">
+            <h3>{text.destinations.recents}</h3>
+            <button
+              type="button"
+              className="destinations-clear"
+              aria-label={text.destinations.clearRecents}
+              onClick={clearRecents}
+            >
+              <TrashGlyph />
+            </button>
+          </div>
           <PlaceList places={recents} from={from} onChoose={onChoose} />
         </section>
       )}
@@ -248,7 +289,7 @@ function useDetours(places: Destination[], onRoute: boolean): Map<Destination, n
       current = false
     }
     // `key` stands for the places: a new list of the same places asks nothing again.
-  }, [key])
+  }, [key, places])
   return found.key === key ? found.seconds : new Map()
 }
 
@@ -290,7 +331,8 @@ function PlaceList({
   )
 }
 
-function PlaceRow({
+/** A place in a list (its card's rows, the Stops page's): its badge, its name, and how far away it is. */
+export function PlaceRow({
   place,
   title,
   from,
@@ -370,11 +412,25 @@ function PlaceCard({
   const name = nameOf(place, kindName)
   // Without a job: Go, and on a route also Add stop; on a job only stops.
   const actions: ('go' | 'addStop')[] = job ? ['addStop'] : route ? ['go', 'addStop'] : ['go']
+  // Validate destination: check if coordinates are within the map bounds.
+  const mapData = useMapData()
+  const unreachable = mapData && place.at && (
+    place.at[0] < mapData.bounds[0] - 1 || place.at[0] > mapData.bounds[2] + 1 ||
+    place.at[1] < mapData.bounds[1] - 1 || place.at[1] > mapData.bounds[3] + 1
+  )
 
   const offer = async () => {
     setProblem(null)
     setDirections('finding')
+    // Check cache first for repeated queries
+    const cached = getCachedRoutes(place.node)
+    if (cached) {
+      setDirections({ id: cached.id, routes: cached.routes, picked: 0 })
+      return
+    }
     const { id, routes } = await planRoutes(place.node)
+    // Cache the result for future queries
+    putCachedRoutes(place.node, id, routes)
     // None (a map built before WestPlay planned routes, no way there): straight to the game, as before.
     if (routes.length === 0) {
       setDirections(null)
@@ -404,7 +460,11 @@ function PlaceCard({
   const playersAlong = useTruckersMp((state) => state.along)
   useEffect(() => {
     if (typeof directions !== 'object' || directions === null) return
-    showTraffic(trafficAlong(directions.routes[directions.picked]?.line ?? [], playersAlong))
+    const line = directions.routes[directions.picked]?.line ?? []
+    // Under TruckersMP, the trucks along it; in single player, the hour's estimate (estimatedTraffic.ts).
+    const live = useLive.getState()
+    if (live.truckersmp) showTraffic(trafficAlong(line, playersAlong))
+    else showTraffic(estimatedTraffic(line, live.telemetry ? cabClock(live.telemetry, live.clockShift) : 0), true)
   }, [directions, playersAlong])
   const start = async () => {
     if (typeof directions !== 'object' || directions === null) return
@@ -466,6 +526,11 @@ function PlaceCard({
         </p>
       ) : (
         from && <p className="destination-away">{text.destinations.straightLine(distanceText(place, from, text))}</p>
+      )}
+      {unreachable && (
+        <p className="destination-problem" role="alert">
+          {text.destinations.unreachableDestination}
+        </p>
       )}
       {problem && (
         <p key={problem.id} className="destination-problem" role="status">

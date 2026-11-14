@@ -1,0 +1,801 @@
+﻿﻿/* --- The truck's gauges, right ---------------------------------------------------------------- */
+
+/* The gauges are spread down the column rather than stacked at its head: five groups down the panel's height, each
+   with a hairline above it, so the right side reads as evenly as the left.
+
+   Its paddings are a budget, not a taste. The column has 405px between the status bar and the panel's floor, and a
+   hitched run fills it: the tank, the AdBlue and the coolant, the brake heat, the instant reading and two wear rows.
+   The spacings below are what is left once those readings are in, which is why they are tighter than the left side's â€”
+   at the rhythm they were first given, the flex column ran out of height and paid for it by squeezing the panels, and
+   the trailer's wear row was drawn off the bottom of the panel (measured: 490px into a 480px display). Anything added
+   to this column has to come out of these gaps. */
+.cluster-side-right {
+  justify-content: space-between;
+  padding-top: 6px;
+  gap: 6px;
+}
+
+/* A right column carrying a card the player moved beside the tank (Settings â€º Instrument Cluster) packs from its top,
+   as the left column does: space-between with more than the tank's own groups would open gaps between them. */
+.cluster-side-right[data-extra] {
+  justify-content: flex-start;
+}
+
+/* The fuel card groups the tank readings at the top of the right column. */
+.cluster-fuel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cluster-gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The fuel glyph matches all other card glyphs at 24px — after removing the fuel card's background tint,
+   the size difference was the only visual differentiation, and uniform glyph size is cleaner. */
+.cluster-gauge-row .cluster-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-gauge-row .cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.cluster-meter {
+  /* The gauge's warning line, printed on the bar by `::before` below: the zone the reading is heading into, in the
+     colour of the state it will be in when it gets there. Set here so every bar shares one look, and overridden by
+     `data-zone` for the end of the bar the trouble is at. */
+  --zone: none;
+  --zone-tint: color-mix(in srgb, var(--danger) 18%, transparent);
+  --zone-mark: color-mix(in srgb, var(--danger) 72%, transparent);
+
+  position: relative;
+  flex: 1;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.16);
+}
+
+/*
+ * A bar is read as a gauge, not as a progress bar. Its warning line is part of the bar: the zone the reading runs into
+ * when it is getting bad is tinted, with a hairline at the threshold itself, so a tank falling towards empty has
+ * something to fall into and a temperature climbing has a line to cross. Before this the bar had no scale at all â€” the
+ * whole of it changed colour at the moment the reading crossed the line, which says something is wrong but not how
+ * close it was: a bar sitting a fifth full of fuel reads the same whether the reserve starts at a tenth or a quarter.
+ *
+ * `--zone` and `data-zone` come from the reading's own threshold (apps/diagnostics/readings.ts, ClusterScreen's
+ * `meterZone`), so the bar's line and the Diagnostics app's gauge can't disagree about where "getting low" starts.
+ * A bar with no reading behind it has no zone and draws nothing.
+ *
+ * The two halves are two elements on purpose. The tint is `::before`, under the fill, so the reading keeps its own
+ * colour where the two overlap; the line itself is `::after`, over the fill, because a gauge prints its red line
+ * across the bar â€” a tank two thirds full still has to show where its reserve begins.
+ */
+.cluster-meter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Too little is the problem: the zone runs from empty up to the line (fuel, AdBlue). */
+.cluster-meter[data-zone='low']::before {
+  background: linear-gradient(90deg, var(--zone-tint) 0 var(--zone), transparent var(--zone));
+}
+
+/* Too much is: the zone runs from the line to the top of the range (the temperatures, consumption, wear). */
+.cluster-meter[data-zone='high'] {
+  --zone-tint: color-mix(in srgb, var(--warn) 16%, transparent);
+  --zone-mark: color-mix(in srgb, var(--warn) 62%, transparent);
+}
+
+.cluster-meter[data-zone='high']::before {
+  background: linear-gradient(90deg, transparent var(--zone), var(--zone-tint) var(--zone));
+}
+
+/*
+ * The line itself, across the bar and over the fill, in the colour of the state the reading is heading into: two
+ * pixels rather than a hairline, centred on the threshold's own place. A gauge read at arm's length through the
+ * game's glass had a 1px line the eye could pass over, which left a bar's reserve a tint and nothing to cross.
+ */
+.cluster-meter[data-zone]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--zone);
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--zone-mark);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/*
+ * A level gauge's own scale: the quarter marks printed on the track, under the reading. A fill says how much is
+ * left; the marks say how much that is without a figure to work out â€” the part already used covers its own marks,
+ * as the pointer over a printed scale does. They belong to the two level gauges only (fuel and AdBlue): a
+ * temperature or a rate is a point on its scale, not a quantity of something, and quartering it would say nothing.
+ */
+.cluster-meter[data-scale='level'] {
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ink) 20%, transparent) 0 1px,
+    transparent 1px 25%
+  );
+}
+
+/*
+ * The reading itself, drawn from the bar's left end to where it stands: a level, not a lozenge. Its head is square so a
+ * partly full bar reads as a quantity you could still tip more into â€” the pill's own cap on the fill's end made a
+ * nearly empty tank a red dot floating in its track. The track clips the head at the top of the range, so a full bar is
+ * still round.
+ */
+.cluster-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px 3px 3px 999px;
+  background: var(--bar);
+  transform-origin: left;
+  animation: meter-grow 760ms var(--motion-ease) both;
+  transition:
+    width 320ms var(--motion-ease),
+    background-color 220ms linear;
+  position: relative;
+  z-index: 1;
+}
+
+/* The same three states as the glyphs and the figures beside them: cold is blue, worth watching is amber, a problem
+   is red. One colour for the reading, not a gradient across the bar â€” the fill's length is the quantity, and painting
+   a gradient along it said the wrong thing about its left end (a hot brake's bar started amber at 0 Â°C). */
+.cluster-meter[data-cold] > span {
+  background: var(--cold);
+}
+
+.cluster-meter[data-hot] > span {
+  background: var(--warn);
+}
+
+.cluster-meter[data-warn] > span {
+  background: var(--danger);
+}
+
+@keyframes meter-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.cluster-meter[data-low] > span {
+  background: var(--danger);
+  animation:
+    meter-grow 760ms var(--motion-ease) both,
+    meter-low 1.4s ease-in-out 760ms infinite;
+}
+
+@keyframes meter-low {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.cluster-gauge-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--type-gap);
+  min-width: 80px;
+  font-size: var(--type-lg);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cluster-gauge-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: var(--type-unit);
+}
+
+.cluster-foot-pair {
+  display: flex;
+  align-items: center;
+  gap: var(--type-gap);
+  min-width: 0;
+}
+
+.cluster-gauge-foot svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+
+.cluster-gauge-foot b {
+  color: var(--ink);
+  font-size: var(--type-md);
+  font-weight: 500;
+}
+
+/* Brake heat: a disc, its meter and the reading. */
+.cluster-brakes {
+  flex: none;
+  padding: 10px 0 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* The two states the dash adds to the tank and the temperatures: fuel this moment (from the tank's own loss) and
+   the truck's damage, the worst of its parts. Both are one line, so they sit at the column's foot beside the
+   readings they explain. */
+.cluster-instant,
+/* The truck's wear, with the trailer's under it while one is coupled: two rows of the same shape over one hairline,
+   so a solo run has exactly the panel it had before and a hitched one adds a line rather than rearranging it. The
+   row's meter is thinner than the truck's, which keeps the pair inside the column at every text size. */
+.cluster-wear {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-wear-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cluster-wear-row + .cluster-wear-row .cluster-meter {
+  height: 6px;
+}
+
+.cluster-instant .cluster-meter,
+.cluster-wear .cluster-meter {
+  height: 8px;
+}
+
+.cluster-instant .cluster-gauge-value,
+.cluster-wear .cluster-gauge-value {
+  min-width: 0;
+  font-size: var(--type-md);
+  font-weight: 500;
+}
+
+.cluster-brake-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cluster-brake-head .cluster-glyph {
+  width: 26px;
+  height: 26px;
+}
+
+.cluster-brake-head .cluster-glyph svg {
+  width: 26px;
+  height: 26px;
+}
+
+.cluster-gauge-value[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-gauge-value[data-warn] {
+  color: var(--danger);
+}
+
+.cluster-pair-gauges {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cluster-mini strong {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--type-lg);
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* The reading in its gauge's state, as the bars' own figures are: a level worth watching is amber and one that is
+   a problem is red, so the number says what the bar and the mark beside it say. */
+.cluster-mini strong[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-mini strong[data-warn] {
+  color: var(--danger);
+}
+
+.cluster-mini .cluster-meter {
+  flex: none;
+  width: 100%;
+  height: 10px;
+}
+
+/* AdBlue keeps its own blue, as the fluid's filler cap and the dash's own gauge do. */
+.cluster-mini .cluster-meter > span {
+  background: var(--urea);
+}
+
+.cluster-mini.cluster-coolant .cluster-meter > span {
+  background: var(--bar);
+}
+
+/* The coolant's own fill colour is a rule of the same weight as the cold state's, so a cold engine's bar has to be
+   named too: it reads blue like the dial's scale and the thermometer beside it, not as a healthy grey one. */
+.cluster-mini.cluster-coolant .cluster-meter[data-cold] > span {
+  background: var(--cold);
+}
+
+.cluster-mini:nth-child(2) .cluster-meter > span {
+  animation-delay: 90ms;
+}
+
+.cluster-mini .cluster-meter[data-low] > span {
+  background: var(--danger);
+}
+
+.cluster-mini .cluster-meter[data-hot] > span {
+  background: var(--warn);
+}
+
+/* The mini meters have to name every state themselves: the coolant's own fill colour is a rule of the same weight as
+   the state colours above it, so without this one a coolant at its alarm temperature drew as a healthy grey bar. */
+.cluster-mini .cluster-meter[data-warn] > span {
+  background: var(--danger);
+}
+
+/* The truck's own alarm tints the dial: a red halo behind the face, so a fault is felt before it is read.
+   The alarm signal extends beyond the dial — a thin red line at the top edge of the shell ensures it is caught
+   even by peripheral vision when the driver is looking at side cards or the route line. */
+.cluster[data-alarm] .cluster-dial-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 60%,
+    color-mix(in srgb, var(--danger) 26%, transparent) 88%,
+    transparent 100%
+  );
+  animation: alarm-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* The alarm's edge signal: a thin red line at the top of the shell, extending the visual beyond the dial center
+   so peripheral vision catches it when the driver looks at side cards or the route line. */
+.cluster[data-alarm] .cluster-shell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--danger);
+  animation: alarm-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes alarm-glow {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* --- Road gradient indicator (Feature 7) ------------------------------------------------------- */
+
+.cluster-gradient {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-gradient .cluster-glyph {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.cluster-gradient .cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.cluster-gradient strong {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: var(--type-lg);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cluster-gradient strong[data-incline] {
+  color: var(--warn);
+}
+
+/* --- Haptic pulse (Feature 19) ----------------------------------------------------------------- */
+
+/* A brief screen pulse when an alarm notice appears — mimics how real clusters draw attention
+   to warnings beyond just lighting a lamp. */
+.cluster[data-haptic] .cluster-shell {
+  animation: haptic-pulse 0.5s ease-out;
+}
+
+@keyframes haptic-pulse {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.008);
+  }
+  30% {
+    transform: scale(0.997);
+  }
+  50% {
+    transform: scale(1.004);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- Pre-trip checklist as a dial mode (Feature 5) ---------------------------------------------
+ *
+ * The pre-trip is a mode of the dial itself: the track remains visible but dimmed, an accent arc
+ * sweeps progressively as items check (the arc is the progress indicator), and checklist items
+ * sit inside the ring where the speed figure normally goes. The header label takes the place of
+ * the brand mark above the ring. This feels like a self-test mode, not a card on top.
+ */
+
+.cluster-pretrip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Dim the dial track while pre-trip runs — the ring is still visible, just muted */
+.cluster-dial-wrap[data-pretrip] .cluster-dial-track {
+  stroke: color-mix(in srgb, var(--ink) 6%, transparent);
+  transition: stroke 0.3s ease;
+}
+
+/* Hide the speed figure, gear, retarder, brand, and tacho while pre-trip owns the dial */
+.cluster-dial-wrap[data-pretrip] .cluster-speed,
+.cluster-dial-wrap[data-pretrip] .cluster-gear,
+.cluster-dial-wrap[data-pretrip] .cluster-retarder,
+.cluster-dial-wrap[data-pretrip] .cluster-brand,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-rpm-track,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-rpm,
+.cluster-dial-wrap[data-pretrip] .cluster-rpm-redline,
+.cluster-dial-wrap[data-pretrip] .cluster-retarder-arc,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-cruise,
+.cluster-dial-wrap[data-pretrip] .cluster-limit,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-fill {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* The pre-trip's own arc: same geometry as the dial's fill, sweeps as items check */
+.cluster-pretrip-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cluster-pretrip-arc-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.cluster-pretrip-header {
+  position: absolute;
+  top: 23%;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.cluster-pretrip-label {
+  font-size: var(--type-xs);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Items: centered inside the ring, where the speed figure normally goes */
+.cluster-pretrip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  max-width: 200px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-30%);
+}
+
+.cluster-pretrip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  font-size: var(--type-unit);
+  color: var(--dim);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cluster-pretrip-item[data-checked] {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--ink);
+}
+
+.cluster-pretrip-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.cluster-pretrip-check svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.1;
+}
+
+.cluster-pretrip-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Lane departure & speed camera pills (Features 6, 24) -------------------------------------- */
+
+.cluster-adas,
+.cluster-camera {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+  color: var(--warn);
+  margin-right: 4px;
+  animation: adas-blink 1s ease-in-out infinite;
+}
+
+.cluster-adas svg,
+.cluster-camera svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cluster-camera {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+@keyframes adas-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* --- Cluster boot as a dial mode ---------------------------------------------------------------
+ *
+ * The boot is a mode of the dial itself: the track remains visible but dimmed, an accent arc
+ * sweeps as the boot progresses, and the truck's brand and Cabin Play mark sit inside the ring
+ * where the speed figure normally goes. This feels like the cluster's own display powering on,
+ * not a full-screen overlay.
+ */
+
+.cluster-boot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* The boot's arc: same geometry as the dial's fill, sweeps as the boot progresses */
+.cluster-boot-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cluster-boot-arc-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* Center content: brand and app mark inside the ring */
+.cluster-boot-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Truck brand logo inside the ring */
+.cluster-boot-brand {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgb(255 255 255 / 0.1));
+}
+
+/* Fallback wordmark for brands without logos */
+.cluster-boot-brand-word {
+  font-size: var(--type-lg);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+/* Cabin Play mark: smaller icon and name under the brand */
+.cluster-boot-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cluster-boot-app-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: calc(6px * var(--text-scale, 1));
+  opacity: 0.85;
+}
+
+.cluster-boot-app-name {
+  font-size: var(--type-xs);
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 0.02em;
+}
+
+/* Connecting dots: subtle pulsing indicator */
+.cluster-boot-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cluster-boot-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: boot-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes boot-dot-pulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dim the dial elements while boot runs */
+.cluster-dial-wrap[data-booting] .cluster-dial-track {
+  stroke: color-mix(in srgb, var(--ink) 6%, transparent);
+  transition: stroke 0.3s ease;
+}
+
+.cluster-dial-wrap[data-booting] .cluster-speed,
+.cluster-dial-wrap[data-booting] .cluster-gear,
+.cluster-dial-wrap[data-booting] .cluster-retarder,
+.cluster-dial-wrap[data-booting] .cluster-brand,
+.cluster-dial-wrap[data-booting] .cluster-dial-rpm-track,
+.cluster-dial-wrap[data-booting] .cluster-dial-rpm,
+.cluster-dial-wrap[data-booting] .cluster-rpm-redline,
+.cluster-dial-wrap[data-booting] .cluster-retarder-arc,
+.cluster-dial-wrap[data-booting] .cluster-dial-cruise,
+.cluster-dial-wrap[data-booting] .cluster-limit,
+.cluster-dial-wrap[data-booting] .cluster-dial-fill {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Black veil: covers the entire cluster at the start of boot, fading out to reveal the boot animation.
+   Positioned to cover the whole cluster-shell, not just the dial — both screens start from pure black. */
+.cluster-boot-veil {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Hide side columns during boot — they fade in after the veil clears */
+.cluster-shell[data-booting] .cluster-side {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the status bar during boot — telltales and route aren't ready yet */
+.cluster-shell[data-booting] .cluster-status {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the media line above the dial during boot */
+.cluster-shell[data-booting] .cluster-message {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the notices layer during boot */
+.cluster-shell[data-booting] .cluster-notices {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}

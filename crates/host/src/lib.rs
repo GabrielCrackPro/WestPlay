@@ -19,10 +19,13 @@ mod handover;
 mod lyrics;
 pub mod maps;
 mod performance;
+mod phone;
 mod planner;
 mod play_log;
 mod player;
 mod pointer;
+mod radio;
+mod radio_proxy;
 pub mod route;
 mod route_change;
 pub mod settings;
@@ -31,8 +34,10 @@ pub mod speakers;
 mod spotify;
 pub mod startup;
 mod typing;
+mod voice;
 mod weather;
 mod webview;
+mod whatsapp;
 mod youtube;
 mod youtube_music;
 
@@ -44,6 +49,7 @@ use std::time::{Duration, Instant};
 use westplay_shared::{BridgeMapping, JobInfo, Keybind, Telemetry, TruckInfo, screen_layouts};
 use windows::Win32::Foundation::LUID;
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+use windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
 use windows::Win32::UI::WindowsAndMessaging::{DispatchMessageW, MSG, PM_REMOVE, PeekMessageW, TranslateMessage};
 
 use capture::Capture;
@@ -54,8 +60,9 @@ use route::{RouteUpdate, RouteWatch};
 use settings::SharedSettings;
 use weather::{Sky, Weather, WeatherWatch};
 use webview::{OffscreenWebView, Stage};
-use westplay_mapdata::junctions::Turn;
+use westplay_mapdata::junctions::{Maneuver, Turn};
 
+pub use phone::PhoneStatus;
 pub use webview::{Error, wait_for_browsers};
 /// Size the cabin page is rendered at: the size of the frames the plugin copies into the screen textures.
 pub use westplay_shared::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -118,6 +125,9 @@ pub struct Status {
     pub map_built: Option<u64>,
     /// Every profile's map: ready, being built, to build, failed...
     pub profile_maps: Vec<maps::ProfileMap>,
+    /// The paired phone: whether it's connected, which device, and how to pair it. The companion's Setup
+    /// shows this; the cabin page's Phone app gets only the phone's content.
+    pub phone: PhoneStatus,
     pub error: Option<String>,
 }
 
@@ -196,6 +206,23 @@ impl OpenRequest {
     }
 }
 
+/// A request to forget the paired phone (the companion's Setup), from any thread: the link takes a new token,
+/// and a phone connected now is let go, so a phone has to pair again.
+#[derive(Debug, Default)]
+pub struct UnpairRequest(AtomicBool);
+
+impl UnpairRequest {
+    /// Asks for the phone to be forgotten.
+    pub fn request(&self) {
+        self.0.store(true, Ordering::Release);
+    }
+
+    /// Whether it was asked for, and not carried out yet.
+    pub fn take(&self) -> bool {
+        self.0.swap(false, Ordering::AcqRel)
+    }
+}
+
 pub struct Config {
     pub width: u32,
     pub height: u32,
@@ -204,6 +231,8 @@ pub struct Config {
     pub data_dir: PathBuf,
     /// Requests to open or close WestPlay on the truck's screen, from any thread.
     pub open_request: Arc<OpenRequest>,
+    /// A request to forget the paired phone, from the companion window.
+    pub unpair: Arc<UnpairRequest>,
     /// Signing YouTube or Spotify in or out (or finding out whether it is), from the companion window.
     pub accounts: Arc<AccountRequests>,
     /// Called on the host thread about once per second, and right after WestPlay opens or closes.
@@ -223,6 +252,8 @@ struct Pipeline {
     gpu: Gpu,
     /// Holds the shared frame texture (and its name) alive.
     capture: Capture,
+    /// The cluster's frame, into its own shared texture.
+    cluster_capture: Capture,
 }
 
 /// Runs until `stop` is set. Blocks the calling thread, which becomes the WebView2 UI thread.
@@ -248,14 +279,55 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     }
     let webview = OffscreenWebView::new(&stage, config.width, config.height, &config.data_dir.join("webview2"))?;
     stage.add(&webview, true)?;
+    // The cluster page, on the same profile and compositor, in a visual of its own (the game's second screen).
+    let cluster_view = OffscreenWebView::new_on(
+        &stage,
+        westplay_shared::CLUSTER_WIDTH,
+        westplay_shared::CLUSTER_HEIGHT,
+        webview.environment().clone(),
+    )?;
+    stage.add_cluster(&cluster_view)?;
     startup::mark("host: cabin browser (WebView2) ready");
+    // The cab page's own sound through the truck's speakers (the Radio app): the script the players' pages get,
+    // told the same speakers, head, tone and camera as they are.
+    webview.add_startup_script(include_str!("cab_sound.js"))?;
+    // The Radio app's way into the game's stations (radio_proxy.rs): a door of this PC's own, since the page is
+    // https and the stations are other people's servers — some on http alone — and a browser's graph plays silence
+    // for a stream it isn't allowed to hear.
+    let radio_proxy = radio_proxy::Stations::open();
+    let radio_proxy_base = radio_proxy.as_ref().map(|proxy| proxy.base().to_owned());
+    if radio_proxy.is_none() {
+        log!("the radio's stations have no door on this PC: the page plays them itself");
+    }
     match &config.content {
-        Content::Url(url) => webview.navigate(url)?,
+        Content::Url(url) => {
+            if let Some(host) = performance::host_of(url)
+                && let Err(error) = webview.allow_microphone_from(&host)
+            {
+                log!("the cabin page cannot use the microphone: {error}");
+            }
+            webview.navigate(url)?;
+        }
         Content::Html(html) => webview.navigate_to_string(html)?,
         Content::Folder { root, page } => {
             webview.map_folder("westplay.cabin", root)?;
+            if let Err(error) = webview.allow_microphone_from("westplay.cabin") {
+                log!("the cabin page cannot use the microphone: {error}");
+            }
             webview.navigate(&format!("https://westplay.cabin/{page}"))?;
         }
+    }
+    match &config.content {
+        Content::Folder { root, page } => {
+            cluster_view.map_folder("westplay.cabin", root)?;
+            let cluster = page.replace("cabin.html", "cluster.html");
+            cluster_view.navigate(&format!("https://westplay.cabin/{cluster}"))?;
+        }
+        Content::Url(url) => {
+            let separator = if url.contains('?') { '&' } else { '?' };
+            cluster_view.navigate(&format!("{url}{separator}cluster=1"))?;
+        }
+        Content::Html(html) => cluster_view.navigate_to_string(html)?,
     }
     startup::mark("host: cabin page requested");
     // What WestPlay costs while the game runs, in the log each minute (performance.rs).
@@ -278,10 +350,13 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut customize_message: Option<String> = None;
     let map_watch = maps::MapWatch::start(maps_dir.clone(), config.game.clone());
     let mut map_shown: (Option<String>, Option<u64>) = (None, None);
+    // The paired phone (phone.rs): its notifications, contacts and call, and the commands the cab sends it.
+    let mut phone = phone::Phone::start(&config.data_dir.join("phone-pairing.txt"));
     let mut status = Status {
         webview_version: webview.version.clone(),
         cab_adapter: cab_gpu.and_then(|luid| graphics::name_of(luid, &adapters)),
         adapters: adapters.clone(),
+        phone: phone.status(),
         ..Default::default()
     };
 
@@ -301,8 +376,14 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // The game's menu gone while it's still paused (`camera::MenuGone`), and as last told to the page.
     let mut menu = camera::MenuGone::default();
     let mut menu_gone = false;
-    // Whether the camera was outside the cab, as last said in the log.
+    // Whether the camera was outside the cab, as last said in the log, and as last told the page (whose own sounds
+    // — the GPS voice, the presses — are the cab's too, and silent outside it).
     let mut was_outside = false;
+    let mut outside_told: Option<bool> = None;
+    // The game's regional units, as both pages were last told (they change in the game's menu, not the SDK).
+    let mut units_told: Option<game_settings::RegionalUnits> = None;
+    // The game's clock (24 hours, or 12), as they were last told: it changes in the game's menu too.
+    let mut clock_told: Option<bool> = None;
     // The players' tone (the cab's Settings › Equalizer), passed on with the cab ([`settings::SoundSettings`]).
     let mut equalizer = config.settings.get().sound.playing();
     // The music's spectrum wanted by the cab (its Equalizer open): asked of the players with the cab.
@@ -320,6 +401,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     // The speakers of the parts of the truck the player is in, for the trucks whose speakers come with them.
     let mut part_speakers: Option<PartSpeakers> = None;
     let mut player_messages: Vec<String> = Vec::new();
+    // The game's language as the cluster's page reads it: its own message (the cab's copy comes with the map
+    // restriction), kept to send again when that page reloads.
+    let mut cluster_language: Option<String> = None;
+    // The cabin's power sequence, as its page last told it: the cluster's boot runs on it (`Power`), and it's kept
+    // to send again when the cluster page reloads — a page that comes up during a boot joins it where it is.
+    let mut cluster_power: Option<String> = None;
     // The game's GPS route, and the truck's progress along it, kept to send again when the page reloads.
     let route_watch = RouteWatch::start(bridge.clone(), map_watch.played.clone());
     // The host's number for the route shown (`route::RouteUpdate::Route`).
@@ -329,9 +416,15 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         Option<String>,
         Option<String>,
     ) = (None, None, None);
+    // The route's turns as the cluster page reads them, which is the same message without the geometry it doesn't
+    // draw (`cluster_route_message_for`). Kept apart from the cab's copy so a reloaded cluster gets its arrow back.
+    let mut cluster_route_paths_message: Option<String> = None;
     // The game's weather, kept to send again when the page reloads.
     let weather_watch = WeatherWatch::start(bridge.clone());
     let mut weather_message: Option<String> = None;
+    // The truck's speakers as last told to the cab page for its own sound (apps/radio: `cabSound`), sent again to
+    // a reloaded page.
+    let mut cab_sound_told: Option<String> = None;
     // Whether the game's window shows (as last told the page; sent again to a reloaded page).
     let mut game_shown = true;
     // Whether the game runs (its process, the plugin's pid), as last told the page. As it closes (or crashes)
@@ -360,8 +453,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut typing_state: Option<westplay_shared::TypingState> = None;
     // YouTube's player, while the page uses it, and how it last played (sent again when the page reloads).
     let mut youtube: Option<youtube::YouTube> = None;
-    // Whether the game's camera is outside the cab (YouTube's sound muffled then), and the player's camera
-    // settings in the game (it turns with the steering).
+    // Whether the game's camera is outside the cab (the cab's sound is heard in it only then), and the player's
+    // camera settings in the game (it turns with the steering).
     let mut camera = camera::Camera::default();
     let mut game_settings = game_settings::GameSettings::new();
     let mut youtube_message: Option<String> = None;
@@ -390,9 +483,14 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut spotify_playback: Option<String> = None;
     // Apple Music's web player, the same way.
     let mut apple_music: Option<apple_music::AppleMusic> = None;
+    // What the cab's Now Playing last reported, for the cluster's one-line player: sent again when it reloads.
+    let mut now_playing_message: Option<String> = None;
     let mut apple_music_state: Option<apple_music::State> = None;
     let (mut apple_music_window_open, mut apple_music_confirming) = (false, false);
     let mut apple_music_playback: Option<String> = None;
+    // WhatsApp's web app, the same way (on a WebView2 profile of its own: the link is the driver's, in the cab's
+    // window, and signing out forgets it alone).
+    let mut whatsapp: Option<whatsapp::WhatsApp> = None;
     // YouTube Music's web player, the same way (on the cabin page's profile, sharing YouTube's sign-in).
     let mut youtube_music: Option<youtube_music::YouTubeMusic> = None;
     let mut youtube_music_state: Option<youtube_music::State> = None;
@@ -400,9 +498,17 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut youtube_music_playback: Option<String> = None;
     // The settings generation last applied (`None`: apply them once at startup).
     let mut applied_settings = None;
+    // The voice assistant's switch, and whether its push-to-talk hotkey was held last turn.
+    let mut voice_enabled = config.settings.get().voice.enabled;
+    let mut voice_hotkey = config.settings.get().voice.hotkey;
+    let mut voice_wake = config.settings.get().voice.wake;
+    let mut voice_hotkey_down = false;
     // Each keybind's presses the page was told of (`PluginBlock::keybind_presses`).
     let mut keybind_presses =
         bridge.bridge().plugin.keybind_presses.each_ref().map(|count| count.load(Ordering::Acquire));
+    // The cabin's voice assistant (voice.rs), and what it has heard since the last turn.
+    let voice = voice::Voice::start();
+    voice.set_wake(voice_enabled && voice_wake);
     let mut last_frames = 0;
     // The startup stages still to log (`startup`), checked every turn until all are reached. The game's
     // screen frame counter as found: a session before this one may have left it counting.
@@ -414,6 +520,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     let mut game_liveness = Liveness::default();
     while !stop.load(Ordering::Relaxed) {
         pump_messages();
+        // Push-to-talk from anywhere: the player's chord in the companion, which wheel software can send too.
+        let voice_hotkey_pressed = voice_enabled && push_to_talk_down(&voice_hotkey);
+        if voice_hotkey_pressed && !voice_hotkey_down {
+            let _ = webview.post_json(r#"{"type":"voiceHotkey"}"#);
+        }
+        voice_hotkey_down = voice_hotkey_pressed;
         host.heartbeat.fetch_add(1, Ordering::Release);
         // Set for this turn when the game has just closed: every web player closes, as its WebView failing
         // closes it (below), the page told so.
@@ -423,6 +535,8 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         if let Some(pipeline) = &pipeline {
             let squeeze = config.height as f32 / page_height.max(1) as f32;
             pipeline.capture.flush(cursor.look(Instant::now()), squeeze);
+            // The cluster is read at a glance: no cursor, and its page already has the frame's shape.
+            pipeline.cluster_capture.flush(None, 1.0);
         }
         // The page told whether the host draws the cursor (it draws its own where the host can't).
         let drawn = pipeline.as_ref().is_some_and(|pipeline| pipeline.capture.draws_cursor());
@@ -510,6 +624,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     log!("the game closed: its web players are closed");
                 }
                 let _ = webview.post_json(&game_message(running));
+                // The cluster page is kept between games: told the game is gone, it lets go of the last frame
+                // instead of holding a closed game's speed and readings up as if they were live.
+                let _ = cluster_view.post_json(&game_message(running));
             }
             let pid = bridge.bridge().plugin.pid.load(Ordering::Relaxed);
             if pid != elevated_pid {
@@ -547,10 +664,15 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
             let needs_rebuild = match &pipeline {
                 None => true,
-                Some(p) => p.capture.broken() || wanted.is_some_and(|luid| !same_luid(luid, p.gpu.luid)),
+                Some(p) => {
+                    p.capture.broken()
+                        || p.cluster_capture.broken()
+                        || wanted.is_some_and(|luid| !same_luid(luid, p.gpu.luid))
+                }
             };
             if needs_rebuild {
                 host.frame_generation.store(0, Ordering::Release);
+                host.cluster_frame_generation.store(0, Ordering::Release);
                 pipeline = None;
                 generation_counter = generation_counter.wrapping_add(1);
                 let generation = ((std::process::id() & 0x00ff_ffff) << 8) | (generation_counter & 0xff);
@@ -564,6 +686,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         host.frame_width.store(config.width, Ordering::Relaxed);
                         host.frame_height.store(config.height, Ordering::Relaxed);
                         host.frame_generation.store(generation, Ordering::Release);
+                        host.cluster_frame_generation.store(generation, Ordering::Release);
                         status.adapter = Some(built.gpu.adapter_name.clone());
                         status.error = None;
                         pipeline = Some(built);
@@ -600,12 +723,16 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     _ => None,
                 };
                 status.game_elevated = status.game_connected && game_elevated;
+                status.phone = phone.status();
                 let mut profiles = vec![(performance::Profile::Cab, webview.environment())];
                 if let Some(spotify) = &spotify {
                     profiles.push((performance::Profile::Spotify, spotify.view().environment()));
                 }
                 if let Some(apple_music) = &apple_music {
                     profiles.push((performance::Profile::AppleMusic, apple_music.view().environment()));
+                }
+                if let Some(whatsapp) = &whatsapp {
+                    profiles.push((performance::Profile::WhatsApp, whatsapp.view().environment()));
                 }
                 let sample = status.game_connected.then(|| performance::Sample {
                     game_frames: plugin.heartbeat.load(Ordering::Relaxed),
@@ -650,9 +777,22 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             for (slot, value) in host.keybinds.iter().zip(config.settings.get().keybinds.bridge_values()) {
                 slot.store(value, Ordering::Release);
             }
-            let _ = webview.post_json(&settings_message(&config.settings.get()));
+            let current = config.settings.get();
+            voice_enabled = current.voice.enabled;
+            voice_wake = current.voice.wake;
+            if voice_hotkey != current.voice.hotkey {
+                voice_hotkey = current.voice.hotkey;
+                voice_hotkey_down = false;
+            }
+            voice.set_wake(voice_enabled && voice_wake);
+            if !voice_enabled {
+                voice.cancel();
+            }
+            let _ = webview.post_json(&settings_message(&current));
         }
-        let mouse = pointer.update(&bridge.bridge().plugin.pointer, &webview);
+        // Over WhatsApp's window, the pointer is its page's (under the cabin page's own, where the app cuts it open).
+        let under = whatsapp.as_ref().and_then(whatsapp::WhatsApp::target);
+        let mouse = pointer.update(&bridge.bridge().plugin.pointer, &webview, under);
         cursor.follow(mouse, Instant::now());
         // The player's keybinds pressed in the game: the page acts on each.
         for keybind in Keybind::ALL {
@@ -675,23 +815,32 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 continue;
             }
             let message = route_message_for(&update);
+            // The cluster's copy of the same route: its notice line draws the next turn's arrow from the maneuvers
+            // and how far along the route the truck is, so it never needs the polylines.
+            let cluster_message = cluster_route_message_for(&update);
             match update {
                 RouteUpdate::Next(_) => route_next_message = Some(message.clone()),
-                RouteUpdate::Paths { .. } => route_paths_message = Some(message.clone()),
+                RouteUpdate::Paths { .. } => {
+                    route_paths_message = Some(message.clone());
+                    cluster_route_paths_message = Some(cluster_message.clone());
+                }
                 RouteUpdate::Route { id, nodes, waypoints } => {
                     route_number = Some(id);
                     route_uids = Some(nodes.iter().map(|node| node.uid).collect());
                     route_waypoints = waypoints;
                     (route_message, route_paths_message, route_next_message) = (Some(message.clone()), None, None);
+                    cluster_route_paths_message = None;
                 }
                 RouteUpdate::None => {
                     route_number = None;
                     route_uids = None;
                     route_waypoints.clear();
                     (route_message, route_paths_message, route_next_message) = (Some(message.clone()), None, None);
+                    cluster_route_paths_message = None;
                 }
             }
             let _ = webview.post_json(&message);
+            let _ = cluster_view.post_json(&cluster_message);
             // The player's stops along it, after the route itself (the page finds them in it).
             if route_message.as_deref() == Some(message.as_str()) {
                 let hidden = following.as_ref().map(|follow| follow.handover.handed()).unwrap_or_default();
@@ -731,9 +880,97 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             for message in &player_messages {
                 let _ = webview.post_json(message);
             }
+            // The cluster's words are the cabin's (state/strings): its own page is told the game's language too, on
+            // its own, so its notices, its readings and its screen reader speak what the cab speaks.
+            cluster_language = Some(language_message(player.language.as_deref()));
+            if let Some(message) = &cluster_language {
+                let _ = cluster_view.post_json(message);
+            }
         }
         while let Ok(found) = player_watch.speakers.try_recv() {
             part_speakers = Some(found);
+        }
+
+        // The Setup's unpair: a code for the next phone, the one connected now let go, and its content with it.
+        if config.unpair.take() {
+            if let Some(message) = phone.unpair() {
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
+            }
+            let phone_status = phone.status();
+            if status.phone != phone_status {
+                status.phone = phone_status;
+                (config.on_status)(&status);
+            }
+        }
+
+        // The phone's changes since last turn: one snapshot for the cabin page, or its notifications alone. The
+        // cluster reads the same changes for its notice line.
+        if let Some(message) = phone.poll() {
+            let _ = webview.post_json(&message);
+            let _ = cluster_view.post_json(&message);
+        }
+        // What the phone said it couldn't do (its dialer refused, the call wouldn't end): said on the cab's
+        // screen, so a command that failed isn't silent.
+        for error in phone.take_errors() {
+            let message = serde_json::json!({ "type": "phoneError", "error": error });
+            let _ = webview.post_json(&message.to_string());
+        }
+        // The voice assistant's progress and what it heard (voice.rs).
+        while let Some(event) = voice.poll() {
+            let message = match event {
+                voice::Event::State(state) => voice_state_message(state),
+                voice::Event::Result(transcript) => {
+                    serde_json::json!({ "type": "voice", "state": "result", "transcript": transcript }).to_string()
+                }
+                voice::Event::Error(error) => {
+                    serde_json::json!({ "type": "voice", "state": "error", "error": error }).to_string()
+                }
+                voice::Event::Wake => r#"{"type":"voiceHotkey"}"#.to_owned(),
+                voice::Event::Audio(audio) => serde_json::json!({ "type": "voiceAudio", "audio": audio }).to_string(),
+            };
+            let _ = webview.post_json(&message);
+        }
+
+        // The cluster page loaded anew: the telemetry it missed is sent again next turn (it asks for nothing
+        // else: its cards read the same store the cab's does, and its settings are the cab's own).
+        if !cluster_view.take_page_messages().is_empty() {
+            last_telemetry = None;
+            last_truck = None;
+            last_job = None;
+            // Told again with the telemetry's neighbours: its units, and whether the game is ATS's; its clock.
+            units_told = None;
+            clock_told = None;
+            // The game's language, for the panel's words (it was sent before this page loaded).
+            if let Some(message) = &cluster_language {
+                let _ = cluster_view.post_json(message);
+            }
+            // The cabin's power, for the panel's boot: a page that loads mid-boot draws it from where it is, and one
+            // that loads after it shows the cluster at once.
+            if let Some(message) = &cluster_power {
+                let _ = cluster_view.post_json(message);
+            }
+            // The phone's current state, for the notice line (it was sent before this page loaded).
+            let _ = cluster_view.post_json(&phone.state_message());
+            if let Some(message) = &now_playing_message {
+                let _ = cluster_view.post_json(message);
+            }
+            // The route and how far along it the truck is: what its notice line draws the next turn's arrow from
+            // (the route first, so the turns land on it).
+            for message in route_message.iter().chain(&cluster_route_paths_message).chain(&route_next_message) {
+                let _ = cluster_view.post_json(message);
+            }
+        }
+        match cluster_view.take_failure() {
+            Some(webview::Failure::Page) => {
+                log!("the cluster page's process failed; reloading it");
+                let _ = cluster_view.reload();
+            }
+            Some(webview::Failure::Browser) => {
+                browser_gone = true;
+                break;
+            }
+            None => {}
         }
 
         for message in webview.take_page_messages() {
@@ -744,6 +981,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     // A page loaded anew asks again if it wants it.
                     spectrum = false;
                     cursor_told = None;
+                    outside_told = None;
+                    units_told = None;
+                    clock_told = None;
                     startup::mark("page: running (its scripts loaded)");
                     last_telemetry = None;
                     last_truck = None;
@@ -757,6 +997,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         .chain(&route_next_message);
                     let _ = webview.post_json(&game_shown_message(game_shown));
                     let _ = webview.post_json(&game_message(game_running));
+                    let _ = cluster_view.post_json(&game_message(game_running));
                     let _ = webview.post_json(&truckersmp_message(truckersmp));
                     let _ = webview.post_json(&maps::map_message(map_shown.0.as_deref(), map_shown.1));
                     if spotify.is_some() {
@@ -782,6 +1023,14 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         }
                     }
                     let _ = webview.post_json(&settings_message(&config.settings.get()));
+                    let stations = radio::stations_message(&radio::game_stations(), radio_proxy_base.as_deref());
+                    let _ = webview.post_json(&stations);
+                    // The speakers go again with the reloaded page, as they were last told.
+                    cab_sound_told = None;
+                    // The phone's whole state, for the Phone app (pairing is the companion's Setup).
+                    let _ = webview.post_json(&phone.state_message());
+                    // Voice starts idle after a reload; an utterance still in flight is dropped with the page.
+                    let _ = webview.post_json(&voice_state_message("idle"));
                     if let Some(message) = &customize_message {
                         let _ = webview.post_json(message);
                     }
@@ -806,8 +1055,24 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                         (config.on_settings)(&settings);
                     }
                 }
+                Some(PageMessage::Power { phase, since }) => {
+                    // The cabin page's own boot, word for word: the cluster's page runs it on the same clock, so the two
+                    // screens light, keep time and clear together. Kept for a cluster page that loads during it.
+                    let message = power_message(phase, since);
+                    cluster_power = Some(message.clone());
+                    let _ = cluster_view.post_json(&message);
+                }
+                Some(PageMessage::NowPlaying { playing }) => {
+                    let message = serde_json::json!({ "type": "nowPlaying", "data": playing }).to_string();
+                    now_playing_message = Some(message.clone());
+                    let _ = cluster_view.post_json(&message);
+                }
                 Some(PageMessage::Spectrum { on }) => spectrum = on,
                 Some(PageMessage::CursorLight { light }) => cursor.set_light(light, Instant::now()),
+                Some(PageMessage::RadioStations) => {
+                    let stations = radio::stations_message(&radio::game_stations(), radio_proxy_base.as_deref());
+                    let _ = webview.post_json(&stations);
+                }
                 Some(PageMessage::Equalizer { equalizer: curve, custom }) => {
                     let sound = settings::SoundSettings { equalizer: curve.clamped(), custom };
                     equalizer = sound.playing();
@@ -822,6 +1087,17 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                     let mut settings = config.settings.get();
                     if settings.look.wallpaper.as_deref() != Some(id.as_str()) && id.len() <= 300 {
                         settings.look.wallpaper = Some(id);
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
+                Some(PageMessage::Icons { icon_set, icon_style }) => {
+                    let mut settings = config.settings.get();
+                    // A set's name is a folder's in the player's `customize` folder: one that's gone is no set.
+                    let icon_set = icon_set.filter(|name| name.len() <= 200);
+                    if settings.look.icon_set != icon_set || settings.look.icon_style != icon_style {
+                        settings.look.icon_set = icon_set;
+                        settings.look.icon_style = icon_style;
                         config.settings.set(settings.clone());
                         (config.on_settings)(&settings);
                     }
@@ -871,6 +1147,51 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                             let _ = youtube.reload();
                         }
                     }
+                }
+                Some(PageMessage::Whatsapp { command }) => {
+                    if let Some(app) = start_whatsapp(&mut whatsapp, &stage, &config) {
+                        let _ = app.command(&command);
+                    }
+                }
+                Some(PageMessage::Phone { command }) => {
+                    if !phone.command(command.clone()) {
+                        log!("[phone] no phone connected for {command:?}");
+                        let message =
+                            serde_json::json!({ "type": "phoneError", "error": "The phone isn’t connected." });
+                        let _ = webview.post_json(&message.to_string());
+                    }
+                }
+                Some(PageMessage::Voice { command, contacts, places, apps, language }) => match command {
+                    VoicePageCommand::Start => {
+                        if !voice.listen(voice::Vocabulary { contacts, places, apps, language }) {
+                            let message =
+                                serde_json::json!({ "type": "voice", "state": "error", "error": "unavailable" });
+                            let _ = webview.post_json(&message.to_string());
+                        }
+                    }
+                    VoicePageCommand::Cancel => voice.cancel(),
+                },
+                Some(PageMessage::VoiceSpeak { text, language }) => {
+                    voice.speak(text, language);
+                }
+                Some(PageMessage::VoiceEnabled { on }) => {
+                    let mut settings = config.settings.get();
+                    if settings.voice.enabled != on {
+                        settings.voice.enabled = on;
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
+                Some(PageMessage::VoiceWake { on }) => {
+                    let mut settings = config.settings.get();
+                    if settings.voice.wake != on {
+                        settings.voice.wake = on;
+                        config.settings.set(settings.clone());
+                        (config.on_settings)(&settings);
+                    }
+                }
+                Some(PageMessage::VoiceWakePhrase { brand, language }) => {
+                    voice.set_wake_phrase(brand, language);
                 }
                 Some(PageMessage::Typing { selection }) => {
                     bridge.bridge().typing.selection.store(selection, Ordering::Release);
@@ -1305,6 +1626,12 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             }
         }
 
+        // WhatsApp's page runs on while the game does: closed with it, as the players are.
+        if players_closing && let Some(open) = whatsapp.take() {
+            log!("[whatsapp] closed with the game");
+            open.close(&stage);
+        }
+
         // What YouTube Music's page says, and its sign-in window, for the page; its WebView failing closes it.
         if let Some(player) = &youtube_music {
             if player.failed() || players_closing {
@@ -1387,7 +1714,18 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         let typing_block = &bridge.bridge().typing;
         let typed: Vec<u32> = std::iter::from_fn(|| typing_block.keys.pop()).collect();
         if let Some(message) = typing::typed_message(&typed, typing::clipboard_text) {
-            let _ = webview.post_json(&message);
+            // WhatsApp open: its page takes the keys (its message box is where the cursor was put), as a browser's
+            // would. Closed, they're the cabin page's own fields.
+            match whatsapp.as_ref().filter(|whatsapp| whatsapp.target().is_some()) {
+                Some(open) => {
+                    if let Err(e) = open.type_message(&message) {
+                        log!("[whatsapp] typing didn't reach the page: {e}");
+                    }
+                }
+                None => {
+                    let _ = webview.post_json(&message);
+                }
+            }
         }
         let state = westplay_shared::TypingState::from_code(typing_block.state.load(Ordering::Acquire));
         if typing_state != Some(state) {
@@ -1396,7 +1734,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
         }
 
         // YouTube's, Apple Music's, YouTube Music's and Spotify's sound from the truck's own speakers, heard from the
-        // driver's head (as last told, every 50 ms); muffled with the camera outside the cab, seen on every pass (as
+        // driver's head (as last told, every 50 ms); silent with the camera outside the cab, seen on every pass (as
         // quick as the game's cut).
         if let (Some(truck), Some(telemetry)) = (&last_truck, &last_telemetry) {
             let plugin = &bridge.bridge().plugin;
@@ -1411,6 +1749,31 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             if outside != was_outside {
                 was_outside = outside;
                 log!("camera: {} the cab", if outside { "outside" } else { "in" });
+            }
+            // The player's units in the game (Options › Interface › Regional Settings), for every figure Cabin
+            // Play reads out: the dash in the driver's own units, not the game's metric ones.
+            let units = game_settings.units();
+            if units_told != Some(units) {
+                units_told = Some(units);
+                let message = serde_json::json!({ "type": "units", "miles": units.miles, "american": units.american })
+                    .to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
+            }
+            // The player's clock in the game (Options › Gameplay › "24-hour clock notation"), for every time Cabin
+            // Play draws to read as the game's does: 24 hours, or 12 with AM and PM.
+            let clock_24 = game_settings.clock_24();
+            if clock_told != Some(clock_24) {
+                clock_told = Some(clock_24);
+                let message = serde_json::json!({ "type": "clock", "clock24": clock_24 }).to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
+            }
+            // The cabin page, for its own sounds: the cab's, so heard in it only.
+            if outside_told != Some(outside) {
+                outside_told = Some(outside);
+                let message = serde_json::json!({ "type": "camera", "outside": outside });
+                let _ = webview.post_json(&message.to_string());
             }
             // The game's menu gone while it's still paused: the music back as its still picture shows.
             let gone = menu.update(paused, camera::drawn(cab_drawn, game_frame), outside);
@@ -1443,6 +1806,21 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             if let Some(player) = &spotify {
                 let _ = player.cab(truck_speakers, head, outside, distance, equalizer, spectrum);
             }
+            // The cab page's own sound (the Radio app): the same speakers, head, tone and camera the players are
+            // told, for the sound its element makes (apps/radio/cabSound.ts).
+            let cab = serde_json::json!({
+                "type": "cabSound",
+                "speakers": truck_speakers,
+                "head": head,
+                "outside": outside,
+                "distance": distance,
+                "equalizer": equalizer,
+            })
+            .to_string();
+            if cab_sound_told.as_deref() != Some(cab.as_str()) {
+                cab_sound_told = Some(cab.clone());
+                let _ = webview.post_json(&cab);
+            }
         }
 
         // TruckersMP's players around the player, as the plugin last wrote them: to the page as they change (each
@@ -1468,7 +1846,9 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
             {
                 last_telemetry = Some(telemetry);
                 let message = serde_json::json!({ "type": "telemetry", "data": telemetry });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             if let Some(truck) = plugin.truck.read()
                 && last_truck != Some(truck)
@@ -1479,14 +1859,29 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
                 last_truck = Some(truck);
                 player_watch.truck(truck);
                 let message = serde_json::json!({ "type": "truck", "data": truck });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
             }
             if let Some(job) = plugin.job.read()
                 && last_job != Some(job)
             {
                 last_job = Some(job);
                 let message = serde_json::json!({ "type": "job", "data": job });
-                let _ = webview.post_json(&message.to_string());
+                let message = message.to_string();
+                let _ = webview.post_json(&message);
+                let _ = cluster_view.post_json(&message);
+            }
+            // The trailer under the truck, as the game describes it: to the page when it changes (none
+            // hitched sends the empty one).
+            static LAST_TRAILER: std::sync::Mutex<Option<westplay_shared::TrailerInfo>> = std::sync::Mutex::new(None);
+            if let Some(trailer) = plugin.trailer.read() {
+                let mut last = LAST_TRAILER.lock().unwrap_or_else(|error| error.into_inner());
+                if *last != Some(trailer) {
+                    *last = Some(trailer);
+                    let message = serde_json::json!({ "type": "trailer", "data": trailer });
+                    let _ = webview.post_json(&message.to_string());
+                }
             }
             let layout = plugin.screen_layout.load(Ordering::Acquire);
             if last_layout != Some(layout) {
@@ -1511,6 +1906,7 @@ pub fn run(mut config: Config, stop: Arc<AtomicBool>) -> Result<(), Error> {
     }
 
     host.frame_generation.store(0, Ordering::Release);
+    host.cluster_frame_generation.store(0, Ordering::Release);
     host.screen_enabled.store(0, Ordering::Release);
     host.pid.store(0, Ordering::Release);
     drop(pipeline);
@@ -1655,12 +2051,7 @@ fn is_shown(game: u32) -> bool {
                 return BOOL(1);
             }
             let mut cloaked = 0u32;
-            let read = DwmGetWindowAttribute(
-                window,
-                DWMWA_CLOAKED,
-                (&raw mut cloaked).cast(),
-                size_of::<u32>() as u32,
-            );
+            let read = DwmGetWindowAttribute(window, DWMWA_CLOAKED, (&raw mut cloaked).cast(), size_of::<u32>() as u32);
             looking.shown = read.is_err() || cloaked == 0;
             // Found one showing: done.
             BOOL(i32::from(!looking.shown))
@@ -1820,6 +2211,10 @@ fn stops_message(id: Option<u32>, route: Option<&[u64]>, waypoints: &[u64], hidd
 const MOST_KEYBIND_PRESSES: u32 = 10;
 
 /// `{"type":"keybind","action":"volumeUp"|"volumeDown"|"playPause"}`: the player pressed a keybind in the game.
+fn voice_state_message(state: &str) -> String {
+    serde_json::json!({ "type": "voice", "state": state }).to_string()
+}
+
 fn keybind_message(keybind: Keybind) -> String {
     let action = match keybind {
         Keybind::VolumeUp => "volumeUp",
@@ -1905,6 +2300,26 @@ fn start_youtube_music<'a>(
     youtube_music.as_ref()
 }
 
+/// WhatsApp's web app, started as the page first shows it (on a WebView2 profile of its own: the link is the
+/// driver's, and signing out forgets nothing else), or `None` if it couldn't start.
+fn start_whatsapp<'a>(
+    whatsapp: &'a mut Option<whatsapp::WhatsApp>,
+    stage: &Stage,
+    config: &Config,
+) -> Option<&'a whatsapp::WhatsApp> {
+    if whatsapp.is_none() {
+        let user_data = config.data_dir.join("webview2-whatsapp");
+        match whatsapp::WhatsApp::start(stage, config.width, config.height, &user_data) {
+            Ok(started) => {
+                log!("[whatsapp] opened");
+                *whatsapp = Some(started)
+            }
+            Err(e) => startup::mark(&format!("host: WhatsApp couldn't start: {e}")),
+        }
+    }
+    whatsapp.as_ref()
+}
+
 /// Spotify's web player, started as the page first shows it (on a WebView2 profile of its own: signing out
 /// of Spotify forgets nothing else), or `None` if it couldn't start.
 fn start_spotify<'a>(
@@ -1933,9 +2348,14 @@ fn build_pipeline(
     generation: u32,
 ) -> Result<Pipeline, Error> {
     let gpu = Gpu::new(luid)?;
-    let shared = Arc::new(SharedFrame::new(&gpu, config.width, config.height, generation)?);
-    let capture = Capture::start(&gpu, &stage.visual()?, shared, bridge.clone())?;
-    Ok(Pipeline { gpu, capture })
+    let name = westplay_shared::frame_texture_name(generation);
+    let shared = Arc::new(SharedFrame::new(&gpu, config.width, config.height, &name)?);
+    let capture = Capture::start(&gpu, &stage.visual()?, shared, bridge.clone(), false)?;
+    let name = westplay_shared::cluster_frame_texture_name(generation);
+    let shared =
+        Arc::new(SharedFrame::new(&gpu, westplay_shared::CLUSTER_WIDTH, westplay_shared::CLUSTER_HEIGHT, &name)?);
+    let cluster_capture = Capture::start(&gpu, &stage.cluster_visual()?, shared, bridge.clone(), true)?;
+    Ok(Pipeline { gpu, capture, cluster_capture })
 }
 
 /// The GPU the game renders on, once the plugin has published it.
@@ -1959,7 +2379,8 @@ fn screen_message(layout: u32) -> String {
 }
 
 /// `{"type":"settings","truckStrip":"auto","wallpaper":"plain","iconSet":null,"iconStyle":"auto","equalizer":…}`: the
-/// settings the cabin page applies itself.
+/// settings the cabin page applies itself, `resume` saying whether the cab comes back where the last launch left it,
+/// and `profiles` / `currentProfileId` so the cabin shows the same profile the companion has selected.
 fn settings_message(settings: &settings::Settings) -> String {
     serde_json::json!({
         "type": "settings",
@@ -1969,6 +2390,12 @@ fn settings_message(settings: &settings::Settings) -> String {
         "iconStyle": settings.look.icon_style,
         "equalizer": settings.sound.equalizer.clamped(),
         "equalizerCustom": settings.sound.custom,
+        "voiceEnabled": settings.voice.enabled,
+        "voiceKey": settings.voice.hotkey.label(),
+        "voiceWake": settings.voice.wake,
+        "resume": settings.cabin.resume,
+        "profiles": settings.cabin.profiles,
+        "currentProfileId": settings.cabin.current_profile_id,
     })
     .to_string()
 }
@@ -1981,18 +2408,57 @@ fn customize_list_message(customizations: &customize::Customizations) -> String 
     message.to_string()
 }
 
+/// The one line of what plays the cab reports, for the cluster's own line (`ui/src/shared/host.ts`).
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct NowPlayingPage {
+    title: String,
+    #[serde(default)]
+    artist: String,
+    #[serde(default)]
+    playing: bool,
+    /// Which player it comes from (`spotify`, `appleMusic`, `youtubeMusic`, `video`, `radio`), so the cluster can
+    /// draw that app's own icon beside the track.
+    #[serde(default)]
+    app: Option<String>,
+    /// How far into the track the player was (seconds) when the page last spoke, and when that was (Unix ms):
+    /// forwarded as they arrive, so the cluster can run the position on with its own clock rather than be sent a
+    /// tick a second.
+    #[serde(default)]
+    position: Option<f64>,
+    #[serde(default)]
+    at: Option<f64>,
+    /// The track's length, seconds; `null` where the player reports none (a stream).
+    #[serde(default)]
+    duration: Option<f64>,
+}
+
 /// Messages from the cabin page (`PageMessage` in ui/src/shared/host.ts).
 #[derive(Debug, PartialEq, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 enum PageMessage {
     /// Posted when the page (re)loads.
     Ready,
+    /// The game's radio list read again (the Radio app opened, or its Refresh): the stations are sent back
+    /// (`radio`), from the file as it is now.
+    RadioStations,
     /// A startup stage the page reached (the boot screens shown), for the startup log (`startup`).
     Startup { stage: String },
     /// Whether WestPlay is open on the truck's screen: posted as the page loads and whenever it changes.
     Westplay { open: bool },
+    /// The cabin's power sequence (`power.ts`), as its page goes through it: which phase the screen is in, and
+    /// when that phase began on the machine's clock (`Date.now()`, which both pages share). Passed on to the
+    /// cluster's page, so the dash plays the cabin's boot rather than one of its own.
+    Power { phase: PowerPhase, since: f64 },
     /// The wallpaper chosen in the cab's Settings (an id: `wallpapers.ts`), to keep with the settings.
     Wallpaper { id: String },
+    /// The app icons chosen in the cab's Settings (App Icons): the player's icon set by name (`None`: WestPlay's
+    /// own), and which of its looks shows.
+    Icons {
+        #[serde(default)]
+        icon_set: Option<String>,
+        icon_style: settings::IconStyle,
+    },
     /// The truck's information bar beside WestPlay, kept or not, chosen in the cab's Settings (Appearance).
     TruckStrip { strip: settings::TruckStrip },
     /// The players' tone, set in the cab's Settings (Equalizer): the player's curve (bass, mid and treble, dB
@@ -2006,6 +2472,11 @@ enum PageMessage {
     /// The music's spectrum wanted (the cab's Equalizer open) or not: the players measure it, and it's passed
     /// on to the page as they say it.
     Spectrum { on: bool },
+    /// What the cab's Now Playing has, for the cluster's one-line player (`None`: nothing loaded).
+    NowPlaying {
+        #[serde(default)]
+        playing: Option<NowPlayingPage>,
+    },
     /// Whether what's under the cursor is light (it's drawn dark there: `cursor`).
     CursorLight { light: bool },
     /// A command for YouTube's player (`youtube`): what to play, where it shows, and so on.
@@ -2016,6 +2487,37 @@ enum PageMessage {
     AppleMusic { command: apple_music::Command },
     /// A command for YouTube Music's web player (`youtubeMusic`): its sign-in, a question, its controls.
     YoutubeMusic { command: youtube_music::Command },
+    /// A command for WhatsApp's web app (`whatsapp`): show it where the app cuts its window open, hide it, load
+    /// it again, or forget the link.
+    Whatsapp { command: whatsapp::Command },
+    /// A command for the paired phone (`phone`): dismiss a notification, dial, answer or end a call.
+    Phone { command: westplay_link::Command },
+    /// The cabin's voice assistant (`voice`): listen for one utterance, with the names the page knows, or
+    /// stop waiting for it.
+    Voice {
+        command: VoicePageCommand,
+        #[serde(default)]
+        contacts: Vec<String>,
+        #[serde(default)]
+        places: Vec<String>,
+        #[serde(default)]
+        apps: Vec<String>,
+        #[serde(default)]
+        language: String,
+    },
+    /// A spoken confirmation for the host to synthesize and play through the cab's speakers.
+    VoiceSpeak { text: String, language: String },
+    /// The voice assistant's switch, kept with the player's settings.
+    VoiceEnabled { on: bool },
+    /// Whether the background wake phrase listens (`voice.wake`), kept with the player's settings.
+    VoiceWake { on: bool },
+    /// The truck's name and the cabin's language the wake phrase follows, sent as they change.
+    VoiceWakePhrase {
+        #[serde(default)]
+        brand: String,
+        #[serde(default)]
+        language: String,
+    },
     /// The text field selected on the page, a number that changes with every selection (0: none), for the
     /// player's own keyboard to type into (`typing`).
     Typing { selection: u32 },
@@ -2052,6 +2554,37 @@ fn followed_message(id: u32, follows: bool, answer: &str) -> String {
     serde_json::json!({ "type": "followed", "id": id, "follows": follows, "answer": answer }).to_string()
 }
 
+/// `{"type":"power","phase":"splash","since":1762...}`: the cabin's power phase, on to the cluster's page (the
+/// same message the cabin's page posted, built back from its fields).
+fn power_message(phase: PowerPhase, since: f64) -> String {
+    let phase = match phase {
+        PowerPhase::Off => "off",
+        PowerPhase::Splash => "splash",
+        PowerPhase::Connecting => "connecting",
+        PowerPhase::On => "on",
+    };
+    serde_json::json!({ "type": "power", "phase": phase, "since": since }).to_string()
+}
+
+/// A phase of the cabin's power sequence (`PowerPhase` in ui/src/cabin/state/power.ts): the screen off, the two
+/// parts of its boot, and the screen on.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum PowerPhase {
+    Off,
+    Splash,
+    Connecting,
+    On,
+}
+
+/// What the page asks of the voice assistant.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum VoicePageCommand {
+    Start,
+    Cancel,
+}
+
 /// What the page asks of the game's route.
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2080,16 +2613,21 @@ fn parse_page_message(message: &str) -> Option<PageMessage> {
     serde_json::from_str(message).ok()
 }
 
-/// What the player's latest save says, for the page: `{"type":"garages","owned":["calais",...],
-/// "headquarters":"calais"}` (the cities whose garages they own, and their headquarters', `null` if none),
-/// `{"type":"mapBlock","hvt":true,"language":"tr_tr"}` (they play on a map by HVT, which WestPlay
-/// doesn't allow, and the game's language to say so in), and `{"type":"timeZones","on":true}` (their
-/// profile has the game's time zones on: the clock is the time where the truck is).
+/// The game's language for the cluster's page: `{"type":"language","language":"tr_tr"}` (`null` until the host has
+/// read it). Its own message because the cab reads the language with the map restriction (`mapBlock`), which the
+/// dash has no business acting on — and because the dash has to hear it without that.
+fn language_message(language: Option<&str>) -> String {
+    serde_json::json!({ "type": "language", "language": language }).to_string()
+}
+
+/// What the player's latest save says, for the page: garages, lifetime career totals, the map restriction,
+/// language and time-zone setting. Career totals are distinct from the telemetry of the current drive.
 fn player_messages_for(player: &Player) -> Vec<String> {
     let garages = &player.garages;
     vec![
         serde_json::json!({ "type": "garages", "owned": garages.owned, "headquarters": garages.headquarters })
             .to_string(),
+        serde_json::json!({ "type": "career", "data": player.career }).to_string(),
         serde_json::json!({ "type": "mapBlock", "hvt": player.hvt_map, "language": player.language }).to_string(),
         serde_json::json!({ "type": "timeZones", "on": player.time_zones }).to_string(),
     ]
@@ -2125,16 +2663,7 @@ fn route_message_for(update: &RouteUpdate) -> String {
             serde_json::json!({ "type": "route", "id": id, "nodes": nodes }).to_string()
         }
         RouteUpdate::Paths { id, paths, maneuvers, shifts } => {
-            let maneuvers: Vec<serde_json::Value> = maneuvers
-                .iter()
-                .map(|(span, maneuver)| {
-                    let exit = match maneuver.turn {
-                        Turn::Roundabout(exit) => Some(exit),
-                        _ => None,
-                    };
-                    serde_json::json!([span, maneuver.turn.name(), maneuver.angle.round(), exit])
-                })
-                .collect();
+            let maneuvers = maneuvers_json(maneuvers);
             let shifts: Vec<(usize, f32)> =
                 shifts.iter().map(|&(node, shift)| (node, (shift * 100.0).round() / 100.0)).collect();
             serde_json::json!({ "type": "routePaths", "id": id, "paths": paths, "maneuvers": maneuvers, "shifts": shifts })
@@ -2142,6 +2671,39 @@ fn route_message_for(update: &RouteUpdate) -> String {
         }
         RouteUpdate::Next(next) => serde_json::json!({ "type": "routeNext", "next": next }).to_string(),
         RouteUpdate::None => serde_json::json!({ "type": "route", "id": null, "nodes": null }).to_string(),
+    }
+}
+
+/// The turns as the page reads them: `[node, turn, angle, exit]`, the exit a roundabout's or `null` for the rest.
+fn maneuvers_json(maneuvers: &[(usize, Maneuver)]) -> Vec<serde_json::Value> {
+    maneuvers
+        .iter()
+        .map(|(span, maneuver)| {
+            let exit = match maneuver.turn {
+                Turn::Roundabout(exit) => Some(exit),
+                _ => None,
+            };
+            serde_json::json!([span, maneuver.turn.name(), maneuver.angle.round(), exit])
+        })
+        .collect()
+}
+
+/// The route as the cluster page reads it: the same messages, less the geometry it doesn't draw. Its notice line
+/// draws the next turn's arrow (the cab's own glyph: `maps/ManeuverGlyph`), which needs the maneuvers and how far
+/// along the route the truck is — not the polylines through every junction, which would put a second copy of the
+/// whole route in another WebView for nothing. Same message type, so the page reads it with the same code.
+fn cluster_route_message_for(update: &RouteUpdate) -> String {
+    match update {
+        RouteUpdate::Paths { id, maneuvers, .. } => serde_json::json!({
+            "type": "routePaths",
+            "id": id,
+            "paths": [],
+            "maneuvers": maneuvers_json(maneuvers),
+            "shifts": [],
+        })
+        .to_string(),
+        // The route itself, its progress and its end are the same words for both pages.
+        other => route_message_for(other),
     }
 }
 
@@ -2158,6 +2720,20 @@ fn pump_messages() {
             DispatchMessageW(&msg);
         }
     }
+}
+
+/// Whether a key is held now.
+fn key_down(key: u32) -> bool {
+    // SAFETY: a plain query of the keyboard's state.
+    unsafe { GetAsyncKeyState(key as i32) < 0 }
+}
+
+/// The player's push-to-talk chord, with the modifiers they chose held too.
+fn push_to_talk_down(hotkey: &settings::VoiceHotkey) -> bool {
+    key_down(hotkey.key.virtual_key())
+        && (!hotkey.ctrl || key_down(0x11))
+        && (!hotkey.shift || key_down(0x10))
+        && (!hotkey.alt || key_down(0x12))
 }
 
 #[cfg(test)]
@@ -2263,6 +2839,17 @@ mod tests {
             Some(PageMessage::Westplay { open: false })
         );
         assert_eq!(parse_page_message(r#"{"type":"westplay"}"#), None);
+        // The cabin's power phase, and the same message built back for the cluster's page.
+        assert_eq!(
+            parse_page_message(r#"{"type":"power","phase":"connecting","since":1762598400123}"#),
+            Some(PageMessage::Power { phase: super::PowerPhase::Connecting, since: 1_762_598_400_123.0 })
+        );
+        assert_eq!(
+            super::power_message(super::PowerPhase::Splash, 1_762_598_400_123.0),
+            r#"{"phase":"splash","since":1762598400123.0,"type":"power"}"#
+        );
+        // A phase WestPlay doesn't know is no message.
+        assert_eq!(parse_page_message(r#"{"type":"power","phase":"waking","since":1}"#), None);
         assert_eq!(
             parse_page_message(r#"{"type":"wallpaper","id":"custom:Dusk"}"#),
             Some(PageMessage::Wallpaper { id: "custom:Dusk".into() })
@@ -2310,8 +2897,110 @@ mod tests {
             parse_page_message(r#"{"type":"youtube","command":{"action":"pause"}}"#),
             Some(PageMessage::Youtube { command: crate::youtube::Command::Pause })
         );
+        assert_eq!(
+            parse_page_message(r#"{"type":"phone","command":{"action":"dismiss","id":"app|1|2"}}"#),
+            Some(PageMessage::Phone { command: westplay_link::Command::Dismiss { id: "app|1|2".into() } })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"phone","command":{"action":"answer"}}"#),
+            Some(PageMessage::Phone { command: westplay_link::Command::Answer })
+        );
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"voice","command":"start","contacts":["Ada Lovelace"],"places":["Berlin"],"apps":["Haritalar"],"language":"tr"}"#
+            ),
+            Some(PageMessage::Voice {
+                command: super::VoicePageCommand::Start,
+                contacts: vec!["Ada Lovelace".into()],
+                places: vec!["Berlin".into()],
+                apps: vec!["Haritalar".into()],
+                language: "tr".into()
+            })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voice","command":"cancel"}"#),
+            Some(PageMessage::Voice {
+                command: super::VoicePageCommand::Cancel,
+                contacts: Vec::new(),
+                places: Vec::new(),
+                apps: Vec::new(),
+                language: String::new()
+            })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceSpeak","text":"Done.","language":"en"}"#),
+            Some(PageMessage::VoiceSpeak { text: "Done.".into(), language: "en".into() })
+        );
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceEnabled","on":false}"#),
+            Some(PageMessage::VoiceEnabled { on: false })
+        );
+        assert_eq!(parse_page_message(r#"{"type":"voiceWake","on":true}"#), Some(PageMessage::VoiceWake { on: true }));
+        assert_eq!(
+            parse_page_message(r#"{"type":"voiceWakePhrase","brand":"Scania","language":"es"}"#),
+            Some(PageMessage::VoiceWakePhrase { brand: "Scania".into(), language: "es".into() })
+        );
         assert_eq!(parse_page_message(r#"{"type":"other"}"#), None);
         assert_eq!(parse_page_message("not json"), None);
+    }
+
+    /// What plays carries where it plays from and how far into it, and a page that says neither still reads (the
+    /// cluster draws the line it can, not a shape it must have).
+    #[test]
+    fn reads_what_plays_with_its_source_and_progress() {
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"nowPlaying","playing":{"title":"Sultans of Swing","artist":"Dire Straits","playing":true,"app":"spotify","position":83.5,"at":1762700000000,"duration":348}}"#
+            ),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "Sultans of Swing".into(),
+                    artist: "Dire Straits".into(),
+                    playing: true,
+                    app: Some("spotify".into()),
+                    position: Some(83.5),
+                    at: Some(1_762_700_000_000.0),
+                    duration: Some(348.0),
+                })
+            })
+        );
+        // A stream: the player reports no length, so there is no progress to draw.
+        assert_eq!(
+            parse_page_message(
+                r#"{"type":"nowPlaying","playing":{"title":"Radio 1","artist":"","playing":true,"app":"radio","position":12,"at":1762700000000}}"#
+            ),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "Radio 1".into(),
+                    artist: String::new(),
+                    playing: true,
+                    app: Some("radio".into()),
+                    position: Some(12.0),
+                    at: Some(1_762_700_000_000.0),
+                    duration: None,
+                })
+            })
+        );
+        // Stopped: the page sends no track at all.
+        assert_eq!(
+            parse_page_message(r#"{"type":"nowPlaying","playing":null}"#),
+            Some(PageMessage::NowPlaying { playing: None })
+        );
+        // An older page's line, with only the fields it had before the source and the progress.
+        assert_eq!(
+            parse_page_message(r#"{"type":"nowPlaying","playing":{"title":"One","artist":"","playing":false}}"#),
+            Some(PageMessage::NowPlaying {
+                playing: Some(super::NowPlayingPage {
+                    title: "One".into(),
+                    artist: String::new(),
+                    playing: false,
+                    app: None,
+                    position: None,
+                    at: None,
+                    duration: None,
+                })
+            })
+        );
     }
 
     #[test]
@@ -2430,15 +3119,30 @@ mod tests {
             message,
             serde_json::json!({
                 "type": "settings",
-                "truckStrip": "auto",
+                "truckStrip": "off",
                 "wallpaper": null,
                 "iconSet": null,
                 "iconStyle": "auto",
                 "equalizer": { "bass": 0, "mid": 0, "treble": 0 },
                 "equalizerCustom": false,
+                "voiceEnabled": true,
+                "voiceKey": settings.voice.hotkey.label(),
+                "voiceWake": false,
+                "resume": false,
+                "profiles": [],
+                "currentProfileId": "",
             })
         );
         settings.screen.truck_strip = crate::settings::TruckStrip::Off;
+        settings.cabin.resume = true;
+        settings.voice.enabled = false;
+        settings.voice.wake = true;
+        settings.voice.hotkey = crate::settings::VoiceHotkey {
+            key: crate::settings::KeyCode::new(0x42).unwrap(),
+            ctrl: false,
+            shift: false,
+            alt: true,
+        };
         settings.sound.equalizer = crate::speakers::Equalizer { bass: -9, mid: 2, treble: 6 };
         settings.look.wallpaper = Some("custom:Dusk".into());
         settings.look.icon_set = Some("Retro".into());
@@ -2446,6 +3150,10 @@ mod tests {
         assert_eq!(message["truckStrip"], "off");
         assert_eq!(message["wallpaper"], "custom:Dusk");
         assert_eq!(message["iconSet"], "Retro");
+        assert_eq!(message["voiceEnabled"], false);
+        assert_eq!(message["voiceKey"], settings.voice.hotkey.label());
+        assert_eq!(message["voiceWake"], true);
+        assert_eq!(message["resume"], true);
         // Within the range, whatever the file says.
         assert_eq!(message["equalizer"], serde_json::json!({ "bass": -6, "mid": 2, "treble": 6 }));
         // The curve is kept whichever is chosen; what plays is it, with Custom only.
@@ -2490,6 +3198,16 @@ mod tests {
                 owned: ["calais".to_owned(), "dover".to_owned()].into(),
                 headquarters: Some("calais".into()),
             },
+            career: crate::player::CareerStats {
+                profile_name: Some("Western".into()),
+                experience_points: Some(12345),
+                total_distance_meters: Some(1250000.0),
+                total_fuel_litres: Some(810.5),
+                game_time_seconds: Some(144000.0),
+                real_time_seconds: Some(48000.0),
+                visited_cities: Some(32),
+                cancelled_jobs: Some(2),
+            },
             hvt_map: true,
             language: Some("tr_tr".into()),
             time_zones: true,
@@ -2498,6 +3216,7 @@ mod tests {
             super::player_messages_for(&player),
             [
                 r#"{"headquarters":"calais","owned":["calais","dover"],"type":"garages"}"#,
+                r#"{"data":{"cancelledJobs":2,"experiencePoints":12345,"gameTimeSeconds":144000.0,"profileName":"Western","realTimeSeconds":48000.0,"totalDistanceMeters":1250000.0,"totalFuelLitres":810.5,"visitedCities":32},"type":"career"}"#,
                 r#"{"hvt":true,"language":"tr_tr","type":"mapBlock"}"#,
                 r#"{"on":true,"type":"timeZones"}"#
             ]
@@ -2545,6 +3264,34 @@ mod tests {
             r#"{"id":5,"maneuvers":[[2,"roundabout",-90.0,3],[7,"exit-right",17.0,null]],"paths":[[2,[[1.0,2.0],[3.0,4.0]]]],"shifts":[[3,6.5]],"type":"routePaths"}"#
         );
         assert_eq!(super::route_message_for(&RouteUpdate::None), r#"{"id":null,"nodes":null,"type":"route"}"#);
+    }
+
+    #[test]
+    fn the_clusters_route_carries_the_turns_and_none_of_the_geometry() {
+        use crate::route::RouteUpdate;
+        use westplay_mapdata::junctions::{Maneuver, Turn};
+        let paths = RouteUpdate::Paths {
+            id: 5,
+            paths: vec![(2, vec![[1.0, 2.0], [3.0, 4.0]])],
+            maneuvers: vec![
+                (2, Maneuver { turn: Turn::Roundabout(3), angle: -89.6 }),
+                (7, Maneuver { turn: Turn::ExitRight, angle: 17.2 }),
+            ],
+            shifts: vec![(3, 6.5)],
+        };
+        assert_eq!(
+            super::cluster_route_message_for(&paths),
+            r#"{"id":5,"maneuvers":[[2,"roundabout",-90.0,3],[7,"exit-right",17.0,null]],"paths":[],"shifts":[],"type":"routePaths"}"#
+        );
+        // Everything but the turns is the cab's own message, word for word.
+        assert_eq!(super::cluster_route_message_for(&RouteUpdate::Next(3)), r#"{"next":3,"type":"routeNext"}"#);
+        assert_eq!(super::cluster_route_message_for(&RouteUpdate::None), r#"{"id":null,"nodes":null,"type":"route"}"#);
+    }
+
+    #[test]
+    fn the_cluster_hears_the_games_language_on_its_own() {
+        assert_eq!(super::language_message(Some("tr_tr")), r#"{"language":"tr_tr","type":"language"}"#);
+        assert_eq!(super::language_message(None), r#"{"language":null,"type":"language"}"#);
     }
 
     #[test]

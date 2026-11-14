@@ -97,7 +97,7 @@ GPS's place, and its Vehicle Bar setting says whether the truck's bar stays besi
 
 ## Trucks
 
-WestPlay shows up in two ways: on the truck's own screen, or on the WestPlay tablet.
+WestPlay shows up in three ways: on the truck's own screen, on its instrument cluster, or on the WestPlay tablet.
 
 **On the truck's own screen.** In the trucks that have CarPlay in real life, WestPlay takes the GPS's place on
 the dashboard screen, shaped to it. There's nothing to buy or fit: get in and it's there.
@@ -112,16 +112,20 @@ the dashboard screen, shaped to it. There's nothing to buy or fit: get in and it
 - **Setra S 516 HD/2** (Oyuncuyusbis'): on the coach's own GPS screen, its "Gps" part, which you fit in the truck
   shop: the coach's own screen, as its players asked, but one you add
 
+**On the instrument cluster.** The Scania S and R (2016) can have WestPlay's digital cluster in place of the
+truck's own: speed and gear in the middle, trip, fuel and AdBlue, driver hours and warnings around them. Its cards
+are chosen in Settings › Dashboard, and the game's own cluster shows through where it is switched off.
+
 **On the WestPlay tablet.** Every other truck, the game's and mod trucks alike, gets WestPlay on a tablet you fit
 in the truck shop: under Accessories, in Hanging Items or as a dashboard set. The truck's own screen keeps the
 game's navigation. The tablet is in every truck with hanging items, including truck mods you install later (they
 get it the next time you start the game).
 
-|  | Truck's own screen | WestPlay tablet |
-|---|---|---|
-| Trucks | The ones above | Every other truck |
-| To get it | Nothing: it's there | Fit it in the truck shop |
-| The game's navigation | Replaced by WestPlay | Stays on the truck's screen |
+|  | Truck's own screen | Instrument cluster | WestPlay tablet |
+|---|---|---|---|
+| Trucks | The ones above | Scania S and R (2016) | Every other truck |
+| To get it | Nothing: it's there | Choose it in Settings | Fit it in the truck shop |
+| The game's navigation | Replaced by WestPlay | Replaced by WestPlay | Stays on the truck's screen |
 
 ### Sound
 
@@ -155,7 +159,7 @@ Music plays from the truck's own speakers, each where it sits in the cab. Other 
    screens mod, and builds your map.
 3. Start the game and get in a truck.
 
-WestPlay looks for updates on its own and asks before installing one.
+App updates must be downloaded and installed manually.
 
 **Requirements:** Windows 10 or 11 (64-bit), Euro Truck Simulator 2 version 1.61 (other versions may work; the
 companion says when one is untested), and Microsoft Edge WebView2 (part of Windows 11; the installer adds it
@@ -168,8 +172,7 @@ WestPlay has no servers, no accounts of its own and no analytics. It doesn't col
 - You sign in to Apple Music, Spotify and YouTube on their own pages, in WestPlay's own browser profile on your PC,
   as you would in a browser. WestPlay keeps no account data of its own.
 - Your map is built from your game on your PC and stays there.
-- WestPlay talks to the services you use, to GitHub to look for updates, and to Kreosus only if you open
-  "Support me".
+- WestPlay doesn't check for app updates or open an external support page.
 
 ## Support
 
@@ -190,7 +193,10 @@ npm install      # the companion's tools and the UI's packages
 npm run dev      # WestPlay, with the UI served live
 ```
 
-`cargo test --workspace` and `npm test --prefix ui` run the tests. The game plugin is built with
+`cargo test --workspace` and `npm test --prefix ui` run the tests. `npm run build` makes the app (with the
+NSIS installer, `tools/build/installer.ps1`): before Tauri builds it, the UI and the game plugin are built too
+(`tools/build/plugin.mjs`), and the plugin is checked to be this build's — the app and the plugin share a
+bridge, so one of another build shows nothing at the truck's screen. The plugin alone is
 `cargo build --release -p westplay-plugin`.
 
 </details>

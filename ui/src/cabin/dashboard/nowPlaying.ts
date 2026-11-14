@@ -1,6 +1,6 @@
-/** What the Dashboard's Now Playing can show: YouTube's video, the Spotify app, Apple Music (the Music app), or
- * YouTube Music. In this order when two play at once. */
-export const NOW_PLAYING_ORDER = ['video', 'spotify', 'appleMusic', 'youtubeMusic'] as const
+/** What the Dashboard's Now Playing can show: YouTube's video, the Spotify app, Apple Music (the Music app),
+ * YouTube Music, or the Radio app's station. In this order when two play at once. */
+export const NOW_PLAYING_ORDER = ['video', 'spotify', 'appleMusic', 'youtubeMusic', 'radio'] as const
 
 export type NowPlayingSource = (typeof NOW_PLAYING_ORDER)[number]
 
@@ -8,7 +8,8 @@ export type NowPlayingSource = (typeof NOW_PLAYING_ORDER)[number]
  * What Now Playing shows: what plays (in `NOW_PLAYING_ORDER` when more than one does); nothing playing, what
  * played last while it still has something (a song paused, or between two songs, stays shown rather than a
  * paused video taking its place for the moment); else the first that has something; else nothing (`null`: Not
- * Playing).
+ * Playing). The Dashboard's card shows whatever this finds, paused or not: a paused song keeps its card, the
+ * room only going back when there's nothing loaded at all.
  */
 export function shownSource(
   playing: Record<NowPlayingSource, boolean>,

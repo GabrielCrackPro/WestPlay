@@ -16,7 +16,8 @@ import { Checking, Group, Note, Panel, Row, Tick } from '../room/parts'
 import { list } from '../onboarding/words'
 import { useWords } from '../room/room'
 import { GLOW, useScreenAt } from '../room/screen'
-import type { Settings } from '../useSettings'
+import { ACCENTS, accentOf, type Accent, type AccentId, type Settings } from '../useSettings'
+import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 import type { CompanionWords } from './words'
 
@@ -40,8 +41,8 @@ const ICON_FILES: [AppIconRole, string][] = [
 ]
 
 /**
- * Customize: the player's own wallpapers and app icons. Wallpapers in a grid (WestPlay's, then theirs, and
- * one to add more), app icons as sets (WestPlay's own, then theirs, each showing its icons, and two ways to
+ * Customize: the player's own wallpapers and app icons. Wallpapers in a grid (Cabin Play's, then theirs, and
+ * one to add more), app icons as sets (Cabin Play's own, then theirs, each showing its icons, and two ways to
  * add one). Choosing one shows it on the room's screen as on the truck's: the companion tells its screen
  * (Companion.tsx), the app tells the truck's (`look` settings). On the room's screen, Home.
  */
@@ -59,6 +60,12 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
   const choose = (change: Partial<Settings['look']>) => {
     const current = settings.settings
     if (current) void settings.update({ ...current, look: { ...current.look, ...change } })
+  }
+  const accent = accentOf(settings.settings?.companion.accent)
+  const chooseAccent = (next: AccentId) => {
+    const current = settings.settings
+    if (!current || current.companion.accent === next) return
+    void settings.update({ ...current, companion: { ...current.companion, accent: next } })
   }
 
   const add = async (what: Adding, adding: () => Promise<Added | null>) => {
@@ -85,8 +92,14 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
     refreshCustom()
   }
 
-  // The look the icons show in: the room's screen is dark, so Auto shows them dark here.
-  const shown = look?.iconStyle === 'light' ? 'light' : 'dark'
+  // The look the icons show in: the room's screen is dark, so Auto shows them dark here. Android Auto's flat
+  // icons are a choice of their own (below, with the sets), not a look: Light and Dark are the sets' looks.
+  const style = look?.iconStyle ?? 'auto'
+  const shown: 'light' | 'dark' = style === 'light' ? 'light' : 'dark'
+  const androidLook = style === 'android'
+  // Choosing a set leaves Android Auto's look, as choosing Android Auto leaves the set.
+  const chooseSet = (name: string | null) =>
+    choose(androidLook ? { iconSet: name, iconStyle: 'auto' } : { iconSet: name })
   const wallpapers = [...BUILT_IN_WALLPAPERS, ...(custom?.wallpapers ?? []).map((x) => customWallpaper(x, FILES_BASE))]
   const chosenWallpaper = look?.wallpaper ?? wallpapers[0]?.id
   const names = list(
@@ -95,8 +108,15 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
   )
 
   return (
-    <Panel place="page" title={w.title} sub={w.sub}>
+    <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="customize" />}>
+      <AccentPicker accent={accent} label={w.accent ?? 'Accent'} choose={chooseAccent} />
       <Group title={w.wallpapers} place={4}>
+        {custom?.wallpapers && custom.wallpapers.length === 0 && (
+          <div className="cp-empty">
+            <span className="cp-empty-icon" aria-hidden>🖼</span>
+            <span>{w.noWallpapersYet ?? 'No custom wallpapers yet'}</span>
+          </div>
+        )}
         <div className="cz-wallpapers">
           {wallpapers.map((wallpaper) => (
             <WallpaperTile
@@ -134,13 +154,27 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
       {report?.section === 'wallpapers' && <AddReport report={report.added} cw={cw} />}
       <p className="cz-note ob-in">{w.wallpapersNote}</p>
       <Group title={w.icons} place={5}>
+        {(custom?.iconSets ?? []).length === 0 && !look?.iconSet && !androidLook && (
+          <div className="cp-empty">
+            <span className="cp-empty-icon" aria-hidden>🎨</span>
+            <span>{w.noIconsYet ?? 'No custom icon sets yet'}</span>
+          </div>
+        )}
         <IconSetRow
           name={w.westplay}
           icons={null}
-          chosen={!look?.iconSet}
+          chosen={!look?.iconSet && !androidLook}
           shown={shown}
           cw={cw}
-          choose={() => choose({ iconSet: null })}
+          choose={() => chooseSet(null)}
+        />
+        <IconSetRow
+          name={w.style.android}
+          icons={null}
+          chosen={androidLook}
+          shown="android"
+          cw={cw}
+          choose={() => choose({ iconSet: null, iconStyle: 'android' })}
         />
         {(custom?.iconSets ?? []).map((set) => (
           <IconSetRow
@@ -150,7 +184,7 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
             chosen={look?.iconSet === set.name}
             shown={shown}
             cw={cw}
-            choose={() => choose({ iconSet: set.name })}
+            choose={() => chooseSet(set.name)}
             remove={() => void remove(removeIconSet(set.name))}
           />
         ))}
@@ -191,6 +225,37 @@ export function Customize({ cw, settings, custom, refreshCustom }: PageProps) {
   )
 }
 
+function AccentPicker({ accent, label, choose }: { accent: Accent; label: string; choose(accent: AccentId): void }) {
+  return (
+    <div className="cz-accent ob-in">
+      <div className="cz-accent-head">
+        <span>{label}</span>
+        <b>
+          <i style={{ background: accent.signal }} aria-hidden />
+          {accent.name}
+        </b>
+      </div>
+      <div className="cz-accent-swatches" role="radiogroup" aria-label={label}>
+        {ACCENTS.map((each) => (
+          <button
+            key={each.id}
+            type="button"
+            role="radio"
+            className="cz-accent-swatch"
+            aria-checked={each.id === accent.id}
+            aria-label={each.name}
+            title={each.name}
+            data-chosen={each.id === accent.id || undefined}
+            onClick={() => choose(each.id)}
+          >
+            <i style={{ background: each.signal }} aria-hidden />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function WallpaperTile({
   wallpaper,
   chosen,
@@ -228,7 +293,7 @@ function WallpaperTile({
   )
 }
 
-/** An icon set: its name, how many apps it has icons for, its icons in the look shown (WestPlay's where it
+/** An icon set: its name, how many apps it has icons for, its icons in the look shown (Cabin Play's where it
  * has none), and a tick when it's the one shown. */
 function IconSetRow({
   name,
@@ -240,10 +305,10 @@ function IconSetRow({
   remove,
 }: {
   name: string
-  /** `null`: WestPlay's own. */
+  /** `null`: Cabin Play's own. */
   icons: IconSet | null
   chosen: boolean
-  shown: 'light' | 'dark'
+  shown: 'light' | 'dark' | 'android'
   cw: CompanionWords
   choose(): void
   remove?: () => void
@@ -259,7 +324,7 @@ function IconSetRow({
           </span>
           <span className="cz-strip" aria-hidden>
             {ICON_FILES.map(([role]) => {
-              const path = icons?.icons[role]?.[shown]
+              const path = shown === 'android' ? null : icons?.icons[role]?.[shown]
               return (
                 <img
                   key={role}

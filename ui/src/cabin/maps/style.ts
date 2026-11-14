@@ -10,6 +10,7 @@ import type { Appearance } from '../state/appearance'
 import type { MapData } from './mapData'
 import { PLACE_ICON_PREFIX, PLACE_ICON_SIZE, SHADOW_ROOM } from './placeIcons'
 import { pixelsPerMetre } from './projection'
+import { type MapRouteColour, type MapRouteWeight, ROUTE_COLOURS, ROUTE_WEIGHT_SCALE } from './routeLook'
 
 /**
  * The map's look, in the spirit of Apple Maps: calm ground, white streets with faint casings, fast roads in
@@ -423,15 +424,7 @@ function placeLayer(id: string, image: ExpressionSpecification): LayerSpecificat
     source: MAP_SOURCE,
     'source-layer': 'place',
     minzoom: TRANSIT_MIN_ZOOM,
-    filter: [
-      'match',
-      ['get', 'kind'],
-      ['ferry', 'train', 'border'],
-      true,
-      'company',
-      ['>=', ['zoom'], COMPANY_MIN_ZOOM],
-      ['>=', ['zoom'], PLACE_MIN_ZOOM],
-    ],
+    filter: placeKindFilter(),
     layout: {
       'icon-image': image,
       // The badge on the place, its name to the right.
@@ -477,27 +470,36 @@ export const OFFERED_SOURCE = 'westplay-offered'
 export const TRAFFIC_SOURCE = 'westplay-traffic'
 /** TruckersMP's other players (truckersmp.ts): points. */
 export const PLAYERS_SOURCE = 'westplay-players'
+/** The places a list offers (Destinations' Find nearby and its search, nearbyPins.ts): points, drawn as the
+ * badge of their kind, over the map's own places. */
+export const NEARBY_SOURCE = 'westplay-nearby'
 
-/** The traffic over the route previewed: yellow where it's slow, red where it's jammed, as Apple's. The
- * same colours in light and dark. */
+/**
+ * The traffic over the route previewed: yellow where it's slow, red where it's jammed, as Apple's. The same
+ * colours in light and dark. Single player has no reading of the game's traffic, only the hour's estimate
+ * (estimatedTraffic.ts): those stretches are drawn dashed and a little fainter, so an estimate never reads as
+ * a reading.
+ */
 function trafficLayers(): LayerSpecification[] {
-  return [
-    {
-      id: 'traffic',
-      type: 'line',
-      source: TRAFFIC_SOURCE,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': ['match', ['get', 'level'], 'jammed', '#ff3b30', '#ffcc00'],
-        'line-width': [
-          'interpolate',
-          ['exponential', 2],
-          ['zoom'],
-          ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels]),
-        ] as ExpressionSpecification,
-      },
-    },
+  const width: ExpressionSpecification = [
+    'interpolate',
+    ['exponential', 2],
+    ['zoom'],
+    ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels]),
   ]
+  const layer = (id: string, estimated: boolean): LayerSpecification => ({
+    id,
+    type: 'line',
+    source: TRAFFIC_SOURCE,
+    filter: ['==', ['coalesce', ['get', 'estimated'], false], estimated] as ExpressionSpecification,
+    layout: { 'line-cap': estimated ? 'butt' : 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': ['match', ['get', 'level'], 'jammed', '#ff3b30', '#ffcc00'],
+      'line-width': width,
+      ...(estimated ? { 'line-dasharray': [1.6, 1.4], 'line-opacity': 0.62 } : {}),
+    },
+  })
+  return [layer('traffic-estimated', true), layer('traffic', false)]
 }
 
 /** The other players' trucks: small dots in Apple's blue with a white edge, see-through so they hide nothing
@@ -558,6 +560,49 @@ const ROUTE_WIDTHS: [zoom: number, pixels: number][] = [
 ]
 
 /**
+ * The route's paint as the player has it (Settings › Maps): its colour and weight over every route layer — the
+ * route drawn, its head, each raised level's, and the route picked among those offered in Directions. Applied to
+ * a live map as the player chooses, and again whenever the appearance repaints the map under it.
+ */
+export function routeOverrides(
+  appearance: Appearance,
+  colour: MapRouteColour,
+  weight: MapRouteWeight,
+): { layer: string; property: string; value: unknown }[] {
+  const colours = ROUTE_COLOURS[appearance][colour]
+  const scale = ROUTE_WEIGHT_SCALE[weight]
+  const width = (extra: number): ExpressionSpecification =>
+    [
+      'interpolate',
+      ['exponential', 2],
+      ['zoom'],
+      ...ROUTE_WIDTHS.flatMap(([zoom, pixels]) => [zoom, pixels * scale + extra]),
+    ] as ExpressionSpecification
+  const out: { layer: string; property: string; value: unknown }[] = []
+  for (let level = 0; level < ROAD_LEVELS; level++) {
+    const suffix = level === 0 ? '' : `-${level}`
+    out.push(
+      { layer: `route-casing${suffix}`, property: 'line-color', value: colours.casing },
+      { layer: `route-head-casing${suffix}`, property: 'line-color', value: colours.casing },
+      { layer: `route${suffix}`, property: 'line-color', value: colours.fill },
+      { layer: `route-head${suffix}`, property: 'line-color', value: colours.fill },
+      { layer: `route-casing${suffix}`, property: 'line-width', value: width(4) },
+      { layer: `route-head-casing${suffix}`, property: 'line-width', value: width(4) },
+      { layer: `route${suffix}`, property: 'line-width', value: width(0) },
+      { layer: `route-head${suffix}`, property: 'line-width', value: width(0) },
+    )
+  }
+  // The route picked among those offered (Directions) wears the same colour as the one driven.
+  out.push(
+    { layer: 'offered-picked-casing', property: 'line-color', value: colours.casing },
+    { layer: 'offered-picked', property: 'line-color', value: colours.fill },
+    { layer: 'offered-picked-casing', property: 'line-width', value: width(4) },
+    { layer: 'offered-picked', property: 'line-width', value: width(0) },
+  )
+  return out
+}
+
+/**
  * The route over the roads in Apple's blue, with a darker edge, under the road numbers and the places: the
  * part of it on each level (route.ts routeLevels: its sources' `level`, none on the ground) over that
  * level's roads, so it passes under a bridge over the road it's on, and over the road beneath when it's on
@@ -599,6 +644,28 @@ const SIGN_SPRITE = 'signs'
 const SIGN_MIN_ZOOM = 10
 
 /**
+ * The pins of a list of places (nearbyPins.ts): their kind's badge, at the place, over the map's own places so
+ * a result is found among them. Upright to the screen whatever the tilt, the first of the list drawn last.
+ */
+function nearbyLayers(): LayerSpecification[] {
+  return [
+    {
+      id: 'nearby-pin',
+      type: 'symbol',
+      source: NEARBY_SOURCE,
+      layout: {
+        'icon-image': ['concat', PLACE_ICON_PREFIX, ['get', 'kind']],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.75, 14, 1],
+        'icon-padding': 4,
+        'icon-pitch-alignment': 'viewport',
+        'icon-rotation-alignment': 'viewport',
+        'symbol-sort-key': ['get', 'rank'],
+      },
+    },
+  ]
+}
+
+/**
  * Road numbers where the game shows them, as the game's own signs (each country's own: Germany's blue A,
  * France's red, the green E roads): upright to the screen whatever the tilt, growing a little as the map
  * comes closer, under the places (which win where they'd meet) and never over one another.
@@ -618,6 +685,22 @@ function signLayer(): LayerSpecification {
       'icon-rotation-alignment': 'viewport',
     },
   }
+}
+
+/**
+ * The places a layer draws at all, by kind and zoom: what the map has always drawn. The player's own pin types
+ * (Settings › Maps) are left out of it, over this.
+ */
+export function placeKindFilter(): ExpressionSpecification {
+  return [
+    'match',
+    ['get', 'kind'],
+    ['ferry', 'train', 'border'],
+    true,
+    'company',
+    ['>=', ['zoom'], COMPANY_MIN_ZOOM],
+    ['>=', ['zoom'], PLACE_MIN_ZOOM],
+  ]
 }
 
 /** The zoom places show from (the tiles have them a little earlier, crates/mapdata area.rs PLACE_ZOOM and
@@ -652,6 +735,7 @@ export function mapStyle(appearance: Appearance, data: MapData | null): StyleSpe
           [OFFERED_SOURCE]: { type: 'geojson', data: NO_LINE },
           [TRAFFIC_SOURCE]: { type: 'geojson', data: NO_LINE },
           [PLAYERS_SOURCE]: { type: 'geojson', data: NO_LINE },
+          [NEARBY_SOURCE]: { type: 'geojson', data: NO_LINE },
         }
       : {},
     layers: [
@@ -690,6 +774,7 @@ export function mapStyle(appearance: Appearance, data: MapData | null): StyleSpe
       ...(data ? [...offeredLayers(palette), ...trafficLayers(), ...playerLayers()] : []),
       signLayer(),
       ...placeLayers(),
+      ...(data ? nearbyLayers() : []),
     ],
   }
 }

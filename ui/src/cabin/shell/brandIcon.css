@@ -1,0 +1,73 @@
+/* The truck's brand as the Driver app's icon (BrandIcon.tsx): the same mark the boot screen and the sidebar's
+   status draw, on the card the icon set's own icons sit on, so it reads as an app rather than a picture. */
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 138px;
+  height: 138px;
+  border-radius: 22.4%;
+  overflow: hidden;
+  /* The dark card the set's light and dark icons both use, its rim lit from above. */
+  background: linear-gradient(180deg, #2b2b30, #17171a 52%, #0a0a0b);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 8px 22px rgb(0 0 0 / 0.4);
+}
+
+/* The mark, white: the files are line art, and the boot screen draws them that way too. A definite box, with the
+   logo fitted inside it, keeps a wide wordmark and a tall roundel both inside the card at their own shape. */
+.app .brand-icon img,
+.recent .brand-icon img {
+  display: block;
+  width: 70%;
+  height: 50%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+
+/* A maker's colour mark was drawn for a white sheet: the card turns white under it rather than inverting it. */
+.brand-icon.colour {
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.14),
+    0 8px 22px rgb(0 0 0 / 0.4);
+}
+
+.brand-icon.colour img {
+  width: 68%;
+  height: 42%;
+  filter: none;
+  opacity: 1;
+}
+
+/* Home's compact grid (home.css: a short screen), and the sidebar's recents. */
+.home-pages.compact .brand-icon {
+  width: 84px;
+  height: 84px;
+}
+
+.recent .brand-icon {
+  width: 74px;
+  height: 74px;
+}
+
+@container carplay (max-height: 520px) {
+  .recent .brand-icon {
+    width: 54px;
+    height: 54px;
+  }
+}
+
+/* Joining the recents, it comes in with the same pop as the icons beside it (shell.css). */
+.recent button > .brand-icon:not(.launch-copy) {
+  animation: recent-in 260ms var(--motion-ease) both;
+}
+
+/* The copy a launch grows out of (Sidebar.tsx) lies exactly over the icon. */
+.recent .brand-icon.launch-copy {
+  position: absolute;
+  inset: 0;
+}

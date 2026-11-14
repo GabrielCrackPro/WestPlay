@@ -1,0 +1,10 @@
+/* Night in the truck (state/nightDim.ts): the panel dims as the cabin's screen does, so the cluster doesn't glare
+   in a dark cab. Over everything the cluster draws, under the boot, and it takes no presses. */
+.cluster-night {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+  pointer-events: none;
+  transition: opacity 2s var(--motion-ease);
+}

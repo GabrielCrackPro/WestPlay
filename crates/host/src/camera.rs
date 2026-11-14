@@ -1,4 +1,5 @@
-//! Whether the game's camera is outside the cab, for YouTube's sound to come muffled through it.
+//! Whether the game's camera is outside the cab, for the cab's sound to be heard in it only (its speakers are
+//! there).
 //!
 //! The SDK doesn't say which camera is on. But with the camera in the cab, the game draws its screen's
 //! picture every frame, wherever the player looks (even back to the bed): the plugin sees WestPlay's screen

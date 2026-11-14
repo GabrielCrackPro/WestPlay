@@ -26,8 +26,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{LazyLock, Mutex};
 
 use westplay_shared::{
-    CAB_MARK_HEIGHT, CAB_MARK_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH, ScreenLayout, TABLET, TRUCK_SUPPORTED,
-    TRUCK_UNSUPPORTED, screen_layout_for_texture, screen_layouts, screen_supported,
+    CAB_MARK_HEIGHT, CAB_MARK_WIDTH, CLUSTER_HEIGHT, CLUSTER_TEXTURE_HEIGHT, CLUSTER_WIDTH, SCREEN_HEIGHT,
+    SCREEN_WIDTH, ScreenLayout, TABLET, TRUCK_SUPPORTED, TRUCK_UNSUPPORTED, screen_layout_for_texture, screen_layouts,
+    screen_supported,
 };
 use windows::Win32::Graphics::Direct3D11::{
     D3D11_BIND_RENDER_TARGET, D3D11_BIND_SHADER_RESOURCE, D3D11_BOX, D3D11_SUBRESOURCE_DATA, D3D11_TEXTURE2D_DESC,
@@ -63,8 +64,11 @@ struct ScreenTexture {
 struct State {
     screens: Vec<ScreenTexture>,
     frames: FrameSource,
+    cluster_frames: FrameSource,
     /// All-zero texture copied in while WestPlay is off, as high as the highest screen texture.
     transparent: Option<ID3D11Texture2D>,
+    /// The same for the cluster's screen, at its own size.
+    cluster_transparent: Option<ID3D11Texture2D>,
     /// The device `frames` and `transparent` were made on (its address; 0 before any).
     device: usize,
 }
@@ -80,7 +84,9 @@ impl State {
         }
         self.device = device;
         self.frames = FrameSource::default();
+        self.cluster_frames = FrameSource::cluster();
         self.transparent = None;
+        self.cluster_transparent = None;
         true
     }
 }
@@ -138,7 +144,8 @@ struct KeptView {
     view: ID3D11ShaderResourceView,
     texture: ID3D11Texture2D,
     height: u32,
-    layout: usize,
+    /// Its screen's layout; `None` for the cluster's.
+    layout: Option<usize>,
 }
 
 struct KeptViews(Vec<KeptView>);
@@ -252,7 +259,8 @@ pub unsafe fn on_set_shader_resources(context: *mut c_void, count: u32, views: *
                 cab_drawn();
                 continue;
             }
-            if let Some(layout) = screen_layout(&desc)
+            let layout = if is_cluster_texture(&desc) { Some(None) } else { screen_layout(&desc).map(Some) };
+            if let Some(layout) = layout
                 && let Some(context) = ID3D11DeviceContext::from_raw_borrowed(&context)
             {
                 refresh(context, texture, desc.Height, layout);
@@ -290,9 +298,13 @@ pub unsafe fn on_view_created(resource: *mut c_void, view: *mut c_void) {
         let Ok(texture) = resource.cast::<ID3D11Texture2D>() else { return };
         let mut desc = D3D11_TEXTURE2D_DESC::default();
         texture.GetDesc(&mut desc);
-        let Some(layout) = screen_layout(&desc) else { return };
+        let cluster = is_cluster_texture(&desc);
+        let layout = if cluster { None } else { screen_layout(&desc) };
+        if !cluster && layout.is_none() {
+            return;
+        }
         let Some(view) = ID3D11ShaderResourceView::from_raw_borrowed(&view) else { return };
-        let id = screen_layouts()[layout].id;
+        let id = layout.map(|layout| screen_layouts()[layout].id).unwrap_or("cluster");
         let mut kept = kept_views();
         let Some(slot) = VIEW_ADDRESSES.iter().find(|address| address.load(Ordering::Acquire) == 0) else {
             log!("screen: more than {KEPT_VIEWS} views of screen textures at once, {id}'s not kept");
@@ -302,6 +314,8 @@ pub unsafe fn on_view_created(resource: *mut c_void, view: *mut c_void) {
         slot.store(view.as_raw() as usize, Ordering::Release);
         if id == TABLET {
             log!("tablet: its screen texture's view made ({} kept)", kept.0.len());
+        } else if cluster {
+            log!("cluster: its screen texture's view made ({} kept)", kept.0.len());
         } else {
             log!("screen: {id}'s texture view made ({} kept)", kept.0.len());
         }
@@ -329,14 +343,15 @@ unsafe fn refresh_kept(context: *mut c_void, views: &[*mut c_void]) {
                 .map(|kept| (kept.texture.clone(), kept.height, kept.layout));
             let Some((texture, height, layout)) = found else { continue };
             // A truck's screen drawn into a target WestPlay didn't look in before: said once a truck, with the target.
-            if layout != westplay_shared::tablet_layout()
+            if layout != Some(westplay_shared::tablet_layout())
+                && layout.is_some()
                 && !CURRENT_IS_CANDIDATE.load(Ordering::Relaxed)
                 && !OTHER_TARGET_SAID.swap(true, Ordering::AcqRel)
             {
                 let target = CURRENT_TARGET.load(Ordering::Relaxed);
                 log!(
                     "screen: {} drawn into a {}x{} target (format {}), not a screen target's: refreshed by its view",
-                    screen_layouts()[layout].id,
+                    screen_layouts()[layout.unwrap()].id,
                     target >> 32,
                     (target >> 16) & 0xffff,
                     target & 0xffff
@@ -365,11 +380,13 @@ fn release_views() {
             for slot in &VIEW_ADDRESSES {
                 let _ = slot.compare_exchange(address, 0, Ordering::AcqRel, Ordering::Acquire);
             }
-            let id = screen_layouts()[kept.layout].id;
-            if id == TABLET {
+            let id = kept.layout.map(|layout| screen_layouts()[layout].id);
+            if id == Some(TABLET) {
                 log!("tablet: a view of its screen let go");
-            } else {
+            } else if let Some(id) = id {
                 log!("screen: a view of {id}'s texture let go");
+            } else {
+                log!("cluster: a view of its screen let go");
             }
         }
         others
@@ -378,7 +395,7 @@ fn release_views() {
 
 /// # Safety
 /// On the game's render thread, with its live context and a screen texture of its.
-unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, height: u32, layout: usize) {
+unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, height: u32, layout: Option<usize>) {
     // SAFETY: the game's live context and screen texture (the caller's contract); copies stay within both
     // textures (whole frames, or the box of the screen's height).
     unsafe {
@@ -388,7 +405,7 @@ unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, heigh
         let index = match state.screens.iter().position(|s| s.texture.as_raw() == texture.as_raw()) {
             Some(index) => index,
             None => {
-                let id = screen_layouts()[layout].id;
+                let id = layout.map(|layout| screen_layouts()[layout].id).unwrap_or("cluster");
                 log!("screen texture loaded: {id} ({} in use)", state.screens.len() + 1);
                 state.screens.push(ScreenTexture { texture, height, version: 0, last_used: frame });
                 state.screens.len() - 1
@@ -402,6 +419,32 @@ unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, heigh
             log!("screens: on device {:#x}", state.device);
         }
         let screen = &mut state.screens[index];
+        // The cluster's own page, from its own frame: no truck layout, no screen switch.
+        if layout.is_none() {
+            let latest = state.cluster_frames.update(&device, context);
+            match latest {
+                Some((latest, version)) => {
+                    if screen.version != version {
+                        copy_cluster_frame(context, &screen.texture, &latest);
+                        screen.version = version;
+                    }
+                }
+                None => {
+                    if screen.version != TRANSPARENT {
+                        if state.cluster_transparent.is_none() {
+                            state.cluster_transparent =
+                                create_transparent(&device, CLUSTER_WIDTH, CLUSTER_TEXTURE_HEIGHT);
+                        }
+                        if let Some(transparent) = &state.cluster_transparent {
+                            copy_cluster_frame(context, &screen.texture, transparent);
+                            screen.version = TRANSPARENT;
+                        }
+                    }
+                }
+            }
+            return;
+        }
+        let layout = layout.unwrap();
         // A truck's id can't be read while the telemetry thread writes it: the last answer stands meanwhile.
         let truck = bridge::get().and_then(|b| b.plugin.truck.read());
         let tablet = layout == westplay_shared::tablet_layout();
@@ -451,7 +494,8 @@ unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, heigh
             None => {
                 if screen.version != TRANSPARENT {
                     if state.transparent.is_none() {
-                        state.transparent = create_transparent(&device);
+                        let height = ScreenLayout::texture_height(screen_layouts().len() - 1);
+                        state.transparent = create_transparent(&device, SCREEN_WIDTH, height);
                     }
                     if let Some(transparent) = &state.transparent {
                         let all = D3D11_BOX {
@@ -487,6 +531,20 @@ unsafe fn refresh(context: &ID3D11DeviceContext, texture: ID3D11Texture2D, heigh
     }
 }
 
+/// Copies the cluster's frame ([`CLUSTER_WIDTH`] x [`CLUSTER_HEIGHT`]) into its texture's first rows (the
+/// texture is one row taller, its size the cluster's own).
+///
+/// # Safety
+/// As [`refresh`]: live textures of the game's device.
+unsafe fn copy_cluster_frame(context: &ID3D11DeviceContext, screen: &ID3D11Texture2D, frame: &ID3D11Texture2D) {
+    // SAFETY: the game's live context and textures (the caller's contract); the region is the frame's size and
+    // fits both textures.
+    unsafe {
+        let rows = D3D11_BOX { left: 0, top: 0, front: 0, right: CLUSTER_WIDTH, bottom: CLUSTER_HEIGHT, back: 1 };
+        context.CopySubresourceRegion(screen, 0, 0, 0, 0, frame, 0, Some(&rows));
+    }
+}
+
 /// Copies an app frame ([`SCREEN_WIDTH`] x [`SCREEN_HEIGHT`]) into a screen texture of the given height,
 /// repeating the frame's bottom row in the texture's extra rows.
 ///
@@ -513,14 +571,12 @@ unsafe fn copy_frame(context: &ID3D11DeviceContext, screen: &ID3D11Texture2D, he
 
 /// # Safety
 /// The game's live device, on its render thread.
-unsafe fn create_transparent(device: &ID3D11Device) -> Option<ID3D11Texture2D> {
+unsafe fn create_transparent(device: &ID3D11Device, width: u32, height: u32) -> Option<ID3D11Texture2D> {
     // SAFETY: the game's live device (the caller's contract); `zeros` covers the whole texture and lives
     // through the call.
     unsafe {
-        // As tall as the tallest screen texture (the last layout's), so it covers any of them.
-        let height = ScreenLayout::texture_height(screen_layouts().len() - 1);
         let desc = D3D11_TEXTURE2D_DESC {
-            Width: SCREEN_WIDTH,
+            Width: width,
             Height: height,
             MipLevels: 1,
             ArraySize: 1,
@@ -531,10 +587,10 @@ unsafe fn create_transparent(device: &ID3D11Device) -> Option<ID3D11Texture2D> {
             CPUAccessFlags: 0,
             MiscFlags: 0,
         };
-        let zeros = vec![0u8; (SCREEN_WIDTH * height * 4) as usize];
+        let zeros = vec![0u8; (width * height * 4) as usize];
         let initial = D3D11_SUBRESOURCE_DATA {
             pSysMem: zeros.as_ptr() as *const c_void,
-            SysMemPitch: SCREEN_WIDTH * 4,
+            SysMemPitch: width * 4,
             SysMemSlicePitch: 0,
         };
         let mut texture = None;
@@ -549,6 +605,14 @@ unsafe fn create_transparent(device: &ID3D11Device) -> Option<ID3D11Texture2D> {
 }
 
 /// If this is a WestPlay screen texture as the game loads it from the mod: the index of its layout.
+fn is_cluster_texture(desc: &D3D11_TEXTURE2D_DESC) -> bool {
+    desc.MipLevels == 1
+        && desc.ArraySize == 1
+        && desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB
+        && desc.Width == CLUSTER_WIDTH
+        && desc.Height == CLUSTER_TEXTURE_HEIGHT
+}
+
 fn screen_layout(desc: &D3D11_TEXTURE2D_DESC) -> Option<usize> {
     if desc.MipLevels != 1 || desc.ArraySize != 1 || desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM_SRGB {
         return None;

@@ -9,6 +9,7 @@ import {
 import { SearchGlyph } from '../../keyboard/glyphs'
 import { useKeyboard } from '../../keyboard/store'
 import { TextField } from '../../keyboard/TextField'
+import { TrashGlyph } from '../../shell/TrashGlyph'
 import { useLive } from '../../state/store'
 import { languageOf } from '../../state/strings'
 import { useText } from '../../state/text'
@@ -329,8 +330,8 @@ function SectionTitle({ title, onClear }: { title: string; onClear(): void }) {
   return (
     <div className="yt-section-title">
       <h3 className="yt-section">{title}</h3>
-      <button type="button" className="yt-clear" onClick={onClear}>
-        {text.youtube.clear}
+      <button type="button" className="yt-clear" aria-label={text.youtube.clear} onClick={onClear}>
+        <TrashGlyph />
       </button>
     </div>
   )

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { useCabin } from '../state/store'
 
 /** How long the cabin stays away after it fails, ms: at first, then twice as long for each failure that
  * follows, up to the longest. */
@@ -30,6 +31,10 @@ export class Recovery extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // The cabin comes back on the Dashboard, not the screen that failed: mounting the same screen again would fail
+    // the same way, and the route is kept across restarts, so the player would meet that screen at every start
+    // with nothing on the screen (owner 2026-11-04: the Maps app, one crash away from a cab that never opened).
+    useCabin.getState().navigate({ type: 'showDashboard' })
     const now = performance.now()
     if (now - this.lastFailure > RECOVERED_MS) this.failures = 0
     this.lastFailure = now

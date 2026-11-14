@@ -59,14 +59,15 @@ export function useLookChanges(): void {
 
 /**
  * An app's icon, in the look the icon style asks for (`auto`: the screen's own): the chosen icon set's, or
- * WestPlay's own where the set has none for that look.
+ * WestPlay's own where the set has none for that look. Android Auto's look is always WestPlay's own: an icon
+ * set has a light and a dark file, not its flat tiles.
  */
 export function useAppIcon(role: AppIconRole): string {
   const { appearance } = useLook()
   return useLooks((state) => {
     const look = state.iconStyle === 'auto' ? appearance : state.iconStyle
     const icon = state.custom.iconSets.find((set) => set.name === state.iconSet)?.icons[role]
-    const path = icon?.[look]
+    const path = look === 'android' ? undefined : icon?.[look]
     return path ? fileUrl(state.base, path) : appIcon(role, look)
   })
 }

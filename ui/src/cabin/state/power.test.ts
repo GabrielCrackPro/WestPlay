@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { CONNECTING_MS, INITIAL_POWER, nextPhaseAt, power, type PowerState, SPLASH_MS } from './power'
+import {
+  bootLength,
+  bootShown,
+  CONNECTING_MS,
+  HANDOVER_MS,
+  handoverAt,
+  INITIAL_POWER,
+  nextPhaseAt,
+  power,
+  type PowerState,
+  SPLASH_MS,
+} from './power'
 
 function run(events: Parameters<typeof power>[1][], start: PowerState = INITIAL_POWER): PowerState {
   return events.reduce(power, start)
@@ -57,6 +68,50 @@ describe('power', () => {
     expect(power(off, { type: 'tick', at: 1e9 })).toBe(off)
     const on: PowerState = { phase: 'on', since: 0, observed: true }
     expect(power(on, { type: 'tick', at: 1e9 })).toBe(on)
+  })
+})
+
+describe('bootShown', () => {
+  it('shows the cabin’s boot on the other screen, where the cabin is in it', () => {
+    // A page that sees the boot begin plays it from its first frame.
+    expect(bootShown({ phase: 'splash', since: 1000 }, 1000)).toEqual({ phase: 'splash', since: 1000, elapsed: 0 })
+    // One that loads into a boot already under way joins it there, not at its beginning.
+    expect(bootShown({ phase: 'connecting', since: 1000 }, 3200)).toEqual({
+      phase: 'connecting',
+      since: 1000,
+      elapsed: 2200,
+    })
+  })
+
+  it('has no boot to show once the screen is on or off, or before the cabin has said', () => {
+    expect(bootShown({ phase: 'on', since: 1000 }, 6000)).toBeNull()
+    expect(bootShown({ phase: 'off', since: 1000 }, 6000)).toBeNull()
+    expect(bootShown(null, 6000)).toBeNull()
+  })
+
+  it('never starts a boot before its own beginning', () => {
+    // The phase's start is clamped to its moment on the cabin's clock, which can be a hair ahead of this page's.
+    expect(bootShown({ phase: 'splash', since: 1000 }, 990)).toMatchObject({ elapsed: 0 })
+  })
+})
+
+describe('bootLength', () => {
+  it('is the phases the boot goes through, from the first of them', () => {
+    expect(bootLength('splash')).toBe(SPLASH_MS + CONNECTING_MS)
+    expect(bootLength('connecting')).toBe(CONNECTING_MS)
+  })
+})
+
+describe('handoverAt', () => {
+  it('is the boot’s last part before it ends, on the clock that counts it', () => {
+    expect(handoverAt({ phase: 'splash', since: 1000 })).toBe(1000 + SPLASH_MS + CONNECTING_MS - HANDOVER_MS)
+    expect(handoverAt({ phase: 'connecting', since: 1000 })).toBe(1000 + CONNECTING_MS - HANDOVER_MS)
+  })
+
+  it('is null when there is no boot to hand over from', () => {
+    expect(handoverAt({ phase: 'on', since: 1000 })).toBeNull()
+    expect(handoverAt({ phase: 'off', since: 1000 })).toBeNull()
+    expect(handoverAt(null)).toBeNull()
   })
 })
 

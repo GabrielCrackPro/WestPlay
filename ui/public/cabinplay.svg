@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b3b40" />
+      <stop offset="1" stop-color="#141416" />
+    </linearGradient>
+    <linearGradient id="play" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#63e3d6" />
+      <stop offset="1" stop-color="#12a9a4" />
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <!-- The app's squircle, as the rest of the set: dark, a sheen across the top. -->
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)" />
+  <rect x="6" y="6" width="1012" height="1012" rx="222" fill="none" stroke="url(#sheen)" stroke-width="12" />
+  <!-- The cab's windscreen, in perspective: wider at the bottom, its corners rounded. -->
+  <path
+    d="M 372 302 L 652 302 Q 682 302 689 331 L 748 692 Q 756 728 719 728 L 305 728 Q 268 728 276 692 L 335 331 Q 342 302 372 302 Z"
+    fill="none"
+    stroke="#f2f2f5"
+    stroke-width="46"
+    stroke-linejoin="round"
+  />
+  <!-- Play, in the set's own teal. -->
+  <path d="M 474 424 Q 474 406 490 415 L 634 502 Q 650 511 634 520 L 490 607 Q 474 616 474 598 Z" fill="url(#play)" />
+</svg>

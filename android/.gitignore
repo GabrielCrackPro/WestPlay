@@ -1,0 +1,9 @@
+.gradle/
+local.properties
+app/build/
+build/
+.idea/
+*.iml
+captures/
+# A JDK and the Android SDK kept beside the project for building (never committed).
+.toolchain/

@@ -1,7 +1,6 @@
 import type { GameCheck, GameInfo, InstallReport, SetupState } from './setup'
 import type { Customizations } from '../shared/customize'
 import type { Added } from './customize'
-import type { Offer } from './update'
 import type { HostStatus, MapStatus } from './useHostStatus'
 import type { Settings } from './useSettings'
 
@@ -11,13 +10,12 @@ import type { Settings } from './useSettings'
  *
  * - `?onboarding`: the first run, from its start.
  * - `?game=off|on|live|unsupported`: the game not running, running (the cab not on the screen), the screen live, or
- *   the player in a truck WestPlay doesn't show in.
+ *   the player in a truck Cabin Play doesn't show in.
  * - `?map=building|ready|waiting|failed`: the map's state (`building` runs to `ready`).
- * - `?update`: an update found (its sheet offers it; installing it downloads, then stays installing).
  * - `?custom`: some wallpapers and an icon set of the player's (adding gives more, with a file left out).
  * - `?leftOut`: the played profile's map made without a map mod it couldn't read.
- * - `?elevated`: the game run as administrator (WestPlay can't read its route, guidance or weather).
- * - `?updated` (or `?updated=admin`): WestPlay updated since it was set up: the new plugin goes into the game
+ * - `?elevated`: the game run as administrator (Cabin Play can't read its route, guidance or weather).
+ * - `?updated` (or `?updated=admin`): Cabin Play updated since it was set up: the new plugin goes into the game
  *   once it's closed (with `admin`, Windows' permission is asked for first).
  *
  * Nothing here is ever in the app.
@@ -43,31 +41,22 @@ const setup: SetupState = {
   language: query.get('lang'),
 }
 
-const UPDATE: Offer | null = query.has('update')
-  ? {
-      version: '1.1.0',
-      notes: [
-        '- Song lyrics on the Now Playing screen.',
-        '- The map follows the route around roundabouts.',
-        '- **Fixed:** YouTube Music skipping the first song.',
-      ].join('\n'),
-      date: '2026-11-02',
-    }
-  : null
-
 let settings: Settings = {
-  interaction: { key: 0xa4, mode: 'hold', sensitivity: 1.4 },
+  interaction: { key: 0xa4, mode: 'toggle', sensitivity: 1.4 },
   keybinds: {
     volumeDown: { key: 0x31, withInteractionKey: true },
     playPause: { key: 0x32, withInteractionKey: true },
     volumeUp: { key: 0x33, withInteractionKey: true },
   },
-  screen: { truckStrip: 'auto' },
+  voice: { enabled: true, wake: false, hotkey: { key: 0x20, ctrl: true, shift: true, alt: false } },
+  screen: { truckStrip: 'off' },
+  cabin: { resume: false, profiles: [], currentProfileId: '' },
+  companion: { accent: 'ember' },
   look: { wallpaper: null, iconSet: null, iconStyle: 'auto' },
   graphics: { gpu: null },
 }
 
-// The player's own, made up from WestPlay's files (the preview's address: `FILES_BASE` is `/` here).
+// The player's own, made up from Cabin Play's files (the preview's address: `FILES_BASE` is `/` here).
 const custom: Customizations = query.has('custom')
   ? {
       wallpapers: [{ id: 'custom:Logo', name: 'Logo', dark: 'westplay.png', light: 'westplay.png' }],
@@ -118,15 +107,26 @@ function status(): HostStatus {
   return {
     webviewVersion: '141.0.3537.71',
     adapter: gameState === 'off' ? null : ADAPTERS[0].name,
-    // The one chosen, or WestPlay's pick: the game's.
+    // The one chosen, or Cabin Play's pick: the game's.
     cabAdapter: (ADAPTERS.find((adapter) => adapter.id === settings.graphics.gpu) ?? ADAPTERS[0]).name,
     gameAdapter: gameState === 'off' ? null : ADAPTERS[0].name,
     adapters: ADAPTERS,
+    // The phone the player paired, and the line it paired with, so the Setup's card and its code show.
+    phone: {
+      connected: false,
+      device: null,
+      pairing: {
+        host: '192.168.1.20',
+        port: 49321,
+        token: 'k3f9qp',
+        uri: 'cabinplay://pair?host=192.168.1.20&port=49321&token=k3f9qp',
+      },
+    },
     framesPerSecond: live ? 58 + Math.round(Math.random() * 3) : 0,
     droppedTotal: live ? 3 : 0,
     gameConnected: gameState !== 'off',
     screenDrawing: live,
-    // `?game=unsupported`: in a truck WestPlay doesn't show in.
+    // `?game=unsupported`: in a truck Cabin Play doesn't show in.
     truckSupported: gameState === 'unsupported' ? false : live ? true : null,
     gameElevated: gameState !== 'off' && query.has('elevated'),
     westplayOpen: live ? westplayOpen : null,
@@ -225,7 +225,7 @@ const CHECK: GameCheck = {
     { id: 'renault-t-2024', name: 'Renault T (2024)', fit: 'ready', fromMod: false },
     { id: 'volvo-fh-2021', name: 'Volvo FH (2021)', fit: 'ready', fromMod: false },
     { id: 'volvo-fh-2024', name: 'Volvo FH (2024)', fit: 'ready', fromMod: false },
-    { id: 'any-truck-tablet', name: 'Any truck – with the WestPlay tablet', fit: 'ready', fromMod: false },
+    { id: 'any-truck-tablet', name: 'Any truck – with the Cabin Play tablet', fit: 'ready', fromMod: false },
   ],
   modProblem: null,
   plugin: 'current',
@@ -289,6 +289,41 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
       settings = args?.settings as Settings
       emit('settings-changed', settings)
       return later(settings, 60)
+    case 'add_profile': {
+      const name = String(args?.name ?? 'New Profile')
+      const id = `profile-${Date.now()}`
+      const picture = args?.picture ? String(args.picture) : ''
+      settings.cabin.profiles.push({ id, name, picture })
+      emit('settings-changed', settings)
+      return later(settings, 60)
+    }
+    case 'remove_profile': {
+      const id = String(args?.id)
+      settings.cabin.profiles = settings.cabin.profiles.filter((p) => p.id !== id)
+      if (settings.cabin.currentProfileId === id) {
+        settings.cabin.currentProfileId = settings.cabin.profiles[0]?.id ?? ''
+      }
+      emit('settings-changed', settings)
+      return later(settings, 60)
+    }
+    case 'switch_profile': {
+      const id = String(args?.id)
+      if (settings.cabin.profiles.some((p) => p.id === id)) {
+        settings.cabin.currentProfileId = id
+        emit('settings-changed', settings)
+      }
+      return later(settings, 60)
+    }
+    case 'update_profile_picture': {
+      const id = String(args?.id)
+      const picture = String(args?.picture ?? '')
+      const profile = settings.cabin.profiles.find((p) => p.id === id)
+      if (profile) {
+        profile.picture = picture
+        emit('settings-changed', settings)
+      }
+      return later(settings, 60)
+    }
     case 'set_westplay_open':
       westplayOpen = Boolean(args?.open)
       return later(undefined, 200)
@@ -308,9 +343,6 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
       return later(undefined)
     case 'apple_music_sign_in':
       signIn('appleMusic')
-      return later(undefined)
-    case 'open_support_page':
-      window.open('https://kreosus.com/enes-less', '_blank', 'noopener')
       return later(undefined)
     case 'app_log_place':
       return later('C:\\Users\\Player\\Documents\\WestPlay\\logs\\app.log')
@@ -371,19 +403,6 @@ export function answer(command: string, args?: Record<string, unknown>): Promise
       custom.iconSets = custom.iconSets.filter((set) => set.name !== args?.name)
       if (settings.look.iconSet === args?.name) setLook({ iconSet: null })
       return later(undefined)
-    case 'update_offer':
-      return later(UPDATE)
-    case 'look_for_update':
-      if (UPDATE) emit('update-found', UPDATE)
-      return later(UPDATE, 700)
-    case 'install_update': {
-      const total = 48_000_000
-      for (let step = 1; step <= 20; step++) {
-        setTimeout(() => emit('update-progress', { done: (total * step) / 20, total }), step * 150)
-      }
-      // The app quits for the installer: nothing comes back.
-      return new Promise(() => {})
-    }
     default:
       return Promise.reject(new Error(`preview: no answer for ${command}`))
   }

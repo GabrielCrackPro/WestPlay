@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_TEXT_SIZE, TEXT_SIZES, textScale, toTextSize } from './textSize'
+import { CLUSTER_TEXT_SIZES, DEFAULT_TEXT_SIZE, TEXT_SIZES, clusterTextScale, textScale, toTextSize } from './textSize'
 
 describe('text size', () => {
   it('goes from a little smaller than the apps’ text as designed to twice it, starting a quarter larger', () => {
@@ -7,6 +7,20 @@ describe('text size', () => {
     expect(TEXT_SIZES[TEXT_SIZES.length - 1]).toBe(2)
     expect(textScale(DEFAULT_TEXT_SIZE)).toBe(1.24)
     expect(TEXT_SIZES.every((scale, index) => index === 0 || scale > TEXT_SIZES[index - 1])).toBe(true)
+  })
+
+  it('gives the cluster the same choice, in the room its 1280 x 480 panel has', () => {
+    // Every step moves it, nothing asks for more panel than the columns have room for (0.98 to 1.16 of the size the
+    // dash is drawn at), and the step WestPlay starts on is a step above the dash as designed: a dash read through
+    // the truck's glass starts larger, not at the size it was drawn at.
+    expect(clusterTextScale(DEFAULT_TEXT_SIZE)).toBe(1.12)
+    expect(clusterTextScale(DEFAULT_TEXT_SIZE)).toBeGreaterThan(1)
+    expect(CLUSTER_TEXT_SIZES[0]).toBe(0.98)
+    expect(CLUSTER_TEXT_SIZES[CLUSTER_TEXT_SIZES.length - 1]).toBe(1.16)
+    expect(CLUSTER_TEXT_SIZES.every((scale, index) => index === 0 || scale > CLUSTER_TEXT_SIZES[index - 1])).toBe(true)
+    expect(clusterTextScale(0)).toBe(0.98)
+    expect(clusterTextScale(8)).toBe(1.16)
+    expect(clusterTextScale(99)).toBe(clusterTextScale(DEFAULT_TEXT_SIZE))
   })
 
   it('keeps only a step there is', () => {

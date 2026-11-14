@@ -3,7 +3,6 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "createUpdaterArtifacts": true,
     "resources": {
       "../target/release/westplay.dll": "westplay.dll",
       "../LICENSE": "LICENSE.txt",
@@ -16,13 +15,7 @@
         "installerIcon": "icons/icon.ico",
         "installerHooks": "installer/hooks.nsh",
         "displayLanguageSelector": false,
-        "languages": [
-          "English", "Turkish", "German", "French", "Spanish", "SpanishInternational", "Italian", "PortugueseBR",
-          "Portuguese", "Dutch", "Polish", "Russian", "Ukrainian", "Czech", "Slovak", "Bulgarian", "Croatian",
-          "Slovenian", "Serbian", "SerbianLatin", "Macedonian", "Danish", "Swedish", "Norwegian", "Finnish",
-          "Estonian", "Latvian", "Lithuanian", "Hungarian", "Romanian", "Greek", "Catalan", "Basque", "Galician",
-          "Georgian", "Japanese", "Korean", "SimpChinese", "TradChinese", "Vietnamese"
-        ]
+        "languages": ["English", "Spanish", "SpanishInternational"]
       }
     }
   }

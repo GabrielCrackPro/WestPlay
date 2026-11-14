@@ -1,21 +1,19 @@
 /**
  * The companion's own words, past the onboarding: its sections, their pages, the tutorial and the uninstall,
- * in each of the game's 43 languages (by the game's codes, as the onboarding's words), in the game's language
- * as WestPlay speaks it in the cab; English for a language the game doesn't have. Each language says "you"
+ * in English and Spanish (by the game's codes, as the onboarding's words), in the game's language
+ * as Cabin Play speaks it in the cab; English for a language the game doesn't have. Each language says "you"
  * as its onboarding does (informally or not) and names things as it does (the truck, the game's Mod Manager).
  * What the onboarding already says (the keys, the sign-ins, the map's stages, the game's summary) is the
  * onboarding's words.
- *
- * The translations other than English and Turkish were written without a native speaker's review yet.
  */
 export interface CompanionWords {
   sections: Record<SectionId, string>
-  /** The list's line under WestPlay's name: where WestPlay is now. */
+  /** The list's line under Cabin Play's name: where Cabin Play is now. */
   state: {
     starting: string
     stopped: string
     noGame: string
-    /** The player's truck isn't one WestPlay shows in. */
+    /** The player's truck isn't one Cabin Play shows in. */
     unsupported: string
     notInCab: string
     live: string
@@ -54,6 +52,9 @@ export interface CompanionWords {
     }
     show: string
     showDetail: string
+    /** The companion's switch: the cab comes back where the last launch left it (its screen and app). */
+    resume: string
+    resumeDetail: string
     connection: string
     engine: string
     engineRunning: string
@@ -64,17 +65,17 @@ export interface CompanionWords {
     truckScreen: string
     /** `{fps}` */
     screenLive: string
-    /** The truck screen's row, in a truck WestPlay doesn't show in. */
+    /** The truck screen's row, in a truck Cabin Play doesn't show in. */
     screenUnsupported: string
     screenNotInView: string
-    /** The graphics card the screen is drawn on (its group is titled with `about.gpu`): WestPlay's pick, or
+    /** The graphics card the screen is drawn on (its group is titled with `about.gpu`): Cabin Play's pick, or
      * one the player chose. */
     gpuAuto: string
     gpuAutoDetail: string
     gpuInUse: string
     gpuNote: string
-    /** The game runs as administrator: WestPlay can't read its route, guidance or weather (owner 2026-10-28:
-     * WestPlay doesn't reach into an elevated game; the player is told). */
+    /** The game runs as administrator: Cabin Play can't read its route, guidance or weather (owner 2026-10-28:
+     * Cabin Play doesn't reach into an elevated game; the player is told). */
     elevated: { title: string; text: string }
     banners: {
       live: { title: string; text: string }
@@ -104,6 +105,8 @@ export interface CompanionWords {
     volumeUp: string
     volumeDown: string
     playPause: string
+    /** The voice assistant's push-to-talk chord. */
+    voiceHotkey?: string
     /** A keybind listening for its new key. */
     pressKey: string
     /** `{key}`: the screen's key. */
@@ -114,6 +117,7 @@ export interface CompanionWords {
   accounts: {
     title: string
     sub: string
+    noAccountsYet?: string
   }
   map: {
     titles: { ready: string; building: string; waiting: string; failed: string; unknown: string; noGame: string }
@@ -146,6 +150,24 @@ export interface CompanionWords {
     checking: { title: string; text: string }
     checked: { title: string; text: string }
   }
+  /** The phone paired with this PC, and how to pair one: the Setup shows it, and the cabin page never does. */
+  phone: {
+    title: string
+    phone: string
+    waiting: string
+    /** The phone's own name, when it hasn't given one. */
+    connected: string
+    address: string
+    code: string
+    /** Forgets the phone: a new code, and the phone connected now pairs again. */
+    unpair: string
+    scan: string
+    copy: string
+    copied: string
+    /** The QR code's name, for a screen reader. */
+    qr: string
+    noDoor: string
+  }
   uninstall: UninstallWords
   tutorial: TutorialWords
   about: {
@@ -163,7 +185,7 @@ export interface CompanionWords {
     webview: string
     waitingForGame: string
     log: string
-    /** The app's own log (app.log), with where it is: Documents, or WestPlay's folder where Documents refused it. */
+    /** The app's own log (app.log), with where it is: Documents, or Cabin Play's folder where Documents refused it. */
     appLog: string
     copy: string
     copied: { title: string; text: string }
@@ -172,6 +194,8 @@ export interface CompanionWords {
   customize: {
     title: string
     sub: string
+    /** The accent picker's label; English where a language hasn't one yet. */
+    accent?: string
     wallpapers: string
     add: string
     pair: string
@@ -183,7 +207,7 @@ export interface CompanionWords {
     addZip: string
     iconsNote: string
     looksNote: string
-    style: { title: string; auto: string; light: string; dark: string }
+    style: { title: string; auto: string; light: string; dark: string; android: string }
     remove: string
     pickWallpapers: string
     pickWallpaperFolder: string
@@ -194,32 +218,33 @@ export interface CompanionWords {
     added: string
     nothingAdded: string
     problems: { notAnImage: string; tooLarge: string; unknownName: string; twice: string; unreadable: string }
+    noWallpapersYet?: string
+    noIconsYet?: string
   }
-  /** WestPlay's updates: the About page's row, the list's note, the sheet offering one, and finishing one
-   * (its plugin and mod into the game). `{version}`: the update's. */
+  /** Driver profiles: each keeps its own settings. */
+  profiles: {
+    title: string
+    sub: string
+    currentProfile: string
+    noProfile: string
+    current: string
+    photo: string
+    addProfile: string
+    addProfileFooter: string
+    profileNamePlaceholder: string
+    save: string
+    cancel: string
+    removeProfile: string
+    removeConfirm: string
+    noProfilesYet?: string
+    switch?: string
+  }
+  /** After a manual app upgrade: putting its new plugin and mod into the game. */
   update: {
-    row: string
-    upToDate: string
-    available: string
-    badge: string
-    title: string
-    sub: string
-    whatsNew: string
     later: string
-    install: string
     closeGame: { title: string; text: string }
-    downloading: string
-    installing: string
-    failed: string
-    banners: { updating: { title: string; text: string }; updated: { title: string; text: string } }
+    banners: { updated: { title: string; text: string } }
     finish: { title: string; text: string; button: string }
-  }
-  /** Support me: WestPlay's development, supported on its maker's Kreosus page (opened in the browser). */
-  support: {
-    title: string
-    sub: string
-    button: string
-    note: string
   }
 }
 
@@ -264,7 +289,11 @@ export interface TutorialWords {
   finish: string
 }
 
-export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'setup' | 'about' | 'support'
+export type SectionId = 'screen' | 'controls' | 'customize' | 'accounts' | 'map' | 'profiles' | 'setup' | 'about'
+
+/** A section of the companion's list. The phone has a page of its own, whose words are `phone`'s (already in every
+ * language), so a new one costs the other languages nothing. */
+export type Section = SectionId | 'phone'
 
 const WORDS: Record<string, CompanionWords> = Object.fromEntries(
   Object.entries(import.meta.glob<CompanionWords>('./[a-z][a-z]_[a-z][a-z].ts', { eager: true, import: 'words' })).map(
@@ -272,9 +301,15 @@ const WORDS: Record<string, CompanionWords> = Object.fromEntries(
   ),
 )
 
-/** The companion's words in the game's language `code` (`tr_tr`), English for one without. */
+/** The companion's words in the game's language `code` (`tr_tr`), English for one without. A language that
+ * hasn't named the voice assistant yet borrows English's name for it, so every page has the label. */
 export function companionWords(code: string): CompanionWords {
-  return WORDS[code] ?? WORDS.en_us
+  const words = WORDS[code] ?? WORDS.en_us
+  if (words === WORDS.en_us || words.controls.voiceHotkey) return words
+  return {
+    ...words,
+    controls: { ...words.controls, voiceHotkey: WORDS.en_us.controls.voiceHotkey },
+  }
 }
 
 export function companionLanguages(): string[] {

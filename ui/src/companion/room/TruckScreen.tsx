@@ -1,11 +1,11 @@
-import { type CSSProperties, type ReactNode, type RefObject, useEffect, useState } from 'react'
+import { type CSSProperties, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
 
 /** Where the screen stands: centre stage (`hero`, `final`), aside for the steps (`side`), the player
  * diving into it at the end (`dive`), turned aside beside the companion's pages (`aside`), or full size, to
  * be used (`full`, the tutorial). */
 export type Pose = 'hero' | 'side' | 'final' | 'dive' | 'aside' | 'full'
 
-/** A CarPlay-style banner on the screen: WestPlay telling the player what it's doing. */
+/** A CarPlay-style banner on the screen: Cabin Play telling the player what it's doing. */
 export interface Banner {
   title: string
   detail?: string
@@ -16,7 +16,7 @@ export interface Banner {
 
 /**
  * The truck's screen, as an object: a slab of glass in its bezel, standing in a dark room it lights, its
- * reflection on the floor, turning a little towards the player's mouse. On it, the live WestPlay, and over
+ * reflection on the floor, turning a little towards the player's mouse. On it, the live Cabin Play, and over
  * its glass whatever the step adds: a banner, the light of a scan, a cursor.
  */
 export function TruckScreen({
@@ -29,7 +29,7 @@ export function TruckScreen({
   children,
 }: {
   frame: RefObject<HTMLIFrameElement | null>
-  /** WestPlay in it has loaded: it fades in. */
+  /** Cabin Play in it has loaded: it fades in. */
   ready: boolean
   pose: Pose
   /** The colour the screen's light casts on the room. */
@@ -39,6 +39,14 @@ export function TruckScreen({
   /** More over the glass, in the screen's own pixels. */
   children?: ReactNode
 }) {
+  // Lazy-load the iframe: defer until the screen is visible (not in initial 'dive' pose).
+  const [iframeLoaded, setIframeLoaded] = useState(pose !== 'dive')
+  const prevPose = useRef(pose)
+  useEffect(() => {
+    if (prevPose.current === 'dive' && pose !== 'dive') setIframeLoaded(true)
+    prevPose.current = pose
+  }, [pose])
+
   return (
     <div className="ts" data-pose={pose} style={{ '--glow': glow } as CSSProperties}>
       <div className="ts-light" />
@@ -46,13 +54,15 @@ export function TruckScreen({
         <div className="ts-bezel">
           <div className="ts-glass">
             <div className="ts-frame">
-              <iframe
-                ref={frame}
-                src="/cabin.html?demo&power"
-                title="WestPlay"
-                tabIndex={-1}
-                data-ready={ready || undefined}
-              />
+              {iframeLoaded && (
+                <iframe
+                  ref={frame}
+                  src="/cabin.html?demo&power"
+                  title="Cabin Play"
+                  tabIndex={-1}
+                  data-ready={ready || undefined}
+                />
+              )}
               {scanning && <div className="ts-scan" />}
               <BannerView banner={banner} />
               {children}
@@ -101,7 +111,7 @@ function BannerView({ banner }: { banner: Banner | null }) {
     >
       {text && (
         <>
-          <img src="/westplay.png" alt="" />
+          <img src="/cabinplay.png" alt="" />
           <div className="ts-banner-words">
             {leaving && <BannerWords banner={leaving} leaving />}
             <BannerWords key={text.title} banner={text} entering={messages > 0} />

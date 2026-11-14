@@ -8,6 +8,12 @@ describe('pageSize', () => {
     expect(pageSize(1114, 638)).toEqual({ columns: 5, rows: 2, compact: false })
   })
 
+  it('turns the page rather than taking a third row: 4 x 2 on the tablet', () => {
+    // The tablet's page, 1278 x 898: its grid 1091 x 870, room for three rows, which would hold twelve apps (all of
+    // them) on one page. Two rows leave the rest for the next page.
+    expect(pageSize(1091, 870)).toEqual({ columns: 4, rows: 2, compact: false })
+  })
+
   it('goes compact where full-size cells don’t fit two rows: 4 x 2 on the 7" Scania', () => {
     // Its area at its scale: about 551 x 402.
     expect(pageSize(551, 402)).toEqual({ columns: 4, rows: 2, compact: true })

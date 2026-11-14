@@ -251,7 +251,7 @@
   border-radius: 6px;
   background: rgb(0 0 0 / 0.6);
   color: #fff;
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale, 1));
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -529,6 +529,16 @@
   pointer-events: none;
 }
 
+/* Subtle overlay gradient at the bottom of the thumbnail for title readability. */
+.yt-cover::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.5));
+  pointer-events: none;
+}
+
 .yt-cover img {
   position: absolute;
   inset: 0;
@@ -621,7 +631,7 @@
   background: rgb(0 0 0 / 0.3);
   backdrop-filter: blur(16px);
   /* A faint rim: the shape still reads over a dark picture. */
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 4px 16px rgb(0 0 0 / 0.2);
 }
 
 .yt-player .yt-round.big {
@@ -904,16 +914,22 @@
 }
 
 .youtube-app .yt-clear {
-  height: 40px;
-  padding-inline: 16px;
-  border-radius: 20px;
-  font-size: calc(20px * var(--text-scale, 1));
-  font-weight: 500;
-  color: #3ea6ff;
+  display: grid;
+  place-items: center;
+  width: calc(44px * var(--text-scale, 1));
+  height: calc(44px * var(--text-scale, 1));
+  border-radius: 50%;
+  color: var(--apple-red);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.youtube-app .yt-clear svg {
+  width: calc(23px * var(--text-scale, 1));
+  height: calc(23px * var(--text-scale, 1));
 }
 
 .youtube-app .yt-clear:active {
-  background: rgb(62 166 255 / 0.15);
+  background: color-mix(in oklab, var(--apple-red) 16%, transparent);
 }
 
 /* The layer over the CarPlay area for what's drawn over the video where it shows through (VideoHole.tsx):
@@ -1327,9 +1343,9 @@
   padding: 0 4px;
   border-radius: 4px;
   background: var(--yt-red);
-  font-size: 12px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 700;
-  line-height: 16px;
+  line-height: 1.4;
 }
 
 /* The captions' or quality's choices: a dark sheet over the controls' right end. */

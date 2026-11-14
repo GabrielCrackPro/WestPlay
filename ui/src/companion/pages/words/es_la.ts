@@ -5,12 +5,27 @@ import { words as spain } from './es_es'
  * for what just happened, "computadora", "mouse", "presionar", "videos"). */
 export const words: CompanionWords = {
   ...spain,
+  phone: {
+    unpair: 'Desemparejar teléfono',
+    title: 'Teléfono',
+    phone: 'Teléfono',
+    waiting: 'Ningún teléfono conectado',
+    connected: 'Conectado',
+    address: 'Dirección',
+    code: 'Código',
+    scan: 'En Cabin Play Bridge, en tu teléfono Android y en la misma Wi-Fi, escanea este código hasta que se empareje.',
+    copy: 'Copiar',
+    copied: 'Copiado',
+    qr: 'Código QR de emparejamiento',
+    noDoor:
+      'Esta computadora no tiene dirección de red local, así que ningún teléfono puede emparejarse. Conecta la computadora a la Wi-Fi y vuelve a abrir Cabin Play.',
+  },
   screen: {
     ...spain.screen,
     titles: { ...spain.screen.titles, stopped: 'Algo falló' },
     subs: {
       ...spain.screen.subs,
-      stopped: 'El motor de WestPlay se detuvo. Tienes los detalles en Información.',
+      stopped: 'El motor de Cabin Play se detuvo. Tienes los detalles en Información.',
     },
   },
   controls: {
@@ -26,7 +41,7 @@ export const words: CompanionWords = {
   },
   accounts: {
     ...spain.accounts,
-    sub: 'Inicia sesión para ver tu música y tus videos en la pantalla del camión. Inicias sesión en cada servicio en su propia ventana, y WestPlay nunca ve tu cuenta.',
+    sub: 'Inicia sesión para ver tu música y tus videos en la pantalla del camión. Inicias sesión en cada servicio en su propia ventana, y Cabin Play nunca ve tu cuenta.',
   },
   map: {
     ...spain.map,
@@ -53,9 +68,9 @@ export const words: CompanionWords = {
   },
   uninstall: {
     ...spain.uninstall,
-    text: 'WestPlay se quita de tu juego y de tus perfiles, y se elimina de esta computadora junto con tus inicios de sesión y sus registros.',
-    steps: { ...spain.uninstall.steps, data: 'Eliminando WestPlay de esta computadora' },
+    text: 'Cabin Play se quita de tu juego y de tus perfiles, y se elimina de esta computadora junto con tus inicios de sesión y sus registros.',
+    steps: { ...spain.uninstall.steps, data: 'Eliminando Cabin Play de esta computadora' },
     profilesFailed:
-      'No se pudieron cambiar {n} de tus perfiles y todavía incluyen WestPlay. Quítalo allí en el Gestor de mods.',
+      'No se pudieron cambiar {n} de tus perfiles y todavía incluyen Cabin Play. Quítalo allí en el Gestor de mods.',
   },
 }

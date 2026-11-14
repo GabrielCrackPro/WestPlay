@@ -19,11 +19,12 @@
   height: 46px;
   border-radius: 50%;
   color: #fff;
-  background: #0a84ff;
+  background: linear-gradient(135deg, #40a0ff, #0a84ff);
   border: 4px solid #fff;
   box-shadow:
     0 0 0 9px rgb(10 132 255 / 0.2),
-    0 4px 12px rgb(0 0 0 / 0.35);
+    0 4px 12px rgb(0 0 0 / 0.35),
+    inset 0 1px 2px rgb(255 255 255 / 0.25);
 }
 
 .map-puck svg {
@@ -67,24 +68,29 @@
 /* The Maps app's buttons (MapControls.tsx): at the right edge, glass a little denser than elsewhere so it
    reads over the busy map, as the ETA pill does. Recentre appears above the zoom pair once the map has
    been moved away from the truck. */
+/* Above the Dashboard tile's open-the-app button (dashboard/map.css), which covers the rest of the map: the
+   zoom pair and the compass are pressed, not the app. */
 .map-controls {
   position: absolute;
+  z-index: 2;
   right: 22px;
   bottom: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .map-controls .glass {
   color: #fff;
-  background: rgb(20 22 26 / 0.55);
+  background: rgb(20 22 26 / 0.6);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
 }
 
 .appearance-light .map-controls .glass {
   color: #14161a;
-  background: rgb(255 255 255 / 0.78);
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
 }
 
 .map-control {
@@ -152,6 +158,11 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
+  transition: transform 160ms var(--motion-ease);
+}
+
+.map-compass:active {
+  transform: scale(0.92);
 }
 
 .map-compass:active .map-compass-dial svg {
@@ -174,22 +185,106 @@
   font-weight: 600;
 }
 
-/* The end of the GPS route: a red pin with a flag, as Apple's destination. */
+/* The end of the GPS route: a flag, as Apple's destination; on a job, the dock the trailer is going to, named
+   under it, or the pickup it's going to (an amber crate) before the cargo is on. */
 .map-destination {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.map-destination-badge {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   color: #fff;
-  background: #ff3b30;
+  background: linear-gradient(135deg, #ff6961, #ff3b30);
   border: 4px solid #fff;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.35);
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 0.35),
+    inset 0 1px 2px rgb(255 255 255 / 0.2);
 }
 
-.map-destination svg {
+.map-destination[data-kind='pickup'] .map-destination-badge {
+  background: linear-gradient(135deg, #ffb340, #ff9f0a);
+}
+
+.map-destination-badge svg {
   width: 22px;
   height: 22px;
+}
+
+/* Its name, under it: the job's company and city, so the flag says where it goes (the game's own map names the
+   company; Apple's names nothing). */
+.map-destination-name {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 5px);
+  translate: -50% 0;
+  max-width: 240px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  color: #fff;
+  background: rgb(20 22 26 / 0.62);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.appearance-light .map-destination-name {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.85);
+}
+
+/* The chip at the map's edge pointing at a destination off screen (liveMap's updateEdge): turned to it, with
+   how far it is on the game's own scale. */
+.map-destination-edge {
+  position: absolute;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(20 22 26 / 0.7);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.28);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.map-destination-edge.shown {
+  display: flex;
+}
+
+.map-destination-edge-arrow {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #ff453a;
+}
+
+.map-destination-edge-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+
+.appearance-light .map-destination-edge {
+  color: #14161a;
+  background: rgb(255 255 255 / 0.85);
+}
+
+.appearance-light .map-destination-edge-arrow {
+  color: #d1342a;
 }
 
 /* Turn-by-turn (GuidanceCard.tsx): route guidance is blue, whatever the appearance. In
@@ -197,10 +292,13 @@
    and away as the next rises in, the "then" row opens and closes, and the card fades away when the route
    ends (the durations: STEP_CHANGE_MS and CLOSE_MS). */
 .guidance {
-  --glass: rgb(10 112 235 / 0.78);
+  --glass: rgb(10 112 235 / 0.82);
   --glass-rim: rgb(140 196 255 / 0.55);
   color: #fff;
   animation: guidance-open var(--motion-spring-duration) var(--motion-ease) both;
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.25),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 
 .guidance.closing {
@@ -308,12 +406,32 @@
   font-weight: 600;
 }
 
-/* In the Maps app: a banner over the map's top left. */
-.guidance-banner {
+/* The map's guidance stack: turn-by-turn and, under it, the nearest stop (NearbyStopCard.tsx). One column at the
+   map's top left, so the second card always sits below the first whatever its height. */
+.map-guidance-stack {
   position: absolute;
   left: 22px;
   top: 22px;
   max-width: min(520px, 56%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.map-guidance-stack > * {
+  pointer-events: auto;
+}
+
+/* Without turn-by-turn the stack starts under the map's round buttons, which keep their corner. */
+.map-tile:not(:has(.guidance-banner)) .map-guidance-stack {
+  top: 96px;
+}
+
+/* In the Maps app: a banner over the map's top left, in the stack. */
+.guidance-banner {
+  align-self: flex-start;
+  max-width: 100%;
   padding: 18px 26px;
   border-radius: 30px;
   display: flex;
@@ -321,19 +439,152 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
 }
 
+/* The nearest stop (NearbyStopCard.tsx): the guidance banner's blue and way in, a size down, with the stop's own
+   glyph — a filling station or a rest area — where the maneuver's would be. */
+.nearby-stop-card {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: calc(14px * var(--text-scale, 1));
+  padding: calc(13px * var(--text-scale, 1)) calc(19px * var(--text-scale, 1));
+  border-radius: calc(24px * var(--text-scale, 1));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.nearby-stop-glyph {
+  flex: none;
+  width: calc(50px * var(--text-scale, 1));
+  height: calc(50px * var(--text-scale, 1));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nearby-stop-text {
+  min-width: 0;
+}
+
+.nearby-stop-distance {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.nearby-stop-kind {
+  margin-top: 2px;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.nearby-stop-detail {
+  margin-top: 3px;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.82);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The next services along the route (ServicesStrip.tsx), under the Dashboard's turn-by-turn: the same blue as
+   the guidance above it, a size down, each a place's badge and how far along the route it is. */
+.services-ahead {
+  align-self: flex-start;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: calc(10px * var(--text-scale, 1)) calc(14px * var(--text-scale, 1));
+  border-radius: calc(24px * var(--text-scale, 1));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.services-ahead-title {
+  padding: 0 4px 3px;
+  color: rgb(255 255 255 / 0.72);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.services-ahead-row {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+  padding: calc(5px * var(--text-scale, 1)) 4px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.services-ahead-row:active {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.services-ahead .place-badge {
+  flex: none;
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+}
+
+.services-ahead-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.services-ahead-name {
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.services-ahead-kind {
+  color: rgb(255 255 255 / 0.7);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 500;
+}
+
+.services-ahead-distance {
+  flex: none;
+  margin-left: auto;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Search (MapSearch.tsx): a round button over the map's top left, opening the search panel there. Dark glass
    over the map like the map's other buttons. */
 .map-tile .map-search-button,
+.map-tile .map-stops-button,
 .map-tile .map-search {
   position: absolute;
+  z-index: 3;
   color: #fff;
-  background: rgb(20 22 26 / 0.55);
+  background: rgb(20 22 26 / 0.6);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
 }
 
 .appearance-light .map-tile .map-search-button,
+.appearance-light .map-tile .map-stops-button,
 .appearance-light .map-tile .map-search {
   color: #14161a;
-  background: rgb(255 255 255 / 0.78);
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
 }
 
 .map-tile .map-search-button {
@@ -360,10 +611,176 @@
   scale: 0.88;
 }
 
+/* The Stops page's button (StopsPage.tsx): beside the search button, in the same round glass. */
+.map-tile .map-stops-button {
+  left: 100px;
+  top: 22px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.map-tile .map-stops-button svg {
+  width: 30px;
+  height: 30px;
+}
+
+.map-tile .map-stops-button.on svg {
+  color: #0a84ff;
+}
+
+.map-tile .map-stops-button:active svg {
+  scale: 0.88;
+}
+
+/* A panel over the map has the top it sits in (MapSearch.tsx, StopsPage.tsx): the Stops button gives way while the
+   search panel is there, on either side, instead of standing over its field. */
+.map-tile:has(.map-search:not(.map-stops-page)) .map-stops-button {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* While the turn-by-turn banner has the map's top left, the button moves beside the search button on the right, as
+   that one does (MapSearch's `guided`). */
+.map-tile:has(.guidance-banner) .map-stops-button {
+  left: auto;
+  right: 100px;
+}
+
+/* The page itself: the search panel's own glass, under the buttons so they stay at hand, and never over the
+   search button beside them. It names both classes because the search panel's own `top` rule is of the same
+   weight, further down this file, and would otherwise win: the page sat over both buttons. */
+.map-tile .map-search.map-stops-page {
+  top: 96px;
+  left: 16px;
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100% - 112px);
+}
+
+/* While the turn-by-turn banner has the map's top left, the page opens on the right, under the buttons there, as
+   the search panel does (MapSearch's `right` side): on the left it covered the step being driven to. */
+.map-tile:has(.guidance-banner) .map-search.map-stops-page,
+.map-tile:has(.nearby-stop-card) .map-search.map-stops-page {
+  left: auto;
+  right: 16px;
+  transform-origin: top right;
+}
+
+.map-stops-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 8px;
+  overflow: hidden;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The page's cards: the range against the route, then the two rest clocks. */
+.stops-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: calc(16px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border-radius: calc(20px * var(--text-scale, 1));
+  background: var(--field);
+}
+
+.stops-figures {
+  display: flex;
+  gap: calc(28px * var(--text-scale, 1));
+}
+
+.stops-figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stops-figure-label {
+  color: var(--text-dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.stops-figure-value {
+  font-size: calc(30px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stops-say {
+  margin: 0;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 650;
+}
+
+/* The margin by the driver's reading of it: short of it, barely enough, or room to spare. */
+.stops-card.short .stops-say {
+  color: #ff6b5e;
+}
+
+.stops-card.tight .stops-say {
+  color: #ffb340;
+}
+
+.appearance-light .stops-card.short .stops-say {
+  color: #d1342a;
+}
+
+.appearance-light .stops-card.tight .stops-say {
+  color: #b26a00;
+}
+
+.stops-rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--text-scale, 1));
+}
+
+.stops-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(14px * var(--text-scale, 1));
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+.stops-row-label {
+  color: var(--text-dim);
+}
+
+.stops-row-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stops-row-value.warn {
+  color: #ffb340;
+}
+
+.stops-row-value.alarm {
+  color: #ff6b5e;
+}
+
+.appearance-light .stops-row-value.warn {
+  color: #b26a00;
+}
+
+.appearance-light .stops-row-value.alarm {
+  color: #d1342a;
+}
+
 .map-tile .map-search {
   left: 16px;
   top: 16px;
-  width: 500px;
+  /* A narrow tile (an app on a small screen) keeps the panel inside it, and its rows still have room. */
+  width: min(500px, calc(100% - 32px));
   /* Down to the map's bottom, or to just above the keyboard while it's up (keyboard.css: its top is 376 px
      above the screen's bottom, the panel's 48 px below its top). */
   max-height: calc(100% - 32px);
@@ -372,12 +789,18 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: rgb(28 30 34 / 0.84);
+  background: rgb(28 30 34 / 0.88);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.28);
+}
+
+.appearance-light .map-tile .map-search {
+  background: rgb(250 250 252 / 0.92);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.12);
 }
 
 /* Offering routes (Directions), narrower: the map shows them all beside it (liveMap.ts frames them there). */
 .map-tile .map-search:has(.directions) {
-  width: 400px;
+  width: min(400px, calc(100% - 32px));
 }
 
 .map-tile .map-search.typing {
@@ -677,14 +1100,16 @@
   height: 52px;
   padding: 0 24px;
   border-radius: 14px;
-  background: #30d158;
+  background: linear-gradient(135deg, #30d158, #28b84c);
   color: #fff;
   font-size: calc(22px * var(--text-scale, 1));
   font-weight: 650;
+  box-shadow: 0 2px 8px rgb(48 209 88 / 0.25);
 }
 
 .appearance-light .map-tile .direction-go {
-  background: #28b84c;
+  background: linear-gradient(135deg, #30d158, #28b84c);
+  box-shadow: 0 2px 8px rgb(40 184 76 / 0.2);
 }
 
 .map-tile .direction-go:disabled {
@@ -709,15 +1134,18 @@
   background: var(--field);
   font-size: calc(23px * var(--text-scale, 1));
   font-weight: 650;
+  transition: background-color 160ms var(--motion-ease), box-shadow 160ms var(--motion-ease);
 }
 
 .map-tile .destination-action.primary {
-  background: #30d158;
+  background: linear-gradient(135deg, #30d158, #28b84c);
   color: #fff;
+  box-shadow: 0 4px 12px rgb(48 209 88 / 0.3);
 }
 
 .appearance-light .map-tile .destination-action.primary {
-  background: #28b84c;
+  background: linear-gradient(135deg, #30d158, #28b84c);
+  box-shadow: 0 4px 12px rgb(40 184 76 / 0.25);
 }
 
 .map-tile .destination-action:disabled {
@@ -727,6 +1155,7 @@
 /* The word that the game took a change, over the map's top, for a moment. */
 .map-confirmation {
   position: absolute;
+  z-index: 3;
   left: 50%;
   top: 22px;
   translate: -50% 0;
@@ -903,4 +1332,56 @@
   opacity: 0;
   pointer-events: none;
   transition-duration: 900ms;
+}
+
+/* The truck's marker (Settings › Maps: an arrow, a dot or a truck, in three sizes). Its colours are the map's
+   own (maps.css' .map-puck); these only size the drawing, and lift the solid ones a little. */
+.map-puck[data-size='small'] svg {
+  width: 22px;
+  height: 22px;
+}
+
+.map-puck[data-size='medium'] svg {
+  width: 30px;
+  height: 30px;
+}
+
+.map-puck[data-size='large'] svg {
+  width: 40px;
+  height: 40px;
+}
+
+.map-puck[data-marker='dot'],
+.map-puck[data-marker='truck'] {
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.45));
+}
+
+/* The scale bar (Settings › Maps): MapLibre's own, bottom left, in the cabin's type and glass. */
+.maplibregl-ctrl-scale {
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 2px 8px;
+  background: rgb(20 22 26 / 0.5);
+  color: #fff;
+  font-size: calc(12px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.appearance-light .maplibregl-ctrl-scale {
+  border-color: rgb(0 0 0 / 0.35);
+  background: rgb(255 255 255 / 0.72);
+  color: #14161a;
+}
+
+/* The destination's flag drops onto the map when a route is set (liveMap adds its marker then). */
+.map-destination-badge {
+  animation: destination-drop 420ms var(--motion-ease) both;
+}
+
+@keyframes destination-drop {
+  from {
+    opacity: 0;
+    translate: 0 -16px;
+  }
 }

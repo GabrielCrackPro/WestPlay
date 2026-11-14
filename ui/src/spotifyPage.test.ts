@@ -35,7 +35,7 @@ class FakeSocket {
 }
 
 /** The script run, and what it posted to the host. */
-function runPage() {
+function runPage(extra: Loose = {}) {
   const posts: Loose[] = []
   class HTMLMediaElement {}
   Object.assign(HTMLMediaElement.prototype, { play() {}, setMediaKeys() {} })
@@ -52,6 +52,7 @@ function runPage() {
     addEventListener() {},
     document: nothing,
     MutationObserver: nothing,
+    ...extra,
   }
   const page: Loose = new Proxy(own, {
     has: () => true,
@@ -108,5 +109,47 @@ describe("Spotify's page script, its volume", () => {
   it("is none for a device whose volume can't be set, or with no device playing", async () => {
     expect((await heard({ volume: 65535, capabilities: { disable_volume: true } }))?.volume).toBeNull()
     expect((await heard(null))?.volume).toBeNull()
+  })
+})
+
+/** An ad where a song would be: Spotify marks the track, and the break it's in, in the player's state. */
+const ad = (device: Loose) => {
+  const playing = cluster(device)
+  return {
+    ...playing,
+    player_state: {
+      ...playing.player_state,
+      track: { uri: 'spotify:track:ad', metadata: { is_advertisement: 'true' } },
+      playback_features: { ad_break_context: { max_seconds_remaining: 30, positionInCurrentAdBreak: 1 } },
+    },
+  }
+}
+
+describe("Spotify's page script, its ads", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // Connect not there (endpoint and device unseen): the page's own Skip button, pressed once per 2 s.
+  const asks = async (breakCount: number) => {
+    let pressed = 0
+    const page = runPage({ document: { querySelector: () => ({ click: () => (pressed += 1) }) } })
+    for (let at = 0; at < breakCount; at += 1) {
+      page.hear(ad({ volume: 65535 }))
+      await vi.advanceTimersByTimeAsync(2000)
+    }
+    return pressed
+  }
+
+  it('are asked past as they play', async () => {
+    expect(await asks(1)).toBe(1)
+  })
+
+  it('are asked past once every 2 s, and only six to a break', async () => {
+    expect(await asks(4)).toBe(4)
+    expect(await asks(10)).toBe(6)
   })
 })

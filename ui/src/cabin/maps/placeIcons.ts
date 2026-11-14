@@ -126,6 +126,9 @@ export function drawPlaceIcon(
   pixelRatio: number,
   fontFamily: string,
   textScale = 1,
+  /** Every badge as an outline in its colour on plain ground (Settings › Maps: Outlined pins), not just a garage
+   * for sale. */
+  outline = false,
 ): { width: number; height: number; data: Uint8Array } {
   const badge = PLACE_ICON_SIZE + SHADOW_ROOM * 2
   const nameSize = NAME_SIZE * textScale
@@ -156,7 +159,7 @@ export function drawPlaceIcon(
   context.shadowColor = 'rgb(0 0 0 / 0.35)'
   context.shadowBlur = 3
   context.shadowOffsetY = 1
-  const outlined = OUTLINED.has(kind)
+  const outlined = outline || OUTLINED.has(kind)
   const fill = context.createLinearGradient(0, centre.y - radius, 0, centre.y + radius)
   fill.addColorStop(0, outlined ? OUTLINE_FILL[appearance] : towards(COLOURS[kind], 255, 0.18))
   fill.addColorStop(1, outlined ? OUTLINE_FILL[appearance] : COLOURS[kind])

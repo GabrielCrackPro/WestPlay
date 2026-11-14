@@ -102,6 +102,7 @@ export default defineConfig({
       input: {
         companion: resolve(import.meta.dirname, 'index.html'),
         cabin: resolve(import.meta.dirname, 'cabin.html'),
+        cluster: resolve(import.meta.dirname, 'cluster.html'),
       },
     },
   },

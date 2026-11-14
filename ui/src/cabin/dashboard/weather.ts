@@ -26,11 +26,16 @@ export function weatherView(
   gameTime: number,
   place: string | null,
   text: Strings,
+  /** The truck's wipers are on: it's raining where the truck is, whatever the game's sky is turning to. */
+  wipers = false,
 ): WeatherView {
   const turning = weather.now !== weather.coming
-  const condition = turning ? text.weatherTurning[weather.coming] : text.weather[weather.now]
-  // Rain while it rains, and while it's coming; a clear sky's sun or moon otherwise.
-  const rain = weather.now === 'rain' || weather.coming === 'rain'
+  let condition = turning ? text.weatherTurning[weather.coming] : text.weather[weather.now]
+  // The wipers are running: it rains now, even before the game's own weather catches up (it turns over about a
+  // minute, and on a wet road the driver runs them longer than the sky takes to clear).
+  if (wipers && weather.now !== 'rain') condition = text.weather.rain
+  // Rain while it rains, while it's coming, and while the wipers are on; a clear sky's sun or moon otherwise.
+  const rain = weather.now === 'rain' || weather.coming === 'rain' || wipers
   return { place, condition, symbol: rain ? 'rain' : isNight(gameTime) ? 'moon' : 'sun' }
 }
 

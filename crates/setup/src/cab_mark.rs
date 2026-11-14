@@ -11,7 +11,11 @@
 //! A script is the game's own or a mod's, and one path may be in several installed mods (a dashboard mod over the
 //! game's, two trucks' mods bringing one script): which the game uses depends on the profile played. So a script
 //! is marked only where every copy installed is the same, and the game, any mod, gets it back with the mark;
-//! otherwise it's left as it is, and that truck's cab is told by its screen alone, as before.
+//! otherwise it's left as it is, and that truck's cab is told by its screen alone, as before. The exception is the
+//! instrument cluster (the Scania S and R's, whose dashboard scripts also get WestPlay's cluster over the whole
+//! display, `game_mod::patch_cluster_script`): a dashboard mod's copy of the Smart Dash's script is the one the
+//! player sees, so it's the one patched, from the profile they play ([`for_tablet`]'s `active`). The cluster's
+//! screen covers the dashboard mod's own, so what's beneath it is kept as it is for when the cluster is off.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -19,7 +23,9 @@ use std::path::{Path, PathBuf};
 use westplay_mapdata::archive::Archive;
 use westplay_mapdata::files::{GameFiles, Mount};
 use westplay_mapdata::sii;
+use westplay_shared::CLUSTER_TRUCKS;
 
+use crate::profiles::Profile;
 use crate::tablet::{self, Spot};
 
 /// The mark's texture's name, beside the screens' (`game_mod::SCREEN_DIR`).
@@ -45,12 +51,19 @@ impl Marks {
 
 /// The marks for the trucks the tablet goes in: the game's (`game`, the installed game mounted) and `mod_trucks`
 /// (the installed mods': `tablet::mod_trucks`), their dashboard scripts read from the game and `mods` (the installed
-/// mods' files, archives or folders, active in a profile or not).
-pub fn for_tablet(game: &GameFiles, mods: &[PathBuf], mod_trucks: &[Spot]) -> Marks {
+/// mods' files, archives or folders, active in a profile or not); `active`, the profile the player plays, decides
+/// which copy of a cluster truck's dashboard is patched where copies differ.
+pub fn for_tablet(game: &GameFiles, mods: &[PathBuf], mod_trucks: &[Spot], active: Option<&Profile>) -> Marks {
     let own = tablet::trucks(game).unwrap_or_default();
-    let trucks: BTreeSet<&str> = own.iter().chain(mod_trucks).map(|spot| spot.truck.as_str()).collect();
+    let mut trucks: BTreeSet<&str> = own.iter().chain(mod_trucks).map(|spot| spot.truck.as_str()).collect();
+    // The trucks whose instrument cluster WestPlay replaces: their dashboard scripts get its screen as well
+    // (`game_mod::patch_cluster_script`), so they are read even if the tablet doesn't go in them.
+    trucks.extend(CLUSTER_TRUCKS.iter().copied());
+    let cluster_trucks: BTreeSet<&str> = CLUSTER_TRUCKS.iter().copied().collect();
     let mods: Vec<GameFiles> = mods.iter().filter_map(|path| mounted(path)).collect();
-    marks(game, &mods, &trucks)
+    let cluster_paths: BTreeSet<String> =
+        std::iter::once(game).chain(&mods).flat_map(|files| dashboards(files, &cluster_trucks)).collect();
+    marks(game, &mods, &trucks, &cluster_paths, active)
 }
 
 /// A mod's files, mounted alone; `None` if it can't be opened.
@@ -59,8 +72,15 @@ fn mounted(path: &Path) -> Option<GameFiles> {
     Some(GameFiles::new(vec![mount]))
 }
 
-/// The marks for `trucks`' interiors' dashboard scripts, from `game` and `mods` (each mounted alone).
-fn marks(game: &GameFiles, mods: &[GameFiles], trucks: &BTreeSet<&str>) -> Marks {
+/// The marks for `trucks`' interiors' dashboard scripts, from `game` and `mods` (each mounted alone). A cluster
+/// truck's script whose copies differ is taken from `active`'s mods instead: the last one it mounts that has it.
+fn marks(
+    game: &GameFiles,
+    mods: &[GameFiles],
+    trucks: &BTreeSet<&str>,
+    cluster_paths: &BTreeSet<String>,
+    active: Option<&Profile>,
+) -> Marks {
     let sources = || std::iter::once(game).chain(mods);
     let paths: BTreeSet<String> = sources().flat_map(|files| dashboards(files, trucks)).collect();
     let mut found = Marks::default();
@@ -70,19 +90,44 @@ fn marks(game: &GameFiles, mods: &[GameFiles], trucks: &BTreeSet<&str>) -> Marks
             found.left.push((path, "not in the game or an installed mod".into()));
             continue;
         };
-        if copies.iter().any(|copy| copy != first) {
+        let same = copies.iter().all(|copy| copy == first);
+        let source = if same {
+            Some(first.clone())
+        } else if cluster_paths.contains(&path) {
+            active.and_then(|profile| effective(&path, game, profile))
+        } else {
+            None
+        };
+        let Some(source) = source else {
             found.left.push((path, format!("{} copies installed, not all the same", copies.len())));
             continue;
-        }
-        let marked = String::from_utf8(first.clone())
-            .map_err(|_| "not UTF-8 text".to_owned())
-            .and_then(|text| crate::game_mod::patch_dashboard_script(&text, TEXTURE));
+        };
+        let marked = String::from_utf8(source).map_err(|_| "not UTF-8 text".to_owned()).and_then(|text| {
+            if cluster_paths.contains(&path) {
+                crate::game_mod::patch_cluster_script(&text, crate::game_mod::CLUSTER_TEXTURE)
+            } else {
+                crate::game_mod::patch_dashboard_script(&text, TEXTURE)
+            }
+        });
         match marked {
             Ok(text) => found.scripts.push((path, text.into_bytes())),
             Err(why) => found.left.push((path, why)),
         }
     }
     found
+}
+
+/// The copy of `path` the profile `active` plays: the game's, then each of its mods' in load order (the last that
+/// has it wins).
+fn effective(path: &str, game: &GameFiles, active: &Profile) -> Option<Vec<u8>> {
+    let mut copy = game.read(path).ok().flatten();
+    for m in &active.mods {
+        let Some(files) = m.files.as_deref().and_then(mounted) else { continue };
+        if let Ok(Some(bytes)) = files.read(path) {
+            copy = Some(bytes);
+        }
+    }
+    copy
 }
 
 /// The dashboard scripts (game paths, no leading slash) `trucks`' interiors in `files` name, their includes
@@ -161,7 +206,7 @@ mod tests {
                 ("ui/dashboard/bus.sii", DASHBOARD),
             ],
         );
-        let found = marks(&game.mounted(), &[], &BTreeSet::from(["scania.r"]));
+        let found = marks(&game.mounted(), &[], &BTreeSet::from(["scania.r"]), &BTreeSet::new(), None);
         assert_eq!(found.left, []);
         let [(path, text)] = &found.scripts[..] else { panic!("{found:?}") };
         assert_eq!(path, "ui/dashboard/scania.sii");
@@ -175,6 +220,25 @@ mod tests {
     }
 
     #[test]
+    fn a_cluster_trucks_dashboard_gets_its_screen_over_the_mark() {
+        let game = Files::new(
+            "cluster",
+            &[
+                ("def/vehicle/truck/scania.r/interior/day.sii", INTERIOR),
+                ("def/vehicle/truck/scania.r/interior/dash.sui", "dashboard_path: \"/ui/dashboard/scania.sii\"\n"),
+                ("ui/dashboard/scania.sii", DASHBOARD),
+            ],
+        );
+        let cluster = BTreeSet::from(["ui/dashboard/scania.sii".to_owned()]);
+        let found = marks(&game.mounted(), &[], &BTreeSet::from(["scania.r"]), &cluster, None);
+        assert_eq!(found.left, []);
+        let [(_, text)] = &found.scripts[..] else { panic!("{found:?}") };
+        let text = String::from_utf8(text.clone()).unwrap();
+        assert!(text.contains(" my_children[2]: _nameless.westplay.cluster\n"), "{text}");
+        assert!(text.contains("<img src=/material/ui/westplay/screen_scania_cluster.mat"), "{text}");
+    }
+
+    #[test]
     fn the_mod_built_has_the_mark_and_says_whether_its_marks_are_current() {
         let game = Files::new(
             "built",
@@ -184,7 +248,7 @@ mod tests {
                 ("ui/dashboard/scania.sii", DASHBOARD),
             ],
         );
-        let found = marks(&game.mounted(), &[], &BTreeSet::from(["scania.r"]));
+        let found = marks(&game.mounted(), &[], &BTreeSet::from(["scania.r"]), &BTreeSet::new(), None);
         let (bytes, built) = crate::game_mod::build(&game.mounted(), &[], &GameFiles::new(Vec::new()), &found).unwrap();
         assert_eq!(built.cab_marks, 1);
         let at = game.0.join("westplay.scs");
@@ -218,16 +282,62 @@ mod tests {
         );
         let trucks = BTreeSet::from(["pgr"]);
         // The truck's mod naming the game's script: marked.
-        let found = marks(&game.mounted(), &[truck.mounted()], &trucks);
+        let found = marks(&game.mounted(), &[truck.mounted()], &trucks, &BTreeSet::new(), None);
         assert_eq!(found.scripts.len(), 1);
         // A dashboard mod changing it: left as it is.
         let other = DASHBOARD.replace("white.mat", "black.mat");
         let dashboard_mod = Files::new("dashboard", &[("ui/dashboard/scania.sii", &other)]);
-        let found = marks(&game.mounted(), &[truck.mounted(), dashboard_mod.mounted()], &trucks);
+        let found =
+            marks(&game.mounted(), &[truck.mounted(), dashboard_mod.mounted()], &trucks, &BTreeSet::new(), None);
         assert_eq!(found.scripts, []);
         assert_eq!(
             found.left,
             [("ui/dashboard/scania.sii".to_owned(), "2 copies installed, not all the same".to_owned())]
         );
+    }
+
+    #[test]
+    fn a_cluster_script_whose_copies_differ_comes_from_the_active_profiles_mod() {
+        let game = Files::new("game-active", &[("ui/dashboard/scania.sii", DASHBOARD)]);
+        let truck = Files::new(
+            "truck-active",
+            &[
+                ("def/vehicle/truck/scania.s_2016/interior/day.sii", INTERIOR),
+                ("def/vehicle/truck/scania.s_2016/interior/dash.sui", "dashboard_path: \"/ui/dashboard/scania.sii\"\n"),
+            ],
+        );
+        // A dashboard mod's copy: what the player sees on the Smart Dash.
+        let other = DASHBOARD.replace("white.mat", "black.mat");
+        let dashboard_mod = Files::new("dashboard-active", &[("ui/dashboard/scania.sii", &other)]);
+        let active = Profile {
+            name: "P".into(),
+            dir: PathBuf::new(),
+            cloud: false,
+            last_saved: None,
+            map: "europe".into(),
+            mods: vec![crate::profiles::Mod {
+                package: "dashboard".into(),
+                name: "Dashboard".into(),
+                files: Some(dashboard_mod.0.clone()),
+                categories: Vec::new(),
+                author: None,
+                map: crate::profiles::MapContent::default(),
+                problem: None,
+            }],
+        };
+        let cluster = BTreeSet::from(["ui/dashboard/scania.sii".to_owned()]);
+        let found = marks(
+            &game.mounted(),
+            &[truck.mounted(), dashboard_mod.mounted()],
+            &BTreeSet::from(["scania.s_2016"]),
+            &cluster,
+            Some(&active),
+        );
+        assert_eq!(found.left, []);
+        let [(_, text)] = &found.scripts[..] else { panic!("{found:?}") };
+        let text = String::from_utf8(text.clone()).unwrap();
+        // The mod's own dashboard, with the cluster over it (not the game's copy).
+        assert!(text.contains("black.mat"), "{text}");
+        assert!(text.contains("_nameless.westplay.cluster"), "{text}");
     }
 }

@@ -79,7 +79,7 @@ unsafe impl Send for SharedFrame {}
 unsafe impl Sync for SharedFrame {}
 
 impl SharedFrame {
-    pub fn new(gpu: &Gpu, width: u32, height: u32, generation: u32) -> Result<Self> {
+    pub fn new(gpu: &Gpu, width: u32, height: u32, name: &str) -> Result<Self> {
         // SAFETY: the device is alive (`gpu`); the description and the handle out are locals.
         unsafe {
             let desc = D3D11_TEXTURE2D_DESC {
@@ -98,7 +98,7 @@ impl SharedFrame {
             gpu.device.CreateTexture2D(&desc, None, Some(&mut texture))?;
             let texture: ID3D11Texture2D = texture.ok_or_else(windows::core::Error::empty)?;
             let mutex = texture.cast()?;
-            let name = HSTRING::from(westplay_shared::frame_texture_name(generation));
+            let name = HSTRING::from(name);
             // The name stays resolvable for as long as this handle is open.
             let handle = texture.cast::<IDXGIResource1>()?.CreateSharedHandle(
                 None,

@@ -1,0 +1,29 @@
+/*
+ * The colour a lit lamp takes, in one place for both surfaces that draw the lamps: the dash's rows and the Settings
+ * preview's strips. Each surface declares its own four colours on the row that owns the lamps — the panel's palette
+ * on the dash, Apple's on the Settings miniature — so a theme change lands in one declaration and this file maps the
+ * tones onto it.
+ *
+ * The preview's lamps light only when they are active (an unlit slot is a faint mark, not a dim red warning), which
+ * is why its selectors carry `[data-active]`; the dash's slots are always in their tone and are simply transparent
+ * while out.
+ */
+.cluster-telltale[data-tone='ok'],
+.cluster-layout-lamp[data-active][data-tone='ok'] {
+  color: var(--telltale-ok);
+}
+
+.cluster-telltale[data-tone='info'],
+.cluster-layout-lamp[data-active][data-tone='info'] {
+  color: var(--telltale-info);
+}
+
+.cluster-telltale[data-tone='warn'],
+.cluster-layout-lamp[data-active][data-tone='warn'] {
+  color: var(--telltale-warn);
+}
+
+.cluster-telltale[data-tone='danger'],
+.cluster-layout-lamp[data-active][data-tone='danger'] {
+  color: var(--telltale-danger);
+}

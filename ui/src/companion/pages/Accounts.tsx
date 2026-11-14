@@ -14,6 +14,7 @@ import {
   youtubeSignIn,
   youtubeSignOut,
 } from '../useHostStatus'
+import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 
 /** Each service: its name, its app on the screen, its sign-in and sign-out, and what its status says. */
@@ -62,7 +63,7 @@ const SERVICES: Record<
 const ORDER: Service[] = ['youtube', 'spotify', 'appleMusic']
 
 /**
- * The services WestPlay plays from, each signed in (in its own window, on the desktop) or not. WestPlay only
+ * The services Cabin Play plays from, each signed in (in its own window, on the desktop) or not. Cabin Play only
  * ever knows whether it is. On the room's screen, the app of the service the pointer is on.
  */
 export function Accounts({ status, cw, signedIn }: PageProps) {
@@ -71,8 +72,18 @@ export function Accounts({ status, cw, signedIn }: PageProps) {
   const signingIn = ORDER.find((service) => SERVICES[service].signingIn(status)) ?? null
   const service = SERVICES[signingIn ?? shown]
   useScreenAt(service.app, service.glow, signingIn ? banner(service.words(words).signingIn, true) : null)
+  const allSignedOut = ORDER.every((service) => {
+    const known = signedIn[service]
+    return known === false
+  })
   return (
-    <Panel place="page" title={cw.accounts.title} sub={cw.accounts.sub}>
+    <Panel place="page" title={cw.accounts.title} sub={cw.accounts.sub} icon={<SectionGlyph id="accounts" />}>
+      {allSignedOut && (
+        <div className="cp-empty">
+          <span className="cp-empty-icon" aria-hidden>🔑</span>
+          <span>{cw.accounts.noAccountsYet ?? 'No services signed in yet'}</span>
+        </div>
+      )}
       <Group place={4}>
         {ORDER.map((each) => (
           <Account key={each} service={each} status={status} signedIn={signedIn} hover={() => setShown(each)} />

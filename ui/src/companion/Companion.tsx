@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { type SignedIn, useAskOnce, useSignedIn } from './accounts'
 import { appVersion, call, PREVIEW_TUTORIAL } from './bridge'
 import { Onboarding } from './onboarding/Onboarding'
@@ -11,14 +11,16 @@ import { Accounts } from './pages/Accounts'
 import { Controls } from './pages/Controls'
 import { Customize } from './pages/Customize'
 import { type MapProgress, useMapProgress } from './mapProgress'
+import { SectionGlyph } from './pages/glyphs'
 import { MapPage } from './pages/MapPage'
+import { PhonePage } from './pages/PhonePage'
 import { screenState } from './pages/page'
 import { ScreenPage } from './pages/ScreenPage'
 import { Setup } from './pages/Setup'
-import { Support } from './pages/Support'
+import { ProfilesPage } from './pages/ProfilesPage'
 import { UninstallSheet } from './pages/UninstallSheet'
-import { FinishUpdate, UpdateSheet } from './pages/UpdateSheet'
-import { type CompanionWords, companionWords, type SectionId } from './pages/words'
+import { FinishUpdate } from './pages/FinishUpdate'
+import { type CompanionWords, companionWords, type Section } from './pages/words'
 import { RoomText, n, WordsContext } from './room/room'
 import './room/room.css'
 import { GLOW, type Screen, ScreenContext } from './room/screen'
@@ -27,14 +29,13 @@ import { useDemo } from './room/useDemo'
 import './companion.css'
 import { defaultMapAddress, type GameCheck, type SetupState, setupState } from './setup'
 import { FILES_BASE, useCustomizations } from './customize'
-import { type Offer, useUpdateOffer } from './update'
 import { type HostStatus, useHostStatus } from './useHostStatus'
 import { useKeyName } from './keys'
-import { DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
+import { accentOf, DEFAULT_KEY, type SettingsState, useSettings } from './useSettings'
 
 /**
  * The companion window: its onboarding on the first run (until it's gone through), then the room it ends in.
- * The truck's screen stays in its dark room, turned aside at the right, the live WestPlay on it; the
+ * The truck's screen stays in its dark room, turned aside at the right, the live Cabin Play on it; the
  * sections are a list at the left, each with what it is now; the page in between. Each section shows on the
  * screen what it's about (its app, its banner, the cursor using it), as the onboarding's steps did.
  */
@@ -77,14 +78,13 @@ export function Companion() {
   )
 }
 
-const SECTIONS: SectionId[][] = [
+const SECTIONS: Section[][] = [
   ['screen', 'controls', 'customize'],
-  ['accounts', 'map'],
-  ['setup', 'about'],
-  ['support'],
+  ['accounts', 'map', 'profiles'],
+  ['phone', 'setup', 'about'],
 ]
-/** The sections in order: the tutorial's tour goes through them. */
-const TOUR = SECTIONS.flat()
+/** The sections in order: the tutorial's tour goes through them, the phone's aside (it has no step of its own). */
+const TOUR: Section[] = SECTIONS.flat().filter((id) => id !== 'phone')
 
 /** The room as it is: the tutorial's lesson (the screen full size), its tour of the sections, its end
  * (what to do in the game), or the companion. */
@@ -92,18 +92,6 @@ type Phase = 'lesson' | 'tour' | 'launch' | 'room'
 
 /** Where the screen stands in each. */
 const POSE: Record<Phase, Pose> = { lesson: 'full', tour: 'aside', launch: 'final', room: 'aside' }
-
-/** The light the screen casts while each section is up. */
-const SECTION_GLOW: Record<SectionId, string> = {
-  screen: GLOW.home,
-  controls: GLOW.home,
-  customize: GLOW.home,
-  accounts: GLOW.youtube,
-  map: GLOW.maps,
-  setup: GLOW.scan,
-  about: GLOW.dashboard,
-  support: GLOW.home,
-}
 
 /** How long a page's words take to leave before the next one's arrive. */
 const LEAVE_MS = 220
@@ -127,14 +115,16 @@ function Room({
   const [code] = useState(() => setup.language ?? languageOf(navigator.languages))
   const words = wordsFor(code)
   const cw = companionWords(code)
-  const [section, setSection] = useState<SectionId>('screen')
+  const accent = accentOf(settings.settings?.companion.accent)
+  const screenNow = screenState(status)
+  const [section, setSection] = useState<Section>('screen')
   const [leaving, setLeaving] = useState(false)
   const [phase, setPhase] = useState<Phase>(tutorial ?? 'room')
   // The screen comes out of the dive the onboarding ended in, to where the phase has it.
   const [arrivedPose, setArrivedPose] = useState(false)
   const pose: Pose = arrivedPose ? POSE[phase] : 'dive'
   const interactionKey = settings.settings?.interaction.key ?? DEFAULT_KEY
-  const held = useHeldKey(interactionKey, settings.settings?.interaction.mode ?? 'hold', phase === 'lesson')
+  const held = useHeldKey(interactionKey, settings.settings?.interaction.mode ?? 'toggle', phase === 'lesson')
   const demo = useDemo()
   const [powered, setPowered] = useState(false)
   const [banner, setBanner] = useState<Banner | null>(null)
@@ -146,15 +136,11 @@ function Room({
   // Who's signed in, known at once (what was last known), and asked as the companion opens if never known.
   const signedIn = useSignedIn(status)
   useAskOnce()
-  // The uninstall sheet over the room, and the room fading as WestPlay leaves.
+  // The uninstall sheet over the room, and the room fading as Cabin Play leaves.
   const [uninstalling, setUninstalling] = useState(false)
   const [leavingPc, setLeavingPc] = useState(false)
-  // An update found, offered in its sheet once per version (Later puts it off; About opens it again).
-  const update = useUpdateOffer()
   // The player's wallpapers and icon sets, for Customize and the room's screen.
   const { custom, refresh: refreshCustom } = useCustomizations()
-  const [updateShown, setUpdateShown] = useState(false)
-  const offered = useRef<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const arrived = useRef(performance.now() + ARRIVE_MS)
 
@@ -206,7 +192,7 @@ function Room({
     settling: () => Math.max(0, arrived.current - performance.now()),
   }
 
-  // On as soon as WestPlay in it is ready: it's been on all along (the player dove into it).
+  // On as soon as Cabin Play in it is ready: it's been on all along (the player dove into it).
   useEffect(() => {
     if (!demo.ready || powered) return
     send({ type: 'power', on: true })
@@ -224,7 +210,7 @@ function Room({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapKey, demo.ready, send])
 
-  const open = (next: SectionId) => {
+  const open = (next: Section) => {
     if (next === section || leaving) return
     setLeaving(true)
     window.setTimeout(() => {
@@ -246,14 +232,16 @@ function Room({
     else open(TOUR[at + 1])
   }
   const roomShown = phase === 'tour' || phase === 'room'
-  useEffect(() => {
-    if (!update || phase !== 'room' || offered.current === update.version) return
-    offered.current = update.version
-    setUpdateShown(true)
-  }, [update, phase])
 
   // The maps being prepared, worked out once: the Map page's bar and the sidebar show the same.
   const mapProgress = useMapProgress(status)
+  const switchProfile = (id: string) => {
+    const s = settings.settings
+    if (s?.cabin) {
+      s.cabin.currentProfileId = id
+      settings.update(s)
+    }
+  }
   const page = {
     status,
     settings,
@@ -264,8 +252,6 @@ function Room({
     checked: setCheck,
     signedIn,
     uninstall: () => setUninstalling(true),
-    update,
-    showUpdate: () => setUpdateShown(true),
     custom,
     refreshCustom,
     tutorial: () => setPhase('lesson'),
@@ -278,9 +264,12 @@ function Room({
       data-power={powered || undefined}
       data-leaving-pc={leavingPc || undefined}
       data-phase={phase}
-      style={{ '--section-glow': SECTION_GLOW[section] } as CSSProperties}
+      data-accent={accent.id}
+      style={{ '--signal': accent.signal, '--signal-rgb': accent.rgb } as CSSProperties}
       onPointerMove={tilt}
     >
+      {/* The light of the open section, on the stage the screen stands on (companion.css .cp-stage). */}
+      <div className="cp-stage" aria-hidden />
       <TruckScreen frame={demo.frame} ready={demo.ready} pose={pose} glow={glow} banner={banner} scanning={scanning}>
         <GlassCursor
           x={cursor?.x ?? 640}
@@ -290,6 +279,15 @@ function Room({
         />
         {phase === 'lesson' && <TouchLayer active={held} press={(at) => send({ type: 'press', ...at })} />}
       </TruckScreen>
+      {phase === 'room' && (
+        <div className="cp-screen-status" data-state={screenNow} aria-hidden="true">
+          <span>Cabin Play</span>
+          <b>
+            <i />
+            {cw.state[screenNow]}
+          </b>
+        </div>
+      )}
       <WordsContext.Provider value={{ words, code }}>
         <RoomText.Provider value={{ locale: words.locale, back: words.back }}>
           <ScreenContext.Provider value={screen}>
@@ -323,8 +321,8 @@ function Room({
                 signedIn={signedIn}
                 settings={settings}
                 setup={setup}
-                update={update}
                 mapProgress={mapProgress}
+                switchProfile={switchProfile}
               />
             )}
             {roomShown && section === 'screen' && <ScreenPage {...page} />}
@@ -332,17 +330,15 @@ function Room({
             {roomShown && section === 'customize' && <Customize {...page} />}
             {roomShown && section === 'accounts' && <Accounts {...page} />}
             {roomShown && section === 'map' && <MapPage {...page} />}
+            {roomShown && section === 'profiles' && <ProfilesPage cw={cw} />}
+            {roomShown && section === 'phone' && <PhonePage {...page} />}
             {roomShown && section === 'setup' && <Setup {...page} />}
             {roomShown && section === 'about' && <About {...page} />}
-            {roomShown && section === 'support' && <Support {...page} />}
-            {phase === 'tour' && (
+            {phase === 'tour' && section !== 'phone' && (
               <TourCard cw={cw} section={section} last={section === TOUR[TOUR.length - 1]} next={nextInTour} />
             )}
             {uninstalling && (
               <UninstallSheet cw={cw} close={() => setUninstalling(false)} farewell={() => setLeavingPc(true)} />
-            )}
-            {updateShown && update && !uninstalling && (
-              <UpdateSheet cw={cw} offer={update} close={() => setUpdateShown(false)} />
             )}
             {phase === 'room' && <FinishUpdate cw={cw} setup={setup} />}
           </ScreenContext.Provider>
@@ -353,8 +349,8 @@ function Room({
 }
 
 /**
- * The sections, at the left: WestPlay's name and where it is now, then each section with what it is now
- * (WestPlay on or off, the key, who's signed in, the map, the game's version, WestPlay's own or an update), in
+ * The sections, at the left: Cabin Play's name and where it is now, then each section with what it is now
+ * (Cabin Play on or off, the key, who's signed in, the map, the game's version, Cabin Play's own or an update), in
  * groups. The one that's open is lit by a capsule of glass that glides from section to section.
  */
 function SectionList({
@@ -366,19 +362,19 @@ function SectionList({
   signedIn,
   settings,
   setup,
-  update,
   mapProgress,
+  switchProfile,
 }: {
-  section: SectionId
-  open(section: SectionId): void
+  section: Section
+  open(section: Section): void
   cw: CompanionWords
   words: Words
   status: HostStatus | null
   signedIn: SignedIn
   settings: SettingsState
   setup: SetupState
-  update: Offer | null
   mapProgress: MapProgress
+  switchProfile(id: string): void
 }) {
   const list = useRef<HTMLElement>(null)
   const [lit, setLit] = useState<{ top: number; height: number } | null>(null)
@@ -391,7 +387,7 @@ function SectionList({
     if (row) setLit({ top: row.offsetTop, height: row.offsetHeight })
   }, [section])
 
-  const value: Record<SectionId, string> = {
+  const value = useMemo<Record<Section, string>>(() => ({
     screen:
       state === 'live'
         ? cw.values.on
@@ -411,45 +407,65 @@ function SectionList({
             .filter(Boolean)
             .join(', ') || cw.values.none,
     map: mapValue(status, mapProgress, cw, words),
+    // The phone's own line: the name it gave, while it's connected.
+    phone: status?.phone?.connected ? (status.phone.device?.name ?? cw.phone.connected) : '',
+    profiles: '',
     setup: setup.game?.version ?? '',
-    about: update ? cw.update.badge : version,
-    support: '',
-  }
+    about: version,
+  }), [state, cw.values.on, cw.values.off, cw.values.waiting, cw.screen.screenUnsupported, keyName, signedIn.youtube, signedIn.spotify, signedIn.appleMusic, cw.values.none, mapValue(status, mapProgress, cw, words), status?.phone?.connected, status?.phone?.device?.name, cw.phone.connected, setup.game?.version, version])
 
   let place = 2
   return (
-    <nav ref={list} className="cp-list" aria-label="WestPlay">
+    <nav ref={list} className="cp-list" aria-label="Cabin Play">
+      {/* The name, then its state on a line of its own: in a narrow dock the state beside the name was cut
+          mid-word by the rail's edge (companion.css .cp-brand). */}
       <header className="cp-brand ob-in" style={n(0)}>
-        <img src="/westplay.png" alt="" />
-        <span>
-          <b>WestPlay</b>
-          <span className="cp-state" data-state={state}>
-            <i />
-            {cw.state[state]}
-          </span>
+        <img src="/cabinplay.png" alt="" />
+        <b>Cabin Play</b>
+        <span className="cp-state" data-state={state} aria-live="polite">
+          <i />
+          {cw.state[state]}
         </span>
       </header>
-      {lit && <i className="cp-lit" style={{ top: lit.top, height: lit.height }} />}
-      {SECTIONS.map((group, g) => (
-        <div key={g} className="cp-group">
-          {group.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className="cp-row ob-in"
-              style={n(place++)}
-              data-section={id}
-              data-here={id === section || undefined}
-              onClick={() => open(id)}
-            >
-              <b>{cw.sections[id]}</b>
-              <span>{value[id]}</span>
-            </button>
-          ))}
-        </div>
-      ))}
+      <ProfileSelector settings={settings} switchProfile={switchProfile} />
+      <div className="cp-nav-scroll">
+        {lit && <i className="cp-lit" style={{ top: lit.top, height: lit.height }} />}
+        {SECTIONS.map((group, g) => (
+          <div key={g} className="cp-group">
+            {group.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="cp-row ob-in"
+                style={n(place++)}
+                data-section={id}
+                data-here={id === section || undefined}
+                aria-current={id === section ? 'page' : undefined}
+                onClick={() => open(id)}
+              >
+                <span className="cp-row-icon">
+                  <SectionGlyph id={id} />
+                </span>
+                {/* What it is now under what it is: the rail is narrow, so they stack rather than push each other
+                    out (companion.css .cp-row-text). */}
+                <span className="cp-row-text">
+                  <b>{sectionName(cw, id)}</b>
+                  <span key={value[id]} className="cp-row-value" data-value="">
+                    {value[id]}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
     </nav>
   )
+}
+
+/** A section's name: the phone's is its own block of words, the rest are the list's. */
+function sectionName(cw: CompanionWords, id: Section): string {
+  return id === 'phone' ? cw.phone.phone : cw.sections[id]
 }
 
 function mapValue(status: HostStatus | null, progress: MapProgress, cw: CompanionWords, words: Words): string {
@@ -470,13 +486,102 @@ function mapValue(status: HostStatus | null, progress: MapProgress, cw: Companio
   }
 }
 
-/** WestPlay's version, once the app has said. */
+/** Cabin Play's version, once the app has said. */
 function useVersion(): string {
   const [version, setVersion] = useState('')
   useEffect(() => {
     appVersion().then(setVersion, () => setVersion(''))
   }, [])
   return version
+}
+
+/** A sidebar row that shows the current profile and opens a dropdown to switch profiles. */
+function ProfileSelector({ settings, switchProfile }: { settings: SettingsState; switchProfile(id: string): void }) {
+  const profiles = settings.settings?.cabin.profiles ?? []
+  const currentId = settings.settings?.cabin.currentProfileId ?? ''
+  const current = profiles.find((p) => p.id === currentId)
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  if (profiles.length === 0) return null
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        setOpen(true)
+      }
+      return
+    }
+    const options = dropdownRef.current?.querySelectorAll<HTMLButtonElement>('.cp-profile-option')
+    if (!options || options.length === 0) return
+    const active = dropdownRef.current?.querySelector<HTMLButtonElement>('.cp-profile-option:focus')
+    const idx = active ? Array.from(options).indexOf(active) : -1
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        options[(idx + 1) % options.length]?.focus()
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        options[(idx - 1 + options.length) % options.length]?.focus()
+        break
+      case 'Escape':
+        e.preventDefault()
+        setOpen(false)
+        ;(e.target as HTMLElement).closest<HTMLButtonElement>('.cp-profile-btn')?.focus()
+        break
+      case 'Tab':
+        setOpen(false)
+        break
+    }
+  }
+
+  return (
+    <div className="cp-profile-selector" data-open={open ? '' : undefined}>
+      <button
+        type="button"
+        className="cp-profile-btn"
+        onClick={() => setOpen(!open)}
+        onKeyDown={handleKeyDown}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        {current?.picture ? (
+          <img className="cp-profile-pic" src={current.picture} alt="" />
+        ) : (
+          <span className="cp-profile-avatar">{(current?.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
+        )}
+        <span className="cp-profile-name">{current?.name ?? ''}</span>
+      </button>
+      {open && (
+        <div className="cp-profile-dropdown" ref={dropdownRef} role="listbox" aria-label="Profiles">
+          {profiles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="option"
+              aria-selected={p.id === currentId}
+              className={`cp-profile-option${p.id === currentId ? ' active' : ''}`}
+              onClick={() => {
+                switchProfile(p.id)
+                setOpen(false)
+              }}
+            >
+              {p.picture ? (
+                <img className="cp-profile-pic" src={p.picture} alt="" />
+              ) : (
+                <span className="cp-profile-avatar">{(p.name ?? '?')[0]?.toUpperCase() ?? '?'}</span>
+              )}
+              <span className="cp-profile-option-name">{p.name}</span>
+              {p.id === currentId && <span className="cp-profile-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 /** The window starts hidden (so it never shows blank while this page loads): it shows once `ready`, after the

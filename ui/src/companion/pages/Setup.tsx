@@ -3,12 +3,14 @@ import { Button, Checking, Group, Note, Panel, Row, Status, Tick } from '../room
 import { banner, explain, gameSummary, useGameRunning, useWords } from '../room/room'
 import { GLOW, useScreen, useScreenAt } from '../room/screen'
 import { checkGame, type InstallReport, installIntoGame } from '../setup'
+import { SectionGlyph } from './glyphs'
 import { type PageProps, useGameCheck } from './page'
 
 /**
- * Where WestPlay is installed and how to put it right: the game it's in, the plugin as it is
+ * Where Cabin Play is installed and how to put it right: the game it's in, the plugin as it is
  * there, and a reinstall (the onboarding's install, again, while the game is closed). On the room's
- * screen, the check's scan while the game is looked at, and WestPlay booting again after a reinstall.
+ * screen, the check's scan while the game is looked at, and Cabin Play booting again after a reinstall.
+ * The paired phone has a page of its own beside this one (PhonePage).
  */
 export function Setup(props: PageProps) {
   const { setup, cw, check, checked, uninstall, tutorial } = props
@@ -68,6 +70,7 @@ export function Setup(props: PageProps) {
       place="page"
       title={w.title}
       sub={w.sub}
+      icon={<SectionGlyph id="setup" />}
       action={
         game && (
           <Button glass onClick={() => reinstall(asAdministrator)} busy={installing} disabled={running !== false}>

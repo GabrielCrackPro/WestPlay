@@ -33,6 +33,93 @@ pub struct Settings {
     pub graphics: GraphicsSettings,
     #[serde(deserialize_with = "lenient")]
     pub sound: SoundSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub voice: VoiceSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub cabin: CabinSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub companion: CompanionSettings,
+}
+
+/// A driver profile: keeps its own settings snapshot.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DriverProfile {
+    pub id: String,
+    pub name: String,
+    /// A profile picture as a data URL (e.g. `data:image/png;base64,…`); empty when none is set.
+    #[serde(default)]
+    pub picture: String,
+    /// Cabin settings snapshot as JSON, stored when the profile is switched away from.
+    #[serde(default)]
+    pub settings_snapshot: Option<serde_json::Value>,
+}
+
+static PROFILE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+impl Default for DriverProfile {
+    fn default() -> Self {
+        Self {
+            id: format!("profile-{}", PROFILE_COUNTER.fetch_add(1, Ordering::Relaxed)),
+            name: String::new(),
+            picture: String::new(),
+            settings_snapshot: None,
+        }
+    }
+}
+
+/// The cabin's own session between launches: whether it opens where the last game left it, and the driver
+/// profiles each with their own settings.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CabinSettings {
+    /// Whether the screen and app the player was in come back at the next launch (the cab page keeps them). Off:
+    /// Cabin Play opens on the Dashboard every time.
+    #[serde(deserialize_with = "lenient")]
+    pub resume: bool,
+    /// Driver profiles: each keeps its own settings.
+    #[serde(deserialize_with = "lenient")]
+    pub profiles: Vec<DriverProfile>,
+    /// The active profile's id.
+    #[serde(deserialize_with = "lenient")]
+    pub current_profile_id: String,
+}
+
+impl CabinSettings {
+    /// Ensure the current profile id is valid. If no profiles exist yet, leave it empty — the onboarding
+    /// will create the first profile.
+    pub fn ensure_default(&mut self) {
+        // If the current profile was removed, fall back to the first available profile
+        if !self.profiles.iter().any(|p| p.id == self.current_profile_id) {
+            if let Some(first) = self.profiles.first() {
+                self.current_profile_id = first.id.clone();
+            } else {
+                self.current_profile_id = String::new();
+            }
+        }
+    }
+}
+
+/// The companion window's own look: the color its chrome lights up with (the Customize picker).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CompanionSettings {
+    #[serde(deserialize_with = "lenient")]
+    pub accent: Accent,
+}
+
+/// The accent colors the companion's chrome can light up with. The names are the settings' values;
+/// the companion maps them to its palette.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Accent {
+    #[default]
+    Ember,
+    Mint,
+    Sky,
+    Rose,
+    Violet,
+    Gold,
 }
 
 /// The sound the players play: its tone (the cab's Settings › Equalizer), the same in every truck. As iOS's
@@ -54,6 +141,66 @@ impl SoundSettings {
     pub fn playing(&self) -> crate::speakers::Equalizer {
         if self.custom { self.equalizer.clamped() } else { crate::speakers::Equalizer::default() }
     }
+}
+
+/// The cabin's voice assistant: whether its button and push-to-talk hotkey are live, the chord that starts it,
+/// and whether the background wake phrase listens too.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct VoiceSettings {
+    #[serde(default = "on")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub hotkey: VoiceHotkey,
+    /// Whether "Hey Cabin" starts the assistant without the chord. Off by default: while it is on, the
+    /// microphone stays open for the phrase.
+    #[serde(default)]
+    pub wake: bool,
+}
+
+impl Default for VoiceSettings {
+    fn default() -> Self {
+        Self { enabled: true, hotkey: VoiceHotkey::default(), wake: false }
+    }
+}
+
+/// The chord that starts the cabin's voice assistant. Ctrl+Shift+Space by default, and any key with Ctrl,
+/// Shift or Alt held around it in the companion.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct VoiceHotkey {
+    pub key: KeyCode,
+    pub ctrl: bool,
+    pub shift: bool,
+    pub alt: bool,
+}
+
+impl Default for VoiceHotkey {
+    fn default() -> Self {
+        Self { key: KeyCode(0x20), ctrl: true, shift: true, alt: false }
+    }
+}
+
+impl VoiceHotkey {
+    /// The chord as the cab's Settings and the companion show it ("Ctrl + Shift + Space").
+    pub fn label(&self) -> String {
+        let mut keys = Vec::new();
+        if self.ctrl {
+            keys.push("Ctrl".to_owned());
+        }
+        if self.shift {
+            keys.push("Shift".to_owned());
+        }
+        if self.alt {
+            keys.push("Alt".to_owned());
+        }
+        keys.push(KeyCode::name(self.key.virtual_key()).unwrap_or_else(|| format!("0x{:02X}", self.key.virtual_key())));
+        keys.join(" + ")
+    }
+}
+
+fn on() -> bool {
+    true
 }
 
 /// Which GPU the cab is drawn on (the companion's Truck Screen): one the player chose, by its id
@@ -78,12 +225,13 @@ pub struct LookSettings {
     /// One of the player's icon sets, by name. None: WestPlay's own icons.
     #[serde(deserialize_with = "lenient")]
     pub icon_set: Option<String>,
-    /// Light or dark icons, or (`auto`) as the screen is.
+    /// Light or dark icons, (`auto`) as the screen is, or (`android`) as Android Auto draws them.
     #[serde(deserialize_with = "lenient")]
     pub icon_style: IconStyle,
 }
 
-/// Which of an icon's looks the screen shows: as the screen is (light or dark), or always one.
+/// Which of an icon's looks the screen shows: as the screen is (light or dark), always one, or Android Auto's,
+/// which are WestPlay's own (an icon set's files are a light or a dark one).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum IconStyle {
@@ -91,6 +239,7 @@ pub enum IconStyle {
     Auto,
     Light,
     Dark,
+    Android,
 }
 
 /// Using the truck screen: hold the interaction key (or press it, toggled), and the mouse moves a cursor on
@@ -111,8 +260,8 @@ pub struct InteractionSettings {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum InteractionMode {
-    #[default]
     Hold,
+    #[default]
     Toggle,
 }
 
@@ -267,8 +416,8 @@ pub struct ScreenSettings {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TruckStrip {
-    #[default]
     Auto,
+    #[default]
     Off,
 }
 
@@ -361,20 +510,9 @@ impl SettingsFile {
 
     /// The saved settings, or the defaults when there are none. A file that can't be read is set aside.
     pub fn load(&self) -> Settings {
-        let json = match std::fs::read_to_string(&self.path) {
-            Ok(json) => json,
-            Err(e) if e.kind() == io::ErrorKind::NotFound => return Settings::default(),
-            Err(e) => {
-                log!("cannot read {}: {e}", self.path.display());
-                return Settings::default();
-            }
-        };
-        parse(&json).unwrap_or_else(|e| {
-            let aside = self.path.with_extension("json.bad");
-            log!("{} is not valid ({e}); moved to {}", self.path.display(), aside.display());
-            let _ = std::fs::rename(&self.path, aside);
-            Settings::default()
-        })
+        let mut settings = load_settings(&self.path);
+        settings.cabin.ensure_default();
+        settings
     }
 
     /// Writes the settings; a crash midway leaves the previous file intact.
@@ -386,6 +524,23 @@ impl SettingsFile {
         std::fs::write(&partial, to_json(settings))?;
         std::fs::rename(partial, &self.path)
     }
+}
+
+fn load_settings(path: &Path) -> Settings {
+    let json = match std::fs::read_to_string(path) {
+        Ok(json) => json,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Settings::default(),
+        Err(e) => {
+            log!("cannot read {}: {e}", path.display());
+            return Settings::default();
+        }
+    };
+    parse(&json).unwrap_or_else(|e| {
+        let aside = path.with_extension("json.bad");
+        log!("{} is not valid ({e}); moved to {}", path.display(), aside.display());
+        let _ = std::fs::rename(path, aside);
+        Settings::default()
+    })
 }
 
 /// The current settings, shared between the app (which changes them) and the host thread (which applies
@@ -451,12 +606,25 @@ mod tests {
                 equalizer: crate::speakers::Equalizer { bass: -3, mid: 1, treble: 2 },
                 custom: true,
             },
+            voice: VoiceSettings { enabled: false, wake: true, ..VoiceSettings::default() },
+            cabin: CabinSettings {
+                resume: true,
+                profiles: vec![
+                    DriverProfile { id: "home".into(), name: "Home".into(), picture: String::new(), settings_snapshot: None },
+                    DriverProfile { id: "work".into(), name: "Work".into(), picture: String::new(), settings_snapshot: Some(serde_json::json!({"accentColor": "#ff0000"})) },
+                ],
+                current_profile_id: "work".into(),
+            },
+            companion: CompanionSettings { accent: Accent::Gold },
         };
         let json = to_json(&settings);
         assert!(json.contains("\"version\": 2"), "{json}");
         assert!(json.contains("\"key\": 5"), "{json}");
         assert!(json.contains("\"mode\": \"toggle\""), "{json}");
         assert!(json.contains("\"truckStrip\": \"off\""), "{json}");
+        assert!(json.contains("\"resume\": true"), "{json}");
+        assert!(json.contains("\"wake\": true"), "{json}");
+        assert!(json.contains("\"accent\": \"gold\""), "{json}");
         assert_eq!(parse(&json).unwrap(), settings);
     }
 
@@ -465,7 +633,7 @@ mod tests {
         assert_eq!(parse(r#"{"version": 1}"#).unwrap(), Settings::default());
         let partial = parse(r#"{"version": 1, "interaction": {"sensitivity": 2.0}}"#).unwrap();
         assert_eq!(partial.interaction.key, KeyCode::LEFT_ALT);
-        assert_eq!(partial.interaction.mode, InteractionMode::Hold);
+        assert_eq!(partial.interaction.mode, InteractionMode::Toggle);
         assert_eq!(partial.interaction.sensitivity.get(), 2.0);
         // From before the keybinds: the interaction key with 1 (down), 2 (play/pause) and 3 (up).
         assert_eq!(partial.keybinds, Keybinds::default());
@@ -474,10 +642,22 @@ mod tests {
             [partial.keybinds.volume_down, partial.keybinds.play_pause, partial.keybinds.volume_up],
             [with_key(0x31), with_key(0x32), with_key(0x33)]
         );
-        // Files from before the truck strip was a setting keep it on Auto.
-        assert_eq!(partial.screen.truck_strip, TruckStrip::Auto);
+        // Files from before the truck strip was a setting keep it off by default.
+        assert_eq!(partial.screen.truck_strip, TruckStrip::Off);
         // And from before the GPU was: WestPlay picks it.
         assert_eq!(partial.graphics.gpu, None);
+        // The voice assistant is on for a file from before it was a setting, listening for Ctrl+Shift+Space;
+        // the wake phrase, from before it existed, waits off.
+        assert!(partial.voice.enabled);
+        assert_eq!(partial.voice.hotkey, VoiceHotkey::default());
+        assert!(!partial.voice.wake);
+        // Windows names the key in the player's layout ("Space", "BARRA ESPACIADORA"): only the chord's
+        // modifiers are fixed.
+        assert!(partial.voice.hotkey.label().starts_with("Ctrl + Shift + "));
+        // And from before the cabin's own session was a setting: the Dashboard, every launch.
+        assert!(!partial.cabin.resume);
+        // And from before the companion had an accent: the default signal orange.
+        assert_eq!(partial.companion.accent, Accent::Ember);
     }
 
     #[test]
@@ -489,7 +669,7 @@ mod tests {
         assert_eq!(settings.interaction.key.virtual_key(), 0xa3);
         assert_eq!(settings.interaction.sensitivity, Sensitivity::default());
         let settings = parse(r#"{"screen": {"truckStrip": "sideways"}, "interaction": {"key": "rightCtrl"}}"#).unwrap();
-        assert_eq!(settings.screen.truck_strip, TruckStrip::Auto);
+        assert_eq!(settings.screen.truck_strip, TruckStrip::Off);
         assert_eq!(settings.interaction.key.virtual_key(), 0xa3);
         // A key no keyboard has, and a binding missing its key: their defaults.
         let settings =
@@ -510,6 +690,11 @@ mod tests {
         );
         // Not an object at all: every default.
         assert_eq!(parse(r#"{"version": 2, "keybinds": 4}"#).unwrap().keybinds, defaults);
+        // An accent from a newer build takes the default.
+        assert_eq!(
+            parse(r#"{"version": 2, "companion": {"accent": "ultraviolet"}}"#).unwrap().companion.accent,
+            Accent::Ember
+        );
     }
 
     #[test]

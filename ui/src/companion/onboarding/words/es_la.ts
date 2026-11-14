@@ -8,10 +8,10 @@ export const words: Words = {
   locale: 'es-419',
   game: {
     ...spain.game,
-    found: 'WestPlay encontró Euro Truck Simulator 2 en esta computadora.',
+    found: 'Cabin Play encontró Euro Truck Simulator 2 en esta computadora.',
     foundMany: 'Euro Truck Simulator 2 está instalado en más de un lugar. Elige el que usas para jugar.',
     missing:
-      'WestPlay no encontró Euro Truck Simulator 2. Elige la carpeta donde lo instalaste, la que contiene base.scs.',
+      'Cabin Play no encontró Euro Truck Simulator 2. Elige la carpeta donde lo instalaste, la que contiene base.scs.',
   },
   check: {
     ...spain.check,
@@ -31,14 +31,14 @@ export const words: Words = {
       text: 'Sin él no se puede instalar el plugin. Vuelve a intentarlo y elige «Sí».',
     },
     pluginFailed: 'No se pudo instalar el plugin.',
-    modFailed: 'No se pudieron preparar las pantallas de WestPlay para el camión a partir de tu juego.',
+    modFailed: 'No se pudieron preparar las pantallas de Cabin Play para el camión a partir de tu juego.',
     noDocuments: 'No se encontró tu carpeta Documentos.',
   },
   map: {
     ...spain.map,
     banners: {
       ...spain.map.banners,
-      failed: { title: 'No se pudo preparar el mapa', text: 'WestPlay lo volverá a intentar más tarde' },
+      failed: { title: 'No se pudo preparar el mapa', text: 'Cabin Play lo volverá a intentar más tarde' },
     },
   },
   controls: {

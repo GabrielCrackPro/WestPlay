@@ -1,16 +1,17 @@
 //! What WestPlay takes from the player's game files, watched while it runs: from the newest save of the
-//! profile the game has selected (or the save it last wrote: `westplay_mapdata::save`), the garages they own; from that save's profile, the mods they play
-//! with (a map WestPlay doesn't allow) and its time zones option (the profile's `config.cfg`); from the
-//! game's config, its language. The game saves often (autosaves as the player drives), so a garage bought
-//! shows as theirs on the map soon after. Read off the host's own thread (decrypting and reading a save
-//! takes a moment), and only when a newer save appears or the profile's options are saved. For a truck whose
-//! speakers come with its parts, the speakers of the parts the save has on it (fitted.rs), found again when the
-//! truck or its parts change.
+//! profile the game has selected (or the save it last wrote: `westplay_mapdata::save`), their garages and
+//! career totals; from that save's profile, the mods they play with (a map WestPlay doesn't allow) and its
+//! time zones option (the profile's `config.cfg`); from the game's config, its language. The game saves often
+//! (autosaves as the player drives), so career stats stay current. Read off the host's own thread (decrypting
+//! and reading a save takes a moment), and only when a newer save appears or the profile's files change. For
+//! a truck whose speakers come with its parts, the speakers of the parts the save has on it (fitted.rs),
+//! found again when the truck or its parts change.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::time::{Duration, Instant, SystemTime};
 
+use serde::Serialize;
 use westplay_mapdata::locale;
 use westplay_mapdata::save::{self, Garages};
 use westplay_setup::profiles::{self, find_mod, is_hvt_map};
@@ -27,6 +28,7 @@ const CHECK_EVERY: Duration = Duration::from_secs(10);
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Player {
     pub garages: Garages,
+    pub career: CareerStats,
     /// The player's profile plays on a map by HVT (Heavy Vehicles Turkey), which WestPlay doesn't allow.
     pub hvt_map: bool,
     /// The game's language (`tr_tr`…), from its config.
@@ -34,6 +36,24 @@ pub struct Player {
     /// The profile has the game's time zones on (Options › Gameplay › Time zones: "Only time" or "Full
     /// info"): the game's clock shows the time of the country the truck is in.
     pub time_zones: bool,
+}
+
+/// Lifetime totals the game actually keeps in its latest save. Delivery-by-delivery history is not stored
+/// in the save's delivery log, so it is intentionally not inferred from unrelated job or economy events.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CareerStats {
+    pub profile_name: Option<String>,
+    pub experience_points: Option<u64>,
+    /// The save stores this in metres.
+    pub total_distance_meters: Option<f64>,
+    pub total_fuel_litres: Option<f64>,
+    /// Career-wide game-clock time across all game modes, seconds.
+    pub game_time_seconds: Option<f64>,
+    /// Career-wide real-world play time across all game modes, seconds.
+    pub real_time_seconds: Option<f64>,
+    pub visited_cities: Option<u64>,
+    pub cancelled_jobs: Option<u64>,
 }
 
 /// The speakers of the parts of the truck the SDK names (`None`: not found in the save, or no part with any).
@@ -65,7 +85,7 @@ impl PlayerWatch {
             let game = game::find().into_iter().next();
             // Steam Cloud keeps the game's profiles under Steam's `userdata`.
             let userdata = places::steam().map(|dir| dir.join("userdata")).filter(|dir| dir.is_dir());
-            let mut last: Option<(PathBuf, SystemTime, Option<SystemTime>)> = None;
+            let mut last: Option<(PathBuf, SystemTime, Option<SystemTime>, Option<SystemTime>)> = None;
             // The truck the player is in, the save's trucks and the profile's mods' files (in load order), and
             // what the parts' speakers were last found from.
             let mut truck: Option<TruckInfo> = None;
@@ -87,15 +107,23 @@ impl PlayerWatch {
                 // The profile's options (its time zones) are saved apart from its saves.
                 let options = stamped.as_ref().and_then(|(_, path)| profile_config(path));
                 let options_written = options.as_deref().and_then(|file| std::fs::metadata(file).ok()?.modified().ok());
+                let profile = stamped.as_ref().and_then(|(_, path)| save::profile_of(path));
+                let profile_written = profile.as_deref().and_then(|file| std::fs::metadata(file).ok()?.modified().ok());
                 if let Some((modified, path)) = stamped
-                    && last.as_ref() != Some(&(path.clone(), modified, options_written))
+                    && last.as_ref() != Some(&(path.clone(), modified, options_written, profile_written))
                 {
                     match read_units(&path) {
                         Ok(units) => {
-                            let mods = save::profile_of(&path)
-                                .and_then(|profile| read_units(&profile).ok())
-                                .map(|units| save::active_mods(&units))
-                                .unwrap_or_default();
+                            let profile_units = profile.as_deref().filter(|file| file.is_file()).and_then(|file| {
+                                match read_units(file) {
+                                    Ok(units) => Some(units),
+                                    Err(error) => {
+                                        log!("profile {}: {error}", file.display());
+                                        None
+                                    }
+                                }
+                            });
+                            let mods = profile_units.as_deref().map(save::active_mods).unwrap_or_default();
                             let mod_dir = documents.as_deref().map(|dir| dir.join("mod")).unwrap_or_default();
                             let found: Vec<_> =
                                 mods.iter().map(|listed| find_mod(listed, game.as_ref(), &mod_dir)).collect();
@@ -106,6 +134,7 @@ impl PlayerWatch {
                             mod_files = found.into_iter().filter_map(|m| m.files).collect();
                             let player = Player {
                                 garages: save::garages(&units),
+                                career: career_stats(&units, profile_units.as_deref()),
                                 hvt_map,
                                 language: documents.as_deref().and_then(game_language),
                                 time_zones: options
@@ -119,7 +148,7 @@ impl PlayerWatch {
                         }
                         Err(error) => log!("save {}: {error}", path.display()),
                     }
-                    last = Some((path, modified, options_written));
+                    last = Some((path, modified, options_written, profile_written));
                 }
                 // The speakers of the truck's parts, found again when the truck, its parts or the mods change.
                 if let (Some(truck), Some(game)) = (truck, game.as_ref())
@@ -199,6 +228,43 @@ fn profile_config(save: &Path) -> Option<PathBuf> {
     Some(save::profile_of(save)?.parent()?.join("config.cfg"))
 }
 
+fn career_stats(units: &[westplay_mapdata::sii::Unit], profile: Option<&[westplay_mapdata::sii::Unit]>) -> CareerStats {
+    let economy = units.iter().find(|unit| unit.class == "economy");
+    let value = |key| economy.and_then(|unit| unit.get(key));
+    let profile_name = profile
+        .and_then(|units| units.iter().find(|unit| unit.class == "user_profile"))
+        .and_then(|unit| unit.get("profile_name"))
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned);
+
+    CareerStats {
+        profile_name,
+        experience_points: career_integer(value("experience_points")),
+        total_distance_meters: career_sum(economy, "total_distances_by_mode")
+            .or_else(|| career_number(value("total_distance"))),
+        total_fuel_litres: career_number(value("total_fuel_litres")),
+        game_time_seconds: career_sum(economy, "total_game_times_by_mode"),
+        real_time_seconds: career_sum(economy, "total_real_times_by_mode"),
+        visited_cities: career_integer(value("visited_cities_count")),
+        cancelled_jobs: career_integer(value("cancelled_job_count")),
+    }
+}
+
+fn career_number(value: Option<&str>) -> Option<f64> {
+    let value = value?.parse::<f64>().ok()?;
+    (value.is_finite() && value >= 0.0).then_some(value)
+}
+
+fn career_sum(unit: Option<&westplay_mapdata::sii::Unit>, key: &str) -> Option<f64> {
+    let values: Vec<_> = unit?.all(key).map(|value| career_number(Some(value))).collect::<Option<_>>()?;
+    (!values.is_empty()).then(|| values.into_iter().sum::<f64>()).filter(|sum| sum.is_finite())
+}
+
+fn career_integer(value: Option<&str>) -> Option<u64> {
+    value?.parse().ok()
+}
+
 /// Whether a profile's options (its `config.cfg`) have the game's time zones on: `uset g_time_zones "1"`
 /// ("Only time") or `"2"` ("Full info"); `"0"`, or none written, is off.
 fn time_zones(config: &str) -> bool {
@@ -214,6 +280,16 @@ fn time_zones(config: &str) -> bool {
 mod tests {
     use std::path::{Path, PathBuf};
 
+    use westplay_mapdata::sii::Unit;
+
+    fn unit(class: &str, name: &str, attributes: &[(&str, &str)]) -> Unit {
+        Unit {
+            class: class.into(),
+            name: name.into(),
+            attributes: attributes.iter().map(|(key, value)| ((*key).into(), (*value).into())).collect(),
+        }
+    }
+
     #[test]
     fn reads_whether_the_profile_has_time_zones_on() {
         assert!(!super::time_zones("uset g_hud_speed_limit \"1\"\nuset g_time_zones \"0\"\n"));
@@ -228,5 +304,60 @@ mod tests {
             super::profile_config(Path::new("profiles/57/save/autosave/game.sii")),
             Some(PathBuf::from("profiles/57/config.cfg"))
         );
+    }
+
+    #[test]
+    fn reads_career_totals_and_the_profile_name_from_the_save() {
+        let save = [unit(
+            "economy",
+            "economy",
+            &[
+                ("experience_points", "12345"),
+                ("total_distances_by_mode", "1000000"),
+                ("total_distances_by_mode", "250000"),
+                ("total_distances_by_mode", "0"),
+                ("total_fuel_litres", "810.5"),
+                ("total_game_times_by_mode", "108000"),
+                ("total_game_times_by_mode", "36000"),
+                ("total_real_times_by_mode", "36000"),
+                ("total_real_times_by_mode", "12000"),
+                ("visited_cities_count", "32"),
+                ("cancelled_job_count", "2"),
+            ],
+        )];
+        let profile = [unit("user_profile", "user_profile", &[("profile_name", "  Western  ")])];
+
+        assert_eq!(
+            super::career_stats(&save, Some(&profile)),
+            super::CareerStats {
+                profile_name: Some("Western".into()),
+                experience_points: Some(12345),
+                total_distance_meters: Some(1250000.0),
+                total_fuel_litres: Some(810.5),
+                game_time_seconds: Some(144000.0),
+                real_time_seconds: Some(48000.0),
+                visited_cities: Some(32),
+                cancelled_jobs: Some(2),
+            }
+        );
+    }
+
+    #[test]
+    fn uses_the_global_distance_counter_when_per_mode_totals_are_missing() {
+        let save = [unit("economy", "economy", &[("total_distance", "875000")])];
+
+        assert_eq!(super::career_stats(&save, None).total_distance_meters, Some(875000.0));
+    }
+
+    #[test]
+    fn leaves_missing_or_invalid_career_fields_unavailable() {
+        let save = [unit(
+            "economy",
+            "economy",
+            &[("experience_points", "-1"), ("total_distance", "NaN"), ("cancelled_job_count", "1.5")],
+        )];
+        let profile = [unit("user_profile", "user_profile", &[("profile_name", "  ")])];
+
+        assert_eq!(super::career_stats(&save, Some(&profile)), super::CareerStats::default());
     }
 }

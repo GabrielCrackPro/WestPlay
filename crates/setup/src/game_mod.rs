@@ -3,7 +3,9 @@
 //! their "screen on" group, the screen texture WestPlay draws into. Nothing of the game's is shipped: the
 //! scripts are the player's own copy's, patched, and the rest is WestPlay's.
 //!
-//! And the cab's mark in the dashboard scripts of the trucks the tablet goes in (`cab_mark`).
+//! And the cab's mark in the dashboard scripts of the trucks the tablet goes in, with WestPlay's digital cluster
+//! over the whole dashboard in the Scania S and R (2016) (`cab_mark`, [`patch_cluster_script`]): a texture of its
+//! own, filled from the cluster page's frame.
 //!
 //! Each layout's texture is SCREEN_WIDTH x (SCREEN_HEIGHT + the layout's index), so the plugin knows from its
 //! size which kind of screen the game draws. It starts fully transparent: until the plugin fills it, or with
@@ -23,7 +25,10 @@ use std::path::{Path, PathBuf};
 
 use westplay_mapdata::archive::Archive;
 use westplay_mapdata::files::{GameFiles, Mount};
-use westplay_shared::{CAB_MARK_HEIGHT, CAB_MARK_WIDTH, SCREEN_WIDTH, ScreenLayout, TABLET, screen_layouts};
+use westplay_shared::{
+    CAB_MARK_HEIGHT, CAB_MARK_WIDTH, CLUSTER_TEXTURE_HEIGHT, CLUSTER_WIDTH, SCREEN_WIDTH, ScreenLayout, TABLET,
+    screen_layouts,
+};
 
 use crate::cab_mark;
 
@@ -35,6 +40,9 @@ const SCREEN_DIR: &str = "material/ui/westplay";
 const SCREEN_LAYER: u32 = 100;
 /// The "screen on" group's id in the GPS scripts.
 const SCREEN_ON_GROUP: &str = "100";
+/// The instrument cluster's screen texture, drawn in the dashboard scripts of the trucks it replaces
+/// (`westplay_shared::CLUSTER_TRUCKS`).
+pub(crate) const CLUSTER_TEXTURE: &str = "screen_scania_cluster";
 
 /// A screen of WestPlay's own making, for interiors the game gives the same screen script as others: the Smart
 /// Dash Advanced (12.9") includes the same screens file as the 10.1" (`computers_2025.sui`, naming one GPS
@@ -544,6 +552,11 @@ pub fn build(
     files.push((cab_mark::LIST.to_owned(), cab_marks.list().into_bytes()));
     files.extend(cab_marks.scripts.iter().cloned());
     built.cab_marks = cab_marks.scripts.len();
+    // The instrument cluster's screen: a texture of its own, the same in every truck whose dashboard script
+    // draws it (the plugin fills it from the cluster page's frame).
+    files.push((format!("{SCREEN_DIR}/{CLUSTER_TEXTURE}.mat"), material(CLUSTER_TEXTURE).into_bytes()));
+    files.push((format!("{SCREEN_DIR}/{CLUSTER_TEXTURE}.tobj"), tobj(&format!("/{SCREEN_DIR}/{CLUSTER_TEXTURE}.dds"))));
+    files.push((format!("{SCREEN_DIR}/{CLUSTER_TEXTURE}.dds"), transparent_dds(CLUSTER_WIDTH, CLUSTER_TEXTURE_HEIGHT)));
     // The 7" screen at a size it shows sharp, if its interiors are as read (else the game's size stays, and
     // the build says why).
     match sharp_screen_files(game) {
@@ -754,6 +767,19 @@ pub fn patch_gps_script(text: &str, texture: &str, shown: Option<&ShownPart>) ->
     patched.extend(screen);
     patched.extend(lines[last_end + 1..].iter().map(|line| (*line).to_owned()));
     Ok(patched.join(newline))
+}
+
+/// Adds the cluster's screen (`texture`, `CLUSTER_TEXTURE`) to a dashboard script, over the whole cluster, and
+/// the cab's mark with it. The stock cluster stays beneath: the screen is fully transparent until the cluster
+/// page's frames arrive, and again when WestPlay is off.
+pub fn patch_cluster_script(text: &str, texture: &str) -> Result<String, String> {
+    if text.contains("_nameless.westplay.cluster") {
+        return Err("has the cluster screen already".into());
+    }
+    let marked = patch_dashboard_script(text, cab_mark::TEXTURE)?;
+    add_to_window(&marked, "_nameless.westplay.cluster", texture, |[left, right, top, bottom]| {
+        [left, right, top, bottom]
+    })
 }
 
 /// Adds the cab's mark (`texture`, `cab_mark`) to a dashboard script: a child of its window (its one block with no
@@ -1072,6 +1098,35 @@ mod tests {
         // Two windows: which is the dashboard's isn't known.
         let two = script.replace("\r\n\r\n}", "\r\nui::window : _nameless.v {\r\n my_parent: null\r\n}\r\n}");
         assert!(patch_dashboard_script(&two, "cab_mark").is_err());
+    }
+
+    #[test]
+    fn adds_the_cluster_screen_over_the_whole_dashboard_once() {
+        let script = "SiiNunit\r\n{\r\nui::window : _nameless.w {\r\n my_children: 0\r\n coords_l: 10\r\n coords_r: 500\r\n coords_t: 0\r\n coords_b: 300\r\n my_parent: null\r\n}\r\n\r\n}\r\n";
+        let patched = patch_cluster_script(script, CLUSTER_TEXTURE).unwrap();
+        // The cab's mark and the cluster's screen, both in the window; the screen over the whole of it.
+        assert!(patched.contains(" my_children: 2\r\n"), "{patched}");
+        assert!(patched.contains(" my_children[0]: _nameless.westplay.cab\r\n"), "{patched}");
+        assert!(patched.contains(" my_children[1]: _nameless.westplay.cluster\r\n"), "{patched}");
+        assert!(
+            patched.contains("<img src=/material/ui/westplay/screen_scania_cluster.mat xscale=stretch yscale=stretch>")
+        );
+        assert!(patched.contains(" coords_l: 10\r\n coords_r: 500\r\n coords_t: 0\r\n coords_b: 300\r\n"), "{patched}");
+        assert_eq!(patch_cluster_script(&patched, CLUSTER_TEXTURE), Err("has the cluster screen already".into()));
+    }
+
+    #[test]
+    fn adds_the_cluster_over_the_smart_dash_scripts_whole_window() {
+        // The Smart Dash's dashboard script (`ui/dashboard/scania_2025.sii`): 1440 x 540, eight children.
+        let script = "SiiNunit\n{\nui::window : _nameless.wnd {\n my_children: 8\n my_children[7]: _nameless._.display7\n coords_l: 0\n coords_r: 1440\n coords_t: 540\n coords_b: 0\n my_parent: null\n}\n\n}\n";
+        let patched = patch_cluster_script(script, CLUSTER_TEXTURE).unwrap();
+        assert!(patched.contains(" my_children: 10\n"), "{patched}");
+        assert!(patched.contains(" my_children[8]: _nameless.westplay.cab\n"), "{patched}");
+        assert!(patched.contains(" my_children[9]: _nameless.westplay.cluster\n"), "{patched}");
+        assert!(
+            patched.contains("ui::text : _nameless.westplay.cluster {\n text: \"<img src=/material/ui/westplay/screen_scania_cluster.mat xscale=stretch yscale=stretch>\"\n coords_l: 0\n coords_r: 1440\n coords_t: 540\n coords_b: 0\n"),
+            "{patched}"
+        );
     }
 
     #[test]

@@ -33,6 +33,7 @@ fn main() {
         content: url.map(Content::Url).unwrap_or_else(|| Content::Html(TEST_PAGE.to_string())),
         data_dir,
         open_request: Arc::default(),
+        unpair: Arc::default(),
         accounts: Arc::default(),
         settings: Arc::new(SharedSettings::default()),
         // Nothing kept: the standalone host has no settings file.

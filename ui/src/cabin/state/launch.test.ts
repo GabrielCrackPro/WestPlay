@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { carriesLaunch, type Launch, launchFor, transitionKind } from './launch'
+import { describe, expect, it, vi } from 'vitest'
+import { animateNavigation, carriesLaunch, type Launch, launchFor, onLaunchStart, transitionKind } from './launch'
 import type { Route } from './navigation'
 
 const home: Route = { kind: 'home' }
@@ -52,6 +52,45 @@ describe('carriesLaunch', () => {
     expect(carriesLaunch({ launch: open, phase: 'from' }, 'music', sidebarIcon)).toBe(false)
     expect(carriesLaunch({ launch: open, phase: 'from' }, 'maps', homeIcon)).toBe(false)
     expect(carriesLaunch({ launch: null, phase: 'from' }, 'music', homeIcon)).toBe(false)
+  })
+})
+
+describe('onLaunchStart', () => {
+  /** A page with nothing but what a launch touches: its root element, and a transition that runs at once. */
+  function page() {
+    const root = { dataset: {} as Record<string, string>, style: { setProperty() {}, removeProperty() {} } }
+    const calls: string[] = []
+    vi.stubGlobal('document', {
+      documentElement: root,
+      startViewTransition: (update: () => void) => {
+        calls.push('snapshot')
+        update()
+        return { finished: Promise.resolve(), updateCallbackDone: Promise.resolve(), skipTransition() {} }
+      },
+    })
+    return calls
+  }
+
+  it('runs as the launch starts, before the screen it leaves is snapshotted, and once', async () => {
+    const calls = page()
+    const stop = onLaunchStart('music', 'close', () => calls.push('run'))
+    animateNavigation({ app: 'music', origin: 'home', direction: 'close' }, () => calls.push('navigate'))
+    expect(calls).toEqual(['run', 'snapshot', 'navigate'])
+    stop()
+    vi.unstubAllGlobals()
+    // The transition's end, told after it (the next launch starts from it).
+    await Promise.resolve()
+  })
+
+  it('hears only its own app and direction', () => {
+    const calls = page()
+    const other = onLaunchStart('maps', 'close', () => calls.push('run'))
+    const opening = onLaunchStart('music', 'open', () => calls.push('run'))
+    animateNavigation({ app: 'music', origin: 'home', direction: 'close' }, () => calls.push('navigate'))
+    expect(calls).toEqual(['snapshot', 'navigate'])
+    other()
+    opening()
+    vi.unstubAllGlobals()
   })
 })
 

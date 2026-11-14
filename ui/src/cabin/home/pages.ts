@@ -22,11 +22,18 @@ function cellWidth(cell: Cell, textScale: number): number {
 }
 
 /**
+ * The most rows a page has, however tall the screen: CarPlay's two. A screen with room for a third row turns the
+ * page instead (the tablet's 898-high page would otherwise hold twelve apps, all on one page), so the drawer keeps
+ * paging as apps are added.
+ */
+const MOST_ROWS = 2
+
+/**
  * How many apps a page of `width` x `height` holds at `textScale` (the player's Text Size): as many columns as fit (4
  * on the full 16:9 screen, 5 in the Scania Smart Dash's area at its scale) and as many rows of names of one line (2 on
- * either), never fewer than one each; `rowLayout` fits the names as they are into them. Compact where the full-size
- * cells don't fit two rows at the text as designed (the 7" Scania's screen, its UI scaled up: 4 x 2): by the screen
- * alone, never by the text, so a larger text never makes the icons smaller.
+ * either, and never more), never fewer than one each; `rowLayout` fits the names as they are into them. Compact where
+ * the full-size cells don't fit two rows at the text as designed (the 7" Scania's screen, its UI scaled up: 4 x 2): by
+ * the screen alone, never by the text, so a larger text never makes the icons smaller.
  */
 export function pageSize(
   width: number,
@@ -37,7 +44,7 @@ export function pageSize(
   const cell = compact ? COMPACT_CELL : CELL
   return {
     columns: Math.max(1, Math.floor(width / cellWidth(cell, textScale))),
-    rows: Math.max(1, rowsOf(cell, height, textScale)),
+    rows: Math.max(1, Math.min(MOST_ROWS, rowsOf(cell, height, textScale))),
     compact,
   }
 }

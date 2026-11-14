@@ -1,0 +1,739 @@
+﻿/* --- The top line: the lights, the route, the warnings and the clock --------------------------- */
+
+/*
+ * The type here is a step larger than a desktop UI's: the dash is read at arm's length, through the game's own
+ * glass, and the small labels around the figures were hard to make out at the size they were first set (owner
+ * 2026-11-09: "make the text easier to read"). These are the sizes the panel is drawn at; the page zooms the whole
+ * panel with the cabin's Text Size after them (`.cluster` below, clusterTextScale), so what the driver sees first is
+ * a step larger than this, marks and all.
+ */
+.cluster-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 44px;
+  padding: 2px 0;
+}
+
+/* Every light has a slot whether it is lit or not, so the row never rearranges as the truck changes state. */
+.cluster-telltales {
+  /* The four tones, in the panel's own palette; telltales.css maps each lamp's tone onto them for both the dash and
+     the Settings preview, which declares Apple's colours on its own rows. */
+  --telltale-ok: var(--ok);
+  --telltale-info: var(--accent-2);
+  --telltale-warn: var(--warn);
+  --telltale-danger: var(--danger);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 32px;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * A lamp shows only when it is lit. The slot is always present — a lit lamp keeps its place in the row and the row never
+ * rearranges — but an unlit slot draws nothing at all: no printed symbol, no dead bulb.
+ */
+.cluster-telltale {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--telltale-ok);
+  opacity: 0;
+  transition: opacity 80ms linear;
+}
+
+/*
+ * A lamp lights the way a lamp does: it comes on, it doesn't grow. Nothing moves and nothing scales — the mark is
+ * already in its place, and only the strength of the light changes.
+ */
+.cluster-telltale[data-active] {
+  opacity: 1;
+}
+
+.cluster-telltale svg {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  /* Slightly thicker stroke for better visibility at distance */
+  stroke-width: 2;
+}
+
+/*
+ * The blinker is a relay, not a fade: hard on, hard off, at the rate the truck's own flashers run (about 75 to the
+ * minute). The whole slot animates so the arrow goes properly dark between pulses, the way a truck's indicator looks
+ * when the relay drops it.
+ */
+.cluster-telltale[data-blink] {
+  animation: telltale-blink 0.8s steps(1, end) infinite;
+}
+
+@keyframes telltale-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/*
+ * The dash's bulb check, run as the boot clears (the ignition's `on` phase, ClusterScreen): every lamp in the row lights
+ * together and holds for a moment, then drops back to the truck's real states. The whole lit appearance rides on the
+ * animation — visibility and brightness — so when it ends, what is left is simply the cascade: the truck's own lamps.
+ * Nothing has to be timed out or undone in script. The blinkers hold steady here too: this is the panel being tested,
+ * not the truck signalling.
+ *
+ * `1500ms` is the window ClusterScreen opens the attribute for (`BULB_CHECK_MS`): the two numbers are one moment, and
+ * the attribute has gone by the time it ends, so a later re-render cannot replay it.
+ */
+.cluster-telltales[data-check] .cluster-telltale {
+  animation: cluster-bulb-check 1500ms linear;
+}
+
+@keyframes cluster-bulb-check {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * The line above the dial: one line high and always held, so the route above never moves as what plays changes.
+ * It is the song's whole width â€” nothing shares this row with it any more: the notices come over the face as a card
+ * (`.cluster-notices` below) and the phone's status moved up beside the clock (`.cluster-phone`), so a long station
+ * and its byline have the row rather than a little over half of it (owner 2026-11-12). What doesn't fit is cut at
+ * the line's end (`.cluster-media-words`).
+ */
+.cluster-message {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 27px;
+  overflow: hidden;
+}
+
+/*
+ * The notices' layer: the cab's warnings and the phone's messages, centred on the glass over the dial. The cabin
+ * stacks its cards at the top of its screen (shell/notifications.css); the dash has one card's room, so it takes the
+ * middle â€” the face is what a notice is said over, and a card that a glance finds in the same place every time is
+ * read before the words are. The layer spans the panel and takes no press of its own: what is under it is still read
+ * at a glance, and only the card in it is the driver's to press.
+ */
+.cluster-notices {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* The card: a rim and a stripe in the notice tone, matching the cabin card style. */
+.cluster-notice {
+  /* The tone the card is drawn in: the phone's own blue for a message, amber for a warning and red for an alarm. */
+  --notice-tone: var(--accent-2);
+
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: calc(14px * var(--text-scale, 1));
+  width: min(calc(460px * var(--text-scale, 1)), 84%);
+  padding: calc(15px * var(--text-scale, 1)) calc(18px * var(--text-scale, 1));
+  border: 1px solid color-mix(in srgb, var(--notice-tone) 34%, var(--line));
+  border-radius: calc(18px * var(--text-scale, 1));
+  overflow: hidden;
+  pointer-events: auto;
+  /* One cell for the layer's cards: the notice arriving and the one it replaces share it while both are up, so a
+     change of notice is a hand-over in place rather than two cards stacked above each other (the motion itself is
+     Motion's, in ClusterScreen.tsx). */
+  grid-area: 1 / 1;
+}
+
+/* The tone, as the stripe the cabin's cards carry at their leading edge. */
+.cluster-notice::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--notice-tone);
+}
+
+.cluster-notice[data-tone='warn'] {
+  --notice-tone: var(--warn);
+}
+
+.cluster-notice[data-tone='alarm'] {
+  --notice-tone: var(--danger);
+}
+
+/*
+ * The phone's message in the notice card: the phone's own card style, so the dash reads what the phone app shows
+ * (its head with the time, its title and text, its buttons). The card around it is the notice's
+ * (`.cluster-notice`, above), so the message brings no frame of its own. The phone app's CSS lives in phoneApp.css
+ * and targets `.shell .phone-note`, so the cluster defines its own `.phone-note` rules here (no `.shell` prefix) that
+ * reuse the same layout and hues but for the cluster's palette.
+ */
+.cluster-notice .phone-note {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--text-scale, 1));
+  padding: 0;
+  min-width: 0;
+}
+
+/* A notification's title, and its own time at the line's end. */
+.cluster-notice .phone-note-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(14px * var(--text-scale, 1));
+}
+
+.cluster-notice .phone-note-app {
+  color: var(--dim);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.cluster-notice .phone-note-time {
+  flex: none;
+  color: var(--dim);
+  font-size: calc(15px * var(--text-scale, 1));
+}
+
+.cluster-notice .phone-note-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.cluster-notice .phone-note-text {
+  margin: 0;
+  color: var(--dim);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 400;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* A notification's own buttons ("Reply", "Mark as read"), and the reply composer one can open. */
+.cluster-notice .phone-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--text-scale, 1));
+  margin-top: calc(10px * var(--text-scale, 1));
+}
+
+.cluster-notice .phone-note-action {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: calc(6px * var(--text-scale, 1)) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cluster-notice .phone-note-action:hover {
+  color: var(--danger);
+}
+
+/* The reply field and its buttons, inside a notification that is being replied to. */
+.cluster-notice .phone-note-reply {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(8px * var(--text-scale, 1));
+  flex-wrap: wrap;
+}
+
+.cluster-notice .phone-note-reply-field {
+  flex: 1 1 140px;
+  min-width: 80px;
+}
+
+.cluster-notice .phone-note-reply-input {
+  width: 100%;
+  padding: calc(9px * var(--text-scale, 1)) calc(12px * var(--text-scale, 1));
+  border: 1px solid var(--dim);
+  border-radius: calc(10px * var(--text-scale, 1));
+  background: var(--panel);
+  color: var(--ink);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-family: inherit;
+  outline: none;
+  transition: border-color 160ms var(--motion-ease);
+}
+
+.cluster-notice .phone-note-reply-input:focus {
+  border-color: var(--accent-1);
+}
+
+.cluster-notice .phone-note-reply-buttons {
+  display: flex;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.cluster-notice .phone-note-send {
+  flex: 1 1 auto;
+  padding: calc(9px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border: 0;
+  border-radius: calc(10px * var(--text-scale, 1));
+  background: var(--accent-1);
+  color: #fff;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.cluster-notice .phone-note-send:hover:not(:disabled) {
+  background: var(--accent-2);
+}
+
+.cluster-notice .phone-note-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.cluster-notice .phone-note-cancel {
+  flex: 1 1 auto;
+  padding: calc(9px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  border: 0;
+  border-radius: calc(10px * var(--text-scale, 1));
+  background: none;
+  color: var(--ink);
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms var(--motion-ease);
+}
+
+.cluster-notice .phone-note-cancel:hover {
+  color: var(--danger);
+}
+
+/*
+ * The notice's mark, as the phone app gives its own cards one: a tile in the notice's tone, carrying the app's icon
+ * where the phone sends one, else its first letter â€” and, for the truck's own warning, the dash's warning ring. The
+ * card is the only thing on this glass that carries a ground, so its mark can be a tile where the dash's readings
+ * have bare glyphs.
+ */
+.cluster-notice-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(34px * var(--text-scale, 1));
+  height: calc(34px * var(--text-scale, 1));
+  color: var(--notice-tone);
+  font-size: calc(17px * var(--text-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+}
+
+.cluster-notice-mark img {
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: none;
+}
+
+.cluster-notice-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+/* The truck's own warning: what it is, what it says, and the reading behind it, read down as the cabin's cards are. */
+.cluster-notice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--text-scale, 1));
+  min-width: 0;
+}
+
+.cluster-notice-level {
+  color: var(--dim);
+  font-size: calc(13px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cluster-notice-title {
+  color: var(--ink);
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.cluster-notice-detail {
+  color: var(--dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 400;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* How many other notices are waiting: the newest is the one read, the rest are counted at the card's end. */
+.cluster-notice-count {
+  align-self: center;
+  padding: calc(3px * var(--text-scale, 1)) calc(9px * var(--text-scale, 1));
+  color: var(--notice-tone);
+  font-size: calc(14px * var(--text-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The notice as a screen reader hears it. The line itself is drawn for the eye and comes and goes with its words,
+   so it is hidden from the reader and this one, always on the page, carries them (a live region mounted along with
+   its text is often not announced). */
+.cluster-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The route's own line, centred in the space the lights and the clock leave: kept whether or not it has words.
+ *
+ * It reads in two groups, in the order a driver needs them: where the road turns next and how far (the arrow and
+ * the figure right of it, both in the route's own colour â€” the one thing on this line that is acted on now), then
+ * the trip (the destination, the distance left and the hour the route gets there). The destination used to be the
+ * loudest thing here, set in ink while the distance left was grey: a glance across the cab took in where the truck
+ * was going and not how far it still had to go. Now the figure the driver acts on is the largest, the trip's own
+ * numbers are ink, and the arrival keeps the grey â€” it is the one of the three that is read, not acted on.
+ *
+ * The row is a single line and the panel is only so wide between the lamp rows, so the destination is the one piece
+ * that gives: it is cut with an ellipsis when a language's names run long, and the row clips rather than ever
+ * reaching under the warnings. The distances are set in tabular figures, as the dial's speed is, so a figure
+ * counting down does not shuffle the line sideways with it.
+ */
+.cluster-route {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: var(--type-sm);
+  font-weight: 500;
+}
+
+.cluster-route > svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+
+/* How far to the next turn: with the arrow, the half of the step a driver acts on. It takes the accent because it
+   is the route's, not a state's, and a step above the trip's figures because it is the line's live half. */
+.cluster-route-turn {
+  flex: none;
+  color: var(--accent);
+  font-size: var(--type-lg);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Where the truck is going. It is set off from the turn's group by a few more pixels than the line's own gap, so
+   the arrow and its distance read as one thing and the trip as another. A faint fade at the right edge signals that
+   long names may continue beyond what is visible, and the native title tooltip reveals the full text on hover. */
+.cluster-route-dest {
+  position: relative;
+  max-width: 200px;
+  margin-left: 5px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--type-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A subtle gradient fade at the right edge to hint that text may be truncated. It sits over the last few pixels
+   so the eye reads the fade as a signal rather than a hard cut. Pure CSS cannot detect overflow, so the fade is kept
+   at a low opacity â€” subtle enough to not distract when text fits, noticeable when it doesn't. */
+.cluster-route-dest::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: linear-gradient(90deg, transparent, var(--bg));
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* The distance still to run, and the hour the route arrives at. These are secondary to the turn and destination —
+   set at the line's base size in dim, so the eye reads the turn first, the destination second, and these last. */
+.cluster-route-left {
+  flex: none;
+  color: var(--dim);
+  font-size: var(--type-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cluster-route-eta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  font-size: var(--type-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cluster-route-eta svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The bar's readings at its right end â€” cruise, the phone, the clock â€” never give up their width: a long route takes
+   the squeeze in the middle, where it is built to be cut, and the readings stay legible. */
+.cluster-status-right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cluster-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 6px 0 4px;
+  font-size: var(--type-sm);
+  font-weight: 550;
+}
+
+.cluster-pill svg {
+  width: 21px;
+  height: 21px;
+  color: var(--dim);
+  stroke-width: 2;
+}
+
+.cluster-pill[data-on] svg {
+  color: var(--accent);
+}
+
+.cluster-cruise svg {
+  color: var(--accent);
+  stroke-width: 2;
+}
+
+/* The pill's slot is held when cruise is off, so the clock doesn't jump when it comes on, and nothing at all is drawn
+   until the truck has a speed set: the pill used to read "0" for the whole drive â€” a number the truck was not
+   holding, next to the clock as if it were one of the truck's own states. */
+.cluster-cruise {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity 220ms var(--motion-ease),
+    transform 220ms var(--motion-ease);
+}
+
+.cluster-cruise b {
+  min-width: 2.4ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms var(--motion-ease);
+}
+
+.cluster-cruise[data-on] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  animation: cruise-on 300ms var(--motion-ease) both;
+}
+
+@keyframes cruise-on {
+  0% {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.96);
+  }
+  60% {
+    transform: translateY(0) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cluster-cruise[data-on] svg {
+  color: var(--accent);
+}
+
+.cluster-clock svg {
+  color: var(--dim);
+  stroke-width: 2;
+}
+
+.cluster-clock time {
+  font-size: var(--type-sm);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* The speed limit the truck's navigation knows, as a road sign: white, ringed in red. It hangs under the figure's
+   unit rather than in the status line, so the speed and the road's limit are one reading: the number, its unit, and
+   the sign it is measured against, top to bottom in the middle of the face. Drawn flat â€” a hairline ring and a
+   numeral, no sheen and no light around it â€” because this is the panel's red, printed on the panel, and a sign that
+   glowed whenever a limit was known made the limit look like a warning. It stays flat while the truck is over it too
+   (owner 2026-11-11: "cluster speed limit should not turn red if passed"): the sign states the limit the road has,
+   and being over it is the figure's own state, in this same red, above it.
+ *
+ * It is drawn at the size a driver reads it from the seat, not as a mark to be found: a 50px disc with a 22px figure,
+ * where it was a 34px one with the panel's 14px unit type (owner 2026-11-11: "make the cluster speed limit bigger so
+ * its easier to read, now is hard to see the number when driving"). The selector carries `.cluster-speed` because the
+ * unit's own rule below (`.cluster-speed > span`) is more specific than a bare class, and would otherwise hold the
+ * sign's figure at the unit's small, dim, tracked type.
+ *
+ * The sign keeps its slot in the reading whether or not the route knows a limit (`.cluster-speed`), so a zone is a
+ * sign lighting up on the face, never the speed figure stepping up it. */
+.cluster-speed > .cluster-limitsign {
+  flex: none;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--limit);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* No sign to show: the slot still holds the height it would take (visibility, not display), so nothing around it
+   moves; the sign is simply not drawn. */
+.cluster-limitsign[data-empty] {
+  visibility: hidden;
+}
+
+/* The route has stopped knowing a limit: the sign leaves over one fade instead of blinking out of the status bar,
+   and the dial's mark on the scale goes with it (useLingering, in the page). Motion owns that fade now
+   (ClusterScreen.tsx), so the leaving state no longer needs a rule of its own. */
+
+/*
+ * The paired phone, in the status bar beside the clock: while it is there, the receiver and the charge it has;
+ * while it isn't, the receiver and the words that say so, greyed but legible â€” a dash states what is missing rather
+ * than leaving a dim icon to be interpreted. The battery is a phone's own mark (its terminal, the level filled in,
+ * red under a fifth of it and green with the bolt that says charging) with the level in figures beside it: the bar
+ * for a look, the numbers for the answer. Which phone it is isn't part of it: the cabin's sidebar and the Phone app
+ * name it, and a name as wide as that is the dash's room spent on something that never changes, while the line above
+ * the dial wants its row for the song (see `.cluster-message`). It stood in that line's right end until the line was
+ * given to what plays: a state of the cab sits in the bar with the cab's other states, and the bar takes a chip this
+ * wide without cutting the route (owner 2026-11-12). The cabin's sidebar keeps the same status with the way into the
+ * app; a message is the notice card's own, where it can be read and answered.
+ */
+.cluster-phone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 5px 0 3px;
+  color: var(--dim);
+  opacity: 0.68;
+  transition:
+    opacity 220ms var(--motion-ease),
+    color 220ms var(--motion-ease);
+}
+
+.cluster-phone[data-on] {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.cluster-phone svg {
+  flex: none;
+  width: 21px;
+  height: 21px;
+  stroke-width: 2;
+}
+
+/* The words that say there is no phone, in the sidebar's own: clear enough that the greyed receiver doesn't have to
+   be read as a symbol, and no wider than they need to be in a bar that holds the route. */
+.cluster-phone-words {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dim);
+  /* A step under the live status's figure: the words that say there is no phone are a state, not a reading. They
+     still give up their end rather than widening the chip, so a language with a longer phrase than "Sin telÃ©fono"
+     keeps the row's other readings whole. */
+  font-size: var(--type-unit);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The battery level as a simple number beside the phone icon â€” no drawn battery, just the figure with colour coding
+   for state. Low battery reads in red, charging reads in green, normal reads in the panel's ink. This matches the
+   pill pattern used by cruise and clock: icon + value, colour carries the state. */
+.cluster-phone-level {
+  margin-left: -2px;
+  color: var(--ink);
+  font-size: var(--type-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  transition: color 220ms var(--motion-ease);
+}
+
+/* Under a fifth: red, as a phone's own indicator is â€” the one time the level is worth a colour. */
+.cluster-phone-level[data-low] {
+  color: var(--danger);
+}
+
+/* On the charger: green, matching the ok state used across the panel. */
+.cluster-phone-level[data-charging] {
+  color: var(--ok);
+}

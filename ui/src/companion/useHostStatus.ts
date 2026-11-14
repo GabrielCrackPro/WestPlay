@@ -6,7 +6,7 @@ import { followRound } from './mapRound'
 export interface HostStatus {
   webviewVersion: string
   adapter: string | null
-  /** The graphics card WestPlay's screen is drawn on, and the game's (`null` until the game runs). */
+  /** The graphics card Cabin Play's screen is drawn on, and the game's (`null` until the game runs). */
   cabAdapter: string | null
   gameAdapter: string | null
   /** The PC's graphics cards, the high-performance ones first (mirrors `westplay_host::graphics::Adapter`). */
@@ -15,11 +15,11 @@ export interface HostStatus {
   droppedTotal: number
   gameConnected: boolean
   screenDrawing: boolean
-  /** Whether the truck the player is in is one WestPlay shows in, as the plugin last saw (`null`: not known yet). */
+  /** Whether the truck the player is in is one Cabin Play shows in, as the plugin last saw (`null`: not known yet). */
   truckSupported: boolean | null
-  /** Whether the game runs as administrator: WestPlay can't read its route, guidance or weather then. */
+  /** Whether the game runs as administrator: Cabin Play can't read its route, guidance or weather then. */
   gameElevated: boolean
-  /** Whether WestPlay is open on the truck's screen (otherwise the truck's original screen shows), as the
+  /** Whether Cabin Play is open on the truck's screen (otherwise the truck's original screen shows), as the
    * cabin page last said; `null` until it has. */
   westplayOpen: boolean | null
   /** Whether YouTube is signed in (`null`: not known yet: YouTube hasn't run), and whether Google's sign-in
@@ -34,14 +34,44 @@ export interface HostStatus {
   appleMusicSigningIn: boolean
   /** The map of the profile played (mirrors `westplay_host::maps::MapStatus`). */
   map: MapStatus
-  /** The map the cab shows: its folder in WestPlay's maps, and when it was built (seconds since 1970;
+  /** The map the cab shows: its folder in Cabin Play's maps, and when it was built (seconds since 1970;
    * `null`: none yet). */
   mapFolder: string | null
   mapBuilt: number | null
-  /** Every profile's map (mirrors `westplay_host::maps::ProfileMap`): WestPlay makes one for each, one by
+  /** Every profile's map (mirrors `westplay_host::maps::ProfileMap`): Cabin Play makes one for each, one by
    * one, the profile played first. */
   profileMaps: ProfileMap[]
+  /** The paired phone: whether it's connected, which one, and how to pair it (mirrors
+   * `westplay_host::PhoneStatus`). The Setup pairs the phone; the cabin's Phone app is only given its content. */
+  phone: PhoneStatus
   error: string | null
+}
+
+/** The phone paired with this PC. */
+export interface PhoneStatus {
+  connected: boolean
+  /** The phone as it last said: what it calls itself, and its battery. */
+  device: PhoneDevice | null
+  /** How the phone finds this PC (`null`: this PC has no local network address to pair over). */
+  pairing: PhonePairing | null
+}
+
+export interface PhoneDevice {
+  name: string
+  model?: string
+  /** Percent, and whether it's charging. */
+  battery?: number
+  charging?: boolean
+  /** The Bridge app's version, when the phone says (older ones don't). */
+  appVersion?: string
+}
+
+/** The line a phone scans or types (`cabinplay://pair?host=…&port=…&token=…`), and the parts it's made of. */
+export interface PhonePairing {
+  host: string
+  port: number
+  token: string
+  uri: string
 }
 
 export interface Adapter {
@@ -66,7 +96,7 @@ export type MapStage = 'reading' | 'drawing' | 'tiles' | 'saving'
 
 export type MapStatus =
   | { state: 'unknown' }
-  /** WestPlay isn't set up in a game yet. */
+  /** Cabin Play isn't set up in a game yet. */
   | { state: 'noGame' }
   | { state: 'ready' }
   /** How far, 0 to 1. */
@@ -133,11 +163,6 @@ export function appleMusicSignOut(): Promise<void> {
   return call('apple_music_sign_out')
 }
 
-/** Opens the support page (Kreosus) in the player's browser. */
-export function openSupportPage(): Promise<void> {
-  return call('open_support_page')
-}
-
 /** Where this run's app.log is: Documents\WestPlay\logs, or WestPlay's own folder where Documents refused it. */
 export function appLogPlace(): Promise<string | null> {
   return call('app_log_place')
@@ -148,7 +173,12 @@ export function appleMusicCheck(): Promise<void> {
   return call('apple_music_check')
 }
 
-/** Opens or closes WestPlay on the truck's screen (the status then reports it, once the cabin has). */
+/** Opens or closes Cabin Play on the truck's screen (the status then reports it, once the cabin has). */
 export function setWestplayOpen(open: boolean): Promise<void> {
   return call('set_westplay_open', { open })
+}
+
+/** Forgets the paired phone: the link takes a new code, and the phone connected now has to pair again. */
+export function phoneUnpair(): Promise<void> {
+  return call('phone_unpair')
 }

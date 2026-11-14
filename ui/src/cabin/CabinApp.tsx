@@ -1,8 +1,13 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { isInHost, postToHost } from '../shared/host'
 import { appleMusicPlayer, pauseAppleMusicWithGame } from './apps/music/pauseWithGame'
+import { duckMusicForGps } from './apps/ducks'
 import { keybinds } from './apps/keybinds'
 import { oneAtATime } from './apps/oneAtATime'
+import { installRadioCabSound } from './apps/radio/cabSound'
+import { pauseRadioWithGame } from './apps/radio/pauseWithGame'
+import { radioPlayer } from './apps/radio/radio'
 import { pauseSpotifyWithGame, spotifyPlayer } from './apps/spotify/pauseWithGame'
 import { pauseYouTubeWithGame, youtubePlayer } from './apps/youtube/pauseWithGame'
 import { pauseYouTubeMusicWithGame, youtubeMusicPlayer } from './apps/youtubeMusic/pauseWithGame'
@@ -11,15 +16,19 @@ import { BootScreen } from './boot/BootScreen'
 import { Dashboard } from './dashboard/Dashboard'
 import { Home } from './home/Home'
 import { followTruckersMp } from './maps/truckersmp'
+import { followGpsVoice } from './maps/voice'
 import { routeClicksDuringTransitions } from './shell/clickThrough'
 import { installDragScroll } from './shell/dragScroll'
 import { Cursor } from './shell/Cursor'
 import { Shell } from './shell/Shell'
-import { showVolume } from './shell/volumeShown'
+import { showVolume } from './shell/hud'
 import { type Route, routeKey } from './state/navigation'
-import { nextPhaseAt, type PowerPhase } from './state/power'
+import { HANDOVER_MS, nextPhaseAt } from './state/power'
+import { useHandover } from './state/useHandover'
 import { meterFrames } from './state/frameMeter'
+import { installSounds, updateAmbientSounds } from './state/sound'
 import { connectHost, useCabin, useLive } from './state/store'
+import { motionEase, seconds, useMotionReduced } from './motion'
 import { languageOf } from './state/strings'
 import { followTimeZone } from './state/timeZone'
 
@@ -29,18 +38,30 @@ import { followTimeZone } from './state/timeZone'
  */
 const FOLLOW_POWER = isInHost() || new URLSearchParams(location.search).has('power')
 
+/** The cab's players, in the order one gives way to another (oneAtATime): the music that plays here, the radio's
+ * last. */
+const players = [youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer, radioPlayer] as const
+
 /** The in-cabin screen: the shell around the screen for the current route, after the boot sequence. */
 export function CabinApp() {
   const route = useCabin((state) => state.navigation.route)
-  const phase = useCabin((state) => state.power.phase)
+  const power = useCabin((state) => state.power)
+  const phase = power.phase
   useEffect(() => connectHost(), [])
   // YouTube, Spotify, Apple Music and YouTube Music pause with the game (its menu, tabbing out) and play on after.
   useEffect(() => pauseYouTubeWithGame(), [])
   useEffect(() => pauseSpotifyWithGame(), [])
   useEffect(() => pauseAppleMusicWithGame(), [])
   useEffect(() => pauseYouTubeMusicWithGame(), [])
+  useEffect(() => pauseRadioWithGame(), [])
   // One of them at a time: the newest to start plays on, the others pause (apps/oneAtATime.ts).
-  useEffect(() => oneAtATime([youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer]), [])
+  useEffect(() => oneAtATime(players), [])
+  // The music under the game's GPS voice as it speaks (apps/ducks.ts).
+  useEffect(() => duckMusicForGps(players), [])
+  // And whether it is speaking, for the screens that say so on their frames (maps/voice.ts).
+  useEffect(() => followGpsVoice(), [])
+  // The radio's sound through the truck's own speakers, as the players' music is (apps/radio/cabSound.ts).
+  useEffect(() => installRadioCabSound(), [])
   // The player's keybinds pressed in the game: the music's volume, or play/pause (apps/keybinds.ts).
   useEffect(() => followKeybinds(), [])
   // The clock where the truck is: its country's time zone, as the game's own clock (state/timeZone.ts).
@@ -49,34 +70,55 @@ export function CabinApp() {
   useEffect(() => followTruckersMp(), [])
   // The page's own frames while the game runs, for the host's performance line (state/frameMeter.ts).
   useEffect(() => meterFrames(), [])
+  // The cabin's sounds (state/sound.ts): a tick under every press, from one listener for the whole screen.
+  useEffect(() => installSounds(), [])
+  // Ambient cabin sounds (Feature 18): wind and road noise that scale with speed.
+  const speed = useLive((state) => state.telemetry?.speed ?? 0)
+  useEffect(() => {
+    updateAmbientSounds(speed)
+  }, [speed])
   useEffect(() => routeClicksDuringTransitions(), [])
   // Lists follow a drag, as on a touch screen (the cab has a mouse).
   useEffect(() => installDragScroll(), [])
+  // The page's language, so text set in capitals follows its rules (Turkish: i to İ, not I).
+  // Reduced motion: the shell's transitions (and launches, state/launch.ts) are cut short (shell.css).
+  const reduceMotion = useCabin((state) => state.reduceMotion)
+  useEffect(() => {
+    if (reduceMotion) document.documentElement.dataset.motion = 'reduced'
+    else delete document.documentElement.dataset.motion
+  }, [reduceMotion])
   // The page's language, so text set in capitals follows its rules (Turkish: i to İ, not I).
   const language = languageOf(useLive((state) => state.gameLanguage))
   useEffect(() => {
     document.documentElement.lang = language
   }, [language])
   usePowerClock()
-  const entering = usePowerOnEntry(phase)
+  // The screen comes up under the boot's light going down: it mounts at the boot's hand-over (state/useHandover.ts),
+  // so the cabin's boot fades out over a screen that is already fading in — the same one motion the dash makes on the
+  // other display.
+  const handover = useHandover(power, pageClock)
+  const powered = !FOLLOW_POWER || phase === 'on' || handover
+  const entering = usePowerOnEntry(powered)
+  // The boot leaves as it hands over: while it is not reduced, its screen fades under the first screen coming up;
+  // reduced, it stays whole until the electrics' boot is done and is cut then (boot.css, shell.css).
+  const bootPhase = phase === 'on' ? null : phase
+  const booting = FOLLOW_POWER && bootPhase !== null && (reduceMotion || !handover)
   // For the host's startup log: when each boot screen comes up.
   useEffect(() => postToHost({ type: 'startup', stage: `power ${phase}` }), [phase])
 
-  const powered = !FOLLOW_POWER || phase === 'on'
-
   return (
     <Shell
-      entering={entering}
+      voice={powered}
       overlay={
         <>
-          {FOLLOW_POWER && phase !== 'on' && <BootScreen phase={phase} />}
+          <AnimatePresence>{booting && bootPhase && <BootScreen phase={bootPhase} />}</AnimatePresence>
           {/* In a plain browser the system cursor is there already. */}
           {isInHost() && <Cursor />}
         </>
       }
     >
-      {/* The screen mounts when the power is on, and fades in after the boot. */}
-      {powered && <Screens route={route} />}
+      {/* The screen mounts as the boot's light goes down, and fades in under it. */}
+      {powered && <Screens route={route} entering={entering} />}
     </Shell>
   )
 }
@@ -84,7 +126,7 @@ export function CabinApp() {
 /** Acts on each keybind pressed in the game, for the cab's players, showing a volume it sets. Returns the
  * function that stops it. */
 function followKeybinds(): () => void {
-  const binds = keybinds([youtubePlayer, spotifyPlayer, appleMusicPlayer, youtubeMusicPlayer])
+  const binds = keybinds(players)
   const stop = useLive.subscribe((live, before) => {
     if (!live.keybind || live.keybind.count === before.keybind?.count) return
     const shown = binds.press(live.keybind.action)
@@ -96,17 +138,21 @@ function followKeybinds(): () => void {
   }
 }
 
-/** Must match --motion-duration in shell.css: how long the first screen takes to fade in. */
-const ENTRY_MS = 650
+/** The page's own clock, the one the power sequence is counted on (state/power.ts): the hand-over's too. */
+const pageClock = () => performance.now()
 
-/** True for the first moments after the power sequence ends, while the first screen fades in. */
-function usePowerOnEntry(phase: PowerPhase): boolean {
+/** How long the first screen takes to fade in: the hand-over's own window (state/power.ts: HANDOVER_MS, which the boot
+ * fades out over), so the boot going down and CarPlay coming up are one motion. */
+const ENTRY_MS = 500
+
+/** True for the first moments after the screen comes up, while the first screen fades in. */
+function usePowerOnEntry(up: boolean): boolean {
   const [entering, setEntering] = useState(false)
-  // Adjusting state during render: the phase is a prop-like value this state follows.
-  const [lastPhase, setLastPhase] = useState(phase)
-  if (phase !== lastPhase) {
-    setLastPhase(phase)
-    if (phase === 'on') setEntering(true)
+  // Adjusting state during render: whether the screen is up is a prop-like value this state follows.
+  const [wasUp, setWasUp] = useState(up)
+  if (up !== wasUp) {
+    setWasUp(up)
+    if (up) setEntering(true)
   }
   useEffect(() => {
     if (!entering) return
@@ -136,13 +182,17 @@ const SWITCH_MS = 420
 
 /**
  * The screen for the route. Home and the Dashboard trade places live: the old one stays a moment, moving
- * and fading out while the new one comes in (shell/transitions.css). Any other change swaps at once; app
- * launches are animated by View Transitions (state/launch.ts). A press during a switch starts the next one
- * from wherever things are.
+ * and fading out while the new one comes in (Motion moves the screens; transitions.css fades their pieces).
+ * Any other change swaps at once; app launches are animated by View Transitions (state/launch.ts). A press
+ * during a switch starts the next one from wherever things are.
+ *
+ * The first screen mounts with the boot's hand-over and fades in under the boot's light going down: `entering`
+ * opens it, and Motion's 500 ms matches the boot's exit (state/power.ts: HANDOVER_MS), so the two are one motion.
  */
-function Screens({ route }: { route: Route }) {
+function Screens({ route, entering }: { route: Route; entering: boolean }) {
   const [shown, setShown] = useState(route)
   const [leaving, setLeaving] = useState<{ route: Route; to: 'home' | 'dashboard' } | null>(null)
+  const reduced = useMotionReduced()
 
   // Adjusting state during render: the shown screen follows the route.
   if (routeKey(route) !== routeKey(shown)) {
@@ -160,24 +210,41 @@ function Screens({ route }: { route: Route }) {
     return () => clearTimeout(timer)
   }, [leaving])
 
-  const switching = leaving ? ` to-${leaving.to}` : ''
+  const transition = reduced
+    ? { duration: 0 }
+    : leaving
+      ? { duration: seconds(SWITCH_MS), ease: motionEase }
+      : { duration: seconds(HANDOVER_MS), ease: motionEase }
+  // To the Dashboard, Home's icons zoom gently towards the player as the Dashboard settles in from a little
+  // smaller; back to Home, the other way round: the same language as opening and closing apps.
+  const out = leaving?.to === 'dashboard' ? 1.06 : 0.96
+  const into = leaving?.to === 'dashboard' ? 0.96 : 1.06
   return (
     <>
       {leaving && (
-        <div key={`out:${routeKey(leaving.route)}`} className={`screen-slot leaving${switching}`} aria-hidden>
+        <motion.div
+          key={`out:${routeKey(leaving.route)}`}
+          className="screen-slot leaving"
+          aria-hidden
+          initial={reduced ? false : { scale: 1 }}
+          animate={{ scale: out }}
+          transition={transition}
+        >
           <RouteScreen route={leaving.route} />
-        </div>
+        </motion.div>
       )}
-      <div
+      <motion.div
         key={routeKey(shown)}
-        className={leaving ? `screen-slot entering${switching}` : 'screen-slot'}
-        // Its own animation, not one of its icons' (theirs bubble up here too).
-        onAnimationEnd={(event) => {
-          if (leaving && event.target === event.currentTarget) setLeaving(null)
+        className={leaving ? 'screen-slot entering' : 'screen-slot'}
+        initial={reduced ? false : leaving ? { scale: into } : entering ? { opacity: 0, scale: 0.985 } : false}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={transition}
+        onAnimationComplete={() => {
+          if (leaving) setLeaving(null)
         }}
       >
         <RouteScreen route={shown} />
-      </div>
+      </motion.div>
     </>
   )
 }

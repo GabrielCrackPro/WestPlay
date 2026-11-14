@@ -62,7 +62,7 @@
   );
   --text: #f5f5f7;
   --text-dim: rgb(235 235 245 / 0.6);
-  --text-faint: rgb(235 235 245 / 0.32);
+  --text-faint: rgb(235 235 245 / 0.4);
   --fill: rgb(255 255 255 / 0.07);
   --fill-strong: rgb(255 255 255 / 0.12);
   --hairline: rgb(255 255 255 / 0.09);
@@ -1117,6 +1117,396 @@ button.ob-row:active {
 [data-chosen] .ob-mouse .side {
   fill: var(--blue);
   filter: drop-shadow(0 0 4px var(--blue));
+}
+
+/* ---------- Profile input ---------- */
+
+.ob-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fill-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: box-shadow 200ms ease;
+  box-sizing: border-box;
+}
+
+.ob-input::placeholder {
+  color: var(--text-faint);
+}
+
+.ob-input:focus {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+
+/* ---------- Profile onboarding step ---------- */
+
+/* Centered avatar preview stage — sits above the input groups */
+
+.ob-profile-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+
+/* Large circular avatar — grows subtly when typing */
+
+.ob-profile-avatar-lg {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--fill-strong);
+  box-shadow:
+    0 2px 12px rgb(0 0 0 / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  overflow: hidden;
+  transition: transform 300ms var(--ease);
+}
+
+.ob-profile-avatar-lg[data-photo] {
+  background: transparent;
+}
+
+.ob-profile-avatar-lg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ob-profile-avatar-lg-initial {
+  color: var(--text-faint);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Clickable label wrapper for the avatar — makes the whole circle trigger file upload */
+
+.ob-profile-avatar-click {
+  cursor: pointer;
+  display: inline-block;
+}
+
+.ob-profile-avatar-click:hover .ob-profile-avatar-lg {
+  transform: scale(1.05);
+}
+
+/* Large circular avatar — grows subtly on hover */
+
+.ob-profile-avatar-lg {
+  transform: scale(1);
+}
+
+/* Hint text below the avatar — subtle camera icon + label */
+
+.ob-profile-photo-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Photo upload button — REMOVED: avatar is now clickable instead */
+
+/* ---------- Profile grid in ProfilesPage ---------- */
+
+.cp-profiles-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 0 12px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.cp-profiles-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px dashed rgb(255 255 255 / 0.12);
+  font-size: 22px;
+  color: var(--text-faint);
+}
+
+.cp-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ---------- Profile card ---------- */
+
+.cp-profile-card {
+  position: relative;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--edge);
+  overflow: hidden;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cp-profile-card[data-current] {
+  background: var(--card-lit);
+  border-color: rgb(255 255 255 / 0.14);
+}
+
+.cp-profile-card-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.cp-profile-card-switch:hover {
+  background: rgb(255 255 255 / 0.03);
+}
+
+.cp-profile-card-switch:active {
+  background: rgb(255 255 255 / 0.06);
+}
+
+/* Avatar — clickable to change photo, with camera overlay on hover */
+
+.cp-profile-card-avatar-wrap {
+  cursor: pointer;
+  display: inline-block;
+}
+
+.cp-profile-card-avatar {
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.cp-profile-card-avatar-wrap:hover .cp-profile-card-avatar {
+  transform: scale(1.06);
+}
+
+.cp-profile-card-pic {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.cp-profile-card-initial {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fill-strong);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-dim);
+  user-select: none;
+}
+
+/* Camera icon overlay — appears on hover */
+
+.cp-profile-card-camera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.cp-profile-card-avatar-wrap:hover .cp-profile-card-camera {
+  opacity: 1;
+}
+
+.cp-profile-card-camera svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Active ring around avatar */
+
+.cp-profile-card-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--blue);
+  pointer-events: none;
+}
+
+/* Name & badge */
+
+.cp-profile-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cp-profile-card-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-profile-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--blue);
+}
+
+.cp-profile-card-check {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+}
+
+.cp-profile-card-hint {
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+/* Card action buttons */
+
+.cp-profile-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px 12px;
+}
+
+/* ---------- Add profile form ---------- */
+
+.cp-add-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cp-add-profile-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.cp-add-profile-pic {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px dashed rgb(255 255 255 / 0.2);
+  background: var(--fill);
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--text-faint);
+  transition: border-color 0.15s ease;
+}
+
+.cp-add-profile-pic:hover {
+  border-color: rgb(255 255 255 / 0.35);
+}
+
+.cp-add-profile-pic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cp-add-profile-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Keep old profile row styles for backward compatibility */
+
+/* ---------- Profile row in ProfilesPage (legacy) ---------- */
+
+.cp-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.cp-profile-row + .cp-profile-row {
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.cp-profile-pic-btn {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.cp-profile-row .cp-profile-pic {
+  width: 40px;
+  height: 40px;
+}
+
+.cp-profile-row .cp-profile-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+.cp-profile-row-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.cp-profile-row-name > span:first-child {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cp-profile-row-current {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* ---------- Final steps, in a row ---------- */

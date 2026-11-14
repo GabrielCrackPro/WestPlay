@@ -5,11 +5,17 @@ import { type AppId, APPS } from '../state/apps'
 import { useLaunchStyle, whenTransitionEnds } from '../state/launch'
 import { useLanguage, useText } from '../state/text'
 import { isCopied, noteOpened, openedBefore, saveCopy, savedCopy } from './launchCopies'
+import { DiagnosticsApp } from './diagnostics/DiagnosticsApp'
+import { DriverApp } from './driver/DriverApp'
 import { MusicApp } from './music/MusicApp'
+import { NotificationsApp } from './notifications/NotificationsApp'
+import { PhoneApp } from './phone/PhoneApp'
+import { RadioApp } from './radio/RadioApp'
 import { SettingsApp } from './settings/SettingsApp'
 import { SpotifyApp } from './spotify/SpotifyApp'
 import { YouTubeMusicApp } from './youtubeMusic/YouTubeMusicApp'
 import { WeatherApp } from './weather/WeatherApp'
+import { WhatsAppApp } from './whatsapp/WhatsAppApp'
 import { YouTubeApp } from './youtube/YouTubeApp'
 import './apps.css'
 
@@ -77,6 +83,8 @@ function AppContent({ app }: { app: AppId }) {
       )
     case 'music':
       return <MusicApp />
+    case 'radio':
+      return <RadioApp />
     case 'youtube':
       return <YouTubeApp />
     case 'spotify':
@@ -87,6 +95,16 @@ function AppContent({ app }: { app: AppId }) {
       return <SettingsApp />
     case 'weather':
       return <WeatherApp />
+    case 'diagnostics':
+      return <DiagnosticsApp />
+    case 'driver':
+      return <DriverApp />
+    case 'notifications':
+      return <NotificationsApp />
+    case 'phone':
+      return <PhoneApp />
+    case 'whatsapp':
+      return <WhatsAppApp />
     default:
       return <NotBuiltYet app={app} />
   }

@@ -13,7 +13,8 @@ use std::time::{Duration, Instant};
 
 use webview2_com::Microsoft::Web::WebView2::Win32::{
     COREWEBVIEW2_COLOR, COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW, COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
-    COREWEBVIEW2_MOUSE_EVENT_KIND, COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS, COREWEBVIEW2_PROCESS_FAILED_KIND,
+    COREWEBVIEW2_MOUSE_EVENT_KIND, COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS, COREWEBVIEW2_PERMISSION_KIND,
+    COREWEBVIEW2_PERMISSION_KIND_MICROPHONE, COREWEBVIEW2_PERMISSION_STATE_ALLOW, COREWEBVIEW2_PROCESS_FAILED_KIND,
     COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED, COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
     COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE, CreateCoreWebView2EnvironmentWithOptions,
     ICoreWebView2, ICoreWebView2_2, ICoreWebView2_3, ICoreWebView2CompositionController, ICoreWebView2Controller,
@@ -23,7 +24,7 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
 use webview2_com::{
     AddScriptToExecuteOnDocumentCreatedCompletedHandler, CoTaskMemPWSTR, CoreWebView2EnvironmentOptions,
     CreateCoreWebView2CompositionControllerCompletedHandler, CreateCoreWebView2EnvironmentCompletedHandler,
-    ProcessFailedEventHandler, WebMessageReceivedEventHandler,
+    PermissionRequestedEventHandler, ProcessFailedEventHandler, WebMessageReceivedEventHandler,
 };
 use windows::System::DispatcherQueueController;
 use windows::UI::Composition::{Compositor, ContainerVisual, Visual};
@@ -120,6 +121,8 @@ pub struct Stage {
     /// frame where the page is taller ([`Stage::set_page_height`]).
     page: ContainerVisual,
     page_size: PageSize,
+    /// The cluster's own visual, off the frame: captured into its own texture (`westplay_shared::CLUSTER_WIDTH`).
+    cluster: ContainerVisual,
 }
 
 /// The page's size (width, height), as the stage has it now: the players keep their videos within it.
@@ -142,6 +145,9 @@ impl Stage {
         let page = compositor.CreateContainerVisual()?;
         page.SetSize(Vector2 { X: width as f32, Y: height as f32 })?;
         root.Children()?.InsertAtTop(&page)?;
+        let cluster = compositor.CreateContainerVisual()?;
+        cluster
+            .SetSize(Vector2 { X: westplay_shared::CLUSTER_WIDTH as f32, Y: westplay_shared::CLUSTER_HEIGHT as f32 })?;
         Ok(Self {
             _dispatcher: dispatcher,
             compositor,
@@ -149,12 +155,23 @@ impl Stage {
             frame: (width, height),
             page,
             page_size: Rc::new(Cell::new((width, height))),
+            cluster,
         })
     }
 
     /// The whole frame, for capture.
     pub fn visual(&self) -> windows::core::Result<Visual> {
         self.root.cast()
+    }
+
+    /// The cluster's visual, separate from the frame: captured for its own texture.
+    pub fn cluster_visual(&self) -> windows::core::Result<Visual> {
+        self.cluster.cast()
+    }
+
+    /// Puts the cluster page's WebView on the cluster's visual (it fills it: `CLUSTER_WIDTH` x `CLUSTER_HEIGHT`).
+    pub fn add_cluster(&self, view: &OffscreenWebView) -> windows::core::Result<()> {
+        self.cluster.Children()?.InsertAtTop(&view.root)
     }
 
     /// Puts a WebView's visual on the frame: over the rest, or under it.
@@ -205,6 +222,18 @@ pub struct OffscreenWebView {
 impl OffscreenWebView {
     /// A WebView of `width` x `height` on `stage`'s compositor (not on the frame until [`Stage::add`]).
     pub fn new(stage: &Stage, width: u32, height: u32, user_data: &Path) -> Result<Self, Error> {
+        let environment = create_environment(user_data)?;
+        Self::new_on(stage, width, height, environment)
+    }
+
+    /// A WebView of `width` x `height` on an environment already in use (the cluster page, beside the cabin
+    /// page, on the same profile: a second environment on a profile in use is refused).
+    pub fn new_on(
+        stage: &Stage,
+        width: u32,
+        height: u32,
+        environment: ICoreWebView2Environment,
+    ) -> Result<Self, Error> {
         let root = stage.compositor.CreateContainerVisual()?;
         root.SetSize(Vector2 { X: width as f32, Y: height as f32 })?;
 
@@ -239,7 +268,6 @@ impl OffscreenWebView {
             let _ = EnableWindow(host, false);
         }
 
-        let environment = create_environment(user_data)?;
         // SAFETY: WebView2 writes a CoTaskMem string into `version`, read before it's dropped.
         let version = unsafe {
             let mut version = PWSTR::null();
@@ -384,6 +412,31 @@ impl OffscreenWebView {
         unsafe { self.controller.SetBounds(RECT { left: 0, top: 0, right: width as i32, bottom: height as i32 }) }
     }
 
+    /// Gives the keyboard to the page: what's focused in it (a message box) takes the keys sent after (a click
+    /// on the page does it too; a page under the cabin page is never the window's focus by itself).
+    pub fn focus(&self) -> windows::core::Result<()> {
+        use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC;
+        // SAFETY: the controller is alive as long as `self`; the reason is a plain value.
+        unsafe { self.controller.MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC) }
+    }
+
+    /// A DevTools protocol method in the page (`Input.insertText`, `Input.dispatchKeyEvent`): the browser's own
+    /// input, for a page whose fields WestPlay doesn't write itself.
+    pub fn call_devtools(&self, method: &str, params: &serde_json::Value) -> Result<(), Error> {
+        use webview2_com::CallDevToolsProtocolMethodCompletedHandler;
+        let webview = self.webview.clone();
+        let (method, params) = (HSTRING::from(method), HSTRING::from(params.to_string()));
+        Ok(CallDevToolsProtocolMethodCompletedHandler::wait_for_async_operation(
+            // SAFETY: the strings live through the call; the handler is kept alive until WebView2 calls it.
+            Box::new(move |handler| unsafe {
+                webview
+                    .CallDevToolsProtocolMethod(&method, &params, &handler)
+                    .map_err(webview2_com::Error::WindowsError)
+            }),
+            Box::new(|error, _json| error),
+        )?)
+    }
+
     /// The page laid out large, in the shape of the rectangle `x, y, width, height` of the stage and as big
     /// as fits in `room` (width, height), its picture shrunk evenly into the rectangle: a small view of a
     /// page that stays large (a video there keeps its quality, and its shape: it's contained in the page).
@@ -519,6 +572,34 @@ impl OffscreenWebView {
             Box::new(|error, _id| error),
         )?;
         Ok(())
+    }
+
+    /// Lets the page at `host` use the microphone: the voice assistant's level meter follows the same mic as
+    /// Windows' recogniser. Other pages, and every other permission, keep WebView2's own answer.
+    pub fn allow_microphone_from(&self, host: &str) -> windows::core::Result<()> {
+        let allowed = host.to_ascii_lowercase();
+        let handler = PermissionRequestedEventHandler::create(Box::new(move |_webview, args| {
+            let Some(args) = args else { return Ok(()) };
+            let mut kind = COREWEBVIEW2_PERMISSION_KIND::default();
+            let mut uri = PWSTR::null();
+            // SAFETY: `args` is the event's, alive through the callback; `kind` and `uri` are locals it writes.
+            unsafe {
+                args.PermissionKind(&mut kind)?;
+                if kind != COREWEBVIEW2_PERMISSION_KIND_MICROPHONE {
+                    return Ok(());
+                }
+                args.Uri(&mut uri)?;
+            }
+            let address = CoTaskMemPWSTR::from(uri).to_string();
+            if crate::performance::host_of(&address).is_some_and(|requested| requested == allowed) {
+                // SAFETY: as above; the request's state is the event's to set.
+                unsafe { args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)? };
+            }
+            Ok(())
+        }));
+        let mut token = 0;
+        // SAFETY: the handler and the token are locals for the call; WebView2 keeps its own reference to the handler.
+        unsafe { self.webview.add_PermissionRequested(&handler, &mut token) }
     }
 
     /// Tests: the page's picture, as WebView2 draws it, written to `path` as a PNG (to see what a page shows).
@@ -722,9 +803,11 @@ fn process_failure(kind: COREWEBVIEW2_PROCESS_FAILED_KIND) -> String {
 fn create_environment(user_data: &Path) -> Result<ICoreWebView2Environment, Error> {
     let options = CoreWebView2EnvironmentOptions::default();
     // Chromium throttles or stops rendering for hidden or occluded windows; ours is never shown.
+    // --allow-running-insecure-content: the game's radio list has stations that stream over http only, and the
+    // cab's page is https, where the browser would otherwise refuse them (mixed content: the Radio app).
     let mut arguments = "--disable-features=CalculateNativeWinOcclusion --disable-background-timer-throttling \
                          --disable-renderer-backgrounding --disable-backgrounding-occluded-windows \
-                         --autoplay-policy=no-user-gesture-required"
+                         --autoplay-policy=no-user-gesture-required --allow-running-insecure-content"
         .to_string();
     // The GPU it draws on (graphics.rs).
     if let Some(gpu) = GPU_ARGUMENT.lock().unwrap_or_else(|e| e.into_inner()).as_deref() {
@@ -987,6 +1070,77 @@ mod tests {
             heard.push(ears.iter().take(2).any(|ear| *ear > 0.0005));
         }
         assert_eq!(heard, [true, true, true], "silent through the speakers at some point (a, b, then a again)");
+    }
+
+    /// The truck's speakers (cab_sound.js) are told afresh with every move of the camera — the host sends them again
+    /// beside the head — and the way through them is built once, never again: one built again starts its filters,
+    /// panners, delays and limiter anew, which is a click in the sound twenty times a second as the camera turns.
+    /// Muted (nothing is heard), an element to play from, and each node made counted.
+    #[test]
+    #[ignore = "runs WebView2"]
+    fn the_speakers_way_is_not_built_again_as_the_camera_moves() {
+        use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
+        // SAFETY: COM on this test's own thread, once, before anything uses it.
+        unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok().unwrap() };
+        let root = std::env::temp_dir().join(format!("westplay-speakers-rebuild-{}", std::process::id()));
+        let site = root.join("site");
+        std::fs::create_dir_all(&site).unwrap();
+        let speakers = serde_json::to_string(&crate::speakers::in_truck("scania.s_2016").unwrap()).unwrap();
+        let count = serde_json::from_str::<Vec<serde_json::Value>>(&speakers).unwrap().len();
+        std::fs::write(
+            site.join("index.html"),
+            format!(
+                "<!doctype html><audio id=a></audio><script>\n\
+                 const made = {{ filters: 0, panners: 0 }}\n\
+                 const wrap = (name, tally) => {{\n\
+                   const Real = window[name]\n\
+                   window[name] = class extends Real {{ constructor(...args) {{ super(...args); made[tally]++ }} }}\n\
+                 }}\n\
+                 wrap('BiquadFilterNode', 'filters')\n\
+                 wrap('PannerNode', 'panners')\n\
+                 </script><script>{}</script><script>\n\
+                 const speakers = {speakers}\n\
+                 const head = {{ x: -0.47, y: 1.33, z: 0.32, heading: 0, pitch: 0 }}\n\
+                 const audio = document.getElementById('a')\n\
+                 const cab = window.westplayCabSound(() => audio)\n\
+                 cab.head(head)\n\
+                 cab.speakers(speakers)\n\
+                 // As the host does while the camera turns: the head moved, the same speakers in a new list.\n\
+                 window.turning = (times) => {{\n\
+                   for (let i = 0; i < times; i++) {{\n\
+                     cab.head({{ ...head, heading: i / 200 }})\n\
+                     cab.speakers(JSON.parse(JSON.stringify(speakers)))\n\
+                   }}\n\
+                 }}\n\
+                 </script>",
+                include_str!("cab_sound.js")
+            ),
+        )
+        .unwrap();
+        let stage = Stage::new(320, 200).unwrap();
+        let view = OffscreenWebView::new(&stage, 320, 200, &root.join("profile")).unwrap();
+        view.set_muted(true).unwrap();
+        view.map_folder("westplay.rebuild", &site).unwrap();
+        let pump = |seconds: f64| {
+            let until = std::time::Instant::now() + std::time::Duration::from_secs_f64(seconds);
+            while std::time::Instant::now() < until {
+                crate::pump_messages();
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        };
+        view.navigate("https://westplay.rebuild/index.html").unwrap();
+        pump(2.0);
+        let built = |make: &str| -> serde_json::Value {
+            let said = view.evaluate(&format!("JSON.stringify({make})")).unwrap();
+            serde_json::from_str(&serde_json::from_str::<String>(&said).unwrap()).unwrap()
+        };
+        let once = built("made");
+        println!("built: {once}");
+        // Each speaker has its filters, its gain and its place; the way is made.
+        assert!(once["panners"].as_u64() == Some(count as u64), "a way for each speaker: {once}");
+        assert!(once["filters"].as_u64().unwrap_or(0) > 0, "a way made: {once}");
+        view.evaluate("window.turning(20)").unwrap();
+        assert_eq!(built("made"), once, "the way built again as the camera moved");
     }
 
     #[test]

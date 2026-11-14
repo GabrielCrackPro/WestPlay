@@ -1,4 +1,4 @@
-/* Dashboard: map tile (most of the space) + a column of three one-job widgets. */
+/* Dashboard: map tile (most of the space) + a column of one-job widgets. */
 .screen.dashboard {
   left: var(--content-left, 170px);
   right: var(--edge);
@@ -17,13 +17,28 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--tile-gap, 18px) - 2px);
   container: widgets / size;
+  /* A small screen, or every widget turned on: the cards keep their own size and the column scrolls rather
+     than clipping them (the scrollbar itself is hidden: the truck's screen has no room for one). */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.widgets::-webkit-scrollbar {
+  display: none;
 }
 
 /* No widget to show (Dashboard.tsx): the map takes the whole width. */
 .widgets[hidden] {
   display: none;
+}
+
+/* The cards are read from the driver's seat: their secondary words keep a good deal more contrast than the rest of
+   the cabin's dim text, so a label or a distance doesn't fade into the glass (owner 2026-11-04: some of the widgets
+   were hard to read while driving). */
+.widgets .widget {
+  --text-dim: color-mix(in srgb, var(--text) 88%, transparent);
 }
 
 .widget {
@@ -33,15 +48,27 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
   min-height: 0;
+}
+
+/* Every card's small label above its figure: one size, one weight, sentence case. The cards had four sizes and
+   three different tracked capitals between them, which read as captions from other apps rather than one column
+   of the cab's own cards. A card that needs the label larger (Diagnostics) sets it itself. */
+.widget .kicker {
+  color: var(--text-dim);
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* A widget that comes and goes (turn-by-turn, the destination): in a slot that grows into the column as it
    comes (the other widgets making room) and gives the room back as it goes; the column's gap goes with it. */
 .widget-slot {
   flex: 0 1 0;
+  min-width: 0;
   min-height: 0;
-  margin-bottom: calc(2px - var(--tile-gap, 18px));
   display: flex;
   /* While it grows, the card shows only as far as the slot reaches, within its rounded corners. */
   overflow: hidden;
@@ -52,15 +79,307 @@
 }
 
 .widget-slot.open {
-  flex-grow: 1;
-  margin-bottom: 0;
+  flex: 1 0 auto;
 }
 
-.guidance-widget {
+/* The player's own share of the column (Settings › Dashboard): a compact card leaves room for the ones under it,
+   an expanded one keeps more. The cards still refuse to squeeze their content, and the column scrolls if needed. */
+.widget-slot[data-size='compact'].open {
+  flex-grow: 0.55;
+}
+
+.widget-slot[data-size='standard'].open {
+  flex-grow: 1;
+}
+
+.widget-slot[data-size='expanded'].open {
+  flex-grow: 1.9;
+}
+
+/* A video's Now Playing is never squeezed into a strip: the card keeps at least its picture's 16:9 height,
+   then grows into any room the column has left. The column scrolls for the other cards if it is short. */
+.widget-slot.video.open {
+  min-height: calc(100cqw * 0.5625);
+}
+
+/* A widget that opens its app (Diagnostics) is the card itself: the card's own type and glass, none of the
+   button's (and the press shows, as an app icon's does on Home). */
+button.widget {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border: 0;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms var(--motion-ease);
+}
+
+button.widget.glass {
+  background: var(--glass);
+}
+
+button.widget:active {
+  transform: scale(0.985);
+}
+
+/* Diagnostics: the coolant and the brake air, each in the card's own words unless it's out of its range, when
+   it takes the tone (the app's own colours, DiagnosticsApp). */
+.widget.diagnostics .destination.warn,
+.widget.diagnostics .place.warn {
+  color: var(--apple-orange);
+}
+
+.widget.diagnostics .destination.alarm,
+.widget.diagnostics .place.alarm {
+  color: var(--apple-red);
+}
+
+/* The card is a button, and the shell's buttons take no padding: the fuel card's, given back (the card's
+   words were flush against its edge without this). */
+.widget.fuel.diagnostics {
+  padding: 14px 20px;
+}
+
+/* The readings are glanced at from the driver's seat: this card's type is a step larger than the fuel card's,
+   so a look says what the engine, the brakes and the tank are doing (owner 2026-11-01: "i can bearly read the
+   diagnostic widget"). */
+.widget.diagnostics .kicker {
+  font-size: calc(19px * var(--text-scale, 1));
+}
+
+.widget.diagnostics .destination {
+  font-size: calc(28px * var(--text-scale, 1));
+}
+
+.widget.diagnostics .place {
+  font-size: calc(24px * var(--text-scale, 1));
+}
+
+/* Its gauge, in the fuel pump's own soft colour. */
+.diagnostics-glyph {
+  flex: none;
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+/* The needle sweeps to its reading as the card arrives, then stays at it: a gauge that has just been switched on,
+   not a decoration that keeps moving while the driver reads it. */
+.diagnostics-needle {
+  transform-box: view-box;
+  transform-origin: 32px 46px;
+  animation: diagnostics-needle-in 900ms var(--motion-ease) both;
+}
+
+@keyframes diagnostics-needle-in {
+  from {
+    transform: rotate(-58deg);
+  }
+}
+
+/* The card's other readings, on one muted line under the two big ones like the destination card's deadline: the
+   battery, the AdBlue, the oil's pressure, the fuel it burns and the trailer's tires, wrapped as room runs
+   out. */
+.widget.diagnostics .diag-extra {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: calc(12px * var(--text-scale, 1));
+  min-width: 0;
+  margin-top: calc(4px * var(--text-scale, 1));
+  font-size: calc(17px * var(--text-scale, 1));
+  line-height: 1.3;
+}
+
+.widget.diagnostics .diag-extra-item {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 0;
+  min-width: 0;
+}
+
+.widget.diagnostics .diag-extra-label {
+  color: var(--text-dim);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget.diagnostics .diag-extra-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.widget.diagnostics .diag-extra-item.warn .diag-extra-value {
+  color: var(--apple-orange);
+}
+
+.widget.diagnostics .diag-extra-item.alarm .diag-extra-value {
+  color: var(--apple-red);
+}
+
+/* Driver hours: the two rest clocks, large, each with its name beside it, and the trip (or the fuel's range)
+   under them. A rest within the hour takes the same tones as the diagnostics card's readings. */
+.widget.driver-hours {
+  padding: 14px 20px;
+  gap: 12px;
+}
+
+.widget.driver-widget {
+  gap: calc(15px * var(--text-scale, 1));
+  padding: 14px 18px;
+}
+
+.driver-widget-portrait {
+  flex: none;
+  width: calc(62px * var(--text-scale, 1));
+  height: calc(62px * var(--text-scale, 1));
+  color: var(--apple-blue);
+  transition: scale 240ms var(--motion-ease);
+  animation: driver-portrait-in 480ms var(--motion-ease);
+}
+
+@media (hover: hover) {
+  .driver-widget:hover .driver-widget-portrait {
+    scale: 1.045;
+  }
+}
+
+@keyframes driver-portrait-in {
+  from {
+    opacity: 0;
+    scale: 0.88;
+  }
+}
+
+.driver-widget-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: calc(3px * var(--text-scale, 1));
+}
+
+.driver-widget-distance {
+  overflow: hidden;
+  font-size: calc(26px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-widget-name {
+  overflow: hidden;
+  font-size: calc(18px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The app's lifetime totals, a step down: two to a row, each figure under its name, as a card's readings are. */
+.driver-widget-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(2px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
+  min-width: 0;
+  margin-top: calc(3px * var(--text-scale, 1));
+}
+
+.driver-widget-total {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.driver-widget-total-label {
+  overflow: hidden;
+  color: var(--text-dim);
+  /* Raised with the cluster's labels (owner 2026-11-09: "make the text easier to read"): these are the card's
+     smallest words, and the card has room under the figures for them. */
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.driver-widget-total-value {
+  overflow: hidden;
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget.driver-hours .hours-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.widget.driver-hours .hours-line {
+  display: flex;
+  align-items: baseline;
+  gap: calc(10px * var(--text-scale, 1));
+  min-width: 0;
+  margin-top: calc(2px * var(--text-scale, 1));
+}
+
+.widget.driver-hours .hours-value {
+  flex: none;
+  font-size: calc(28px * var(--text-scale, 1));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.widget.driver-hours .hours-line.small .hours-value {
+  font-size: calc(23px * var(--text-scale, 1));
+  font-weight: 600;
+}
+
+.widget.driver-hours .hours-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget.driver-hours .hours-detail {
+  margin-top: calc(4px * var(--text-scale, 1));
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget.driver-hours .hours-value.warn {
+  color: var(--apple-orange);
+}
+
+.widget.driver-hours .hours-value.alarm {
+  color: var(--apple-red);
+}
+
+.widget.driver-hours .hours-glyph {
+  flex: none;
+  width: calc(52px * var(--text-scale, 1));
+  height: calc(52px * var(--text-scale, 1));
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+/* The column's gap between the cards that are up: a card that folds away takes its gap with it (the slots
+   themselves are stacked, so the gap is the space under every open card but the last). */
+.widget-slot.open:has(~ .widget-slot.open) {
+  margin-bottom: calc(var(--tile-gap, 18px) - 2px);
 }
 
 /* Colour from content: tinted by the album art. */
@@ -91,12 +410,53 @@
   opacity: 0.55;
 }
 
+/* While it plays, the cover's blurred light drifts under the glass: the card breathes with the music instead of
+   sitting as a still poster. */
+.now-playing.is-playing .np-tint img {
+  animation: np-tint-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes np-tint-drift {
+  from {
+    transform: scale(1.02) translate3d(-1%, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(1.5%, -1.5%, 0);
+  }
+}
+
 .now-playing .np-top {
   display: flex;
   align-items: center;
   gap: 16px;
   min-width: 0;
   text-align: left;
+}
+
+/* The card holds two presses: the cover opens its player's app, the name turns the card over between its sizes
+   (widgets.tsx). Both are buttons, so both are drawn as the card's own picture and words: no frame, no fill, the card's
+   type, and only as much room as the thing inside them. */
+.now-playing .np-open,
+.now-playing .np-resize {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.now-playing .np-open {
+  flex: none;
+}
+
+.now-playing .np-resize {
+  flex: 1;
 }
 
 .now-playing .art {
@@ -133,20 +493,64 @@
 }
 
 .now-playing .title {
-  font-size: calc(24px * var(--text-scale, 1));
+  font-size: calc(25px * var(--text-scale, 1));
   font-weight: 650;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.now-playing .artist {
+/* Which app plays it, above the name: a card's kicker, in the card's own dim. */
+/* Which app plays it, above the name: a small sentence-case line, as CarPlay's Now Playing has it. */
+.now-playing .service {
   overflow: hidden;
-  font-size: calc(20px * var(--text-scale, 1));
-  font-weight: 500;
-  opacity: 0.78;
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-dim);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.now-playing .artist {
+  overflow: hidden;
+  font-size: calc(22px * var(--text-scale, 1));
+  font-weight: 500;
+  line-height: 1.3;
+  opacity: 0.86;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* How far into the track: its time and its length either side of the bar, as a player writes them. */
+.now-playing .np-progress {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--text-scale, 1));
+  padding: 0 calc(4px * var(--text-scale, 1));
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.now-playing .np-bar {
+  flex: 1;
+  min-width: 0;
+  height: calc(5px * var(--text-scale, 1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  overflow: hidden;
+  color: var(--text);
+}
+
+.now-playing .np-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  /* A second's step at a time, sliding rather than jumping. */
+  transition: width 1s linear;
 }
 
 .now-playing .controls {
@@ -176,6 +580,71 @@
   opacity: 0.32;
 }
 
+/* A player that has shuffle and repeat (the streaming apps; a station has neither): CarPlay's five controls,
+   the two beside the transport smaller and quieter, lit in blue while on. */
+.now-playing .controls.with-extras {
+  padding: 0 10px;
+}
+
+.now-playing .controls button.side {
+  width: 52px;
+  height: 52px;
+  color: var(--text-dim);
+}
+
+.now-playing .controls button.side.on {
+  color: var(--apple-blue);
+}
+
+/* The compact player (Settings › Dashboard): the card on one line — the track beside the transport, without its
+   cover, its progress or the quieter shuffle and repeat. Its slot keeps the card's own height rather than a full
+   share of the column, giving the room back to the drive's cards. */
+.widget-slot.compact.open {
+  flex: 0 0 auto;
+}
+
+.now-playing.compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'track transport';
+  align-items: center;
+  gap: 0 calc(12px * var(--text-scale, 1));
+}
+
+.now-playing.compact .np-top {
+  grid-area: track;
+  min-width: 0;
+}
+
+.now-playing.compact .controls {
+  grid-area: transport;
+  gap: 2px;
+  padding: 0;
+}
+
+.now-playing.compact .np-open,
+.now-playing.compact .art,
+.now-playing.compact .service,
+.now-playing.compact .np-progress,
+.now-playing.compact .np-dial,
+.now-playing.compact .controls button.side {
+  display: none;
+}
+
+.now-playing.compact .title {
+  font-size: calc(22px * var(--text-scale, 1));
+}
+
+.now-playing.compact .artist {
+  margin-top: 1px;
+  font-size: calc(18px * var(--text-scale, 1));
+}
+
+.now-playing.compact .controls button {
+  width: 46px;
+  height: 46px;
+}
+
 .job {
   flex-direction: column;
   align-items: flex-start;
@@ -183,38 +652,181 @@
   gap: 2px;
 }
 
-.job .kicker {
-  font-size: calc(18px * var(--text-scale, 1));
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
 .job .destination {
-  font-size: calc(28px * var(--text-scale, 1));
+  font-size: calc(29px * var(--text-scale, 1));
   font-weight: 650;
 }
 
 .job .place {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(23px * var(--text-scale, 1));
   font-weight: 600;
 }
 
 .job .deadline {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(23px * var(--text-scale, 1));
   font-weight: 500;
   color: var(--text-dim);
 }
 
 /* Past the delivery deadline. */
 .job .deadline.late {
-  color: #ff453a;
+  color: var(--apple-red);
+  animation: diag-alarm 900ms var(--motion-ease) 2;
+}
+
+/* The fuel card: its words on the left, its glyph beside them, as the weather card has its symbol. It's denser
+   than the other cards, so the column still fits every widget the player turns on. */
+.fuel {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+}
+
+.fuel .fuel-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fuel .destination {
+  font-size: calc(24px * var(--text-scale, 1));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuel .place {
+  font-size: calc(20px * var(--text-scale, 1));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The destination with its job: where it goes at the card's own size, and under it what the job carries and
+   pays, beside the cargo glyph. The two reads wrap apart when the column is narrow. */
+.trip-card {
+  padding: 14px 20px;
+}
+
+.trip-card .job-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: calc(12px * var(--text-scale, 1));
+  row-gap: calc(2px * var(--text-scale, 1));
+  min-width: 0;
+  max-width: 100%;
+  margin-top: calc(4px * var(--text-scale, 1));
+  font-size: calc(20px * var(--text-scale, 1));
+  line-height: 1.3;
+}
+
+/* Each read keeps its own width and wraps to the next line rather than squeezing into an ellipsis. */
+.trip-card .job-meta span {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-card .job-meta .cargo {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.trip-card .job-meta .pay {
+  font-weight: 650;
+}
+
+/* The job and fuel glyphs in the weather symbol's soft colour. */
+.job-glyph,
+.fuel-glyph {
+  flex: none;
+  color: color-mix(in srgb, var(--text) 45%, white);
+}
+
+.appearance-dark .job-glyph,
+.appearance-dark .fuel-glyph {
+  color: color-mix(in srgb, var(--text) 85%, transparent);
 }
 
 /* The weather: where, and the weather, beside its symbol. */
 .weather {
   justify-content: space-between;
+}
+
+/* The weather's own small weather: the sun's rays turn, the moon floats, the cloud drifts and the rain falls —
+   slow and low so it reads as live, not as a loading spinner. */
+.weather-glyph .weather-sun {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: weather-sun-turn 60s linear infinite;
+}
+
+.weather-glyph .weather-moon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-moon-float 8s ease-in-out infinite alternate;
+}
+
+.weather-glyph .weather-cloud {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-cloud-drift 6s ease-in-out infinite alternate;
+}
+
+.weather-glyph .weather-drops line {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: weather-drop 1.2s linear infinite;
+}
+
+.weather-glyph .weather-drops line:nth-child(2) {
+  animation-delay: 0.28s;
+}
+
+.weather-glyph .weather-drops line:nth-child(3) {
+  animation-delay: 0.56s;
+}
+
+@keyframes weather-sun-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes weather-moon-float {
+  to {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes weather-cloud-drift {
+  to {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes weather-drop {
+  0% {
+    opacity: 0.2;
+    transform: translateY(-2px);
+  }
+
+  35% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.25;
+    transform: translateY(3px);
+  }
 }
 
 .weather .weather-text {
@@ -225,7 +837,7 @@
 }
 
 .weather .place {
-  font-size: calc(22px * var(--text-scale, 1));
+  font-size: calc(24px * var(--text-scale, 1));
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -233,7 +845,7 @@
 }
 
 .weather .condition {
-  font-size: calc(32px * var(--text-scale, 1));
+  font-size: calc(33px * var(--text-scale, 1));
   font-weight: 650;
 }
 
@@ -247,18 +859,224 @@
   color: color-mix(in srgb, var(--text) 85%, transparent);
 }
 
-/* Neutral widgets get smoky glass in dark mode, so text stays readable over bright wallpaper areas. */
-.appearance-dark .weather,
-.appearance-dark .job {
+/* Every card gets smoky glass in dark mode, so its words stay readable over bright wallpaper areas: clear glass
+   over a pale wallpaper was the worst of them to read at a glance (owner 2026-11-04). */
+.appearance-dark .widgets .widget {
   --glass: rgb(16 18 24 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.22);
 }
 
-/* A narrow or short column (a small screen's, its UI scaled up): the widgets compact, so all three fit. */
+/* A column too short even for the tightened cards (every widget on at once, at a truck screen's scale): the
+   cards and the gap between them give a little more, so the diagnostics card's readings still fit. */
+@container widgets (max-height: 690px) {
+  .widgets .widget {
+    padding: 6px 16px;
+  }
+
+  .widgets .widget.fuel.diagnostics {
+    padding: 6px 16px;
+  }
+
+  .widget-slot.open:has(~ .widget-slot.open) {
+    margin-bottom: 10px;
+  }
+
+  .widgets .now-playing .art {
+    width: 48px;
+    height: 48px;
+  }
+
+  .widgets .now-playing .np-progress {
+    gap: calc(8px * var(--text-scale, 1));
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .widgets .now-playing .controls button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .widgets .driver-widget {
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .widgets .driver-widget-portrait {
+    width: 42px;
+    height: 42px;
+  }
+
+  .widgets .driver-widget-distance {
+    font-size: calc(21px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-name {
+    font-size: calc(13.5px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-total-label {
+    font-size: calc(13.5px * var(--text-scale, 1));
+  }
+
+  .widgets .driver-widget-total-value {
+    font-size: calc(14px * var(--text-scale, 1));
+  }
+
+  .widgets .job .destination {
+    font-size: calc(24px * var(--text-scale, 1));
+  }
+
+  .widgets .job .place,
+  .widgets .job .deadline {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  /* The diagnostics card keeps a size it can still be read at, one step down from its own. */
+  .widgets .widget.diagnostics .kicker {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .destination {
+    font-size: calc(23px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .place {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.diagnostics .diag-extra {
+    font-size: calc(16.5px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.driver-hours .hours-value {
+    font-size: calc(23px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.driver-hours .hours-line.small .hours-value {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.driver-hours .hours-label,
+  .widgets .widget.driver-hours .hours-detail {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .widgets .widget.driver-hours .hours-glyph {
+    width: calc(44px * var(--text-scale, 1));
+    height: calc(44px * var(--text-scale, 1));
+  }
+}
+
+/* A column too short for the cards at their full size (a 720p screen with the destination and diagnostics cards
+   up): they tighten up so the ones turned on still fit, without the column having to scroll. */
+@container widgets (max-height: 700px) {
+  .widget {
+    padding: 10px 20px;
+  }
+
+  .now-playing {
+    gap: 4px;
+  }
+
+  .now-playing .art {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+  }
+
+  .now-playing .title {
+    font-size: calc(22px * var(--text-scale, 1));
+  }
+
+  .now-playing .artist {
+    font-size: calc(19px * var(--text-scale, 1));
+  }
+
+  .now-playing .service {
+    font-size: calc(15.5px * var(--text-scale, 1));
+  }
+
+  .now-playing .controls button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .job .kicker {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .job .destination {
+    font-size: calc(26px * var(--text-scale, 1));
+  }
+
+  .job .place,
+  .job .deadline {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .fuel .kicker {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .fuel .destination {
+    font-size: calc(21px * var(--text-scale, 1));
+  }
+
+  .fuel .place {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .trip-card .job-meta {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .trip-card .job-glyph {
+    width: 24px;
+    height: 24px;
+  }
+
+  .fuel-glyph {
+    width: 56px;
+    height: 56px;
+  }
+
+  .weather .place {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .weather .condition {
+    font-size: calc(29px * var(--text-scale, 1));
+  }
+
+  .weather .weather-glyph {
+    width: 64px;
+    height: 64px;
+  }
+
+  .widget.driver-hours .hours-value {
+    font-size: calc(25px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-line.small .hours-value {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-label,
+  .widget.driver-hours .hours-detail {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-glyph {
+    width: calc(48px * var(--text-scale, 1));
+    height: calc(48px * var(--text-scale, 1));
+  }
+}
+
+/* A narrow or short column (a small screen's, its UI scaled up): the widgets compact, so all of them fit. */
 @container widgets (max-width: 300px) or (max-height: 520px) {
   .widget {
-    padding: 10px 14px;
-    gap: 10px;
+    padding: 8px 12px;
+    gap: 8px;
   }
 
   .now-playing {
@@ -266,21 +1084,30 @@
   }
 
   .now-playing .np-top {
-    gap: 10px;
+    gap: 8px;
   }
 
   .now-playing .art {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
   }
 
   .now-playing .title {
-    font-size: calc(19px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
 
   .now-playing .artist {
-    font-size: calc(16px * var(--text-scale, 1));
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .now-playing .service {
+    font-size: calc(15.5px * var(--text-scale, 1));
+  }
+
+  .now-playing .np-progress {
+    gap: calc(8px * var(--text-scale, 1));
+    font-size: calc(14.5px * var(--text-scale, 1));
   }
 
   .now-playing .controls {
@@ -288,16 +1115,16 @@
   }
 
   .now-playing .controls button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 
   .job .kicker {
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
   }
 
   .job .destination {
-    font-size: calc(21px * var(--text-scale, 1));
+    font-size: calc(20px * var(--text-scale, 1));
   }
 
   .job .place,
@@ -305,47 +1132,179 @@
     font-size: calc(17px * var(--text-scale, 1));
   }
 
+  .fuel .kicker {
+    font-size: calc(15.5px * var(--text-scale, 1));
+  }
+
+  /* The fuel's line is the longest ("1,241 km of range"): a size down and it still fits the narrow column. */
+  .fuel .destination {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .fuel .place {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .trip-card .job-meta {
+    font-size: calc(16px * var(--text-scale, 1));
+  }
+
+  .trip-card .job-glyph {
+    width: 20px;
+    height: 20px;
+  }
+
+  .fuel-glyph {
+    width: 40px;
+    height: 40px;
+  }
+
   .weather .place {
     font-size: calc(17px * var(--text-scale, 1));
   }
 
   .weather .condition {
-    font-size: calc(24px * var(--text-scale, 1));
+    font-size: calc(23px * var(--text-scale, 1));
   }
 
   .weather .weather-glyph {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
-  /* Turn-by-turn: the distance and its instruction each on a line of the narrow column (owner 2026-10-21:
-     "100 m" broke over two on the 7"). */
-  .guidance-widget .guidance-step {
-    gap: 10px;
-  }
-
-  .guidance-widget .guidance-step .maneuver-glyph {
-    width: 34px;
-    height: 34px;
-  }
-
-  .guidance-widget .guidance-distance {
-    font-size: calc(28px * var(--text-scale, 1));
-  }
-
-  .guidance-widget .guidance-instruction {
-    font-size: calc(16px * var(--text-scale, 1));
-  }
-
-  .guidance-widget .guidance-then {
-    gap: 8px;
-    margin-top: 6px;
-    padding-top: 6px;
+  /* Diagnostics on the narrow column: the small screen's step, still above the other cards'. */
+  .widget.diagnostics .kicker {
     font-size: calc(15px * var(--text-scale, 1));
   }
 
-  .guidance-widget .guidance-then .maneuver-glyph {
-    width: 22px;
-    height: 22px;
+  .widget.diagnostics .destination {
+    font-size: calc(23px * var(--text-scale, 1));
   }
+
+  .widget.diagnostics .place {
+    font-size: calc(20px * var(--text-scale, 1));
+  }
+
+  .widget.diagnostics .diag-extra {
+    font-size: calc(16.5px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .widget.driver-hours .kicker {
+    font-size: calc(15px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-value {
+    font-size: calc(22px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-line.small .hours-value {
+    font-size: calc(18px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-label,
+  .widget.driver-hours .hours-detail {
+    font-size: calc(15.5px * var(--text-scale, 1));
+  }
+
+  .widget.driver-hours .hours-glyph {
+    width: calc(38px * var(--text-scale, 1));
+    height: calc(38px * var(--text-scale, 1));
+  }
+}
+
+/* A widget that arrives (a job taken, the truck's readings back) rises into the column, as the column makes room
+   for it. The cards follow one another in a short cascade rather than arriving as one slab. */
+.widget-slot.open {
+  animation: widget-in 360ms var(--motion-ease) both;
+}
+
+@keyframes widget-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+.widgets .widget-slot.open:nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.widgets .widget-slot.open:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.widgets .widget-slot.open:nth-child(4) {
+  animation-delay: 135ms;
+}
+
+.widgets .widget-slot.open:nth-child(5) {
+  animation-delay: 180ms;
+}
+
+.widgets .widget-slot.open:nth-child(6) {
+  animation-delay: 225ms;
+}
+
+/* Mounting as an app closes: the column is the transition's, so its cards don't rise in (Dashboard.tsx). */
+.widgets.no-enter .widget-slot.open {
+  animation: none;
+}
+
+/* The weather card in a full column (widgets.tsx): the same card, a size down, so it fits without the others
+   giving up their own. */
+.widget.weather.tight {
+  padding: 12px 20px;
+  gap: 12px;
+}
+
+.widget.weather.tight .condition {
+  font-size: calc(21px * var(--text-scale, 1));
+}
+
+/* A reading out of its range on the Diagnostics card gives itself away, two short pulses and then it stays put:
+   enough to catch a driver's eye, not a light that keeps blinking at them. */
+.widget.diagnostics .destination.alarm,
+.widget.diagnostics .place.alarm,
+.widget.diagnostics .diag-extra-item.alarm .diag-extra-value {
+  animation: diag-alarm 900ms var(--motion-ease) 2;
+}
+
+/* Readings ease from one state to the next; the warning gives one quiet pulse as it turns. */
+.widget.driver-hours .hours-value,
+.widget.diagnostics .destination,
+.widget.diagnostics .place,
+.widget.diagnostics .diag-extra-value {
+  transition: color 350ms var(--motion-ease);
+}
+
+.widget.driver-hours .hours-value.warn {
+  animation: value-warn 1000ms var(--motion-ease) 1;
+}
+
+.widget.driver-hours .hours-value.alarm {
+  animation: diag-alarm 900ms var(--motion-ease) 2;
+}
+
+@keyframes value-warn {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes diag-alarm {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Ambient motion is the first thing to go when the cab asks for less of it. The global reduced-motion rule cuts
+   durations, but an infinite animation at 1 ms would still flicker: these are switched off whole. */
+html[data-motion='reduced'] .weather-glyph :is(.weather-sun, .weather-moon, .weather-cloud, .weather-drops line),
+html[data-motion='reduced'] .now-playing.is-playing .np-tint img {
+  animation: none;
 }

@@ -1,4 +1,5 @@
-import type { CustomWallpaper, IconSet } from './customize'
+import type { CustomWallpaper, IconSet, IconStyle } from './customize'
+import type { Language } from '../cabin/state/strings'
 
 /**
  * Messages from the WestPlay host to the cabin page (WebView2 web messages). Mirrors the Rust side:
@@ -14,6 +15,8 @@ export interface Telemetry {
   heading: number
   pitch: number
   roll: number
+  /** Steering angle, -1 (full left) to 1 (full right). */
+  steering: number
   /** m/s, negative when reversing. */
   speed: number
   engineRpm: number
@@ -40,9 +43,60 @@ export interface Telemetry {
   parkingBrake: boolean
   lowBeam: boolean
   highBeam: boolean
+  /** Whether the hazard warning lights are on. */
+  hazard: boolean
   leftBlinker: boolean
   rightBlinker: boolean
   paused: boolean
+  /** The engine's coolant temperature, degrees Celsius (the SDK's water temperature). */
+  coolantTemperature: number
+  /** The engine's oil temperature, degrees Celsius. */
+  oilTemperature: number
+  /** The brake air tank's pressure, psi. */
+  brakeAirPressure: number
+  /** The brakes' temperature, degrees Celsius (the game's average for the truck). */
+  brakeTemperature: number
+  /** Wear of the engine, 0 (new) to 1 (worn out). */
+  wearEngine: number
+  /** Wear of the wheels, 0 (new) to 1 (worn out): the tires' own wear. */
+  wearWheels: number
+  /** Wear of the transmission, the cab and the chassis, 0 (new) to 1 (worn out). */
+  wearTransmission: number
+  wearCabin: number
+  wearChassis: number
+  /** The engine oil's pressure, psi. */
+  oilPressure: number
+  /** The battery's voltage, volts (about 24 at rest, 27 to 28 while charging). */
+  batteryVoltage: number
+  /** The AdBlue in the tank, litres (the SDK's `truck.adblue`), and whether the game warns it runs low. */
+  adblue: number
+  adblueWarning: boolean
+  /** Average fuel consumption, litres per 100 km. */
+  fuelAverage: number
+  /** km. */
+  odometer: number
+  /** The retarder's level: 0 for off, up to the truck's steps. */
+  retarderLevel: number
+  /** Whether a trailer is hitched, and the wear of its wheels, 0 (new) to 1 (worn out). */
+  trailerAttached: boolean
+  trailerWearWheels: number
+  /** The game's own warnings, as the truck's dash shows them: battery not charging, oil pressure low, brake
+   * air low, fuel low. */
+  batteryWarning: boolean
+  oilPressureWarning: boolean
+  brakeAirWarning: boolean
+  fuelWarning: boolean
+  /** The game's own driver hours, in in-game minutes: until the next rest stop and until the next mandatory
+   * break. -1 when the game has none to give (the profile's fatigue or mandatory-break simulation is off). */
+  restStop: number
+  mandatoryBreak: number
+  /** Whether the parking lights, the beacon and the wipers are on. */
+  parkingLight: boolean
+  beacon: boolean
+  wipers: boolean
+  /** The trailer's body and chassis wear, 0 (new) to 1 (worn out), beside its wheels'. */
+  trailerWearBody: number
+  trailerWearChassis: number
 }
 
 /** The time the cab's clock shows (minutes since day 0, 00:00): the game's, or in a Convoy session the
@@ -63,6 +117,27 @@ export interface TruckInfo {
   id: string
   /** Display model name, localized by the game, e.g. "XG+". */
   name: string
+  /** The tank's capacity, litres (0 when the game hasn't said), and the fraction of it below which the game
+   * warns of low fuel (0 when it hasn't said either). */
+  fuelCapacity: number
+  fuelWarningFactor: number
+  /** The retarder's steps, 0 when the truck has none: its level's range. */
+  retarderSteps: number
+}
+
+/** The trailer under the truck, as the game describes it (`westplay_shared::TrailerInfo`). */
+export interface TrailerInfo {
+  /** One is hitched (the game sends no attributes when none is). */
+  attached: boolean
+  /** Display brand and model, localized by the game, e.g. "SCS Trailer" and "Box". */
+  brand: string
+  name: string
+  /** What it hangs as (`single`, `double`…) and carries (`dryvan`, `reefer`…). */
+  chainType: string
+  bodyType: string
+  /** Its own plate. */
+  plate: string
+  wheelCount: number
 }
 
 /** The player's job (`westplay_shared::JobInfo`): names localized by the game. */
@@ -86,13 +161,192 @@ export interface JobInfo {
   income: number
 }
 
+/** Lifetime career totals read from the profile's latest game save, not live-drive telemetry. */
+export interface CareerStats {
+  profileName: string | null
+  experiencePoints: number | null
+  /** Metres, as stored by the game. */
+  totalDistanceMeters: number | null
+  totalFuelLitres: number | null
+  /** Career-wide game-clock time across all game modes, seconds. */
+  gameTimeSeconds: number | null
+  /** Career-wide real-world play time across all game modes, seconds. */
+  realTimeSeconds: number | null
+  visitedCities: number | null
+  cancelledJobs: number | null
+}
+
 /** What a keybind does: the music's volume a step up or down, or it paused or played on. */
 export type KeybindAction = 'volumeUp' | 'volumeDown' | 'playPause'
 
+/** The cabin voice assistant's state (`westplay_host::voice`). */
+export type VoiceState = 'idle' | 'listening' | 'processing' | 'result' | 'error'
+
+/** A station of the game's own radio list (`live_streams.sii`): the game's words for it, and its stream. */
+export interface RadioStation {
+  name: string
+  /** The game's genre, as its list has it ('' when it has none). */
+  genre: string
+  /** The game's language, as its list has it ('' when it has none). */
+  language: string
+  /** kbit/s (0: not said). */
+  bitrate: number
+  url: string
+}
+
+/** One of the truck's speakers, as `cab_sound.js` places it (cab space, metres): its band, its level and how much
+ * later it plays (ms). */
+export interface Speaker {
+  at: [number, number, number]
+  /** Hz: from `band[0]` up to `band[1]` (0: no limit that way). */
+  band: [number, number]
+  /** dB. */
+  level: number
+  /** ms. */
+  delay: number
+  /** Which side of the stereo image it carries. */
+  channel?: 'left' | 'right' | 'both'
+}
+
+/** The phone paired with the PC (`westplay_link::Device`): its name, and the battery as it last said. */
+export interface PhoneDevice {
+  name: string
+  model?: string
+  /** Percent. */
+  battery?: number
+  charging?: boolean
+  /** The Bridge app's version, when the phone says (older ones don't). */
+  appVersion?: string
+}
+
+/** One notification on the phone (`westplay_link::Notification`), as Android's listener gives it. */
+export interface PhoneNotificationAction {
+  label: string
+  /** Whether the button takes typed text (a reply). */
+  reply?: boolean
+}
+
+export interface PhoneNotification {
+  /** One post's id: the package, Android's id and its post time. The same notification can be posted more than
+   * once, and each post comes with its own id. */
+  id: string
+  package: string
+  /** The app's own name, as the phone shows it. */
+  app: string
+  /** The app's own icon, as a `data:` URL (PNG), when the phone sent one. */
+  icon?: string
+  title?: string
+  text?: string
+  /** When it was posted (Unix seconds). */
+  time?: number
+  ongoing: boolean
+  /** Whether Android lets the player dismiss it. */
+  clearable?: boolean
+  /** Android's group key, when the app groups this notification with others. */
+  group?: string
+  /** Android's category (`msg`, `call`, `alarm`, …), when it gives one. */
+  category?: string
+  /** Android's priority, -2 (low) to 2 (high). */
+  priority?: number
+  /** The notification's buttons ("Reply", "Mark as read", …); missing when it has none. */
+  actions?: PhoneNotificationAction[]
+}
+
+/** One contact on the phone (`westplay_link::Contact`). */
+export interface PhoneContact {
+  id: string
+  name: string
+  numbers: string[]
+  /** A `data:` URL of the contact's photo, when it has one. */
+  photo?: string
+}
+
+/** One call in the phone's log (`westplay_link::Recent`). */
+export interface PhoneRecent {
+  id: string
+  number: string
+  /** The name the phone has for that number, when it has one. */
+  name?: string
+  /** What the call was: taken, made, missed, or one Android doesn't name. */
+  kind: 'incoming' | 'outgoing' | 'missed' | 'other'
+  /** When it came or was made (Unix seconds). */
+  time: number
+  /** How long it lasted, in seconds (0 for one that never connected). */
+  duration: number
+}
+
+/** What is playing, as the cabin's Now Playing sees it: one line for the cluster. */
+export interface NowPlayingInfo {
+  title: string
+  artist: string
+  playing: boolean
+  /** Which player it comes from (`spotify`, `appleMusic`, `youtubeMusic`, `video`, `radio`): the cluster draws its
+   * own icon for it, so the dash says where the sound is coming from as the screen does. */
+  app?: string | null
+  /** How far into the track the player was (seconds) when it last spoke, and when that was (Unix ms): the ports
+   * below are the dash's copy of it, and it runs the position on from there with its own clock — the cab sends a
+   * track once, not a tick a second. */
+  position?: number | null
+  at?: number | null
+  /** The track's length, seconds; `null` where the player reports none (a stream, the game's radio). */
+  duration?: number | null
+}
+
+/** A call on the phone (`westplay_link::Call`). */
+export interface PhoneCall {
+  id: string
+  state: 'idle' | 'ringing' | 'offHook'
+  number?: string
+  name?: string
+  /** When it began ringing or was answered (Unix seconds). */
+  startedAt?: number
+}
+
+/** Everything the cab knows of the paired phone (`westplay_host::phone::Phone`), sent whole whenever it changes.
+ * Where the phone pairs is the companion's (`Status.phone`): the cab is only ever given the phone's content. */
+export interface PhoneState {
+  connected: boolean
+  /** Whether the address book or the call log has arrived since the phone connected: an empty list before then is
+   * "not here yet", and the app says so rather than "nothing". */
+  ready: boolean
+  device: PhoneDevice | null
+  notifications: PhoneNotification[]
+  contacts: PhoneContact[]
+  /** The phone's call log, newest first. */
+  recents: PhoneRecent[]
+  call: PhoneCall | null
+}
+
+/** What the cab asks of the phone (`westplay_link::Command`). */
+export type PhoneCommand =
+  | { action: 'sync' }
+  | { action: 'dismiss'; id: string }
+  | { action: 'action'; id: string; index: number }
+  | { action: 'dial'; number: string }
+  | { action: 'answer' }
+  | { action: 'end' }
+  | { action: 'sms'; number: string; body: string }
+  | { action: 'reply'; id: string; text: string }
+
+/**
+ * The cabin's power sequence as it stands: which phase Cabin Play's screen is in (`state/power.ts`), and when that
+ * phase began on the machine's clock (`Date.now()`, the one both WebViews share — each page's `performance.now()`
+ * is its own). The cabin's page owns this sequence; the cluster's page is told it, so the two screens boot as one.
+ */
+export interface CabinPower {
+  phase: 'off' | 'splash' | 'connecting' | 'on'
+  /** `Date.now()` when the phase began. */
+  since: number
+}
+
 export type HostMessage =
   | { type: 'telemetry'; data: Telemetry }
+  /** The cabin's power phase, for the cluster's boot (`CabinPower`). Sent by the host only to the cluster's page. */
+  | ({ type: 'power' } & CabinPower)
   | { type: 'truck'; data: TruckInfo }
   | { type: 'job'; data: JobInfo }
+  | { type: 'trailer'; data: TrailerInfo }
+  | { type: 'career'; data: CareerStats }
   /** `null` until the game has drawn a WestPlay screen. Checked against the known ids on arrival. */
   | { type: 'screen'; layout: string | null }
   /** The settings the page applies: whether the truck's own strip stays beside WestPlay
@@ -108,12 +362,53 @@ export type HostMessage =
       /** The player's own tone curve (Settings › Equalizer), and whether it plays (Custom) or not (Recommended). */
       equalizer?: Equalizer
       equalizerCustom?: boolean
+      /** Whether the cabin voice assistant's button and hotkey are live, and the chord it listens for. */
+      voiceEnabled?: boolean
+      voiceKey?: string
+      /** Whether the background wake phrase listens (Settings › Voice Assistant). */
+      voiceWake?: boolean
+      /** Whether the cab comes back where the last launch left it (the screen and app it was in), the companion's
+       * switch. Off, Cabin Play opens on the Dashboard. */
+      resume?: boolean
+      /** Driver profiles from the companion, so the cabin shows the same profile, with their settings snapshots. */
+       profiles?: { id: string; name: string; picture?: string; settingsSnapshot?: Record<string, unknown> }[]
+      /** The active profile id from the companion. */
+      currentProfileId?: string
     }
   /** The player's own wallpapers and icon sets (shared/customize.ts), their files at `CABIN_FILES`. */
   | { type: 'customize'; wallpapers: CustomWallpaper[]; iconSets: IconSet[] }
+  /** The stations of the game's own radio list (`live_streams.sii`, its Documents folder), as the host read them:
+   * sent as the page loads, and whenever the app asks again (`radioStations`). None when there's no list. */
+  | {
+      type: 'radio'
+      stations: RadioStation[]
+      /** This PC's door to the stations' streams (`http://127.0.0.1:…`): the page plays each through it, so the
+       * truck's speakers can hear it. `null` when this PC has no door (the page plays them itself). */
+      proxy?: string | null
+    }
+  /** The truck's speakers and the driver's head, for the cab page's own sound (the Radio app): what the players'
+   * pages get, so a station is heard from the cab's speakers as their music is, and silent outside it. */
+  | {
+      type: 'cabSound'
+      speakers: Speaker[] | null
+      head: { x: number; y: number; z: number; heading: number; pitch: number } | null
+      outside: boolean
+      /** How far the camera is outside the cab, metres. */
+      distance: number
+      equalizer: Equalizer
+    }
   /** The music's spectrum as it plays, while the page asks for it (`spectrum`): bars from the lows to the
    * highs, spaced by octaves, each 0 (silent) to 255; all 0 when it stops. */
   | { type: 'spectrum'; bars: number[] }
+  /** Whether the game's camera is outside the cab: everything CabinPlay plays (the music, its presses, the GPS
+   * voice) is the cab's, and is heard in it only. */
+  | { type: 'camera'; outside: boolean }
+  /** The player's regional units in the game (Options › Interface › Regional Settings), read from the profile:
+   * its "Use miles", and whether the game is ATS's (the US's miles and gallons) or ETS2's (the UK's). */
+  | { type: 'units'; miles: boolean; american: boolean }
+  /** The player's clock in the game (Options › Gameplay › "24-hour clock notation"), read from the profile: false
+   * when the game draws its clocks in 12 hours with AM and PM. */
+  | { type: 'clock'; clock24: boolean }
   /** Whether the host draws the screen's cursor (into the frames the game takes, where the mouse is at once), or
    * the page draws its own (crates/host cursor.rs). */
   | { type: 'cursor'; host: boolean }
@@ -135,6 +430,10 @@ export type HostMessage =
   | { type: 'typingState'; state: TypingState }
   /** Whether the player plays on a map by HVT, which WestPlay doesn't allow; and the game's language. */
   | { type: 'mapBlock'; hvt: boolean; language: string | null }
+  /** The game's language on its own (its `g_lang_init`, e.g. `tr_tr`; `null` until the host has read it): the
+   * cluster's page has its own copy of the store and no use for the map restriction above, so it is told just
+   * this — its words, its readings and its page's language are the cabin's. */
+  | { type: 'language'; language: string | null }
   /** Whether the player's profile has the game's time zones on (its clock the time where the truck is). */
   | { type: 'timeZones'; on: boolean }
   /** The game's GPS route: its map nodes in order, `[x, z, forward x, forward z, distance left]` (metres;
@@ -174,6 +473,12 @@ export type HostMessage =
   | { type: 'menuGone'; gone: boolean }
   /** A keybind of the player's (the companion's Controls), pressed in the game. */
   | { type: 'keybind'; action: KeybindAction }
+  /** The voice assistant: listening, what it heard, or why it couldn't. */
+  | { type: 'voice'; state: VoiceState; transcript?: string; error?: string }
+  /** A spoken confirmation as base64 WAV, made by the host for the cab's own speakers. */
+  | { type: 'voiceAudio'; audio: string }
+  /** The player's push-to-talk chord was pressed, or the wake phrase was heard. */
+  | { type: 'voiceHotkey' }
   /** Whether the game runs. As it closes, the host closes the web players; the page powers off and forgets
    * its last telemetry. */
   | { type: 'game'; running: boolean }
@@ -224,6 +529,18 @@ export type HostMessage =
   | ({ type: 'youtubeMusicAnswer'; id: number; failed?: boolean } & Partial<YouTubeMusicAnswers>)
   /** What YouTube Music plays; `null`: nothing. */
   | { type: 'youtubeMusicPlayback'; playback: YouTubeMusicPlayback | null }
+  /** The paired phone: whether it's connected, its notifications, contacts and call, and the pairing to show
+   * when it isn't connected. Sent whole as the page loads and whenever the phone says something. */
+  | { type: 'phone'; state: PhoneState }
+  /** The phone's notifications alone: what changes far more often than the rest of its state, which the page is
+   * never sent again for a notification's sake. `backlog`: the phone's whole list as it connects or syncs, not a
+   * post to announce. */
+  | { type: 'phoneNotes'; notifications: PhoneNotification[]; backlog?: boolean }
+  /** A command the phone couldn't do, in its own words: its dialer refused, the call wouldn't end, or no phone is
+   * connected at all. */
+  | { type: 'phoneError'; error: string }
+  /** What the cab's Now Playing has, for the cluster's one-line player (`null`: nothing loaded). */
+  | { type: 'nowPlaying'; data: NowPlayingInfo | null }
 
 /** The game's weather: the one there is and the one it's turning to (the same once it has); in game minutes,
  * how long until the game changes it next; and how wet the roads are, percent. Each of the last two `null`
@@ -266,6 +583,9 @@ export function toEqualizer(value: unknown): Equalizer {
 
 export type PageMessage =
   | { type: 'ready' }
+  /** The cabin's power phase, as its page goes through it: the host passes it on to the cluster's page (`power`),
+   * which boots on it. Posted as the page connects and at every phase change. */
+  | ({ type: 'power' } & CabinPower)
   /** A startup stage reached (the boot screens shown), for the host's startup log. */
   | { type: 'startup'; stage: string }
   /** Whether WestPlay is open on the truck's screen (or the truck's original screen shows): posted as the
@@ -273,6 +593,9 @@ export type PageMessage =
   | { type: 'westplay'; open: boolean }
   /** The wallpaper chosen in Settings (wallpapers.ts), kept with WestPlay's settings (the companion's too). */
   | { type: 'wallpaper'; id: string }
+  /** The app icons chosen in Settings › App Icons: the player's set by name (`null`: Cabin Play's own), and
+   * which of its looks shows. Kept the same way as the wallpaper (the companion's Customize sees it). */
+  | { type: 'icons'; iconSet: string | null; iconStyle: IconStyle }
   /** The Vehicle Bar (the truck's strip) kept or not, chosen in Settings › Appearance, kept the same way. */
   | { type: 'truckStrip'; strip: 'auto' | 'off' }
   /** The players' tone, set in Settings › Equalizer: the player's curve, and whether it plays (Custom) or the
@@ -280,6 +603,10 @@ export type PageMessage =
   | ({ type: 'equalizer'; custom: boolean } & Equalizer)
   /** The music's spectrum wanted (Settings › Equalizer open) or not: the host answers `spectrum` as it plays. */
   | { type: 'spectrum'; on: boolean }
+  /** The game's radio list read again (the Radio app opened, or Refresh): the host answers `radio`. */
+  | { type: 'radioStations' }
+  /** The cabin's Now Playing, for the cluster's one-line player: the host passes it on (`nowPlaying`). */
+  | { type: 'nowPlaying'; playing: NowPlayingInfo | null }
   /** Whether what's under the cursor is light: the host draws it dark there. */
   | { type: 'cursorLight'; light: boolean }
   /** A change to the game's GPS route (Maps' search), at a map node (its uid, hex) for going or adding a
@@ -304,6 +631,31 @@ export type PageMessage =
   | { type: 'appleMusic'; command: AppleMusicCommand }
   /** A command for YouTube Music's web player (`westplay_host::youtube_music::Command`). */
   | { type: 'youtubeMusic'; command: YouTubeMusicCommand }
+  /** A command for WhatsApp's web app (`westplay_host::whatsapp::Command`). */
+  | { type: 'whatsapp'; command: WhatsAppCommand }
+  /** A command for the paired phone (`westplay_link::Command`): sync, dismiss a notification, dial, answer or
+   * end a call. */
+  | { type: 'phone'; command: PhoneCommand }
+  /** One utterance for the host's Windows speech recogniser, with the names the cab knows. */
+  | {
+      type: 'voice'
+      command: 'start'
+      contacts: string[]
+      places: string[]
+      apps: string[]
+      /** The cabin's language, so Windows listens in it when its speech pack is installed. */
+      language: 'en' | 'tr' | 'es'
+    }
+  /** Puts the voice panel away, and stops the recogniser waiting for speech. */
+  | { type: 'voice'; command: 'cancel' }
+  /** A confirmation for the host to speak through the cab's own speakers. */
+  | { type: 'voiceSpeak'; text: string; language: 'en' | 'tr' | 'es' }
+  /** The cabin's voice assistant switch, kept with the player's settings. */
+  | { type: 'voiceEnabled'; on: boolean }
+  /** Whether the background wake phrase listens, kept with the player's settings. */
+  | { type: 'voiceWake'; on: boolean }
+  /** The truck's name and the cabin's language the wake phrase follows, sent as they change. */
+  | { type: 'voiceWakePhrase'; brand: string; language: 'en' | 'tr' | 'es' }
 
 /** What the Spotify app asks of Spotify's web player (`westplay_host::spotify::Command`), run hidden by the
  * host: its sign-in, a question (answered with `spotifyAnswer` and the same `id`), and the player's controls
@@ -582,7 +934,7 @@ export type AppleMusicQuestion =
   | { ask: 'search'; query: string }
   | { ask: 'collection'; id: string }
   | { ask: 'artist'; id: string }
-  | { ask: 'library'; shelf: AppleMusicShelf; sort?: string; folder?: string; language?: 'en' | 'tr' }
+  | { ask: 'library'; shelf: AppleMusicShelf; sort?: string; folder?: string; language?: Language }
   | { ask: 'lyrics'; id: string }
 
 export interface AppleMusicAnswers {
@@ -659,6 +1011,20 @@ export type YouTubeMusicCommand =
   /** The music video's picture placed at this rectangle of the frame (pixels), under the page; or none. */
   | { action: 'show'; x: number; y: number; width: number; height: number }
   | { action: 'hide' }
+
+/**
+ * What the WhatsApp app asks of WhatsApp's web app (`westplay_host::whatsapp::Command`): the page is WhatsApp's
+ * own, so the app places it where its window is cut open, hides it, loads it again, or forgets the link. Text and
+ * keys typed while it's open are the host's (`typing`), sent to the page as a browser's own.
+ */
+export type WhatsAppCommand =
+  | { action: 'start' }
+  /** The page at this rectangle of the frame (pixels), under the app's window. */
+  | { action: 'show'; x: number; y: number; width: number; height: number }
+  | { action: 'hide' }
+  | { action: 'reload' }
+  /** Forget the link (the page's profile and its storage): a QR to scan again. */
+  | { action: 'signOut' }
 
 export type YouTubeMusicRepeat = 'off' | 'all' | 'one'
 export type YouTubeMusicRating = 'like' | 'dislike' | 'none'
@@ -996,7 +1362,9 @@ export const IS_DEMO = typeof location !== 'undefined' && new URLSearchParams(lo
 
 /** Whether the page runs inside the WestPlay host (and not in a plain browser preview, nor as the demo). */
 export function isInHost(): boolean {
-  return !IS_DEMO && window.chrome?.webview !== undefined
+  if (IS_DEMO) return false
+  if (typeof window === 'undefined' || window.chrome == null) return false
+  return window.chrome.webview !== undefined
 }
 
 /**

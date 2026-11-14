@@ -6,7 +6,10 @@
 
 use std::sync::atomic::Ordering;
 
-use westplay_shared::{FRAME_KEY, SCREEN_HEIGHT, SCREEN_WIDTH, frame_texture_name};
+use westplay_shared::{
+    CLUSTER_HEIGHT, CLUSTER_WIDTH, FRAME_KEY, SCREEN_HEIGHT, SCREEN_WIDTH, cluster_frame_texture_name,
+    frame_texture_name,
+};
 use windows::Win32::Foundation::E_INVALIDARG;
 use windows::Win32::Graphics::Direct3D11::{
     D3D11_BIND_SHADER_RESOURCE, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, ID3D11Device, ID3D11Device1,
@@ -22,6 +25,8 @@ use crate::{bridge, log};
 
 #[derive(Default)]
 pub struct FrameSource {
+    /// The cluster's frame: from its own shared texture, at its own size.
+    cluster: bool,
     generation: u32,
     shared: Option<(ID3D11Texture2D, IDXGIKeyedMutex)>,
     local: Option<ID3D11Texture2D>,
@@ -30,6 +35,11 @@ pub struct FrameSource {
 }
 
 impl FrameSource {
+    /// The source of the cluster page's frames (the other screens' is [`FrameSource::default`]).
+    pub fn cluster() -> Self {
+        Self { cluster: true, ..Self::default() }
+    }
+
     /// Picks up a new frame if the app published one. Returns the latest frame (B8G8R8A8, typeless) and a
     /// version that changes with every new frame, or `None` when the app is not running or has not
     /// delivered a frame yet.
@@ -49,7 +59,11 @@ impl FrameSource {
                 return None;
             }
 
-            let generation = host.frame_generation.load(Ordering::Acquire);
+            let generation = if self.cluster {
+                host.cluster_frame_generation.load(Ordering::Acquire)
+            } else {
+                host.frame_generation.load(Ordering::Acquire)
+            };
             if generation == 0 {
                 return None;
             }
@@ -59,7 +73,11 @@ impl FrameSource {
 
             let (shared, mutex) = self.shared.as_ref()?;
             let local = self.local.as_ref()?;
-            let sequence = host.frame_seq.load(Ordering::Acquire);
+            let sequence = if self.cluster {
+                host.cluster_frame_seq.load(Ordering::Acquire)
+            } else {
+                host.frame_seq.load(Ordering::Acquire)
+            };
             if sequence != self.last_sequence {
                 // Zero timeout: never stall the game's render thread. `AcquireSync` reports a timeout as a
                 // success code, so compare the raw HRESULT.
@@ -99,14 +117,21 @@ impl FrameSource {
         // is refused unless it's the frame the screens are made for.
         unsafe {
             let device1: ID3D11Device1 = device.cast()?;
-            let name = HSTRING::from(frame_texture_name(generation));
+            let name = if self.cluster {
+                HSTRING::from(cluster_frame_texture_name(generation))
+            } else {
+                HSTRING::from(frame_texture_name(generation))
+            };
             let shared: ID3D11Texture2D =
                 device1.OpenSharedResourceByName(&name, (DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE).0)?;
             let mutex: IDXGIKeyedMutex = shared.cast()?;
             let mut desc = D3D11_TEXTURE2D_DESC::default();
             shared.GetDesc(&mut desc);
             // The screens copy it whole, into the game's own textures: only the frame they're made for.
-            if let Err(problem) = frame_fits(desc.Width, desc.Height, desc.Format, desc.SampleDesc.Count) {
+            let (width, height) =
+                if self.cluster { (CLUSTER_WIDTH, CLUSTER_HEIGHT) } else { (SCREEN_WIDTH, SCREEN_HEIGHT) };
+            if let Err(problem) = frame_fits(desc.Width, desc.Height, desc.Format, desc.SampleDesc.Count, width, height)
+            {
                 return Err(windows::core::Error::new(E_INVALIDARG, format!("refused: {problem}")));
             }
 
@@ -137,9 +162,16 @@ impl FrameSource {
 /// Whether a shared texture is a frame the screens can take ([`SCREEN_WIDTH`] x [`SCREEN_HEIGHT`], one
 /// sample, B8G8R8A8 as the app makes them), or what's wrong with it: the screens copy it whole into the
 /// game's screen textures, and a copy between textures that don't match is undefined in the game's driver.
-fn frame_fits(width: u32, height: u32, format: DXGI_FORMAT, samples: u32) -> Result<(), String> {
-    if (width, height) != (SCREEN_WIDTH, SCREEN_HEIGHT) {
-        return Err(format!("{width} x {height}, not {SCREEN_WIDTH} x {SCREEN_HEIGHT}"));
+fn frame_fits(
+    width: u32,
+    height: u32,
+    format: DXGI_FORMAT,
+    samples: u32,
+    expected_width: u32,
+    expected_height: u32,
+) -> Result<(), String> {
+    if (width, height) != (expected_width, expected_height) {
+        return Err(format!("{width} x {height}, not {expected_width} x {expected_height}"));
     }
     if format != DXGI_FORMAT_B8G8R8A8_UNORM {
         return Err(format!("format {}, not B8G8R8A8", format.0));
@@ -158,12 +190,17 @@ mod tests {
     #[test]
     fn takes_only_the_frames_the_screens_are_made_for() {
         let format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        assert_eq!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, format, 1), Ok(()));
+        let screen = (SCREEN_WIDTH, SCREEN_HEIGHT);
+        let cluster = (CLUSTER_WIDTH, CLUSTER_HEIGHT);
+        assert_eq!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, format, 1, screen.0, screen.1), Ok(()));
+        assert_eq!(frame_fits(CLUSTER_WIDTH, CLUSTER_HEIGHT, format, 1, cluster.0, cluster.1), Ok(()));
         // The dev host at another size: larger would overrun the screen, smaller would leave it short.
-        assert!(frame_fits(1920, 1080, format, 1).is_err());
-        assert!(frame_fits(800, 480, format, 1).is_err());
-        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT + 1, format, 1).is_err());
-        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, 1).is_err());
-        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, format, 4).is_err());
+        assert!(frame_fits(1920, 1080, format, 1, screen.0, screen.1).is_err());
+        assert!(frame_fits(800, 480, format, 1, screen.0, screen.1).is_err());
+        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT + 1, format, 1, screen.0, screen.1).is_err());
+        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, screen.0, screen.1).is_err());
+        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, format, 4, screen.0, screen.1).is_err());
+        // A screen-sized frame isn't the cluster's and the other way round.
+        assert!(frame_fits(SCREEN_WIDTH, SCREEN_HEIGHT, format, 1, cluster.0, cluster.1).is_err());
     }
 }

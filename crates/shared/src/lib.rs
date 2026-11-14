@@ -27,7 +27,11 @@ pub fn bridge_name() -> String {
     format!("Local\\WestPlay.Bridge.v{BRIDGE_VERSION}")
 }
 pub const BRIDGE_MAGIC: u32 = u32::from_le_bytes(*b"WPB7");
-pub const BRIDGE_VERSION: u32 = 24;
+/// The bridge's layout version: bumped whenever what it holds changes shape (a field added to [`Bridge`] or to
+/// anything in it), since an app and a plugin either side of such a change lay its blocks out differently
+/// while both say the same version. 25: `Telemetry` grew the engine, brake and wear readings. 30: it grew the
+/// hazard warning. 31: the host grew the cluster frame's generation and sequence.
+pub const BRIDGE_VERSION: u32 = 31;
 
 /// Size of the app's frames, and the base size of the screen textures in the mod (`westplay_setup::game_mod`
 /// builds them from these).
@@ -136,6 +140,29 @@ pub fn screen_layout_for_texture(width: u32, height: u32) -> Option<usize> {
 pub const CAB_MARK_WIDTH: u32 = SCREEN_WIDTH;
 pub const CAB_MARK_HEIGHT: u32 = 1;
 
+/// The instrument cluster's screen: a frame of its own, beyond the truck screens' (the cluster behind the wheel is
+/// drawn from a dashboard script, not a GPS script, and shows its own page).
+pub const CLUSTER_WIDTH: u32 = 1280;
+pub const CLUSTER_HEIGHT: u32 = 480;
+/// The cluster texture's height: one row past the frame's, as the screens' are, so its size alone tells it is
+/// WestPlay's (no game texture of its own has it).
+pub const CLUSTER_TEXTURE_HEIGHT: u32 = CLUSTER_HEIGHT + 1;
+
+/// The trucks whose instrument cluster WestPlay replaces (SDK model ids, without the `vehicle.` prefix): the
+/// Scania S and R's, whose dashboard script the mod patches (`westplay_setup::game_mod`).
+pub const CLUSTER_TRUCKS: &[&str] = &["scania.s_2016", "scania.r_2016"];
+
+/// Whether WestPlay replaces the instrument cluster in `truck_id` (the SDK's id, with or without its `vehicle.`
+/// prefix).
+pub fn cluster_supported(truck_id: &str) -> bool {
+    CLUSTER_TRUCKS.contains(&truck_id.strip_prefix("vehicle.").unwrap_or(truck_id))
+}
+
+/// Name of the cluster's shared frame texture (its own generation, apart from the screens').
+pub fn cluster_frame_texture_name(generation: u32) -> String {
+    format!("Local\\WestPlay.ClusterFrame.v1.{generation}")
+}
+
 /// [`PluginBlock::truck_supported`]: a screen of WestPlay's drawn in the player's truck.
 pub const TRUCK_SUPPORTED: u32 = 1;
 /// [`PluginBlock::truck_supported`]: the truck's screen isn't WestPlay's (one other trucks share, WestPlay's only in
@@ -227,6 +254,8 @@ pub struct PluginBlock {
     pub truck: SeqLock<TruckInfo>,
     /// The player's job (`active` false when there is none).
     pub job: SeqLock<JobInfo>,
+    /// The trailer under the truck (`attached` false when there is none).
+    pub trailer: SeqLock<TrailerInfo>,
     /// Mouse input for the WestPlay screen while the player holds the interaction key.
     pub pointer: PointerBlock,
     /// Under TruckersMP: the players around the player, from TruckersMP's SDK (the plugin's `truckersmp`).
@@ -343,10 +372,14 @@ pub struct HostBlock {
     pub heartbeat: AtomicU64,
     /// Generation of the shared frame texture ([`frame_texture_name`]); 0 when there is none.
     pub frame_generation: AtomicU32,
+    /// The cluster frame's own texture ([`cluster_frame_texture_name`]): its generation, 0 when there is none.
+    pub cluster_frame_generation: AtomicU32,
     pub frame_width: AtomicU32,
     pub frame_height: AtomicU32,
     /// Incremented after each frame written to the shared texture.
     pub frame_seq: AtomicU64,
+    /// Incremented for every cluster frame published.
+    pub cluster_frame_seq: AtomicU64,
     /// 1 while WestPlay should cover the truck's screen; 0 shows the game's original screen.
     pub screen_enabled: AtomicU32,
     /// The key the player holds to use the screen (a Windows virtual-key code, from the app's settings);
@@ -587,6 +620,61 @@ pub struct Telemetry {
     /// SDK's `multiplayer.time.offset`; 0 out of one): the cab's clock shows `game_time` plus this. A job's
     /// times are the player's own.
     pub multiplayer_time_offset: i32,
+    /// The engine's coolant temperature, degrees Celsius (the SDK's `truck.water.temperature`).
+    pub coolant_temperature: f32,
+    /// The engine's oil temperature, degrees Celsius.
+    pub oil_temperature: f32,
+    /// The brake air tank's pressure, psi: below it, the brakes get sluggish.
+    pub brake_air_pressure: f32,
+    /// The brakes' temperature, degrees Celsius (the game approximates it for the whole truck).
+    pub brake_temperature: f32,
+    /// Wear of the engine, 0 (new) to 1 (worn out).
+    pub wear_engine: f32,
+    /// Wear of the wheels, 0 (new) to 1 (worn out): the game's average across them, the tires' own wear.
+    pub wear_wheels: f32,
+    /// Wear of the transmission, the cab and the chassis, 0 (new) to 1 (worn out).
+    pub wear_transmission: f32,
+    pub wear_cabin: f32,
+    pub wear_chassis: f32,
+    /// The engine oil's pressure, psi (the SDK's `truck.oil.pressure`).
+    pub oil_pressure: f32,
+    /// The battery's voltage, volts (the SDK's `truck.battery.voltage`): about 24 at rest, 27 to 28 while
+    /// the alternator charges.
+    pub battery_voltage: f32,
+    /// The AdBlue in the tank, litres (the SDK's `truck.adblue`), and whether the game warns it runs low.
+    pub adblue: f32,
+    pub adblue_warning: bool,
+    /// The truck's average fuel consumption, litres per 100 km (the game reports litres per kilometre).
+    pub fuel_average: f32,
+    /// The odometer, km (the SDK's `truck.odometer`).
+    pub odometer: f32,
+    /// The retarder's level: 0 for off, up to the truck's steps (the SDK's `truck.brake.retarder`).
+    pub retarder_level: i32,
+    /// Whether a trailer is hitched, and the wear of its wheels, 0 (new) to 1 (worn out).
+    pub trailer_attached: bool,
+    pub trailer_wear_wheels: f32,
+    /// The game's own warnings, as the truck's dash shows them (the SDK's `*.warning` channels): the battery
+    /// not charging, the oil pressure low, the brake air low, the fuel low. The cab raises them on its own
+    /// readings rather than trusting a threshold of its own.
+    pub battery_warning: bool,
+    pub oil_pressure_warning: bool,
+    pub brake_air_warning: bool,
+    pub fuel_warning: bool,
+    /// The game's own driver hours, in in-game minutes: until the next rest stop (the SDK's `rest.stop`) and
+    /// until the next mandatory break (`mandatory.break`). -1 when the game has none to give (the profile's
+    /// fatigue or mandatory-break simulation is off).
+    pub rest_stop: i32,
+    pub mandatory_break: i32,
+    /// Whether the parking lights, the beacon and the wipers are on (the SDK's `truck.light.parking`,
+    /// `truck.light.beacon`, `truck.wipers`).
+    pub parking_light: bool,
+    pub beacon: bool,
+    pub wipers: bool,
+    /// The trailer's body and chassis wear, 0 (new) to 1 (worn out), beside its wheels' (`trailer_wear_wheels`).
+    pub trailer_wear_body: f32,
+    pub trailer_wear_chassis: f32,
+    /// Whether the hazard warning lights are on (the SDK's `truck.hazard.warning`).
+    pub hazard: bool,
 }
 
 /// Identity of the current truck, from the SDK's "truck" configuration.
@@ -613,6 +701,34 @@ pub struct TruckInfo {
     /// The plate's country (`license.plate.country.id`, e.g. `italy`).
     #[cfg_attr(feature = "serde", serde(skip))]
     pub plate_country: FixedStr<32>,
+    /// The tank's capacity, litres (the configuration's `fuel.capacity`), and the fraction of it below which
+    /// the game warns of low fuel (`fuel.warning.factor`): 0 when the game hasn't said either.
+    pub fuel_capacity: f32,
+    pub fuel_warning_factor: f32,
+    /// The retarder's steps (the configuration's `retarder.steps`), 0 when the truck has none: its level's
+    /// range.
+    pub retarder_steps: u32,
+}
+
+/// Identity of the trailer under the truck, from the SDK's "trailer" configuration. The game reports the
+/// chain's and the body's names for its first trailer only, and an empty attribute set when none is hitched.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+pub struct TrailerInfo {
+    /// There is one hitched (the game sends no attributes when there isn't).
+    pub attached: bool,
+    /// Brand and model for display, localized by the game, e.g. "SCS Trailer" and "Box".
+    pub brand: FixedStr<64>,
+    pub name: FixedStr<64>,
+    /// What it hangs as (`chain.type`, e.g. `single`) and carries (`body.type`, e.g. `dryvan`).
+    pub chain_type: FixedStr<32>,
+    pub body_type: FixedStr<32>,
+    /// Its licence plate, as the game shows it (to find it among the save's trailers).
+    pub plate: FixedStr<32>,
+    /// How many wheels it rides on (each axle's pair counted).
+    pub wheel_count: u32,
 }
 
 /// The player's current job, from the SDK's "job" configuration. Names come localized by the game.
@@ -712,6 +828,7 @@ unsafe impl Plain for Telemetry {}
 unsafe impl Plain for TruckInfo {}
 // SAFETY: byte strings, integers, floats and `bool`s only (see `Plain`).
 unsafe impl Plain for JobInfo {}
+unsafe impl Plain for TrailerInfo {}
 // SAFETY: integers and floats only (see `Plain`); a count read torn is bounded by `Nearby::players`.
 unsafe impl Plain for Nearby {}
 
@@ -962,6 +1079,9 @@ mod tests {
             head: [-0.722, 1.696, 0.686],
             plate: FixedStr::new("CA 324KD"),
             plate_country: FixedStr::new("italy"),
+            fuel_capacity: 900.0,
+            fuel_warning_factor: 0.15,
+            retarder_steps: 5,
         };
         lock.write(&truck);
         assert_eq!(lock.read(), Some(truck));
@@ -1003,6 +1123,17 @@ mod tests {
         assert!(screen_supported(layout("daf-2021"), "vehicle.daf.2021"));
         assert!(screen_supported(layout("iveco-sway"), "vehicle.iveco.sway"));
         assert!(!screen_supported(screen_layouts().len(), "vehicle.scania.s_2016"));
+    }
+
+    #[test]
+    fn the_cluster_is_the_scania_s_and_rs() {
+        assert!(cluster_supported("vehicle.scania.s_2016"));
+        assert!(cluster_supported("scania.r_2016"));
+        assert!(!cluster_supported("vehicle.scania.s_2024e"));
+        assert!(!cluster_supported("vehicle.mercedes.actros2014"));
+        // Its texture is no screen layout's, so the plugin can tell the two kinds apart by size.
+        assert_eq!(screen_layout_for_texture(CLUSTER_WIDTH, CLUSTER_TEXTURE_HEIGHT), None);
+        assert_ne!(cluster_frame_texture_name(1), frame_texture_name(1));
     }
 
     #[test]

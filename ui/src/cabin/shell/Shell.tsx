@@ -1,28 +1,42 @@
-import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { motion } from 'motion/react'
 import { isInHost } from '../../shared/host'
+import { useGpsVoice } from '../maps/voice'
+import { useVoice } from '../voice/voice'
+import { routeAccent } from '../maps/routeLook'
 import { useLook, useLookChanges, useOemStrip, useScreenProfile } from '../state/hooks'
 import { usePreparedIcons } from '../state/looks'
+import { motionEase, useMotionReduced } from '../motion'
 import { frameInsets, NO_INSETS, OEM_STRIPS } from '../state/oem'
 import { RETURN_BUTTON_SIZE, returnButtonCentre } from '../state/screen'
 import { textScale } from '../state/textSize'
-import { Player } from '../apps/youtube/Player'
-import { type Hole, useYouTube } from '../apps/youtube/youtube'
-import { useYouTubeMusic } from '../apps/youtubeMusic/youtubeMusic'
-import { Keyboard } from '../keyboard/Keyboard'
-import { useCabin, useLive } from '../state/store'
+import { go, useCabin, useLive } from '../state/store'
+import { useNightDim } from '../state/nightDim'
+import { useClock } from '../state/clock'
+import { type Appearance } from '../state/appearance'
 import { Sidebar } from './Sidebar'
 import { useSidebarPeek } from './sidebarPeek'
 import { VolumeHud } from './VolumeHud'
+import { Notifications } from './Notifications'
+import { PhoneAlerts } from './PhoneAlerts'
+import { VoiceAssistant } from '../voice/VoiceAssistant'
+import { Player } from '../apps/youtube/Player'
+import { Keyboard } from '../keyboard/Keyboard'
+import { useYouTube } from '../apps/youtube/youtube'
+import { useYouTubeMusic } from '../apps/youtubeMusic/youtubeMusic'
+import { useWhatsApp } from '../apps/whatsapp/whatsapp'
+import type { Hole } from '../apps/youtube/youtube'
 import './transitions.css'
 import { Wallpaper } from './Wallpaper'
+import { useSettings } from '../apps/settings/settings'
 
 interface ShellProps {
   /** The current screen, placed in the CarPlay area. */
   children: ReactNode
   /** Full-screen content above everything, the OEM strip included (the boot sequence). */
   overlay?: ReactNode
-  /** The first moments after the boot sequence: the screen fades in. */
-  entering?: boolean
+  /** Whether the voice assistant's button is on the screen: not while the cabin boots. */
+  voice?: boolean
 }
 
 /**
@@ -30,10 +44,48 @@ interface ShellProps {
  * Glass style, room for the truck's own OEM strip beside it. Everything outside the CarPlay area is
  * transparent: the game draws the truck's real strip there, underneath.
  */
-export function Shell({ children, overlay, entering = false }: ShellProps) {
+export function Shell({ children, overlay, voice = true }: ShellProps) {
   useLookChanges()
   usePreparedIcons()
   const { appearance, wallpaperSrc } = useLook()
+  // The look's arrival: when appearance changes, the page crossfades as one picture (state/launch.ts) and the
+  // shell breathes its surfaces into the new look in sequence (transitions.css .shell.appearing). On top of both,
+  // a soft light or shadow sweeps across the CarPlay area as the look lands — dark to light lifts a warm band
+  // across it, light to dark lets a quiet shadow pass over it — on the same curve the boot moves on.
+  const reduced = useMotionReduced()
+  // The sweep's tint follows the direction of the change: going to dark, a quiet shadow passes over (the
+  // multiply band); going to light, a warm band lifts across (the plus-lighter band).
+  const sweepClass = appearance === 'dark' ? 'light' : ''
+  const sweepInit = reduced ? false : { opacity: 0, backgroundPosition: '120% 0' }
+  const sweepAnimate = reduced
+    ? { opacity: 0, backgroundPosition: '120% 0' }
+    : { opacity: [0, 0.9, 0.55, 0], backgroundPosition: ['120% 0', '116% 0', '104% 0', '72% 0'] }
+  const sweepTransition = reduced ? { duration: 0 } : { duration: 0.9, ease: motionEase, times: [0, 0.2, 0.6, 1] }
+  const shellRef = useRef<HTMLDivElement>(null)
+  // Bring the shell's own surfaces into the new look as one breath, sequenced under the sweep.
+  const { sweepLead } = useAppearanceSweep(appearance, reduced)
+  useLayoutEffect(() => {
+    const shell = shellRef.current
+    if (!shell) return
+    if (reduced) return
+    shell.classList.add('appearing')
+    const done = () => shell.classList.remove('appearing')
+    const timeout = window.setTimeout(done, 560)
+    return () => {
+      shell.classList.remove('appearing')
+      window.clearTimeout(timeout)
+    }
+  }, [appearance, reduced])
+  // The dash's accent — the colour the driver chose for the route (Settings › Maps) — is the cabin's too: the same
+  // accent draws the cluster's needle and its lit arc, lights both screens' boot, and marks the way on the cabin's
+  // own surfaces (the Overview's route bar). Set once here, so every Cabin Play surface in the cabin answers it.
+  const routeColour = useCabin((state) => state.mapRoute)
+  // The game's GPS voice, for the screen's own edge to answer it (Settings › GPS Voice): whether the sign is
+  // switched on at all, and whether the voice is talking now (maps/voice.ts).
+  const voiceOnScreen = useCabin((state) => state.gpsVoiceOnScreen)
+  const voiceTalking = useGpsVoice((state) => state.talking)
+  // The cab's own assistant, which paints nothing: the frame is all it has to show it heard (voice/VoiceAssistant.tsx).
+  const assistantVoice = useVoice((state) => state.phase !== 'idle')
   const profile = useScreenProfile()
   const stripId = useOemStrip()
   const strip = stripId && OEM_STRIPS[stripId]
@@ -43,6 +95,7 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
     '--oem-left': `${insets.left}px`,
     '--oem-bottom': `${insets.bottom}px`,
     '--ui-scale': profile.scale,
+    '--accent': routeAccent(appearance, routeColour),
   } as CSSProperties
   // The screen changes' snapshots hang off <html>, not the shell: they're cut to the CarPlay area with these
   // too (transitions.css).
@@ -64,6 +117,10 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--text-scale', String(textScale(textSize)))
   }, [textSize])
+  // The page's clock (state/clock.ts): every time on the glass is drawn by a formatter that reads the setting
+  // through shared/clock.ts, so the shell only has to redraw when the setting changes — the sidebar's clock, a
+  // trip's arrival and a map stop's time are all under it.
+  useClock()
 
   // Handed to the truck (the sidebar's truck button, or the W shortcut): CarPlay shrinks into WestPlay's
   // button and the truck's own screen shows; the button grows it back.
@@ -76,17 +133,21 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
   // YouTube Music's music video in its Now Playing, the same way.
   const youtubeHole = useYouTube((state) => state.hole)
   const musicHole = useYouTubeMusic((state) => state.hole)
-  const hole = youtubeHole ?? musicHole
+  // WhatsApp's own page, filling its window (apps/whatsapp): the whole window is the hole.
+  const whatsappHole = useWhatsApp((state) => state.hole)
+  const hole = youtubeHole ?? musicHole ?? whatsappHole
   // Over a video full screen, pointing at the left edge brings the sidebar back (shell/sidebarPeek.ts).
   const carplay = useRef<HTMLDivElement>(null)
   const peek = useSidebarPeek(watching, carplay)
+  // Night in the truck: the screen dims as a head unit's does (state/nightDim.ts).
+  const nightDim = useNightDim()
   useEffect(() => {
     // Brought back, it goes again as soon as it's left, without the wait it has as YouTube opens.
     if (peek) useYouTube.setState({ holdSidebar: false })
   }, [peek])
 
   return (
-    <main className={`shell appearance-${appearance}`} style={style}>
+    <main className={`shell appearance-${appearance}`} ref={shellRef} style={style}>
       {strip && !isInHost() && <GameStripPreview name={strip.name} />}
       <div
         ref={carplay}
@@ -97,27 +158,50 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
         }}
         aria-hidden={truckScreen}
       >
+        {/* The look's sweep, over both snapshots alike, so it shades the old and new the same way. */}
+        <motion.div
+          className={`appearance-sweep${sweepClass ? ` ${sweepClass}` : ''}`}
+          initial={sweepInit}
+          animate={sweepLead ? sweepAnimate : { opacity: 0, backgroundPosition: '120% 0' }}
+          transition={sweepLead ? sweepTransition : { duration: 0 }}
+          aria-hidden
+        />
         <Wallpaper src={wallpaperSrc} />
-        <div className={entering ? 'carplay-content entering' : 'carplay-content'}>
+        <div className="carplay-content">
           <Sidebar />
           {children}
           <Player />
           <Keyboard />
           <VolumeHud />
+          <Notifications />
+          {voice && <VoiceAssistant />}
+          {!overlay && <TopBar />}
+          {/* Over the whole screen, under nothing to press: it takes no presses itself. */}
+          {nightDim > 0 && <div className="cab-night" style={{ opacity: nightDim }} aria-hidden />}
         </div>
+        {/* Over the whole CarPlay area, whatever screen is showing: the frame answers the voice on all of them. It stands
+            here on every screen and fades in and out of the voice (`data-on`, shell.css), so the sign arrives and
+            leaves with it rather than appearing and vanishing at the two edges of the window. Both voices share it —
+            the game's navigator (kept on or off by its own switch, Settings › GPS Voice) and the cab's assistant, which
+            has no sign of its own but this one (`useVoice` above), so the same pulse answers either. */}
+        {(voiceOnScreen || assistantVoice) && (
+          <div className="screen-voice-glow" data-on={voiceTalking || assistantVoice ? '' : undefined} aria-hidden />
+        )}
       </div>
+      {/* The phone over any app: its call, and its notifications as they come (shell/PhoneAlerts.tsx). */}
+      <PhoneAlerts />
       {/* What's drawn over the video where it shows through the CarPlay area (apps/youtube/VideoHole.tsx). */}
       <div id="video-over" className={truckScreen ? 'video-over handed-over' : 'video-over'} />
       <button
         type="button"
         className={truckScreen ? 'return-button shown' : 'return-button'}
         style={{ left: button.x - RETURN_BUTTON_SIZE / 2, top: button.y - RETURN_BUTTON_SIZE / 2 }}
-        aria-label="WestPlay"
+        aria-label="Cabin Play"
         aria-hidden={!truckScreen}
         tabIndex={truckScreen ? 0 : -1}
         onClick={() => useCabin.getState().setTruckScreen(false)}
       >
-        <img src="/westplay.png" alt="" />
+        <img src="/cabinplay.png" alt="" />
       </button>
       {overlay}
       {/* Over everything, the cursor included: the image's outermost pixels, which the game repeats into
@@ -125,6 +209,30 @@ export function Shell({ children, overlay, entering = false }: ShellProps) {
       {profile.rim && <div className="screen-rim" style={{ color: profile.rim }} aria-hidden />}
     </main>
   )
+}
+
+/**
+ * The look's arrival: true for the brief while the screen is settling into a new appearance, so the sweep
+ * plays only during a real look change. A wallpaper-only refresh keeps the page crossfade (state/launch.ts)
+ * but not the sweep, since nothing about the look itself moved.
+ */
+function useAppearanceSweep(appearance: Appearance, reduced: boolean): { sweepLead: boolean } {
+  const prev = useRef<Appearance | null>(null)
+  const [lead, setLead] = useState(false)
+  useEffect(() => {
+    const changed = prev.current !== null && prev.current !== appearance
+    prev.current = appearance
+    if (!changed || reduced) {
+      setLead(false)
+      return
+    }
+    setLead(true)
+    // Hold the sweep's lead window for the surface-breath length; the sweep element lands and fades within
+    // that window, so the screen reads as one motion rather than two beside each other.
+    const timer = window.setTimeout(() => setLead(false), 600)
+    return () => window.clearTimeout(timer)
+  }, [appearance, reduced])
+  return { sweepLead: lead }
 }
 
 /** A mask showing everything but a rounded rectangle, through which what's under the page shows. */
@@ -144,6 +252,35 @@ function GameStripPreview({ name }: { name: string }) {
   return (
     <div className="game-strip-preview" aria-hidden>
       <span>{name} strip (drawn by the game)</span>
+    </div>
+  )
+}
+
+/**
+ * Thin top bar that spans all cabin screens: the current driver profile avatar on the right.
+ * Clicking the avatar opens Settings directly to the Profiles section.
+ */
+export function TopBar() {
+  const profiles = useCabin((state) => state.profiles)
+  const currentId = useCabin((state) => state.currentProfileId)
+  const current = profiles.find((p) => p.id === currentId)
+
+  if (!current) return null
+
+  const initial = (current.name ?? '?')[0]?.toUpperCase() ?? '?'
+
+  const handleClick = () => {
+    useSettings.getState().open('profiles')
+    go({ type: 'openApp', app: 'settings' })
+  }
+
+  return (
+    <div className="top-bar" onClick={handleClick} title={current.name}>
+      {current.picture ? (
+        <img className="top-bar-profile-pic" src={current.picture} alt="" />
+      ) : (
+        <span className="top-bar-profile-avatar">{initial}</span>
+      )}
     </div>
   )
 }

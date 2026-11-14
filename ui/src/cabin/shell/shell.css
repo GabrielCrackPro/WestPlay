@@ -37,7 +37,7 @@
   /* Every panel's corners, the same (owner 2026-10-27: "make it consistent", the widgets' looked right): the
      sidebar, the widgets, the map, the apps' windows, the keyboard. A short screen's are smaller (below). */
   --panel-radius: 30px;
-  /* The sidebar's clock and signal at one size, whatever the Text Size (owner 2026-10-26: following it broke CarPlay's
+  /* The sidebar's clock and brand at one size, whatever the Text Size (owner 2026-10-26: following it broke CarPlay's
      look): the size they had at the default Text Size, 1.24. The sidebar as wide as the clock needs (118 units at 1,
      the clock 89 of them), and the screens starting after it and a gap. */
   --sidebar-scale: 1.24;
@@ -83,9 +83,18 @@ body,
 .shell {
   --text: #fff;
   --text-dim: rgb(255 255 255 / 0.68);
+  /* What keyboard and knob focus is drawn in (focus-visible, below): the look's own text over the screen's art,
+     so it reads on a dark wallpaper and a light one alike. */
+  --focus: #fff;
   --glass: rgb(255 255 255 / 0.12);
   --glass-rim: rgb(255 255 255 / 0.32);
   --chip: rgb(0 0 0 / 0.22);
+  /* Sidebar popovers (the phone's name, an app's menu): opaque enough to read over any wallpaper or cover,
+     rather than the sidebar's own translucent glass. Their colours stay apart from --text, which follows a
+     light or dark album cover while they float over it. */
+  --popover-surface: rgb(22 22 24 / 0.94);
+  --popover-text: #fff;
+  --popover-text-dim: rgb(255 255 255 / 0.76);
   /* Behind an open app (CarPlay's system background). */
   --app-background: #0b0b0d;
   position: relative;
@@ -97,9 +106,13 @@ body,
 .shell.appearance-light {
   --text: #14161a;
   --text-dim: rgb(20 22 26 / 0.62);
+  --focus: #14161a;
   --glass: rgb(255 255 255 / 0.42);
   --glass-rim: rgb(255 255 255 / 0.75);
   --chip: rgb(255 255 255 / 0.5);
+  --popover-surface: rgb(250 250 252 / 0.96);
+  --popover-text: #14161a;
+  --popover-text-dim: rgb(20 22 26 / 0.72);
   --app-background: #f2f2f6;
 }
 
@@ -173,11 +186,12 @@ body,
   cursor: pointer;
 }
 
-/* Focus ring for keyboard/knob navigation (v1.x); invisible for mouse clicks. */
-.shell button:focus-visible {
-  outline: 3px solid var(--text);
-  outline-offset: 6px;
-  border-radius: 24px;
+/* Focus ring for keyboard/knob navigation (v1.x); invisible for mouse clicks. It follows whatever shape the
+   control has (the outline traces the element's border-radius itself, and no radius of its own is set here, which
+   used to square a round sidebar button off). */
+.shell :is(button, a, [tabindex], [role='tab'], [role='switch'], [role='radio'], [role='slider']):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
 }
 
 /* The CarPlay area: the whole screen, or everything beside the truck's own OEM strip. Opaque. */
@@ -279,20 +293,12 @@ body,
   inset: 0;
 }
 
-/* After the boot sequence, the first screen fades in. Other screen changes are animated by transitions.css;
-   screens have no entry animation of their own, so nothing can replay one when a transition ends. */
-.carplay-content.entering > .screen-slot > .screen {
-  animation: screen-in var(--motion-duration) var(--motion-ease) both;
-}
+/* The first screen's entry is Motion's (CabinApp.tsx `Screens`): it fades in under the boot, which takes the same
+   500ms to go down (boot.css, state/power.ts: HANDOVER_MS), so the two are one motion. Other screen changes are
+   animated by transitions.css; screens have no entry animation of their own, so nothing can replay one when a
+   transition ends. */
 
-@keyframes screen-in {
-  from {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-}
-
-/* Sidebar: clock + signal, recent apps, Home button. */
+/* Sidebar: clock + brand, recent apps, Home button. */
 .sidebar {
   position: absolute;
   left: var(--edge);
@@ -311,10 +317,16 @@ body,
 }
 
 .status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0 calc(12px * var(--sidebar-scale));
   text-align: center;
 }
 
-/* The clock and the signal at the sidebar's own scale (--sidebar-scale), the sidebar as wide as they need. */
+
+/* The clock under the brand, at the sidebar's own scale (--sidebar-scale), the sidebar as wide as it needs. */
 .time {
   font-size: calc(34px * var(--sidebar-scale));
   font-weight: 600;
@@ -322,20 +334,500 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
-.signal {
+/* The truck's mark above the clock: the boot splash's own mark, drawn the same way and filling its box the
+   same way, so the sidebar shows the splash's mark rather than a variant of it. It arrives with Motion
+   (Sidebar.tsx), as the splash's did. */
+.brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  margin-top: 4px;
-  font-size: calc(24px * var(--sidebar-scale));
+  width: 100%;
+  height: calc(30px * var(--sidebar-scale));
+  margin-bottom: calc(7px * var(--sidebar-scale));
+}
+
+.brand img {
+  /* The whole box, contained as the splash contains the mark in its own: a tall emblem and a long wordmark are
+     the mark's shape, not a reason to draw it smaller or larger than the box. */
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* White on the dark glass, dark on the light: the splash's mark in the sidebar's own colour, since the file's
+     own colours aren't wanted at this size. Undimmed and unshadowed, as on the splash: the outline is the mark. */
+  filter: brightness(0) invert(1);
+  transition: filter 260ms var(--motion-ease);
+}
+
+.shell.appearance-light .brand img {
+  filter: brightness(0);
+}
+
+/* Over an app whose cover is light or dark (contrast.ts), the sidebar's words flip with it: so does the mark. */
+.shell:has(.words-light) .sidebar .brand img {
+  filter: brightness(0) invert(1);
+}
+
+.shell:has(.words-dark) .sidebar .brand img {
+  filter: brightness(0);
+}
+
+.brand-wordmark {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+
+/* The paired phone at the bottom of the status area (Sidebar.tsx), as a head unit keeps its phone status compact: a receiver with
+   its charge, or the call on it. A status line, not a card (owner 2026-11-06: the chip read as one more panel among
+   the apps, and a phone's model name was cut to nothing at the sidebar's width): no surface of its own, so the
+   clock's corner stays the clock's, and the press that opens the Phone app tints only under the pointer. */
+.shell .sidebar-phone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(7px * var(--sidebar-scale));
+}
+
+/* Its status, or its call: the way into the Phone app. A pill of the sidebar's own grey, so the line reads at a
+   glance under the clock rather than as a caption in its shadow (owner 2026-11-06: the line was too faint to make
+   out), and the press still tints only the pill. */
+.shell .sidebar-phone-open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--sidebar-scale));
+  max-width: 100%;
+  /* Slim at the sides: the sidebar is a clock's width, and the caller's name is what the pill is for. */
+  padding: calc(7px * var(--sidebar-scale)) calc(8px * var(--sidebar-scale));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  transition: background-color 160ms var(--motion-ease);
+}
+
+.shell .sidebar-phone-open:hover {
+  background: color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+/* The phone's own name, which the line has no room for: resting the pointer on it (or holding it on a touch screen)
+   names the phone beside the sidebar, as an app's menu does, with the model and the Bridge version under it. It takes
+   no presses of its own. */
+.sidebar-phone-name {
+  position: absolute;
+  left: calc(100% + calc(18px * var(--sidebar-scale)));
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(2px * var(--sidebar-scale));
+  max-width: min(340px, 55vw);
+  padding: calc(7px * var(--sidebar-scale)) calc(12px * var(--sidebar-scale));
+  border-radius: calc(12px * var(--sidebar-scale));
+  background: var(--popover-surface);
+  color: var(--popover-text);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  line-height: 1.25;
+  translate: 0 -50%;
+  animation: sidebar-phone-name-in 160ms var(--motion-ease) both;
+  pointer-events: none;
+}
+
+/* A line of it, cut with an ellipsis rather than widening the label past the screen's edge. */
+.sidebar-phone-name-title,
+.sidebar-phone-name-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-phone-name-meta {
+  color: var(--popover-text-dim);
+  font-size: calc(12px * var(--sidebar-scale));
+  font-weight: 500;
+}
+
+@keyframes sidebar-phone-name-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+/* The phone itself: a receiver, and its charge beside it, or the word for a phone with no level to give (and for
+   one that isn't there), under it. Sized to be read across the cab, not to be discovered. */
+.sidebar-phone-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2px * var(--sidebar-scale));
+  max-width: 100%;
+  min-width: 0;
+}
+
+.sidebar-phone-signal {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+}
+
+/* Green while the phone is on the other end, the sidebar's own grey while it isn't. */
+.sidebar-phone-mark {
+  flex: none;
+  width: calc(18px * var(--sidebar-scale));
+  height: calc(18px * var(--sidebar-scale));
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  /* A little heavier than the app's own glyph: at this size a hairline stroke disappears. */
+  stroke-width: 2.6;
+}
+
+.sidebar-phone-mark.on {
+  color: var(--apple-green);
+}
+
+.sidebar-phone-state {
+  max-width: 100%;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--text) 74%, transparent);
+  font-size: calc(14px * var(--sidebar-scale));
   font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The charge, as a phone's own status bar draws it: a battery filled to the level, and the percentage beside it. */
+.sidebar-phone-level {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+  color: color-mix(in srgb, var(--text) 92%, transparent);
+  font-size: calc(15px * var(--sidebar-scale));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sidebar-phone-battery {
+  position: relative;
+  flex: none;
+  width: calc(25px * var(--sidebar-scale));
+  height: calc(13px * var(--sidebar-scale));
+  padding: calc(1.4px * var(--sidebar-scale));
+  border: calc(1.4px * var(--sidebar-scale)) solid color-mix(in srgb, var(--text) 62%, transparent);
+  border-radius: calc(4px * var(--sidebar-scale));
+}
+
+/* Its terminal, as a battery has one. */
+.sidebar-phone-battery::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(100% + calc(1.8px * var(--sidebar-scale)));
+  width: calc(2px * var(--sidebar-scale));
+  height: calc(5px * var(--sidebar-scale));
+  translate: 0 -50%;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.sidebar-phone-battery-fill {
+  display: block;
+  width: calc(var(--battery, 0) * 1%);
+  height: 100%;
+  border-radius: calc(1.8px * var(--sidebar-scale));
+  background: var(--text);
+  transition: width 420ms var(--motion-ease);
+}
+
+/* Under a fifth: red, as a phone's own is, the one time the level is worth a colour. */
+.sidebar-phone-battery[data-low] .sidebar-phone-battery-fill {
+  background: var(--apple-red);
+}
+
+/* On the charger: green, with the bolt a phone's own battery shows. */
+.sidebar-phone-battery[data-charging] .sidebar-phone-battery-fill {
+  background: var(--apple-green);
+}
+
+.sidebar-phone-battery[data-charging]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: calc(5px * var(--sidebar-scale));
+  height: calc(7px * var(--sidebar-scale));
+  margin: auto;
+  background: var(--text);
+  clip-path: polygon(58% 0, 10% 58%, 44% 58%, 36% 100%, 90% 42%, 54% 42%);
+}
+
+/* A call takes the status line over: who is on it, and under the name its length, in green (the dot and the words
+   are the state, not a decoration). */
+.sidebar-phone-call {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--sidebar-scale));
+  max-width: 100%;
+  min-width: 0;
+  color: var(--apple-green);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sidebar-phone-what {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-phone-pulse {
+  position: relative;
+  flex: none;
+  width: calc(7px * var(--sidebar-scale));
+  height: calc(7px * var(--sidebar-scale));
+  border-radius: 50%;
+  background: var(--apple-green);
+}
+
+/* A call ringing is marked on the button that takes it: its halo breathes until the call is answered or dropped,
+   as a phone's own answer key does. The caller's name above it keeps the line's whole width. */
+.shell .sidebar-phone-answer {
+  position: relative;
+}
+
+.shell .sidebar-phone-answer::after {
+  content: '';
+  position: absolute;
+  inset: calc(-2px * var(--sidebar-scale));
+  border: calc(1.5px * var(--sidebar-scale)) solid var(--apple-green);
+  border-radius: 50%;
+  animation: sidebar-phone-ring 1600ms var(--motion-ease) infinite;
+}
+
+@keyframes sidebar-phone-ring {
+  0% {
+    opacity: 0.8;
+    scale: 1;
+  }
+
+  70%,
+  100% {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+
+/* Reduce Motion: the ring stays lit at rest rather than spreading, though the call is still marked. */
+html[data-motion='reduced'] .shell .sidebar-phone-answer::after {
+  animation: none;
+  opacity: 0.45;
+  scale: 1.12;
+}
+
+/* While it rings: answer or decline from here, the two buttons a phone's own call shows. */
+.sidebar-phone-buttons {
+  display: flex;
+  gap: calc(9px * var(--sidebar-scale));
+}
+
+.shell .sidebar-phone-answer,
+.shell .sidebar-phone-decline {
+  display: grid;
+  width: calc(32px * var(--sidebar-scale));
+  height: calc(32px * var(--sidebar-scale));
+  border-radius: 50%;
+  color: #fff;
+  place-items: center;
+  transition: filter 140ms var(--motion-ease);
+}
+
+.shell .sidebar-phone-answer {
+  background: var(--apple-green);
+}
+
+.shell .sidebar-phone-decline {
+  background: var(--apple-red);
+}
+
+.shell .sidebar-phone-answer:hover,
+.shell .sidebar-phone-decline:hover {
+  filter: brightness(1.12);
+}
+
+.shell .sidebar-phone-answer:active,
+.shell .sidebar-phone-decline:active {
+  scale: 0.96;
+}
+
+.sidebar-phone-answer .sidebar-phone-glyph,
+.sidebar-phone-decline .sidebar-phone-glyph {
+  width: 56%;
+  height: 56%;
+}
+
+/* The decline's handset, turned down as a phone's own is. */
+.sidebar-phone-decline .sidebar-phone-glyph {
+  rotate: 135deg;
+}
+
+/* Who is on it: the name leads, as a phone's own call screen does, and the length sits under it (the line is too
+   narrow for both without cutting one of them). */
+/* Who is calling: two lines at most, so a longer name wraps instead of being cut to "Mia Fis…" in a rail this
+   narrow. */
+.sidebar-phone-who {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: calc(14px * var(--sidebar-scale));
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .recent {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 18px;
+}
+
+/* A hairline between the pinned apps and the recents under them, as iOS keeps its own apart. */
+.sidebar-divider {
+  width: 40px;
+  height: 1px;
+  background: color-mix(in srgb, var(--text) 26%, transparent);
+}
+
+/* An icon and the menu it opens (Sidebar.tsx): right-click it, or hold it, to pin the app or unpin it. The menu
+   is placed off the icon's own box, so it keeps the screen's scale and sits beside it whatever its place. */
+.sidebar-app {
+  position: relative;
+  display: block;
+}
+
+/* The icon's options button: a small three-dot control that opens the same pin/unpin menu as a right-click or
+   hold, so the menu is findable without knowing either gesture. It stays out of the way until the pointer is
+   over the app or the icon has keyboard focus; a touch screen has no hover, so it stays visible there. */
+.shell .recent .sidebar-app-options {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--popover-surface);
+  color: var(--popover-text);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--popover-text) 14%, transparent),
+    0 2px 8px rgb(0 0 0 / 0.3);
+  opacity: 0;
+  scale: 0.8;
+  pointer-events: none;
+  transition:
+    opacity 140ms var(--motion-ease),
+    scale 140ms var(--motion-ease),
+    background-color 140ms var(--motion-ease);
+}
+
+.shell .recent .sidebar-app:hover .sidebar-app-options,
+.shell .recent .sidebar-app:focus-within .sidebar-app-options,
+.shell .recent .sidebar-app[data-menu='true'] .sidebar-app-options {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+.shell .recent .sidebar-app-options:hover {
+  background: color-mix(in srgb, var(--popover-text) 14%, var(--popover-surface));
+}
+
+@media (hover: none) {
+  .shell .recent .sidebar-app-options {
+    opacity: 0.92;
+    scale: 1;
+    pointer-events: auto;
+  }
+}
+
+.sidebar-menu {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  flex-direction: column;
+  min-width: 268px;
+  padding: 8px;
+  border-radius: 24px;
+  background: var(--popover-surface);
+  color: var(--popover-text);
+  animation: sidebar-menu-in 180ms var(--motion-ease) both;
+}
+
+@keyframes sidebar-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.sidebar-menu-title {
+  overflow: hidden;
+  padding: 10px 16px 8px;
+  color: var(--popover-text-dim);
+  font-size: calc(16px * var(--text-scale, 1));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The menu's own row: the sidebar's icon buttons' sizing doesn't apply to it. */
+.shell .sidebar-menu button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  padding: 0 16px;
+  border-radius: 16px;
+  font-size: calc(21px * var(--text-scale, 1));
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color var(--motion-quick) var(--motion-ease);
+}
+
+.shell .sidebar-menu button:hover {
+  background: var(--glass);
+}
+
+.shell .sidebar-menu button:active {
+  background: color-mix(in srgb, var(--popover-text) 18%, transparent);
+}
+
+.shell .sidebar-menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sidebar-menu button svg {
+  flex: none;
+  color: color-mix(in srgb, var(--popover-text) 70%, transparent);
 }
 
 /* Like CarPlay, the app on screen isn't boxed: it's simply the top one (navigation puts it there). Pressing an
@@ -348,6 +840,48 @@ body,
 
 .shell .recent button:active {
   scale: 0.92;
+}
+
+/* Under the mouse, the sidebar's icon lifts a touch too. */
+@media (hover: hover) {
+  .recent button:hover {
+    scale: 1.05;
+  }
+}
+
+/* The app on screen is marked under its icon, as a tab is: a soft blue dot that breathes, never a second panel.
+   It sits in the gap under the icon, so the icon keeps its size. */
+.shell .recent button[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--apple-blue);
+  box-shadow: 0 0 9px rgb(10 132 255 / 0.8);
+  pointer-events: none;
+  animation: current-app-dot 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes current-app-dot {
+  from {
+    opacity: 0.55;
+    scale: 0.82;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1.1;
+  }
+}
+
+html[data-motion='reduced'] .shell .recent button[aria-current='page']::after {
+  animation: none;
+  opacity: 0.9;
+  scale: 1;
 }
 
 /* The copy of a sidebar icon its app grows out of (Sidebar.tsx), exactly over the icon. */
@@ -386,6 +920,11 @@ body,
 
 .shell .sidebar-button:active {
   scale: 0.92;
+}
+
+/* Under the mouse (the cab's cursor): the button's glass comes up, so it's clear it can be pressed. */
+.shell .sidebar-button:hover {
+  background: var(--glass);
 }
 
 /* The Home button's two icons share its place; the one for where it goes shows. */
@@ -449,6 +988,92 @@ body,
   background: rgb(0 0 0 / 0.36);
 }
 
+/* While the game's GPS voice talks, the screen's own edge answers it (Settings › GPS Voice, Glow): a ring and
+   a bloom inward from all four sides, in the route's colour — the cabin's accent (Shell.tsx) — on the frame rather
+   than on the turn-by-turn card alone, so the mark is where a driver's eye already is whatever is showing: the
+   dashboard, an app, a menu. Inset, because the CarPlay area clips what is drawn outside it, and under the rim over
+   everything (below): the ring is a pixel wider than that rim's 2 px, so the rim keeps the screen's own outermost
+   pixels and the glow still draws a line of its own just inside them. The cab's own assistant pulses on the same edge
+   while it listens (voice/VoiceAssistant.tsx), since removing its panel left it with no sign of its own; the game's
+   switch (Settings › GPS Voice) governs its own voice only.
+
+   Two layers, because the sign has two things to say at once: the element fades in and out with the voice (`data-on`,
+   the same window the music's dip keeps in maps/voice.ts), while the light inside it keeps speech's rhythm — so the
+   glow arrives and leaves smoothly, on the voice's own beat, rather than being switched on and off at the window's
+   edges. */
+.screen-voice-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 39;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  /* Leaving, unhurried: a fade the length of a spoken word, not the end of the sentence. The box goes with it, and
+     only once the fade is over (visibility waits the transition out), so a sign that is off costs the screen nothing
+     to draw. */
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s;
+}
+
+.screen-voice-glow[data-on] {
+  visibility: visible;
+  opacity: 1;
+  /* Arriving as the voice comes up, so the first word is already lit. */
+  transition: opacity 0.32s ease-in;
+}
+
+.screen-voice-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 4px var(--accent, #3d8bff),
+    inset 0 0 48px color-mix(in srgb, var(--accent, #3d8bff) 40%, transparent);
+}
+
+/* The ring talks with the voice rather than breathing on a clock of its own. The game's sound can't be heard here, so
+   the rhythm is speech's: accents not evenly spaced, the way words land between pauses, at about the pace a sentence
+   comes — and the whole figure starts on the window's first frame, the voice's first word, because the animation only
+   exists while the sign is on. Silenced with it, too: no running animation is left to draw under a screen at rest. */
+.screen-voice-glow[data-on]::after {
+  animation: screen-voice-glow 1.1s ease-in-out infinite;
+}
+
+/* A light screen washes colour out: the same ring, a band just inside it and a wider, stronger bloom, or the glow
+   reads as a hairline on a bright wallpaper and nothing more. */
+.shell.appearance-light .screen-voice-glow::after {
+  box-shadow:
+    inset 0 0 0 4px var(--accent, #3d8bff),
+    inset 0 0 0 14px color-mix(in srgb, var(--accent, #3d8bff) 22%, transparent),
+    inset 0 0 72px color-mix(in srgb, var(--accent, #3d8bff) 52%, transparent);
+}
+
+@keyframes screen-voice-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  30% {
+    opacity: 0.72;
+  }
+
+  52% {
+    opacity: 0.94;
+  }
+
+  76% {
+    opacity: 0.78;
+  }
+}
+
+/* Less motion (Settings › Appearance): the ring holds lit rather than breathing. It still fades in and out — a
+   full-screen light switched on and off in one step is a flash, which is the thing less motion is asking away from. */
+html[data-motion='reduced'] .screen-voice-glow::after {
+  animation: none;
+}
+
 /* The outermost pixels of the image in the rim's colour (its `color`), where the game repeats them into a
    screen's rim (Shell.tsx). 2 px: the game shrinks the image to 1024x512 for the screen, so its edge pixel
    blends about 1.3 of ours. */
@@ -484,17 +1109,37 @@ body,
     padding: 22px 0 18px;
   }
 
+  .status {
+    padding: 0 calc(7px * var(--sidebar-scale));
+  }
+
   .time {
     font-size: calc(26px * var(--sidebar-scale));
   }
 
-  .signal {
-    margin-top: 2px;
-    font-size: calc(18px * var(--sidebar-scale));
+  .brand {
+    height: calc(22px * var(--sidebar-scale));
+    margin-bottom: calc(4px * var(--sidebar-scale));
+  }
+
+  .brand-wordmark {
+    font-size: calc(13px * var(--sidebar-scale));
   }
 
   .recent {
     gap: 10px;
+  }
+
+  /* A short screen: the phone keeps its line, smaller, so a call's answer and decline still fit under it. */
+  .shell .sidebar-phone {
+    margin-top: 6px;
+    gap: calc(4px * var(--sidebar-scale));
+  }
+
+  .shell .sidebar-phone-answer,
+  .shell .sidebar-phone-decline {
+    width: calc(28px * var(--sidebar-scale));
+    height: calc(28px * var(--sidebar-scale));
   }
 
   .recent img {
@@ -510,4 +1155,147 @@ body,
     width: 50px;
     height: 50px;
   }
+}
+
+/* The Notifications app's count on its sidebar icon (Sidebar.tsx): the same as Home's badge, on the glass. */
+.recent-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: var(--apple-red);
+  color: #fff;
+  font-size: calc(15px * var(--text-scale, 1));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  animation: recent-badge-pop 300ms var(--motion-ease) both;
+}
+
+@keyframes recent-badge-pop {
+  from {
+    opacity: 0;
+    scale: 0.55;
+  }
+
+  60% {
+    scale: 1.08;
+  }
+}
+
+/* Reduced motion (Settings › Appearance's Reduce Motion, or the PC's own; CabinApp sets data-motion): screens
+   change in place — nothing slides, springs or crossfades for more than a moment. View transitions are skipped
+   in state/launch.ts, so app launches are as instant as the rest. */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* The sidebar's clock, keyed by the minute (Sidebar.tsx): a new one rolls in under the old, as a car's clock does. */
+.time {
+  animation: time-in 240ms var(--motion-ease) both;
+}
+
+@keyframes time-in {
+  from {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+
+/* An app that joins the sidebar's recents comes in with a pop, as one put on Home would. Its icon carries the
+   launch's transition name, so only the plain icon animates (the copy laid over it for a launch doesn't). */
+.recent button > img:not(.launch-copy) {
+  animation: recent-in 260ms var(--motion-ease) both;
+}
+
+@keyframes recent-in {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+}
+
+/* Night in the truck (state/nightDim.ts): the screen dims as a head unit's does, so the map doesn't glare in a
+   dark cab. Over everything the CarPlay area draws, and it takes no presses. */
+.cab-night {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #000;
+  pointer-events: none;
+  transition: opacity 2s var(--motion-ease);
+}
+
+:root {
+  /* The cabin's motion, in three sizes: a press or a chip, a panel changing under the player, and an app opening or
+     a screen trading places (whose spring is --motion-spring-duration, transitions.css). */
+  --motion-quick: 160ms;
+  --motion-standard: 300ms;
+}
+
+/* Pressed, everything the player can press gives a little, as Home's icons do (theirs a larger give of their own).
+   `scale` rather than `transform`, so it rides on whatever transform the element already carries. */
+.shell :is(button, [role='button']):active {
+  scale: 0.97;
+  transition: scale var(--motion-quick) var(--motion-ease);
+}
+
+/* --- Top bar (Shell.tsx) --------------------------------------------------------------------------- */
+
+/* Thin fixed bar at the top of the carplay content area: the profile avatar on the right, visible on all
+   screens. It sits over the wallpaper and screens but under PhoneAlerts. Hidden during boot (overlay present). */
+.top-bar {
+  position: fixed;
+  top: calc(10px * var(--text-scale, 1));
+  right: calc(12px * var(--text-scale, 1));
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: calc(6px * var(--text-scale, 1));
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.top-bar:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.top-bar:active {
+  scale: 0.94;
+}
+
+/* The profile picture in the top bar: a prominent circular avatar with border and shadow. */
+.top-bar-profile-pic {
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  border-radius: 50%;
+  object-fit: cover;
+  border: calc(2px * var(--text-scale, 1)) solid color-mix(in srgb, var(--text) 25%, transparent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Fallback avatar when no picture is set: a letter in a gradient circle. */
+.top-bar-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: calc(56px * var(--text-scale, 1));
+  height: calc(56px * var(--text-scale, 1));
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--apple-indigo, #5856d6), var(--apple-purple, #af52de));
+  color: #fff;
+  font-size: calc(20px * var(--text-scale, 1));
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }

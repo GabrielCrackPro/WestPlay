@@ -13,6 +13,18 @@ function TileGlyph({ children }: { children: ReactNode }) {
   )
 }
 
+/** General: a gear, the cog that turns everything. */
+export function GeneralGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M12 2.6a1.4 1.4 0 0 1 1.4 1.4v1.1a6.9 6.9 0 0 1 3.1 1.8l1-.5a1.4 1.4 0 0 1 1.8.6l.9 1.6a1.4 1.4 0 0 1-.6 1.8l-1 .5a6.9 6.9 0 0 1 0 3.6l1 .5a1.4 1.4 0 0 1 .6 1.8l-.9 1.6a1.4 1.4 0 0 1-1.8.6l-1-.5a6.9 6.9 0 0 1-3.1 1.8v1.1a1.4 1.4 0 0 1-1.4 1.4h-0a1.4 1.4 0 0 1-1.4-1.4V19a6.9 6.9 0 0 1-3.1-1.8l-1 .5a1.4 1.4 0 0 1-1.8-.6l-.9-1.6a1.4 1.4 0 0 1 .6-1.8l1-.5a6.9 6.9 0 0 1 0-3.6l-1-.5a1.4 1.4 0 0 1-.6-1.8l.9-1.6a1.4 1.4 0 0 1 1.8-.6l1 .5A6.9 6.9 0 0 1 10.6 5.1V4a1.4 1.4 0 0 1 1.4-1.4h0Zm0 4.8a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Z"
+      />
+    </TileGlyph>
+  )
+}
+
 /** Appearance: a circle half dark, half light. */
 export function AppearanceGlyph() {
   return (
@@ -45,6 +57,26 @@ export function DashboardGlyph() {
   )
 }
 
+/** Instrument Cluster: a speedo, its needle up the face and its reading under the hub. */
+export function ClusterGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M4.2 17.4a8.4 8.4 0 1 1 15.6 0" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" />
+      <path d="M12 14.4 15.9 9" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" />
+      <circle cx="12" cy="14.6" r="1.9" fill="#fff" />
+    </TileGlyph>
+  )
+}
+
+/** Home Screen: a house, the screen the apps live on. */
+export function HomeGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M3.4 11.2 12 4l8.6 7.2v8.4a1 1 0 0 1-1 1h-5.2v-6.1h-4.8v6.1H4.4a1 1 0 0 1-1-1Z" />
+    </TileGlyph>
+  )
+}
+
 /** Now Playing: a pair of beamed notes. */
 export function NowPlayingGlyph() {
   return (
@@ -70,6 +102,98 @@ export function SoundGlyph() {
   )
 }
 
+/** Voice Assistant: a microphone, with its stand. */
+export function VoiceGlyph() {
+  return (
+    <TileGlyph>
+      <rect x="8.7" y="3.2" width="6.6" height="11.4" rx="3.3" />
+      <path
+        d="M5.4 11.5a6.6 6.6 0 0 0 13.2 0M12 18.1v2.7M8.3 20.8h7.4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </TileGlyph>
+  )
+}
+
+/** App Icons: four rounded squares, as an app grid. */
+export function IconsGlyph() {
+  return (
+    <TileGlyph>
+      <rect x="3.4" y="3.4" width="7.4" height="7.4" rx="2.4" />
+      <rect x="13.2" y="3.4" width="7.4" height="7.4" rx="2.4" />
+      <rect x="3.4" y="13.2" width="7.4" height="7.4" rx="2.4" />
+      <rect x="13.2" y="13.2" width="7.4" height="7.4" rx="2.4" />
+    </TileGlyph>
+  )
+}
+
+/** Units & Clock: a ruler, its marks cut out of the tile's white. */
+export function UnitsGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M3.2 8.4h17.6a1.4 1.4 0 0 1 1.4 1.4v4.4a1.4 1.4 0 0 1-1.4 1.4H3.2a1.4 1.4 0 0 1-1.4-1.4v-4.4a1.4 1.4 0 0 1 1.4-1.4Zm2.6 2.1v1.9h1.7v-1.9H5.8Zm4.3 0v2.9h1.7v-2.9H10.1Zm4.3 0v1.9h1.7v-1.9h-1.7Zm4.3 0v2.9h1.7v-2.9h-1.7Z"
+      />
+    </TileGlyph>
+  )
+}
+
+/** Map Display: the map's layers, one over the other. */
+export function MapDisplayGlyph() {
+  return (
+    <TileGlyph>
+      <path d="M12 3.4 21 7.8l-9 4.4-9-4.4Z" />
+      <path d="m4.3 12.4 7.7 3.8 7.7-3.8" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round" />
+      <path d="m4.3 16.6 7.7 3.8 7.7-3.8" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round" />
+    </TileGlyph>
+  )
+}
+
+/** Traffic: a traffic light, its lenses cut out of the tile's white. */
+export function MapTrafficGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M8.6 2.9h6.8a2.7 2.7 0 0 1 2.7 2.7v12.8a2.7 2.7 0 0 1-2.7 2.7H8.6a2.7 2.7 0 0 1-2.7-2.7V5.6a2.7 2.7 0 0 1 2.7-2.7Zm.6 3.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Zm0 4.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Zm0 4.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Z"
+      />
+    </TileGlyph>
+  )
+}
+
+/** Route: the line from where the truck is to where it's headed, its ends marked. */
+export function MapRouteGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        d="M5 19.4c4.6 0 4.2-5.2 8.2-5.2 3.1 0 3.2-3.3 5.6-4.4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <circle cx="5" cy="19.4" r="2.4" />
+      <circle cx="19.2" cy="9.6" r="2.4" />
+    </TileGlyph>
+  )
+}
+
+/** Markers and Pins: a map pin, its eye cut out of it. */
+export function MapPinsGlyph() {
+  return (
+    <TileGlyph>
+      <path
+        fillRule="evenodd"
+        d="M12 2.8a7.3 7.3 0 0 0-7.3 7.3c0 5.5 7.3 11.2 7.3 11.2s7.3-5.7 7.3-11.2A7.3 7.3 0 0 0 12 2.8Zm0 4.4a2.9 2.9 0 1 0 0 5.8 2.9 2.9 0 0 0 0-5.8Z"
+      />
+    </TileGlyph>
+  )
+}
+
 /** The chevron after a row that opens a page. */
 export function ChevronGlyph({ back = false }: { back?: boolean }) {
   return (
@@ -90,6 +214,26 @@ export function ChevronGlyph({ back = false }: { back?: boolean }) {
   )
 }
 
+/** The pin on a Home app's row: filled while the app is pinned to the sidebar. */
+export function PinGlyph({ pinned = false }: { pinned?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="100%"
+      height="100%"
+      fill={pinned ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 3.6h6l-.9 4.6 3.3 2.8v1.5H6.6V11l3.3-2.8Z" />
+      <path d="M12 12.5v7.4" />
+    </svg>
+  )
+}
+
 /** The tick on a chosen option. */
 export function CheckGlyph() {
   return (
@@ -106,5 +250,28 @@ export function CheckGlyph() {
     >
       <path d="m5 12.5 4.6 4.6L19 7.5" />
     </svg>
+  )
+}
+
+/** Theme Presets: a palette with color swatches. */
+export function PaletteGlyph() {
+  return (
+    <TileGlyph>
+      <ellipse cx="12" cy="12" rx="5.5" ry="7.5" />
+      <circle cx="8" cy="7" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="16" cy="7" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="8" cy="17" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+      <circle cx="16" cy="17" r="1.6" fill="rgb(0 0 0 / 0.25)" />
+    </TileGlyph>
+  )
+}
+
+/** Profiles: a person silhouette. */
+export function PersonGlyph() {
+  return (
+    <TileGlyph>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.4 19.4c0-3.6 3.4-6.4 7.6-6.4s7.6 2.8 7.6 6.4" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    </TileGlyph>
   )
 }

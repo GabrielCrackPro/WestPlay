@@ -79,8 +79,9 @@ pub enum Command {
         #[serde(flatten)]
         head: Head,
     },
-    /// The camera is outside the cab (`on`): the sound comes muffled, through its walls, and from as far
-    /// off as the camera is from the cab (`distance`, metres; 0: not known). The host's own (camera.rs).
+    /// The camera is outside the cab (`on`): the speakers are in it, so none of the sound is heard out there,
+    /// wherever the camera is (`distance`, metres from the cab; 0: not known: the walls' cut, for the moment it
+    /// comes back in). The host's own (camera.rs).
     Outside {
         on: bool,
         #[serde(default)]
@@ -1596,7 +1597,7 @@ mod tests {
 
     /// The real thing: a music video's sound through the Scania S's speakers, heard from the driver's head:
     /// it plays through them, without the limiter at work from the seat (a loud master: Daft Punk's "Get
-    /// Lucky"), louder in the ear on the side the head leans to, at the player's volume; muffled outside; and
+    /// Lucky"), louder in the ear on the side the head leans to, at the player's volume; silent outside; and
     /// as it is in a truck whose speakers aren't known. Muted (what's measured is the page's own sound). Needs
     /// the network and WebView2: `cargo test -p westplay-host -- --ignored through_the_trucks_speakers`.
     #[test]
@@ -1676,7 +1677,7 @@ mod tests {
         listen(1);
         let left = listen(4).unwrap();
         assert!(left[0] > left[1] * 1.3, "leaning left: {left:?}");
-        // The camera outside the cab: muffled, quieter; back in, as before.
+        // The camera outside the cab: the truck's speakers are in it, so nothing is heard out there.
         youtube
             .cab(
                 speakers::in_truck("vehicle.scania.s_2016"),
@@ -1689,8 +1690,8 @@ mod tests {
             .unwrap();
         listen(1);
         let outside = listen(4).unwrap();
-        assert!(outside[0] + outside[1] < (left[0] + left[1]) * 0.6, "outside: {outside:?} after {left:?}");
-        // Further off: quieter still.
+        assert!(outside[0].abs() < 1e-3 && outside[1].abs() < 1e-3, "outside: {outside:?} after {left:?}");
+        // Further off: still nothing.
         youtube
             .cab(
                 speakers::in_truck("vehicle.scania.s_2016"),
@@ -1703,7 +1704,7 @@ mod tests {
             .unwrap();
         listen(1);
         let far = listen(4).unwrap();
-        assert!(far[0] + far[1] < (outside[0] + outside[1]) * 0.5, "20 m out: {far:?} after {outside:?}");
+        assert!(far[0].abs() < 1e-3 && far[1].abs() < 1e-3, "20 m out: {far:?} after {outside:?}");
         youtube
             .cab(
                 speakers::in_truck("vehicle.scania.s_2016"),

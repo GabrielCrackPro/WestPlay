@@ -6,7 +6,7 @@ export interface GameInfo {
   dir: string
   foundBy: 'steam' | 'installed' | 'chosen'
   version: string | null
-  /** WestPlay has been tried with this version. */
+  /** Cabin Play has been tried with this version. */
   tested: boolean
   dlcs: number
 }
@@ -15,9 +15,9 @@ export interface GameInfo {
 export interface SetupState {
   /** The onboarding was gone through: the companion opens on its own pages. */
   finished: boolean
-  /** The game WestPlay is set up in, if it is. */
+  /** The game Cabin Play is set up in, if it is. */
   game: GameInfo | null
-  /** WestPlay was updated since it put its plugin and mod into that game: the new ones go in once it's
+  /** Cabin Play was updated since it put its plugin and mod into that game: the new ones go in once it's
    * closed (`FinishUpdate`). */
   updated: boolean
   /** Every install of the game found on the PC. */
@@ -37,9 +37,9 @@ export interface GameCheck {
   mapDlcs: string[]
   /** The most recently saved first. */
   profiles: ProfileCheck[]
-  /** The trucks WestPlay is made for, and whether the player can have it in each. */
+  /** The trucks Cabin Play is made for, and whether the player can have it in each. */
   trucks: TruckCheck[]
-  /** Why WestPlay's mod can't be built from this game, if it can't. */
+  /** Why Cabin Play's mod can't be built from this game, if it can't. */
   modProblem: string | null
   plugin: 'missing' | 'current' | 'different'
   /** Other CarPlay apps installed in the game, which take the trucks' screens: to be removed. */
@@ -51,7 +51,7 @@ export interface TruckCheck {
   id: string
   /** In English. */
   name: string
-  /** `notYet`: in the game, but WestPlay doesn't draw on its screen yet. */
+  /** `notYet`: in the game, but Cabin Play doesn't draw on its screen yet. */
   fit: 'ready' | 'notInGame' | 'notYet'
   /** A mod's truck, not the game's. */
   fromMod: boolean
@@ -65,9 +65,9 @@ export interface ProfileCheck {
   map: string
   /** The mods that change its map, as the game names them. */
   mapMods: string[]
-  /** Map mods WestPlay couldn't read. */
+  /** Map mods Cabin Play couldn't read. */
   unreadable: number
-  /** It plays HVT's map, which WestPlay doesn't allow. */
+  /** It plays HVT's map, which Cabin Play doesn't allow. */
   hvtMap: boolean
 }
 
@@ -83,7 +83,7 @@ export type PluginOutcome =
 export interface InstallReport {
   plugin: PluginOutcome
   modError: string | null
-  /** WestPlay is set up in this game: its map is built next. */
+  /** Cabin Play is set up in this game: its map is built next. */
   done: boolean
 }
 
@@ -105,23 +105,23 @@ export function defaultMapAddress(status: HostStatus | null): { base: string; bu
   return status?.mapFolder ? { base: `${MAPS}/${encodeURIComponent(status.mapFolder)}`, built: status.mapBuilt } : null
 }
 
-/** What taking WestPlay out of the game did. Mirrors the app's `setup::UninstallReport`; its `plugin` is
+/** What taking Cabin Play out of the game did. Mirrors the app's `setup::UninstallReport`; its `plugin` is
  * `installed` once the plugin is gone (the install's outcomes, the other way round). */
 export interface UninstallReport {
   plugin: PluginOutcome
   modError: string | null
   profilesChanged: number
   profilesFailed: number
-  /** WestPlay is out of the game: it can leave the PC next. */
+  /** Cabin Play is out of the game: it can leave the PC next. */
   done: boolean
 }
 
-/** Takes WestPlay out of the game (its profiles' mods, its screens, the plugin), the game closed. */
+/** Takes Cabin Play out of the game (its profiles' mods, its screens, the plugin), the game closed. */
 export const uninstallFromGame = (administrator: boolean) =>
   call<UninstallReport>('uninstall_from_game', { administrator })
-/** WestPlay's data goes while the uninstall shows it going (it can take a while): its engine stops, then the
+/** Cabin Play's data goes while the uninstall shows it going (it can take a while): its engine stops, then the
  * sign-ins, and unless `keep`, the maps, the player's own looks and the settings. */
 export const removeData = (keep: boolean) => call<void>('remove_data', { keep })
-/** WestPlay leaves the PC (what was in use until it ends, and the app if it was installed), keeping settings
+/** Cabin Play leaves the PC (what was in use until it ends, and the app if it was installed), keeping settings
  * and maps if `keep`, and quits. */
 export const leavePc = (keep: boolean) => call<void>('leave_pc', { keep })

@@ -1,5 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HostMessage, PageMessage, Telemetry } from '../../shared/host'
+import { CONNECTING_MS, SPLASH_MS } from './power'
+
+/** A stand-in for the page's storage: this suite runs in Node, where `localStorage` isn't there, and the cabin's
+ * settings are saved through it (store.ts's persist). */
+function stubbedStorage(saved: Record<string, string> = {}) {
+  const kept = new Map(Object.entries(saved))
+  return {
+    getItem: (key: string) => kept.get(key) ?? null,
+    setItem: (key: string, value: string) => void kept.set(key, value),
+    removeItem: (key: string) => void kept.delete(key),
+  }
+}
 
 /** A stand-in for WebView2's `chrome.webview`: what the page posts, and a way to send it host messages. */
 function fakeWebView() {
@@ -17,13 +29,18 @@ function fakeWebView() {
   }
 }
 
+beforeEach(() => {
+  vi.stubGlobal('localStorage', stubbedStorage())
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   vi.resetModules()
 })
 
 describe('connectHost', () => {
-  it('tells the host whether WestPlay is open, and opens or closes it when the host asks', async () => {
+  it('keeps Cabin Play on the truck’s screen, and tells the host so, whatever asks it closed', async () => {
     const webview = fakeWebView()
     vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
     const { connectHost, useCabin } = await import('./store')
@@ -34,24 +51,18 @@ describe('connectHost', () => {
     expect(webview.posted[0]).toEqual({ type: 'ready' })
     expect(westplay()).toEqual([{ type: 'westplay', open: true }])
 
-    // The companion's switch: closed, and the page says so.
+    // The companion's switch, or the game, asking it closed: Cabin Play stays up, and the host hears nothing new.
     webview.send({ type: 'westplay', open: false })
-    expect(useCabin.getState().truckScreen).toBe(true)
-    expect(westplay().at(-1)).toEqual({ type: 'westplay', open: false })
-
-    // Asked for what it already is: nothing to report.
-    webview.send({ type: 'westplay', open: false })
-    expect(westplay()).toHaveLength(2)
-
-    // Opened in the cab (its WestPlay button): reported too.
-    useCabin.getState().setTruckScreen(false)
     expect(useCabin.getState().truckScreen).toBe(false)
-    expect(westplay().at(-1)).toEqual({ type: 'westplay', open: true })
+    expect(westplay()).toHaveLength(1)
+
+    // Nothing hands it over, not even the page itself.
+    useCabin.getState().setTruckScreen(true)
+    expect(useCabin.getState().truckScreen).toBe(false)
+    expect(westplay()).toHaveLength(1)
 
     // Disconnected: no more reports.
     disconnect()
-    useCabin.getState().setTruckScreen(true)
-    expect(westplay()).toHaveLength(3)
   })
 
   it("follows the companion's truck strip setting", async () => {
@@ -154,6 +165,96 @@ describe('connectHost', () => {
     webview.send({ type: 'weather', weather: null })
     expect(useLive.getState().weather).toBeNull()
     disconnect()
+  })
+
+  it('keeps lifetime career stats from the selected game save', async () => {
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useLive } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    const career = {
+      profileName: 'Western',
+      experiencePoints: 12345,
+      totalDistanceMeters: 1250000,
+      totalFuelLitres: 810.5,
+      gameTimeSeconds: 144000,
+      realTimeSeconds: 48000,
+      visitedCities: 32,
+      cancelledJobs: 2,
+    }
+
+    webview.send({ type: 'career', data: career })
+    expect(useLive.getState().career).toEqual(career)
+    disconnect()
+  })
+
+  it('drops the screen kept from the last launch unless the companion’s switch says to resume it', async () => {
+    const kept = JSON.stringify({
+      state: { navigation: { route: { kind: 'app', app: 'maps' }, recents: ['maps', 'music'], base: 'dashboard' } },
+      version: 5,
+    })
+    vi.stubGlobal('localStorage', stubbedStorage({ 'westplay.cabin': kept }))
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useCabin } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    // Off (the default): the cab opens on the Dashboard, whatever the last launch left it on.
+    webview.send({ type: 'settings', truckStrip: 'auto' })
+    expect(useCabin.getState().navigation).toEqual({
+      route: { kind: 'dashboard' },
+      recents: ['maps', 'music', 'youtube', 'spotify', 'youtubeMusic'],
+      base: 'dashboard',
+    })
+    disconnect()
+  })
+
+  it('comes back where the last launch left it when the companion’s switch is on', async () => {
+    const kept = JSON.stringify({
+      state: { navigation: { route: { kind: 'app', app: 'maps' }, recents: ['maps', 'music'], base: 'dashboard' } },
+      version: 5,
+    })
+    vi.stubGlobal('localStorage', stubbedStorage({ 'westplay.cabin': kept }))
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    const { connectHost, useCabin } = await import('./store')
+    const disconnect = connectHost(() => 0)
+    webview.send({ type: 'settings', truckStrip: 'auto', resume: true })
+    expect(useCabin.getState().navigation.route).toEqual({ kind: 'app', app: 'maps' })
+    expect(useCabin.getState().navigation.recents).toEqual(['maps', 'music'])
+    disconnect()
+  })
+
+  it('tells the host each phase of the boot, on the clock both screens read', async () => {
+    const webview = fakeWebView()
+    vi.stubGlobal('window', { chrome: { webview: webview.bridge } })
+    // The machine's clock, and this page's own (its `performance.now()`, which no other page shares).
+    const wall = 1_700_000_000_000
+    const pageClock = 5000
+    vi.spyOn(Date, 'now').mockReturnValue(wall)
+    const { connectHost, useCabin } = await import('./store')
+    const phases = () => webview.posted.filter((message) => message.type === 'power')
+
+    const disconnect = connectHost(() => pageClock)
+    // Nothing to say until the boot begins: a page that hasn't powered anything has no boot to draw elsewhere.
+    expect(phases()).toEqual([])
+
+    // The electrics come on: the phase and its start, moved from this page's clock onto the machine's, so the
+    // cluster's page can draw the same moment of the same boot.
+    useCabin.getState().powerEvent({ type: 'electrics', on: false, at: 1000 })
+    useCabin.getState().powerEvent({ type: 'electrics', on: true, at: 1600 })
+    expect(phases().at(-1)).toEqual({ type: 'power', phase: 'splash', since: wall - (pageClock - 1600) })
+
+    // The second part of the boot, and the screen on: the cluster stops drawing the boot when it hears the last.
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 600 + SPLASH_MS })
+    expect(phases().at(-1)).toMatchObject({ phase: 'connecting' })
+    useCabin.getState().powerEvent({ type: 'tick', at: pageClock + 600 + SPLASH_MS + CONNECTING_MS })
+    expect(phases().at(-1)).toMatchObject({ phase: 'on' })
+
+    // Disconnected: no more reports.
+    const told = phases().length
+    disconnect()
+    useCabin.getState().powerEvent({ type: 'electrics', on: false, at: pageClock + 9000 })
+    expect(phases()).toHaveLength(told)
   })
 
   it("tells the host the field selected, and types what the player's keyboard typed", async () => {

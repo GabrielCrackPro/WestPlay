@@ -39,6 +39,7 @@ describe('keybinds', () => {
     const spotify = player(0.5)
     const youtube = player(0.8, true)
     const binds = keybinds([spotify.it, youtube.it])
+    expect(binds.playing()).toBe(true)
     expect(binds.press('volumeUp')).toEqual({ volume: 0.85 })
     expect(binds.press('volumeDown')).toEqual({ volume: 0.8 })
     expect(spotify.state.volume).toBe(0.5)
@@ -63,9 +64,13 @@ describe('keybinds', () => {
   it('does nothing with no player played yet, or one without a volume', () => {
     const spotify = player(null)
     const binds = keybinds([spotify.it])
+    expect(binds.hasPlayer()).toBe(false)
+    expect(binds.playing()).toBe(false)
     expect(binds.press('playPause')).toBeNull()
     expect(spotify.state.resumes).toBe(0)
     spotify.start()
+    expect(binds.hasPlayer()).toBe(true)
+    expect(binds.playing()).toBe(true)
     expect(binds.press('volumeUp')).toBeNull()
   })
 

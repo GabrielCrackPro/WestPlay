@@ -12,7 +12,7 @@ function typed(keys: Key[], state: KeyboardState = initialKeyboard('en'), times?
 }
 
 describe('keyRows', () => {
-  it('lays out English QWERTY and Turkish Q as on the iPhone', () => {
+  it('lays out English QWERTY, Turkish Q and Spanish QWERTY as on the iPhone', () => {
     const letters = (rows: Key[][]) =>
       rows.slice(0, 3).map((row) => row.map((key) => (key.kind === 'char' ? key.char : key.kind)).join(' '))
     expect(letters(keyRows('en', 'letters'))).toEqual([
@@ -24,6 +24,11 @@ describe('keyRows', () => {
       'q w e r t y u ı o p ğ ü',
       'a s d f g h j k l ş i',
       'shift z x c v b n m ö ç delete',
+    ])
+    expect(letters(keyRows('es', 'letters'))).toEqual([
+      'q w e r t y u i o p',
+      'a s d f g h j k l ñ',
+      'shift z x c v b n m delete',
     ])
   })
 
@@ -59,6 +64,17 @@ describe('press', () => {
     // The globe brings the other language's letters.
     expect(typed([{ kind: 'globe' }, shift, char('i')], turkish)).toMatchObject({
       text: 'I',
+      state: { language: 'en' },
+    })
+  })
+
+  it('writes Spanish letters, ñ among them, and their capitals', () => {
+    const spanish = initialKeyboard('es')
+    expect(typed([char('ñ'), char('o')], spanish).text).toBe('ño')
+    expect(typed([{ kind: 'shift' }, char('ñ')], spanish).text).toBe('Ñ')
+    // The globe goes home to English, as it does from Turkish.
+    expect(typed([{ kind: 'globe' }, char('n')], spanish)).toMatchObject({
+      text: 'n',
       state: { language: 'en' },
     })
   })

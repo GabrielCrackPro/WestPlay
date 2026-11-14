@@ -12,6 +12,8 @@
 //   left the music stopped as the player came back to the game (owner 2026-10-24).
 // - What plays comes from Spotify Connect's state, as the page hears it, the songs' names and covers asked
 //   for.
+// - An ad (a free account's) is asked past as it plays: Connect's next, the page's own Skip button should it
+//   not be there.
 //
 // Nothing of the account leaves the page: its session (token, client token) and its devices stay here, only
 // used as the page uses them. The answers are what the app shows (names, covers, what plays), and the one
@@ -963,6 +965,37 @@
   const songs = new Map()
   const contexts = new Map()
 
+  // --- Ads, skipped ----------------------------------------------------------------------------------------
+  // A free account's ads play where a song would, Spotify inserting them between them (an ad break, its length
+  // its playback features': `ad_break_context`). The ad asked past at once, whatever the ad: Connect's next
+  // (the same as the cab's Next), the page's own Skip button should Connect not be there, or should it refuse.
+  // Once every 2 s, and six to a break: ads follow one another in a break, and one Spotify plays anyway is not
+  // to be asked past over and over.
+  const isAd = (state) => {
+    if (state.playback_features?.ad_break_context) return true
+    const track = state.track
+    if (!track) return false
+    return (
+      track.metadata?.is_advertisement === 'true' ||
+      track.metadata?.is_ad === 'true' ||
+      String(track.uri ?? '').startsWith('spotify:ad:')
+    )
+  }
+  let adAsked = -Infinity
+  let adTries = 0
+  const skipAd = (state) => {
+    if (!isAd(state) || !here()) {
+      adTries = 0
+      return
+    }
+    const now = performance.now()
+    if (now - adAsked < 2000 || adTries >= 6) return
+    adAsked = now
+    adTries += 1
+    step('ad skip')
+    command('skip_next').catch(() => press('control-button-skip-forward'))
+  }
+
   const heardCluster = (payload) => {
     const cluster = payload?.cluster ?? payload
     const state = cluster?.player_state
@@ -997,6 +1030,7 @@
       // The playing device's volume, 0 to 1 (`null`: it has none Spotify can set).
       volume: typeof volume === 'number' ? volume / 65535 : null,
     }
+    skipAd(state)
     tellPlayback()
   }
 

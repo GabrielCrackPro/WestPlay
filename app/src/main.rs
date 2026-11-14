@@ -6,7 +6,6 @@
 mod customize;
 mod maps;
 mod setup;
-mod update;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -17,9 +16,10 @@ use std::time::{Duration, Instant};
 use setup::SetupStore;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WebviewWindow};
 use westplay_host::maps::SetUpGame;
-use westplay_host::settings::{Settings, SettingsFile, SharedSettings};
+use westplay_host::settings::{DriverProfile, Settings, SettingsFile, SharedSettings};
 use westplay_host::{
     AccountAction, AccountRequests, BrowserGone, Config, Content, OpenRequest, SCREEN_HEIGHT, SCREEN_WIDTH, Status,
+    UnpairRequest,
 };
 
 struct Host {
@@ -34,6 +34,9 @@ struct WestplayOpen(Arc<OpenRequest>);
 
 /// The companion's sign-ins and sign-outs (YouTube, Spotify, Apple Music), for the host.
 struct Accounts(Arc<AccountRequests>);
+
+/// The companion's request to forget the paired phone (the Setup), for the host.
+struct PhoneUnpair(Arc<UnpairRequest>);
 
 /// The player's settings: kept on disk, applied live by the host thread, changed from the companion window.
 struct SettingsStore {
@@ -58,6 +61,12 @@ fn companion_ready(window: WebviewWindow) {
 #[tauri::command]
 fn set_westplay_open(open: bool, request: State<WestplayOpen>) {
     request.0.request(open);
+}
+
+/// Forgets the paired phone: the link takes a new code, and the phone connected now has to pair again.
+#[tauri::command]
+fn phone_unpair(request: State<PhoneUnpair>) {
+    request.0.request();
 }
 
 /// Opens Google's sign-in for YouTube in a window on the desktop (the status then says when it's done).
@@ -114,16 +123,6 @@ fn apple_music_check(accounts: State<Accounts>) {
     accounts.0.apple_music.request(AccountAction::Check);
 }
 
-/// The maker's Kreosus page, where players support WestPlay's development.
-const SUPPORT_PAGE: &str = "https://kreosus.com/enes-less";
-
-/// Opens the support page (Support me) in the player's browser. The address is fixed here, so the companion
-/// can't open any other.
-#[tauri::command]
-fn open_support_page() {
-    westplay_host::browser::open(SUPPORT_PAGE);
-}
-
 /// Where this run's `app.log` is (the About page): Documents\WestPlay\logs, or WestPlay's own data folder where
 /// Documents refused it; `None` if it couldn't be made.
 #[tauri::command]
@@ -153,6 +152,70 @@ fn update_settings(settings: Settings, store: State<SettingsStore>, app: AppHand
     Ok(settings)
 }
 
+/// Adds a driver profile. Returns the updated settings.
+#[tauri::command]
+fn add_profile(name: String, picture: Option<String>, settings_snapshot: Option<serde_json::Value>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    let id = format!("profile-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+    settings.cabin.profiles.push(DriverProfile { 
+        id: id.clone(), 
+        name: name.trim().to_string(), 
+        picture: picture.unwrap_or_default(),
+        settings_snapshot,
+    });
+    settings.cabin.ensure_default();
+    store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+    store.shared.set(settings.clone());
+    let _ = app.emit("settings-changed", &settings);
+    Ok(settings)
+}
+
+/// Removes a driver profile by id. Returns the updated settings.
+#[tauri::command]
+fn remove_profile(id: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    settings.cabin.profiles.retain(|p| p.id != id);
+    settings.cabin.ensure_default();
+    store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+    store.shared.set(settings.clone());
+    let _ = app.emit("settings-changed", &settings);
+    Ok(settings)
+}
+
+/// Switches the active driver profile. Saves the current profile's cabin snapshot and loads the new one.
+/// Returns the updated settings.
+#[tauri::command]
+fn switch_profile(id: String, current_snapshot: Option<serde_json::Value>, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    // Save the current profile's snapshot before switching
+    let old_id = settings.cabin.current_profile_id.clone();
+    if !old_id.is_empty() {
+        if let Some(profile) = settings.cabin.profiles.iter_mut().find(|p| p.id == old_id) {
+            profile.settings_snapshot = current_snapshot;
+        }
+    }
+    if settings.cabin.profiles.iter().any(|p| p.id == id) {
+        settings.cabin.current_profile_id = id;
+        store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+        store.shared.set(settings.clone());
+        let _ = app.emit("settings-changed", &settings);
+    }
+    Ok(settings)
+}
+
+/// Updates a driver profile's picture. Returns the updated settings.
+#[tauri::command]
+fn update_profile_picture(id: String, picture: String, store: State<SettingsStore>, app: AppHandle) -> Result<Settings, String> {
+    let mut settings = store.shared.get();
+    if let Some(profile) = settings.cabin.profiles.iter_mut().find(|p| p.id == id) {
+        profile.picture = picture;
+        store.file.save(&settings).map_err(|e| format!("Couldn't save the settings: {e}"))?;
+        store.shared.set(settings.clone());
+        let _ = app.emit("settings-changed", &settings);
+    }
+    Ok(settings)
+}
+
 fn main() {
     // Started as administrator only to copy the plugin into the game (setup asked for it): that, and done.
     let args: Vec<String> = std::env::args().collect();
@@ -169,16 +232,17 @@ fn main() {
     westplay_host::startup::mark("app: started");
     let open_request = Arc::new(OpenRequest::default());
     let accounts = Arc::new(AccountRequests::default());
+    let unpair = Arc::new(UnpairRequest::default());
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(update::Updates::default())
         .manage(WestplayOpen(open_request.clone()))
         .manage(Accounts(accounts.clone()))
+        .manage(PhoneUnpair(unpair.clone()))
         .register_asynchronous_uri_scheme_protocol(maps::SCHEME, maps::serve)
         .register_asynchronous_uri_scheme_protocol(maps::CUSTOMIZE_SCHEME, maps::serve_customize)
         .invoke_handler(tauri::generate_handler![
             companion_ready,
             set_westplay_open,
+            phone_unpair,
             youtube_sign_in,
             youtube_sign_out,
             youtube_check,
@@ -188,18 +252,18 @@ fn main() {
             apple_music_sign_in,
             apple_music_sign_out,
             apple_music_check,
-            open_support_page,
             app_log_place,
             customize::customize_list,
             customize::add_wallpapers,
             customize::add_icon_set,
             customize::remove_wallpaper,
             customize::remove_icon_set,
-            update::update_offer,
-            update::look_for_update,
-            update::install_update,
             get_settings,
             update_settings,
+            add_profile,
+            remove_profile,
+            switch_profile,
+            update_profile_picture,
             key_name,
             setup::setup_state,
             setup::game_running,
@@ -237,6 +301,7 @@ fn main() {
                 app.handle(),
                 open_request.clone(),
                 accounts.clone(),
+                unpair.clone(),
                 shared.clone(),
                 setup.game(),
                 Looks { config_dir: config_dir.clone(), customize_changed: customize.changed.clone() },
@@ -245,7 +310,6 @@ fn main() {
             app.manage(SettingsStore { file, shared });
             app.manage(setup);
             app.manage(std::sync::Mutex::new(host));
-            update::watch(app.handle());
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -258,8 +322,7 @@ fn main() {
     });
 }
 
-/// Stops the host, so its WebView2 shuts down cleanly with the app (it quitting, or an update's installer
-/// about to replace it). Once: a stopped host has nothing left to stop.
+/// Stops the host, so its WebView2 shuts down cleanly with the app. Once: a stopped host has nothing left to stop.
 fn stop_host(app: &AppHandle) {
     if let Some(host) = app.try_state::<std::sync::Mutex<Host>>() {
         let mut host = host.lock().unwrap_or_else(|e| e.into_inner());
@@ -297,6 +360,7 @@ fn start_host(
     app: &AppHandle,
     open_request: Arc<OpenRequest>,
     accounts: Arc<AccountRequests>,
+    unpair: Arc<UnpairRequest>,
     settings: Arc<SharedSettings>,
     game: Arc<SetUpGame>,
     looks: Looks,
@@ -316,6 +380,7 @@ fn start_host(
             let (content, data_dir) = (content.clone(), data_dir.clone());
             let (open_request, settings, stop) = (open_request.clone(), settings.clone(), thread_stop.clone());
             let (accounts, game) = (accounts.clone(), game.clone());
+            let unpair = unpair.clone();
             let status_events = events.clone();
             let (settings_events, settings_dir) = (events.clone(), looks.config_dir.clone());
             let customize_changed = looks.customize_changed.clone();
@@ -327,6 +392,7 @@ fn start_host(
                     data_dir,
                     open_request,
                     accounts,
+                    unpair,
                     settings,
                     game,
                     on_status: Box::new(move |status| {

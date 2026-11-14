@@ -8,13 +8,13 @@ use std::ffi::{CStr, CString, c_char, c_void};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use westplay_shared::{FixedStr, JobInfo, Telemetry, TruckInfo};
+use westplay_shared::{FixedStr, JobInfo, Telemetry, TrailerInfo, TruckInfo};
 
 use crate::scs::{
-    ChannelCallback, ConfigurationEvent, EventCallback, SCS_RESULT_OK, SCS_TELEMETRY_EVENT_CONFIGURATION,
-    SCS_TELEMETRY_EVENT_FRAME_END, SCS_TELEMETRY_EVENT_PAUSED, SCS_TELEMETRY_EVENT_STARTED, SCS_U32_NIL,
-    SCS_VALUE_TYPE_BOOL, SCS_VALUE_TYPE_DPLACEMENT, SCS_VALUE_TYPE_FLOAT, SCS_VALUE_TYPE_FPLACEMENT,
-    SCS_VALUE_TYPE_S32, SCS_VALUE_TYPE_U32, ScsValue, TelemetryInitParamsV100,
+    ChannelCallback, ConfigurationEvent, EventCallback, SCS_RESULT_OK, SCS_TELEMETRY_CHANNEL_FLAG_NO_VALUE,
+    SCS_TELEMETRY_EVENT_CONFIGURATION, SCS_TELEMETRY_EVENT_FRAME_END, SCS_TELEMETRY_EVENT_PAUSED,
+    SCS_TELEMETRY_EVENT_STARTED, SCS_U32_NIL, SCS_VALUE_TYPE_BOOL, SCS_VALUE_TYPE_DPLACEMENT, SCS_VALUE_TYPE_FLOAT,
+    SCS_VALUE_TYPE_FPLACEMENT, SCS_VALUE_TYPE_S32, SCS_VALUE_TYPE_U32, ScsValue, TelemetryInitParamsV100,
 };
 use crate::{bridge, log};
 
@@ -69,6 +69,36 @@ static SNAPSHOT: Mutex<Telemetry> = Mutex::new(Telemetry {
     cabin_z: 0.0,
     steering: 0.0,
     multiplayer_time_offset: 0,
+    coolant_temperature: 0.0,
+    oil_temperature: 0.0,
+    brake_air_pressure: 0.0,
+    brake_temperature: 0.0,
+    wear_engine: 0.0,
+    wear_wheels: 0.0,
+    wear_transmission: 0.0,
+    wear_cabin: 0.0,
+    wear_chassis: 0.0,
+    oil_pressure: 0.0,
+    battery_voltage: 0.0,
+    adblue: 0.0,
+    adblue_warning: false,
+    fuel_average: 0.0,
+    odometer: 0.0,
+    retarder_level: 0,
+    trailer_attached: false,
+    trailer_wear_wheels: 0.0,
+    battery_warning: false,
+    oil_pressure_warning: false,
+    brake_air_warning: false,
+    fuel_warning: false,
+    rest_stop: -1,
+    mandatory_break: -1,
+    parking_light: false,
+    beacon: false,
+    wipers: false,
+    trailer_wear_body: 0.0,
+    trailer_wear_chassis: 0.0,
+    hazard: false,
 });
 
 /// Where the driver's head is by default in the truck's cab (the "truck" configuration's `head.position`).
@@ -106,6 +136,98 @@ enum Field {
     HeadOffset,
     Steering,
     MultiplayerTimeOffset,
+    CoolantTemperature,
+    OilTemperature,
+    BrakeAirPressure,
+    BrakeTemperature,
+    WearEngine,
+    WearWheels,
+    WearTransmission,
+    WearCabin,
+    WearChassis,
+    OilPressure,
+    BatteryVoltage,
+    Adblue,
+    AdblueWarning,
+    FuelAverage,
+    Odometer,
+    RetarderLevel,
+    TrailerAttached,
+    TrailerWearWheels,
+    BatteryWarning,
+    OilPressureWarning,
+    BrakeAirWarning,
+    FuelWarning,
+    RestStop,
+    MandatoryBreak,
+    ParkingLight,
+    Beacon,
+    Wipers,
+    Hazard,
+    TrailerWearBody,
+    TrailerWearChassis,
+}
+
+#[cfg(test)]
+impl Field {
+    /// Every variant, for the registration test below: a field the channel table forgets would simply stop
+    /// updating, with nothing in the log to say so.
+    const ALL: &'static [Field] = &[
+        Field::Placement,
+        Field::Speed,
+        Field::EngineRpm,
+        Field::Gear,
+        Field::DisplayedGear,
+        Field::CruiseControl,
+        Field::Fuel,
+        Field::FuelRange,
+        Field::NavigationDistance,
+        Field::NavigationTime,
+        Field::NavigationSpeedLimit,
+        Field::GameTime,
+        Field::LocalScale,
+        Field::DashboardBacklight,
+        Field::ElectricEnabled,
+        Field::EngineEnabled,
+        Field::ParkingBrake,
+        Field::LowBeam,
+        Field::HighBeam,
+        Field::LeftBlinker,
+        Field::RightBlinker,
+        Field::HeadOffset,
+        Field::Steering,
+        Field::MultiplayerTimeOffset,
+        Field::CoolantTemperature,
+        Field::OilTemperature,
+        Field::BrakeAirPressure,
+        Field::BrakeTemperature,
+        Field::WearEngine,
+        Field::WearWheels,
+        Field::WearTransmission,
+        Field::WearCabin,
+        Field::WearChassis,
+        Field::OilPressure,
+        Field::BatteryVoltage,
+        Field::Adblue,
+        Field::AdblueWarning,
+        Field::FuelAverage,
+        Field::Odometer,
+        Field::RetarderLevel,
+        Field::TrailerAttached,
+        Field::TrailerWearWheels,
+        Field::BatteryWarning,
+        Field::OilPressureWarning,
+        Field::BrakeAirWarning,
+        Field::FuelWarning,
+        Field::RestStop,
+        Field::MandatoryBreak,
+        Field::ParkingLight,
+        Field::Beacon,
+        Field::Wipers,
+        Field::Hazard,
+        Field::TrailerWearBody,
+        Field::TrailerWearChassis,
+    ];
 }
 
 const CHANNELS: &[(&str, u32, Field)] = &[
@@ -133,6 +255,36 @@ const CHANNELS: &[(&str, u32, Field)] = &[
     ("truck.head.offset", SCS_VALUE_TYPE_FPLACEMENT, Field::HeadOffset),
     ("truck.effective.steering", SCS_VALUE_TYPE_FLOAT, Field::Steering),
     ("multiplayer.time.offset", SCS_VALUE_TYPE_S32, Field::MultiplayerTimeOffset),
+    ("truck.water.temperature", SCS_VALUE_TYPE_FLOAT, Field::CoolantTemperature),
+    ("truck.oil.temperature", SCS_VALUE_TYPE_FLOAT, Field::OilTemperature),
+    ("truck.brake.air.pressure", SCS_VALUE_TYPE_FLOAT, Field::BrakeAirPressure),
+    ("truck.brake.temperature", SCS_VALUE_TYPE_FLOAT, Field::BrakeTemperature),
+    ("truck.wear.engine", SCS_VALUE_TYPE_FLOAT, Field::WearEngine),
+    ("truck.wear.wheels", SCS_VALUE_TYPE_FLOAT, Field::WearWheels),
+    ("truck.wear.transmission", SCS_VALUE_TYPE_FLOAT, Field::WearTransmission),
+    ("truck.wear.cabin", SCS_VALUE_TYPE_FLOAT, Field::WearCabin),
+    ("truck.wear.chassis", SCS_VALUE_TYPE_FLOAT, Field::WearChassis),
+    ("truck.oil.pressure", SCS_VALUE_TYPE_FLOAT, Field::OilPressure),
+    ("truck.battery.voltage", SCS_VALUE_TYPE_FLOAT, Field::BatteryVoltage),
+    ("truck.adblue", SCS_VALUE_TYPE_FLOAT, Field::Adblue),
+    ("truck.adblue.warning", SCS_VALUE_TYPE_BOOL, Field::AdblueWarning),
+    ("truck.fuel.consumption.average", SCS_VALUE_TYPE_FLOAT, Field::FuelAverage),
+    ("truck.odometer", SCS_VALUE_TYPE_FLOAT, Field::Odometer),
+    ("truck.brake.retarder", SCS_VALUE_TYPE_U32, Field::RetarderLevel),
+    ("trailer.connected", SCS_VALUE_TYPE_BOOL, Field::TrailerAttached),
+    ("trailer.wear.wheels", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearWheels),
+    ("truck.battery.voltage.warning", SCS_VALUE_TYPE_BOOL, Field::BatteryWarning),
+    ("truck.oil.pressure.warning", SCS_VALUE_TYPE_BOOL, Field::OilPressureWarning),
+    ("truck.brake.air.pressure.warning", SCS_VALUE_TYPE_BOOL, Field::BrakeAirWarning),
+    ("truck.fuel.warning", SCS_VALUE_TYPE_BOOL, Field::FuelWarning),
+    ("rest.stop", SCS_VALUE_TYPE_S32, Field::RestStop),
+    ("mandatory.break", SCS_VALUE_TYPE_S32, Field::MandatoryBreak),
+    ("truck.light.parking", SCS_VALUE_TYPE_BOOL, Field::ParkingLight),
+    ("truck.light.beacon", SCS_VALUE_TYPE_BOOL, Field::Beacon),
+    ("truck.wipers", SCS_VALUE_TYPE_BOOL, Field::Wipers),
+    ("truck.hazard.warning", SCS_VALUE_TYPE_BOOL, Field::Hazard),
+    ("trailer.wear.body", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearBody),
+    ("trailer.wear.chassis", SCS_VALUE_TYPE_FLOAT, Field::TrailerWearChassis),
 ];
 
 /// Registers the telemetry channels and events. Called from `scs_telemetry_init`.
@@ -161,9 +313,17 @@ pub unsafe fn register(params: &TelemetryInitParamsV100) {
         let mut registered = 0;
         for (index, &(name, value_type, _)) in CHANNELS.iter().enumerate() {
             let Ok(c_name) = CString::new(name) else { continue };
-            // The SDK copies the name during registration.
-            let result =
-                register_channel(c_name.as_ptr(), SCS_U32_NIL, value_type, 0, on_channel, index as *mut c_void);
+            // The SDK copies the name during registration. `NO_VALUE` matters: without it the SDK simply stops
+            // calling a channel that loses its value (a trailer detached, a truck gone), leaving the last one in
+            // the snapshot forever; with it the callback gets the null that resets the field.
+            let result = register_channel(
+                c_name.as_ptr(),
+                SCS_U32_NIL,
+                value_type,
+                SCS_TELEMETRY_CHANNEL_FLAG_NO_VALUE,
+                on_channel,
+                index as *mut c_void,
+            );
             if result == SCS_RESULT_OK {
                 registered += 1;
             } else {
@@ -263,6 +423,8 @@ unsafe fn on_configuration(configuration: &ConfigurationEvent) {
         match CStr::from_ptr(configuration.id).to_bytes() {
             b"truck" => on_truck(configuration),
             b"job" => on_job(configuration),
+            // The game names the first trailer's configuration both ways (the static one is the chain's).
+            b"trailer" | b"trailer.0" => on_trailer(configuration),
             _ => {}
         }
     }
@@ -284,6 +446,20 @@ unsafe fn on_truck(configuration: &ConfigurationEvent) {
                 }
                 b"cabin.position" => {
                     cabin = attribute.value.fvector().unwrap_or_default();
+                    continue;
+                }
+                // The tank, so the cab can show how full it is rather than only how many litres are left.
+                b"fuel.capacity" => {
+                    truck.fuel_capacity = attribute.value.float();
+                    continue;
+                }
+                b"fuel.warning.factor" => {
+                    truck.fuel_warning_factor = attribute.value.float();
+                    continue;
+                }
+                // How many steps the retarder has: its level's range (0 without one).
+                b"retarder.steps" => {
+                    truck.retarder_steps = attribute.value.u32();
                     continue;
                 }
                 _ => {}
@@ -414,6 +590,37 @@ unsafe fn on_channel_value(value: *const ScsValue, context: *mut c_void) {
             }
             Field::Steering => s.steering = value.float(),
             Field::MultiplayerTimeOffset => s.multiplayer_time_offset = value.s32(),
+            Field::CoolantTemperature => s.coolant_temperature = value.float(),
+            Field::OilTemperature => s.oil_temperature = value.float(),
+            Field::BrakeAirPressure => s.brake_air_pressure = value.float(),
+            Field::BrakeTemperature => s.brake_temperature = value.float(),
+            Field::WearEngine => s.wear_engine = value.float(),
+            Field::WearWheels => s.wear_wheels = value.float(),
+            Field::WearTransmission => s.wear_transmission = value.float(),
+            Field::WearCabin => s.wear_cabin = value.float(),
+            Field::WearChassis => s.wear_chassis = value.float(),
+            Field::OilPressure => s.oil_pressure = value.float(),
+            Field::BatteryVoltage => s.battery_voltage = value.float(),
+            Field::Adblue => s.adblue = value.float(),
+            Field::AdblueWarning => s.adblue_warning = value.bool(),
+            // The game reports litres per kilometre; the snapshot keeps litres per 100 km, as the cab shows it.
+            Field::FuelAverage => s.fuel_average = value.float() * 100.0,
+            Field::Odometer => s.odometer = value.float(),
+            Field::RetarderLevel => s.retarder_level = value.u32() as i32,
+            Field::TrailerAttached => s.trailer_attached = value.bool(),
+            Field::TrailerWearWheels => s.trailer_wear_wheels = value.float(),
+            Field::BatteryWarning => s.battery_warning = value.bool(),
+            Field::OilPressureWarning => s.oil_pressure_warning = value.bool(),
+            Field::BrakeAirWarning => s.brake_air_warning = value.bool(),
+            Field::FuelWarning => s.fuel_warning = value.bool(),
+            Field::RestStop => s.rest_stop = value.s32(),
+            Field::MandatoryBreak => s.mandatory_break = value.s32(),
+            Field::ParkingLight => s.parking_light = value.bool(),
+            Field::Beacon => s.beacon = value.bool(),
+            Field::Wipers => s.wipers = value.bool(),
+            Field::Hazard => s.hazard = value.bool(),
+            Field::TrailerWearBody => s.trailer_wear_body = value.float(),
+            Field::TrailerWearChassis => s.trailer_wear_chassis = value.float(),
         }
     }
 }
@@ -451,5 +658,103 @@ fn reset(s: &mut Telemetry, field: Field) {
         }
         Field::Steering => s.steering = d.steering,
         Field::MultiplayerTimeOffset => s.multiplayer_time_offset = d.multiplayer_time_offset,
+        Field::CoolantTemperature => s.coolant_temperature = d.coolant_temperature,
+        Field::OilTemperature => s.oil_temperature = d.oil_temperature,
+        Field::BrakeAirPressure => s.brake_air_pressure = d.brake_air_pressure,
+        Field::BrakeTemperature => s.brake_temperature = d.brake_temperature,
+        Field::WearEngine => s.wear_engine = d.wear_engine,
+        Field::WearWheels => s.wear_wheels = d.wear_wheels,
+        Field::WearTransmission => s.wear_transmission = d.wear_transmission,
+        Field::WearCabin => s.wear_cabin = d.wear_cabin,
+        Field::WearChassis => s.wear_chassis = d.wear_chassis,
+        Field::OilPressure => s.oil_pressure = d.oil_pressure,
+        Field::BatteryVoltage => s.battery_voltage = d.battery_voltage,
+        Field::Adblue => s.adblue = d.adblue,
+        Field::AdblueWarning => s.adblue_warning = d.adblue_warning,
+        Field::FuelAverage => s.fuel_average = d.fuel_average,
+        Field::Odometer => s.odometer = d.odometer,
+        Field::RetarderLevel => s.retarder_level = d.retarder_level,
+        Field::TrailerAttached => s.trailer_attached = d.trailer_attached,
+        Field::TrailerWearWheels => s.trailer_wear_wheels = d.trailer_wear_wheels,
+        Field::BatteryWarning => s.battery_warning = d.battery_warning,
+        Field::OilPressureWarning => s.oil_pressure_warning = d.oil_pressure_warning,
+        Field::BrakeAirWarning => s.brake_air_warning = d.brake_air_warning,
+        Field::FuelWarning => s.fuel_warning = d.fuel_warning,
+        Field::RestStop => s.rest_stop = d.rest_stop,
+        Field::MandatoryBreak => s.mandatory_break = d.mandatory_break,
+        Field::ParkingLight => s.parking_light = d.parking_light,
+        Field::Beacon => s.beacon = d.beacon,
+        Field::Wipers => s.wipers = d.wipers,
+        Field::Hazard => s.hazard = d.hazard,
+        Field::TrailerWearBody => s.trailer_wear_body = d.trailer_wear_body,
+        Field::TrailerWearChassis => s.trailer_wear_chassis = d.trailer_wear_chassis,
+    }
+}
+
+/// The trailer under the truck, as the game publishes it: its brand and name, how it hangs (`chain.type`) and
+/// what it carries (`body.type`), its plate and how many wheels it rides on. An empty attribute set means none
+/// is hitched.
+///
+/// # Safety
+/// As [`on_configuration`].
+unsafe fn on_trailer(configuration: &ConfigurationEvent) {
+    // SAFETY: the attributes' names are the SDK's strings, nul-terminated and alive through the call.
+    unsafe {
+        let mut trailer = TrailerInfo::default();
+        for attribute in configuration.attributes() {
+            trailer.attached = true;
+            if CStr::from_ptr(attribute.name).to_bytes() == b"wheel.count" {
+                trailer.wheel_count = attribute.value.u32();
+                continue;
+            }
+            let Some(value) = attribute.value.string() else { continue };
+            match CStr::from_ptr(attribute.name).to_bytes() {
+                b"brand" => trailer.brand = FixedStr::new(&value),
+                b"name" => trailer.name = FixedStr::new(&value),
+                b"chain.type" => trailer.chain_type = FixedStr::new(&value),
+                b"body.type" => trailer.body_type = FixedStr::new(&value),
+                b"license.plate" => trailer.plate = FixedStr::new(&value),
+                _ => {}
+            }
+        }
+        log!(
+            "trailer: {} {} ({} / {}), plate {:?}, {} wheels",
+            trailer.brand.as_str(),
+            trailer.name.as_str(),
+            trailer.chain_type.as_str(),
+            trailer.body_type.as_str(),
+            trailer.plate.as_str(),
+            trailer.wheel_count
+        );
+        if let Some(bridge) = bridge::get() {
+            bridge.plugin.trailer.write(&trailer);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+    use std::mem::discriminant;
+
+    use super::*;
+
+    /// The channel table is the only thing binding a telemetry field to the game: a field left out of it, or a
+    /// channel name registered twice, would go unnoticed until a cab read a value that never changed.
+    #[test]
+    fn every_field_has_one_channel() {
+        let mut fields = HashSet::new();
+        let mut names = HashSet::new();
+        for &(name, _, field) in CHANNELS {
+            assert!(names.insert(name), "channel {name} is registered twice");
+            assert!(fields.insert(discriminant(&field)), "a field is registered twice");
+        }
+        for field in Field::ALL {
+            assert!(
+                fields.contains(&discriminant(field)),
+                "a field has no channel in CHANNELS"
+            );
+        }
+        assert_eq!(fields.len(), Field::ALL.len(), "Field::ALL and Field disagree");
     }
 }

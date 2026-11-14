@@ -4,12 +4,14 @@ import { Group, KeyChooser, Note, Panel, Row, Slider, Switch } from '../room/par
 import { n, useWords } from '../room/room'
 import { GLOW, openAndClose, useScreenAt, useTour } from '../room/screen'
 import { type Binding, DEFAULT_KEY, KEYBIND_IDS, type KeybindId, SENSITIVITY, type Settings } from '../useSettings'
+import { HotkeyButton } from './HotkeyButton'
 import { KeyButton } from './KeyButton'
+import { SectionGlyph } from './glyphs'
 import type { PageProps } from './page'
 
 /**
  * How the player uses the truck's screen: the key they hold (the onboarding's keycaps), how fast the pointer
- * goes, and whether the truck's own strip stays beside WestPlay; and every keybind (owner 2026-10-21): the
+ * goes, and whether the truck's own strip stays beside Cabin Play; and every keybind (owner 2026-10-21): the
  * screen's key, any key, held or pressed once, and the music's volume and play/pause. On the room's screen
  * the pointer uses it, opening an app and coming back Home, again and again.
  */
@@ -19,7 +21,7 @@ export function Controls({ settings: state, cw }: PageProps) {
   useScreenAt('home', GLOW.home, null)
   useTour([...openAndClose('music', GLOW.music), ...openAndClose('maps', GLOW.maps)])
   return (
-    <Panel place="page" title={w.title} sub={w.sub}>
+    <Panel place="page" title={w.title} sub={w.sub} icon={<SectionGlyph id="controls" />}>
       <p className="ob-group-title ob-in" style={n(4)}>
         {settings?.interaction.mode === 'toggle' ? w.keyToggle : w.key}
       </p>
@@ -73,13 +75,13 @@ function Keybinds({
   w: PageProps['cw']['controls']
 }) {
   const words = useWords()
-  const [listening, setListening] = useState<KeybindId | 'screen' | null>(null)
+  const [listening, setListening] = useState<KeybindId | 'screen' | 'voice' | null>(null)
   const [refused, setRefused] = useState<string | null>(null)
   const screenKey = settings.interaction.key
   const keyName = useKeyName(screenKey, words)
   const names: Record<KeybindId, string> = { volumeUp: w.volumeUp, volumeDown: w.volumeDown, playPause: w.playPause }
   const listen = useCallback(
-    (which: KeybindId | 'screen') => (on: boolean) => {
+    (which: KeybindId | 'screen' | 'voice') => (on: boolean) => {
       setListening(on ? which : null)
       if (on) setRefused(null)
     },
@@ -117,6 +119,20 @@ function Keybinds({
               listening={listening === 'screen'}
               listen={listen('screen')}
               choose={choose('screen')}
+              words={words}
+              pressKey={w.pressKey}
+            />
+          }
+        />
+        <Row
+          title={w.voiceHotkey ?? 'Voice assistant'}
+          accessory={
+            <HotkeyButton
+              hotkey={settings.voice.hotkey}
+              label={w.voiceHotkey ?? 'Voice assistant'}
+              listening={listening === 'voice'}
+              listen={listen('voice')}
+              choose={(hotkey) => update({ ...settings, voice: { ...settings.voice, hotkey } })}
               words={words}
               pressKey={w.pressKey}
             />

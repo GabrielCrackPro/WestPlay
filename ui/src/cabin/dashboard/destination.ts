@@ -1,5 +1,6 @@
 import { formatGameTime, formatTripDistance, formatTripTime } from '../../shared/format'
 import { cabClock, type JobInfo, type Telemetry } from '../../shared/host'
+import { activeUnits } from '../../shared/units'
 import { labelLines } from '../maps/labels'
 import type { MapLabel } from '../maps/mapData'
 import { metresBetween, toLngLat } from '../maps/projection'
@@ -9,7 +10,8 @@ import type { Strings } from '../state/strings'
 /**
  * Where the truck is headed, for the Dashboard's destination widget: the job (its pickup, then its
  * delivery, as the game reports it: companies and cities in the game's language), or else where the game's
- * route ends (a point the player put on the map: named after the nearest city), or nothing.
+ * route ends (a point the player put on the map: named after the nearest city), or nothing. A job brings its
+ * cargo and pay with it, so the card says where the drive goes and what it's worth in one place.
  */
 export interface DestinationView {
   /** What it is: "Delivery", "Pickup", "Destination". */
@@ -17,10 +19,14 @@ export interface DestinationView {
   title: string
   /** The city under a company's name. */
   subtitle: string | null
-  /** The deadline and distance, the cargo, or the arrival and distance. */
+  /** The deadline and distance, or the arrival and distance (nothing for a pickup still to make). */
   detail: string
   /** Past the delivery deadline. */
   late: boolean
+  /** What the job carries ("Tomatoes · 18.4 t"), or null where the route ends without one. */
+  cargo: string | null
+  /** What the job pays ("Income 52,000"), or null where the route ends without one. */
+  pay: string | null
 }
 
 /** A day of the week (day 0 is a Monday) and the time, or only the time if it's today. */
@@ -55,17 +61,24 @@ export function destinationView(
   const clock = telemetry ? cabClock(telemetry, clockShift) : 0
   const routeLeft = telemetry && telemetry.navigationDistance > 0 ? telemetry.navigationDistance : null
   if (job) {
+    const tonnes = (job.cargoMass / 1000).toFixed(1).replace('.', text.decimal)
+    const cargo = job.cargo ? `${job.cargo} · ${tonnes} t` : `${tonnes} t`
+    const pay = `${text.income} ${text.number(job.income)}`
     if (!job.cargoLoaded) {
-      const tonnes = (job.cargoMass / 1000).toFixed(1).replace('.', text.decimal)
       return {
         kicker: text.pickup,
         title: job.sourceCompany || job.sourceCity,
         subtitle: job.sourceCompany ? job.sourceCity : null,
-        detail: job.cargo ? `${job.cargo} · ${tonnes} t` : `${tonnes} t`,
+        detail: '',
         late: false,
+        cargo,
+        pay,
       }
     }
-    const distance = routeLeft !== null ? formatTripDistance(routeLeft, text.decimal) : `${job.plannedDistanceKm} km`
+    const distance =
+      routeLeft !== null
+        ? formatTripDistance(routeLeft, text.decimal)
+        : activeUnits().longDistance(job.plannedDistanceKm, text.decimal)
     const late = job.deliveryTime > 0 && now > job.deliveryTime
     const deadline =
       job.deliveryTime > 0
@@ -79,6 +92,8 @@ export function destinationView(
       subtitle: job.destinationCompany ? job.destinationCity : null,
       detail: deadline ? `${deadline} · ${distance}` : distance,
       late,
+      cargo,
+      pay,
     }
   }
   if (routeEnd && telemetry && routeLeft !== null) {
@@ -89,6 +104,8 @@ export function destinationView(
       subtitle: null,
       detail: `${formatGameTime(Math.round(clock + minutes))} ${text.arrival} · ${formatTripTime(minutes, text)}`,
       late: false,
+      cargo: null,
+      pay: null,
     }
   }
   return null

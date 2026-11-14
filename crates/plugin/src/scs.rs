@@ -52,6 +52,10 @@ const _: () = assert!(size_of::<TelemetryInitParamsV100>() == 64);
 
 pub const SCS_U32_NIL: u32 = u32::MAX;
 
+/// `SCS_TELEMETRY_CHANNEL_FLAG_no_value`: call the callback with a null value while the channel has none
+/// (a trailer that isn't hitched, a truck that isn't there), rather than not calling it at all.
+pub const SCS_TELEMETRY_CHANNEL_FLAG_NO_VALUE: u32 = 0x00000002;
+
 pub const SCS_TELEMETRY_EVENT_FRAME_END: u32 = 2;
 pub const SCS_TELEMETRY_EVENT_PAUSED: u32 = 3;
 pub const SCS_TELEMETRY_EVENT_STARTED: u32 = 4;
