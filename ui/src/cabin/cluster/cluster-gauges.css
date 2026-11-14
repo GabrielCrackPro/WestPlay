@@ -409,3 +409,393 @@
     opacity: 0.45;
   }
 }
+
+/* --- Road gradient indicator (Feature 7) ------------------------------------------------------- */
+
+.cluster-gradient {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-gradient .cluster-glyph {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.cluster-gradient .cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.cluster-gradient strong {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: var(--type-lg);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cluster-gradient strong[data-incline] {
+  color: var(--warn);
+}
+
+/* --- Haptic pulse (Feature 19) ----------------------------------------------------------------- */
+
+/* A brief screen pulse when an alarm notice appears — mimics how real clusters draw attention
+   to warnings beyond just lighting a lamp. */
+.cluster[data-haptic] .cluster-shell {
+  animation: haptic-pulse 0.5s ease-out;
+}
+
+@keyframes haptic-pulse {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.008);
+  }
+  30% {
+    transform: scale(0.997);
+  }
+  50% {
+    transform: scale(1.004);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- Pre-trip checklist as a dial mode (Feature 5) ---------------------------------------------
+ *
+ * The pre-trip is a mode of the dial itself: the track remains visible but dimmed, an accent arc
+ * sweeps progressively as items check (the arc is the progress indicator), and checklist items
+ * sit inside the ring where the speed figure normally goes. The header label takes the place of
+ * the brand mark above the ring. This feels like a self-test mode, not a card on top.
+ */
+
+.cluster-pretrip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Dim the dial track while pre-trip runs — the ring is still visible, just muted */
+.cluster-dial-wrap[data-pretrip] .cluster-dial-track {
+  stroke: color-mix(in srgb, var(--ink) 6%, transparent);
+  transition: stroke 0.3s ease;
+}
+
+/* Hide the speed figure, gear, retarder, brand, and tacho while pre-trip owns the dial */
+.cluster-dial-wrap[data-pretrip] .cluster-speed,
+.cluster-dial-wrap[data-pretrip] .cluster-gear,
+.cluster-dial-wrap[data-pretrip] .cluster-retarder,
+.cluster-dial-wrap[data-pretrip] .cluster-brand,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-rpm-track,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-rpm,
+.cluster-dial-wrap[data-pretrip] .cluster-rpm-redline,
+.cluster-dial-wrap[data-pretrip] .cluster-retarder-arc,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-cruise,
+.cluster-dial-wrap[data-pretrip] .cluster-limit,
+.cluster-dial-wrap[data-pretrip] .cluster-dial-fill {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* The pre-trip's own arc: same geometry as the dial's fill, sweeps as items check */
+.cluster-pretrip-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cluster-pretrip-arc-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.cluster-pretrip-header {
+  position: absolute;
+  top: 23%;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.cluster-pretrip-label {
+  font-size: var(--type-xs);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Items: centered inside the ring, where the speed figure normally goes */
+.cluster-pretrip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  max-width: 200px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-30%);
+}
+
+.cluster-pretrip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  font-size: var(--type-unit);
+  color: var(--dim);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cluster-pretrip-item[data-checked] {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--ink);
+}
+
+.cluster-pretrip-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.cluster-pretrip-check svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.1;
+}
+
+.cluster-pretrip-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Lane departure & speed camera pills (Features 6, 24) -------------------------------------- */
+
+.cluster-adas,
+.cluster-camera {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 15%, transparent);
+  color: var(--warn);
+  margin-right: 4px;
+  animation: adas-blink 1s ease-in-out infinite;
+}
+
+.cluster-adas svg,
+.cluster-camera svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cluster-camera {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
+}
+
+@keyframes adas-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* --- Cluster boot as a dial mode ---------------------------------------------------------------
+ *
+ * The boot is a mode of the dial itself: the track remains visible but dimmed, an accent arc
+ * sweeps as the boot progresses, and the truck's brand and Cabin Play mark sit inside the ring
+ * where the speed figure normally goes. This feels like the cluster's own display powering on,
+ * not a full-screen overlay.
+ */
+
+.cluster-boot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* The boot's arc: same geometry as the dial's fill, sweeps as the boot progresses */
+.cluster-boot-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cluster-boot-arc-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* Center content: brand and app mark inside the ring */
+.cluster-boot-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Truck brand logo inside the ring */
+.cluster-boot-brand {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgb(255 255 255 / 0.1));
+}
+
+/* Fallback wordmark for brands without logos */
+.cluster-boot-brand-word {
+  font-size: var(--type-lg);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+/* Cabin Play mark: smaller icon and name under the brand */
+.cluster-boot-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cluster-boot-app-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: calc(6px * var(--text-scale, 1));
+  opacity: 0.85;
+}
+
+.cluster-boot-app-name {
+  font-size: var(--type-xs);
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 0.02em;
+}
+
+/* Connecting dots: subtle pulsing indicator */
+.cluster-boot-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cluster-boot-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: boot-dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes boot-dot-pulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dim the dial elements while boot runs */
+.cluster-dial-wrap[data-booting] .cluster-dial-track {
+  stroke: color-mix(in srgb, var(--ink) 6%, transparent);
+  transition: stroke 0.3s ease;
+}
+
+.cluster-dial-wrap[data-booting] .cluster-speed,
+.cluster-dial-wrap[data-booting] .cluster-gear,
+.cluster-dial-wrap[data-booting] .cluster-retarder,
+.cluster-dial-wrap[data-booting] .cluster-brand,
+.cluster-dial-wrap[data-booting] .cluster-dial-rpm-track,
+.cluster-dial-wrap[data-booting] .cluster-dial-rpm,
+.cluster-dial-wrap[data-booting] .cluster-rpm-redline,
+.cluster-dial-wrap[data-booting] .cluster-retarder-arc,
+.cluster-dial-wrap[data-booting] .cluster-dial-cruise,
+.cluster-dial-wrap[data-booting] .cluster-limit,
+.cluster-dial-wrap[data-booting] .cluster-dial-fill {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Black veil: covers the entire cluster at the start of boot, fading out to reveal the boot animation.
+   Positioned to cover the whole cluster-shell, not just the dial — both screens start from pure black. */
+.cluster-boot-veil {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Hide side columns during boot — they fade in after the veil clears */
+.cluster-shell[data-booting] .cluster-side {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the status bar during boot — telltales and route aren't ready yet */
+.cluster-shell[data-booting] .cluster-status {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the media line above the dial during boot */
+.cluster-shell[data-booting] .cluster-message {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Hide the notices layer during boot */
+.cluster-shell[data-booting] .cluster-notices {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}

@@ -457,5 +457,71 @@ export function BlindRightIcon() {
   )
 }
 
+/** Road gradient / incline — a road sloping upward with a percentage marker, the standard symbol for
+ * road gradient on truck dashboards. A horizontal road line that rises to the right, with an arrow
+ * indicating the slope direction. */
+export function GradientIcon() {
+  return (
+    <Glyph>
+      {/* Road surface — slopes upward to the right */}
+      <path d="M3 18L21 6" />
+      {/* Truck silhouette on the slope — simplified rectangle */}
+      <path d="M8 15l2-3h4l2 3H8Z" />
+      {/* Wheels */}
+      <circle cx="9.5" cy="15" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="15" r="1" fill="currentColor" stroke="none" />
+      {/* Arrow indicating incline direction */}
+      <path d="M18 3l3 3-3 3" fill="currentColor" stroke="none" />
+      <path d="M21 6H15" />
+    </Glyph>
+  )
+}
+
+/** Lane departure warning — a vehicle between two lane lines with one line dashed and the vehicle
+ * drifting across it. The standard ADAS lane departure symbol, showing the truck crossing a lane boundary. */
+export function LaneDepartureIcon() {
+  return (
+    <Glyph>
+      {/* Left lane line — solid */}
+      <path d="M4 2v20" />
+      {/* Right lane line — dashed (the one being crossed) */}
+      <path d="M20 2v4M20 10v4M20 18v4" />
+      {/* Vehicle silhouette — centered, drifting right */}
+      <path d="M10 8h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+      {/* Warning arrow — pointing toward the crossed line */}
+      <path d="M15 12l3-2v4l-3-2Z" fill="currentColor" stroke="none" />
+    </Glyph>
+  )
+}
+
+/** Check mark — a simple tick inside a circle, used for completed items (pre-trip checklist). */
+export function CheckIcon() {
+  return (
+    <Glyph>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12l3 3 5-5" fill="none" />
+    </Glyph>
+  )
+}
+
+/** Speed camera / enforcement — a camera on a pole, the standard symbol for speed enforcement zones.
+ * A simplified camera body on a vertical pole with a flash indicator. */
+export function SpeedCameraIcon() {
+  return (
+    <Glyph>
+      {/* Camera body — rectangle with lens */}
+      <rect x="6" y="6" width="10" height="7" rx="1" />
+      {/* Lens — circle */}
+      <circle cx="11" cy="9.5" r="2" />
+      {/* Pole — vertical line */}
+      <path d="M11 13v7" />
+      {/* Flash indicator — small circle on top */}
+      <circle cx="8" cy="7.5" r="0.8" fill="currentColor" stroke="none" />
+      {/* Base */}
+      <path d="M8 20h6" />
+    </Glyph>
+  )
+}
+
 /** What the telltales are drawn as, so the cluster can assemble them from the telemetry. */
 export type TelltaleIcon = ReactElement

@@ -426,6 +426,11 @@ export function DiagnosticsApp() {
                   </div>
                 </Card>
 
+                {/* TPMS — Tire Pressure Monitoring System (Feature 11) */}
+                <Card title={words.tpms}>
+                  <TpmSDiagram wearWheels={tireWear} trailerWear={trailerWear} attached={t.trailerAttached} words={words} />
+                </Card>
+
                 <Card title={words.trailer}>
                   {t.trailerAttached ? (
                     <>
@@ -532,6 +537,99 @@ function Wear({ label, read }: { label: string; read: Reading }) {
       </div>
       <div className="diag-meter" aria-hidden>
         <span style={{ width: `${Math.round(read.value * 100)}%` }} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * TPMS — Tire Pressure Monitoring System diagram (Feature 11).
+ * Shows the truck's wheel layout from above with wear-based color coding.
+ * The game reports a single wearWheels value, so we simulate per-wheel variation
+ * around that average for a more realistic TPMS display. Real TPMS shows each
+ * wheel individually with pressure readings.
+ */
+function TpmSDiagram({
+  wearWheels,
+  trailerWear,
+  attached,
+  words,
+}: {
+  wearWheels: Reading
+  trailerWear: Reading
+  attached: boolean
+  words: { tpms: string; tpmsFront: string; tpmsRear: string; tpmsNormal: string; tpmsLow: string; tpmsWorn: string }
+}) {
+  // Simulate per-wheel wear around the average (game reports one value)
+  const frontAxle = [
+    { label: 'FL', wear: Math.min(1, Math.max(0, wearWheels.value + 0.02)) },
+    { label: 'FR', wear: Math.min(1, Math.max(0, wearWheels.value - 0.01)) },
+  ]
+  const rearAxle = [
+    { label: 'RL', wear: Math.min(1, Math.max(0, wearWheels.value + 0.01)) },
+    { label: 'RR', wear: Math.min(1, Math.max(0, wearWheels.value - 0.02)) },
+  ]
+  const trailerAxles = attached
+    ? [
+        { label: 'TL', wear: Math.min(1, Math.max(0, trailerWear.value + 0.01)) },
+        { label: 'TR', wear: Math.min(1, Math.max(0, trailerWear.value - 0.01)) },
+      ]
+    : []
+
+  const stateFor = (wear: number) => {
+    if (wear > 0.7) return 'alarm'
+    if (wear > 0.4) return 'warn'
+    return 'ok'
+  }
+
+  const Wheel = ({ label, wear }: { label: string; wear: number }) => {
+    const state = stateFor(wear)
+    return (
+      <div className={`diag-wheel ${state}`} title={`${label}: ${Math.round(wear * 100)}% worn`}>
+        <span className="diag-wheel-label">{label}</span>
+        <span className="diag-wheel-value">{Math.round((1 - wear) * 100)}%</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="diag-tpms" aria-label={words.tpms}>
+      {/* Truck body outline */}
+      <div className="diag-tpms-truck">
+        <div className="diag-tpms-cab">{words.tpmsFront}</div>
+        <div className="diag-tpms-chassis" />
+        {/* Front axle wheels */}
+        <div className="diag-tpms-axle diag-tpms-front">
+          <Wheel label={frontAxle[0].label} wear={frontAxle[0].wear} />
+          <Wheel label={frontAxle[1].label} wear={frontAxle[1].wear} />
+        </div>
+        {/* Rear axle wheels */}
+        <div className="diag-tpms-axle diag-tpms-rear">
+          <Wheel label={rearAxle[0].label} wear={rearAxle[0].wear} />
+          <Wheel label={rearAxle[1].label} wear={rearAxle[1].wear} />
+        </div>
+      </div>
+      {/* Trailer wheels */}
+      {attached && trailerAxles.length > 0 && (
+        <div className="diag-tpms-trailer">
+          <div className="diag-tpms-coupling">─</div>
+          <div className="diag-tpms-axle">
+            <Wheel label={trailerAxles[0].label} wear={trailerAxles[0].wear} />
+            <Wheel label={trailerAxles[1].label} wear={trailerAxles[1].wear} />
+          </div>
+        </div>
+      )}
+      {/* Legend */}
+      <div className="diag-tpms-legend">
+        <span className="diag-tpms-legend-ok">
+          <span className="diag-tpms-dot ok" /> {words.tpmsNormal}
+        </span>
+        <span className="diag-tpms-legend-warn">
+          <span className="diag-tpms-dot warn" /> {words.tpmsLow}
+        </span>
+        <span className="diag-tpms-legend-alarm">
+          <span className="diag-tpms-dot alarm" /> {words.tpmsWorn}
+        </span>
       </div>
     </div>
   )

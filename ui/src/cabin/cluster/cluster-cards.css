@@ -130,6 +130,44 @@
   font-weight: 500;
   line-height: 0.88;
   letter-spacing: -0.06em;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.cluster-trip-value[data-rotate] {
+  animation: tripFadeIn 0.3s ease both;
+}
+
+@keyframes tripFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Rotation dot indicators: small dots showing which view is active */
+.cluster-trip-rotation {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-trip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.cluster-trip-dot[data-active] {
+  background: var(--accent);
+  transform: scale(1.2);
 }
 
 .cluster-pairs {

@@ -113,3 +113,134 @@ export function installSounds(): () => void {
   window.addEventListener('pointerdown', onPress, { passive: true })
   return () => window.removeEventListener('pointerdown', onPress)
 }
+
+/**
+ * Spatial cabin ambient sounds (Feature 18): wind noise that changes with speed and road surface noise
+ * that varies with speed. Synthesised with WebAudio noise generators so nothing ships with them.
+ *
+ * Wind noise: filtered white noise that increases in volume and frequency with speed, simulating
+ * air flowing past the cab. Road noise: lower-frequency rumble that increases with speed, simulating
+ * tire-road interaction.
+ *
+ * Both are gated by the same conditions as cues: sounds on, inside cab, page visible.
+ * Volume is kept very low — these sit under the game's own sound, adding subtle immersion.
+ */
+
+let windGain: GainNode | null = null
+let roadGain: GainNode | null = null
+let windFilter: BiquadFilterNode | null = null
+let roadFilter: BiquadFilterNode | null = null
+let ambientMaster: GainNode | null = null
+
+/** Update ambient cabin sounds based on current speed (m/s). Call from telemetry update loop. */
+export function updateAmbientSounds(speed: number): void {
+  if (!useCabin.getState().uiSounds || useLive.getState().outsideCab || document.hidden) {
+    stopAmbient()
+    return
+  }
+  const ctx = audio()
+  if (!ctx || !master) return
+
+  // Initialise ambient nodes on first call
+  if (!ambientMaster) initAmbient(ctx, master)
+  if (!ambientMaster) return
+
+  // Speed 0-40 m/s (0-144 km/h) mapped to gain
+  const speedNorm = Math.min(1, Math.max(0, speed / 40))
+
+  // Wind: barely audible at low speed, noticeable at highway speed
+  // Frequency increases with speed (turbulence)
+  if (windGain && windFilter) {
+    const windVol = 0.008 * speedNorm * speedNorm // quadratic: quiet at low speed
+    windGain.gain.setTargetAtTime(windVol, ctx.currentTime, 0.1)
+    // Filter frequency: 800Hz at low speed → 3000Hz at high speed
+    const windFreq = 800 + 2200 * speedNorm
+    windFilter.frequency.setTargetAtTime(windFreq, ctx.currentTime, 0.1)
+  }
+
+  // Road: low rumble, increases linearly with speed
+  if (roadGain && roadFilter) {
+    const roadVol = 0.006 * speedNorm
+    roadGain.gain.setTargetAtTime(roadVol, ctx.currentTime, 0.15)
+    // Filter: 100Hz at low speed → 400Hz at high speed
+    const roadFreq = 100 + 300 * speedNorm
+    roadFilter.frequency.setTargetAtTime(roadFreq, ctx.currentTime, 0.15)
+  }
+}
+
+function initAmbient(ctx: AudioContext, out: GainNode): void {
+  try {
+    ambientMaster = ctx.createGain()
+    ambientMaster.gain.value = 0.5
+    ambientMaster.connect(out)
+
+    // Wind noise: bandpass-filtered white noise via oscillator with modulation
+    windFilter = ctx.createBiquadFilter()
+    windFilter.type = 'bandpass'
+    windFilter.frequency.value = 800
+    windFilter.Q.value = 0.5
+
+    windGain = ctx.createGain()
+    windGain.gain.value = 0
+
+    // Create wind as modulated noise using two detuned oscillators through a distortion curve
+    const windOsc = ctx.createOscillator()
+    windOsc.type = 'sawtooth'
+    windOsc.frequency.value = 50
+    const windOsc2 = ctx.createOscillator()
+    windOsc2.type = 'sawtooth'
+    windOsc2.frequency.value = 53 // slight detune for noise-like quality
+
+    const windMerge = ctx.createGain()
+    windMerge.gain.value = 0.3
+    windOsc.connect(windMerge)
+    windOsc2.connect(windMerge)
+    windMerge.connect(windFilter)
+    windFilter.connect(windGain)
+    windGain.connect(ambientMaster)
+    windOsc.start()
+    windOsc2.start()
+    // windOsc tracked implicitly via windGain connection
+
+    // Road noise: low-frequency rumble
+    roadFilter = ctx.createBiquadFilter()
+    roadFilter.type = 'lowpass'
+    roadFilter.frequency.value = 200
+    roadFilter.Q.value = 0.3
+
+    roadGain = ctx.createGain()
+    roadGain.gain.value = 0
+
+    const roadOsc = ctx.createOscillator()
+    roadOsc.type = 'sawtooth'
+    roadOsc.frequency.value = 30
+    const roadOsc2 = ctx.createOscillator()
+    roadOsc2.type = 'square'
+    roadOsc2.frequency.value = 37
+
+    const roadMerge = ctx.createGain()
+    roadMerge.gain.value = 0.15
+    roadOsc.connect(roadMerge)
+    roadOsc2.connect(roadMerge)
+    roadMerge.connect(roadFilter)
+    roadFilter.connect(roadGain)
+    roadGain.connect(ambientMaster)
+    roadOsc.start()
+    roadOsc2.start()
+    // roadOsc tracked implicitly via roadGain connection
+  } catch {
+    // Ambient sounds are optional — skip if WebAudio can't create them
+    ambientMaster = null
+  }
+}
+
+function stopAmbient(): void {
+  if (windGain) {
+    const ctx = windGain.context
+    windGain.gain.setTargetAtTime(0, ctx.currentTime, 0.05)
+  }
+  if (roadGain) {
+    const ctx = roadGain.context
+    roadGain.gain.setTargetAtTime(0, ctx.currentTime, 0.05)
+  }
+}

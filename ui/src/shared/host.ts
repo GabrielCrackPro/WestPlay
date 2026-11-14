@@ -15,6 +15,8 @@ export interface Telemetry {
   heading: number
   pitch: number
   roll: number
+  /** Steering angle, -1 (full left) to 1 (full right). */
+  steering: number
   /** m/s, negative when reversing. */
   speed: number
   engineRpm: number

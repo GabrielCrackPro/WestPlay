@@ -69,6 +69,8 @@ interface ClusterDialProps {
   max: number
   /** Whether the tacho's ring is drawn outside the speed's (Settings › Instrument Cluster). */
   tacho: boolean
+  /** The retarder level (0 = off, up to ~8): shown as a blue segment on the RPM ring. */
+  retarder: number
   /** The app's Reduce Motion setting: the face arrives at rest rather than assembling itself. */
   reduced: boolean
 }
@@ -180,6 +182,7 @@ export const ClusterDial = memo(function ClusterDial({
   cruise,
   max,
   tacho,
+  retarder,
   reduced,
 }: ClusterDialProps) {
   // The two readings as the face shows them: eased a frame at a time, the speed opening with the power-up sweep.
@@ -317,6 +320,24 @@ export const ClusterDial = memo(function ClusterDial({
             transform={`rotate(${DIAL_START} 150 150)`}
             {...marks(0.12, 0.52)}
           />
+          {/* The retarder's intensity, as a blue segment on the RPM ring (Feature 5): the segment fills from the
+              start of the ring proportional to the retarder level, mirroring how real Scania Smart Displays show
+              engine brake intensity directly on the tachometer. The maximum retarder level is 8, so the share is
+              retarder / 8, mapped to a portion of the RPM sweep. */}
+          {retarder > 0 && (
+            <motion.circle
+              className="cluster-retarder-arc"
+              cx="150"
+              cy="150"
+              r={RPM_RADIUS}
+              strokeDasharray={`${RPM_CIRCUMFERENCE * DIAL_SWEEP * Math.min(1, retarder / 8)} ${RPM_CIRCUMFERENCE}`}
+              transform={`rotate(${DIAL_START} 150 150)`}
+              style={{ strokeLinecap: 'butt' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ duration: 0.3, ease: motionEase }}
+            />
+          )}
         </>
       )}
     </svg>

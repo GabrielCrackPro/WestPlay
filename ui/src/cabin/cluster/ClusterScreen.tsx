@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { type CSSProperties, type ReactElement, useEffect, useState } from 'react'
+import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from 'react'
 import { formatGameTime, formatGear } from '../../shared/format'
-import { cabClock, type CabinPower, hasTruck, type NowPlayingInfo, subscribeHostMessages } from '../../shared/host'
+import { cabClock, hasTruck, type NowPlayingInfo, subscribeHostMessages } from '../../shared/host'
 import { appIcon, type AppIconRole } from '../../shared/icons'
 import {
   adblue as adblueReading,
@@ -10,10 +10,8 @@ import {
   coolant as coolantReading,
 } from '../apps/diagnostics/readings'
 import { receivePhoneNotifications, receivePhoneState, usePhone } from '../apps/phone/phone'
-import { BootScreen } from '../boot/BootScreen'
+import { ClusterBootScreen } from './ClusterBootScreen'
 import { logoSources } from '../boot/brand'
-import { bootLength, bootShown } from '../state/power'
-import { useHandover } from '../state/useHandover'
 import { motionEase, useMotionReduced } from '../motion'
 import { resolveAppearance } from '../state/appearance'
 import { useNightDim } from '../state/nightDim'
@@ -43,16 +41,20 @@ import {
   CoolantIcon,
   CruiseIcon,
   DropIcon,
+  GradientIcon,
+  LaneDepartureIcon,
   MusicIcon,
   PhoneIcon,
   RangeIcon,
   RetarderIcon,
+  SpeedCameraIcon,
   TrailerIcon,
   WarningIcon,
 } from './ClusterIcons'
 import { useLingering } from './useLingering'
 import { usePlayed } from './usePlayed'
 import { useShownAppearance } from './useShownAppearance'
+import { PreTripChecklist } from './PreTripChecklist'
 import './cluster.css'
 import './telltales.css'
 
@@ -92,8 +94,6 @@ const PLAYS_FROM: Record<string, AppIconRole> = {
   radio: 'radio',
 }
 
-/** The machine's clock, which the cluster's power message counts on (`CabinPower.since` is `Date.now()`). */
-const wallClock = () => Date.now()
 
 /**
  * The dash's bulb check: every lamp lit for one window as the boot clears. The ignition's edge is caught during render,
@@ -184,6 +184,16 @@ export function ClusterScreen() {
   const notice = useClusterNotice()
   // The chime as a notice is recorded on the dash: soft for a warning, firmer for an alarm.
   useNoticeCue(notice)
+  // Haptic pulse: the panel flashes briefly when an alarm notice appears (Feature 19).
+  const [hapticPulse, setHapticPulse] = useState(false)
+  useEffect(() => {
+    if (notice?.tone === 'alarm') {
+      setHapticPulse(true)
+      const id = setTimeout(() => setHapticPulse(false), 500)
+      return () => clearTimeout(id)
+    }
+  }, [notice?.key])
+  // Pre-trip checklist: runs once after boot clears (Feature 5).
   // The page's telemetry and truck come from the host (it posts them to this WebView too); the page asks to be
   // told again when it loads.
   useEffect(
@@ -270,9 +280,27 @@ export function ClusterScreen() {
   // screen the boot has just cleared, instead of playing under the boot's light where nobody can see it. Until then
   // it is mounted but not painted (below), and it is re-mounted at that moment so its motions begin there.
   const booted = power === null || power.phase === 'on'
+  // Pre-trip checklist: runs after every ignition (Feature 5). Reset when the truck is turned off so it runs again on the next start.
+  const [preTripDone, setPreTripDone] = useState(false)
+  useEffect(() => {
+    if (power === null || power.phase !== 'on') {
+      setPreTripDone(false)
+    }
+  }, [power])
+  const preTripShown = booted && !preTripDone
   // The boot's light still goes down over its own last part (HANDOVER_MS), as it does on the cabin's screen: Motion
   // fades it out over that window (BootScreen's exit), and `useHandover` is the one clock for both.
-  const handover = useHandover(power, wallClock)
+  // The integrated boot: phase and elapsed for the dial-mounted boot (ClusterBootScreen).
+  // Remember the original boot start time so elapsed doesn't reset when the phase changes
+  // (power.since is updated to the transition time when splash -> connecting).
+  const bootStartRef = useRef<number | null>(null)
+  if (booting && power) {
+    if (bootStartRef.current === null) bootStartRef.current = Date.now() - (power.since ?? 0)
+  } else {
+    bootStartRef.current = null
+  }
+  const bootPhase = (booting && power) ? (power.phase === 'on' ? null : power.phase) : null
+  const bootElapsed = booting && bootStartRef.current !== null ? Date.now() - bootStartRef.current : 0
   // The lamps' self-test as the dash shows itself: the boot's `on` phase is the moment it has handed over. The lit
   // state and its length are the stylesheet's (`.cluster-telltales[data-check]`), over the same window.
   const bulbCheck = useBulbCheck(power?.phase === 'on')
@@ -355,6 +383,19 @@ export function ClusterScreen() {
       ? guidanceOf(route.distances, route.maneuvers, routeNext, t?.navigationDistance ?? 0)
       : null
   const step = guidance?.step ?? null
+  // Road gradient from pitch (Feature 7): pitch is in turns (0..1), convert to degrees then to percentage.
+  // pitch in telemetry is the truck's tilt; positive = nose up (incline), negative = nose down (decline).
+  const gradientPercent = t ? Math.round(t.pitch * 360 * 100) / 100 : 0 // rough approximation
+  const gradientSign = gradientPercent > 0.5 ? 'incline' : gradientPercent < -0.5 ? 'decline' : null
+  // Speed camera warning (Feature 24): warn when exceeding speed limit.
+  const speedCameraWarning = t && t.navigationSpeedLimit > 0 && t.speed > 0
+    ? units.speed(t.speed) > units.limit(t.navigationSpeedLimit)
+    : false
+  // Lane departure detection (Feature 6): simulate based on steering angle and heading rate.
+  // When steering is significantly turned while moving, and roll indicates lane drift.
+  const laneDeparture = t && t.speed > 5
+    ? Math.abs(t.steering) > 0.3 && Math.abs(t.roll) > 0.02
+    : false
   // How far to that turn, so the arrow has a scale and not only a shape: the arrow alone says which way, never
   // whether the road there is 20 m or two kilometres off. It is "Now" inside the junction (the same 30 m the map's
   // own card counts it at, guidance.ts) and the driver's units until then. Arriving is the one step whose distance
@@ -445,19 +486,15 @@ export function ClusterScreen() {
       data-appearance={appearance}
       data-appearing={appearing ? '' : undefined}
       data-alarm={notice?.tone === 'alarm' ? '' : undefined}
+      data-haptic={hapticPulse ? '' : undefined}
       aria-label={text.settings.clusterScreen}
       style={panelStyle}
     >
       {voiceOnScreen && <div className="cluster-voice-glow" data-on={voiceTalking ? '' : undefined} aria-hidden />}
-      <AnimatePresence>
-        {booting && power && (reduceMotion || !handover) && <ClusterBoot power={power} />}
-      </AnimatePresence>
 
       <motion.div
         className="cluster-shell"
-        key={booted ? 1 : 0}
-        // Drawn but kept off the glass while the boot is up, so the entrance below is first seen once it is over.
-        style={booted ? undefined : { visibility: 'hidden' }}
+        data-booting={bootPhase ? '' : undefined}
         initial={reduceMotion ? false : { opacity: 0, y: 3 }}
         animate={{ opacity: 1, y: 0 }}
         transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: motionEase }}
@@ -469,6 +506,18 @@ export function ClusterScreen() {
           transition={reduceMotion ? { duration: 0 } : { duration: 0.3, ease: motionEase }}
         >
           <TelltaleList items={lights} label={words.telltales} check={bulbCheck} />
+          {/* Lane departure warning telltale (Feature 6) */}
+          {laneDeparture && (
+            <span className="cluster-pill cluster-adas" data-on="" aria-label={words.laneDeparture}>
+              <LaneDepartureIcon />
+            </span>
+          )}
+          {/* Speed camera warning telltale (Feature 24) */}
+          {speedCameraWarning && (
+            <span className="cluster-pill cluster-camera" data-on="" aria-label={words.speedCamera}>
+              <SpeedCameraIcon />
+            </span>
+          )}
           {/* What a screen reader hears of the notice. The line itself comes and goes with its words, and a live
               region mounted along with its text is often not announced: this one is always here to be read into. */}
           <p className="cluster-sr-only" aria-live="polite" aria-atomic="true">
@@ -585,8 +634,24 @@ export function ClusterScreen() {
                   : `${speed} ${units.labels.speed}`
               }
             >
+              {/* Boot screen: integrated into the dial area — the brand and Cabin Play mark appear inside the ring
+                  while the dial arc sweeps as progress, mirroring how real Scania Smart Displays show the brand
+                  as part of the dial's own display at power-up. */}
+              <AnimatePresence>
+                {bootPhase && !preTripShown && (
+                  <ClusterBootScreen phase={bootPhase} elapsed={bootElapsed} reduceMotion={reduceMotion} />
+                )}
+              </AnimatePresence>
+              {/* Pre-trip checklist: integrated into the dial area (Feature 5) */}
+              <AnimatePresence>
+                {preTripShown && (
+                  <PreTripChecklist reduceMotion={reduceMotion} onComplete={() => setPreTripDone(true)} />
+                )}
+              </AnimatePresence>
               <motion.div
                 className="cluster-dial-wrap"
+                data-pretrip={preTripShown ? '' : undefined}
+                data-booting={bootPhase && !preTripShown ? '' : undefined}
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={reduceMotion ? { duration: 0 } : { duration: 0.38, delay: 0.02, ease: motionEase }}
@@ -601,6 +666,7 @@ export function ClusterScreen() {
                   cruise={cruise}
                   max={face.max}
                   tacho={tacho}
+                  retarder={retarder}
                   reduced={reduceMotion}
                 />
                 {/* The face reads top to bottom: the mark, the figure, its unit, the road's limit, and the gear in the
@@ -774,6 +840,23 @@ export function ClusterScreen() {
                 <small>{instantFigure?.unit ?? ''}</small>
               </strong>
             </motion.section>
+
+            {/* Road gradient indicator (Feature 7) */}
+            {gradientSign && (
+              <motion.section
+                className="cluster-panel cluster-gradient"
+                aria-label={`${words.gradient} ${Math.abs(Math.round(gradientPercent))}% ${gradientSign === 'incline' ? words.incline : words.decline}`}
+                variants={riseVariants(reduceMotion)}
+              >
+                <span className="cluster-glyph" aria-hidden>
+                  <GradientIcon />
+                </span>
+                <strong data-incline={gradientSign === 'incline' ? '' : undefined}>
+                  {gradientPercent > 0 ? '+' : ''}{Math.round(gradientPercent)}
+                  <small>%</small>
+                </strong>
+              </motion.section>
+            )}
 
             {/* The truck's wear, and the trailer's under it while one is on the back: the worst of each one's parts,
                 marked by its own glyph rather than by a word. The trailer's row is the hitch state read as well as a
@@ -977,16 +1060,6 @@ function TruckMark({ brandId, brand, reduced }: { brandId: string; brand: string
  * A page that comes up while the cabin is already booting starts where that boot has got to: `elapsed` is how far in
  * it is, which puts the animation at the cabin's point in it rather than beginning it again.
  */
-function ClusterBoot({ power }: { power: CabinPower }) {
-  // Where this page came into the boot, taken once: a boot it sees begin starts at its first frame, and one it loads
-  // into starts where the cabin already is. The phase may move from `splash` to `connecting` while this stays mounted;
-  // the composition is one, so it is not restarted.
-  const [boot] = useState(() => bootShown(power, Date.now()))
-  if (!boot) return null
-  // A page that came up after the boot's own end has nothing left to show: the dash is already up behind it.
-  if (boot.elapsed >= bootLength(boot.phase)) return null
-  return <BootScreen phase={boot.phase} elapsed={boot.elapsed} />
-}
 
 /* The dash's bulb check, as the boot clears: long enough for every lamp to be seen in its colour, short enough that a
    real warning isn't held off the glass behind it. `cluster.css` runs the lit state over the same window. */

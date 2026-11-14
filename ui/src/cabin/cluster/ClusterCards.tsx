@@ -1,4 +1,5 @@
-import type { ClusterReading } from '../state/store'
+import { type ClusterReading, useCabin } from '../state/store'
+import { useEffect, useState } from 'react'
 import { useText } from '../state/text'
 import { ClockIcon, DropIcon, FuelIcon, GaugeIcon, OdometerIcon, RangeIcon, RestIcon, TripIcon } from './ClusterIcons'
 import { type ClusterCardViews, meterZone } from './clusterCardViews'
@@ -16,10 +17,32 @@ interface CardBodyProps {
   compact?: boolean
 }
 
-/** The trip card's body: the drive since the engine came on, its average and time, and the odometer under them. */
+/** How long each trip view is shown before rotating to the next one. */
+const TRIP_ROTATE_MS = 4000
+
+/** The trip card's body: cycles through trip readings like a real Scania Smart Display trip computer.
+ *  It rotates between distance, average consumption, driving time, and odometer — each shown for a few
+ *  seconds with a smooth fade transition, so the card shows one reading at a time rather than cramming
+ *  all four at once. */
 export function TripCardBody({ views, compact = false }: CardBodyProps) {
   const words = useText().diagnostics
   const { trip } = views
+  const textSize = useCabin((state) => state.textSize)
+  const [index, setIndex] = useState(0)
+
+  // Rotate through views at regular intervals
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((prev) => (prev + 1) % 4)
+    }, TRIP_ROTATE_MS)
+    return () => clearInterval(id)
+  }, [])
+
+  // Reset to first view when text size changes (layout may shift)
+  useEffect(() => {
+    setIndex(0)
+  }, [textSize])
+
   if (compact)
     return (
       <>
@@ -34,41 +57,61 @@ export function TripCardBody({ views, compact = false }: CardBodyProps) {
         </span>
       </>
     )
+
+  // The four rotating views: distance, average consumption, driving time, odometer
+  const tripViews = [
+    {
+      key: 'distance',
+      icon: <TripIcon />,
+      value: views.live ? trip.distance.value : '—',
+      unit: trip.distance.unit,
+      label: `${words.trip} ${words.distance}`,
+    },
+    {
+      key: 'average',
+      icon: <GaugeIcon />,
+      value: views.live ? trip.average.value : '—',
+      unit: trip.average.unit,
+      label: `${words.average} ${words.consumption}`,
+    },
+    {
+      key: 'time',
+      icon: <ClockIcon />,
+      value: views.live ? trip.driving.value : '—',
+      unit: views.live ? trip.driving.unit : '',
+      label: `${words.time} ${words.driving}`,
+    },
+    {
+      key: 'odometer',
+      icon: <OdometerIcon />,
+      value: views.live ? trip.odometer.value : '—',
+      unit: trip.odometer.unit,
+      label: `${words.odometer}`,
+    },
+  ]
+
+  const current = tripViews[index]
+
   return (
     <>
       <div className="cluster-trip-top">
         <span className="cluster-glyph" aria-hidden>
-          <TripIcon />
+          {current.icon}
         </span>
-        <strong className="cluster-trip-value">
-          {views.live ? trip.distance.value : '—'}
-          <small>{trip.distance.unit}</small>
+        <strong className="cluster-trip-value" data-rotate={index}>
+          {current.value}
+          <small>{current.unit}</small>
         </strong>
       </div>
-      <div className="cluster-pairs">
-        <span className="cluster-pair" aria-label={`${words.average} ${trip.average.value} ${trip.average.unit}`}>
-          <GaugeIcon />
-          <b>{views.live ? trip.average.value : '—'}</b>
-          <small>{trip.average.unit}</small>
-        </span>
-        {/* The trip's time on the move, not the range: the tank's range is already on the fuel panel's foot, and a
-            figure the dash shows twice is a slot it can't show something else in. */}
-        <span
-          className="cluster-pair"
-          aria-label={views.live ? `${words.time} ${trip.driving.value} ${trip.driving.unit}` : undefined}
-        >
-          <ClockIcon />
-          <b>{views.live ? trip.driving.value : '—'}</b>
-          <small>{views.live ? trip.driving.unit : ''}</small>
-        </span>
-      </div>
-      <div
-        className="cluster-odo"
-        aria-label={`${words.odometer} ${views.live ? trip.odometer.value : 0} ${trip.odometer.unit}`}
-      >
-        <OdometerIcon />
-        <b>{views.live ? trip.odometer.value : '—'}</b>
-        <small>{trip.odometer.unit}</small>
+      <div className="cluster-trip-rotation" aria-label={current.label}>
+        {/* Dot indicators for rotation position */}
+        {tripViews.map((view, i) => (
+          <span
+            key={view.key}
+            className="cluster-trip-dot"
+            data-active={i === index ? '' : undefined}
+          />
+        ))}
       </div>
     </>
   )

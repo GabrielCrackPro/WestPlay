@@ -1,6 +1,6 @@
-.boot {
-  --boot-accent: #fff;
+/* Minimal AMOLED boot: pure black, white marks, no decoration */
 
+.boot {
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -11,200 +11,77 @@
   color: #fff;
 }
 
-.boot::after {
-  content: '';
+/* Black veil: covers the boot at the start, fading to reveal content — synced with cluster boot */
+.boot-veil {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  background: #000;
+  z-index: 10;
   pointer-events: none;
-  background: radial-gradient(120% 92% at 50% 50%, transparent 40%, rgb(0 0 0 / 0.6) 88%);
-}
-
-.boot-scan {
-  position: absolute;
-  inset: -25% 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 45%,
-    color-mix(in srgb, var(--boot-accent, #fff) 22%, transparent) 50%,
-    transparent 55%
-  );
-  mix-blend-mode: screen;
-}
-
-.boot-glow {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(58% 42% at 50% 46%, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0.04) 46%, transparent 72%),
-    radial-gradient(44% 34% at 50% 48%, color-mix(in srgb, var(--boot-accent, #fff) 16%, transparent), transparent 76%);
 }
 
 .boot-panel {
-  position: relative;
-  z-index: 1;
   display: grid;
   place-items: center;
 }
 
 .boot-intro {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  row-gap: calc(30px * var(--text-scale, 1));
+  row-gap: calc(32px * var(--text-scale, 1));
 }
 
 .boot-intro[data-brand] {
-  row-gap: calc(26px * var(--text-scale, 1));
+  row-gap: calc(24px * var(--text-scale, 1));
 }
 
 .boot-pair {
   display: flex;
   flex-direction: column;
   align-items: center;
-  row-gap: calc(14px * var(--text-scale, 1));
+  row-gap: calc(12px * var(--text-scale, 1));
 }
 
 .boot-intro-mark {
-  --mark-radius: calc(30px * var(--text-scale, 1));
   display: block;
-  position: relative;
-  z-index: 1;
-  border-radius: var(--mark-radius);
-}
-
-.boot-intro-halo {
-  position: absolute;
-  inset: -60%;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--boot-accent, #fff) 32%, transparent),
-    color-mix(in srgb, var(--boot-accent, #fff) 7%, transparent) 62%,
-    transparent 74%
-  );
 }
 
 .boot-intro-mark img {
   display: block;
-  position: relative;
-  z-index: 1;
-  width: calc(132px * var(--text-scale, 1));
-  height: calc(132px * var(--text-scale, 1));
-  border-radius: var(--mark-radius);
-  box-shadow:
-    0 20px 60px rgb(0 0 0 / 0.6),
-    0 0 0 1px rgb(255 255 255 / 0.08);
-}
-
-.boot-intro-sheen {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-  border-radius: var(--mark-radius);
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.42) 50%, transparent 62%);
-  background-size: 260% 100%;
-  opacity: 0;
-  mix-blend-mode: screen;
+  width: calc(120px * var(--text-scale, 1));
+  height: calc(120px * var(--text-scale, 1));
 }
 
 .boot-intro-wordmark {
-  font-size: calc(84px * var(--text-scale, 1));
-  font-weight: 700;
+  font-size: calc(48px * var(--text-scale, 1));
+  font-weight: 600;
   letter-spacing: -0.01em;
+  color: #fff;
 }
 
 .boot-brand {
-  position: relative;
   display: block;
 }
 
-/*
- * The badge's flare and its base rule, under the mark itself. The flare is an oval of the panel's light that the badge
- * is opened into (BootScreen's BrandLine throws it as the mark widens and lets it go); the rule is a hairline drawn
- * out from the badge's centre as it opens and then held, so the mark stands on something and Cabin Play's own mark
- * lands under a line rather than in the air.
- */
-.boot-brand-bloom {
-  position: absolute;
-  inset: -30% -6%;
-  z-index: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.26), rgb(255 255 255 / 0.06) 58%, transparent 78%);
-}
-
-.boot-brand-rule {
-  position: absolute;
-  right: 0;
-  bottom: calc(-12px * var(--text-scale, 1));
-  left: 0;
-  z-index: 0;
-  height: 1px;
-  pointer-events: none;
-  transform-origin: center;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(255 255 255 / 0.55) 22%,
-    rgb(255 255 255 / 0.55) 78%,
-    transparent
-  );
-}
-
-.boot-brand-art {
-  position: relative;
-  display: inline-block;
-  z-index: 1;
-  line-height: 0;
-}
-
-/* The mark opens from its own centre (the transform origin is the box's, not the artwork's): a bar of light across
-   the middle of the badge, widening both ways until it is the mark. */
 .boot-brand-logo {
-  width: calc(560px * var(--text-scale, 1));
-  height: calc(190px * var(--text-scale, 1));
+  width: calc(400px * var(--text-scale, 1));
+  height: calc(130px * var(--text-scale, 1));
   object-fit: contain;
-  transform-origin: center;
-}
-
-.boot-brand-sheen {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  opacity: 0;
-  filter: brightness(0) invert(1) drop-shadow(0 0 18px rgb(255 255 255 / 0.5));
-  mix-blend-mode: screen;
-  -webkit-mask-image: linear-gradient(105deg, transparent 43%, #000 50%, transparent 57%);
-  mask-image: linear-gradient(105deg, transparent 43%, #000 50%, transparent 57%);
-  -webkit-mask-size: 220% 100%;
-  mask-size: 220% 100%;
 }
 
 .boot-brand-wordmark {
-  font-size: calc(84px * var(--text-scale, 1));
-  font-weight: 700;
-  letter-spacing: 0.18em;
-}
-
-.boot-intro[data-brand] .boot-intro-mark {
-  --mark-radius: calc(20px * var(--text-scale, 1));
+  font-size: calc(48px * var(--text-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #fff;
 }
 
 .boot-intro[data-brand] .boot-intro-mark img {
-  width: calc(84px * var(--text-scale, 1));
-  height: calc(84px * var(--text-scale, 1));
+  width: calc(72px * var(--text-scale, 1));
+  height: calc(72px * var(--text-scale, 1));
 }
 
 .boot-intro[data-brand] .boot-intro-wordmark {
-  font-size: calc(38px * var(--text-scale, 1));
+  font-size: calc(32px * var(--text-scale, 1));
 }

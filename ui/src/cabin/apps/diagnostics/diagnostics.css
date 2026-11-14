@@ -561,6 +561,159 @@ html[data-motion='reduced'] .diag-warning.blink {
   }
 }
 
+/* --- TPMS — Tire Pressure Monitoring System (Feature 11) -------------------------------------------- */
+
+.diag-tpms {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(16px * var(--text-scale, 1));
+  padding: calc(12px * var(--text-scale, 1)) 0;
+}
+
+.diag-tpms-truck {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--text-scale, 1));
+}
+
+.diag-tpms-cab {
+  width: calc(60px * var(--text-scale, 1));
+  height: calc(36px * var(--text-scale, 1));
+  border: 2px solid var(--apple-separator);
+  border-radius: calc(6px * var(--text-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(11px * var(--text-scale, 1));
+  font-weight: 600;
+  color: var(--apple-label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diag-tpms-chassis {
+  width: calc(40px * var(--text-scale, 1));
+  height: calc(50px * var(--text-scale, 1));
+  border-left: 2px dashed var(--apple-separator);
+  border-right: 2px dashed var(--apple-separator);
+}
+
+.diag-tpms-axle {
+  display: flex;
+  justify-content: space-between;
+  width: calc(120px * var(--text-scale, 1));
+  position: relative;
+}
+
+.diag-tpms-axle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(30px * var(--text-scale, 1));
+  right: calc(30px * var(--text-scale, 1));
+  height: 2px;
+  background: var(--apple-separator);
+  transform: translateY(-50%);
+}
+
+.diag-wheel {
+  position: relative;
+  width: calc(30px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+  border-radius: 50%;
+  border: 2px solid var(--apple-separator);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(8px * var(--text-scale, 1));
+  font-weight: 600;
+  z-index: 1;
+  background: var(--apple-background);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.diag-wheel.ok {
+  border-color: var(--apple-green);
+  background: color-mix(in srgb, var(--apple-green) 8%, transparent);
+}
+
+.diag-wheel.warn {
+  border-color: var(--apple-orange);
+  background: color-mix(in srgb, var(--apple-orange) 10%, transparent);
+}
+
+.diag-wheel.alarm {
+  border-color: var(--apple-red);
+  background: color-mix(in srgb, var(--apple-red) 12%, transparent);
+  animation: tpms-blink 1s ease-in-out infinite;
+}
+
+.diag-wheel-label {
+  font-size: calc(7px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+  line-height: 1;
+}
+
+.diag-wheel-value {
+  font-size: calc(9px * var(--text-scale, 1));
+  font-weight: 700;
+  color: var(--apple-label);
+  line-height: 1;
+}
+
+.diag-tpms-trailer {
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--text-scale, 1));
+}
+
+.diag-tpms-coupling {
+  font-size: calc(16px * var(--text-scale, 1));
+  color: var(--apple-separator);
+  font-weight: 300;
+}
+
+.diag-tpms-legend {
+  display: flex;
+  gap: calc(16px * var(--text-scale, 1));
+  font-size: calc(12px * var(--text-scale, 1));
+  color: var(--apple-label-secondary);
+}
+
+.diag-tpms-dot {
+  display: inline-block;
+  width: calc(8px * var(--text-scale, 1));
+  height: calc(8px * var(--text-scale, 1));
+  border-radius: 50%;
+  margin-right: calc(4px * var(--text-scale, 1));
+  vertical-align: middle;
+}
+
+.diag-tpms-dot.ok {
+  background: var(--apple-green);
+}
+
+.diag-tpms-dot.warn {
+  background: var(--apple-orange);
+}
+
+.diag-tpms-dot.alarm {
+  background: var(--apple-red);
+}
+
+@keyframes tpms-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 @media (max-width: 760px) {
   .diag-page {
     gap: calc(12px * var(--text-scale, 1));

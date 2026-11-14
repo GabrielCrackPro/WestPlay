@@ -840,6 +840,8 @@ export interface Strings {
     used: string
     average: string
     time: string
+    /** The trip's time on the move: "Driving", "Conducción", "Sürüş". */
+    driving: string
     /** The clock's own name (the dash's time of day, as against the trip's time): "Time", "Hora", "Saat". */
     clock: string
     reset: string
@@ -866,6 +868,31 @@ export interface Strings {
     trailerType: string
     plate: string
     body: string
+    /** Road gradient / incline indicator. */
+    gradient: string
+    incline: string
+    decline: string
+    /** Lane departure warning. */
+    laneDeparture: string
+    /** Speed camera warning. */
+    speedCamera: string
+    speedCameraAhead: string
+    /** Pre-trip inspection checklist. */
+    preTrip: string
+    preTripCheck: string
+    preTripDoors: string
+    preTripSeatbelt: string
+    preTripMirrors: string
+    preTripLights: string
+    preTripBrakes: string
+    preTripComplete: string
+    /** TPMS — Tire Pressure Monitoring System. */
+    tpms: string
+    tpmsFront: string
+    tpmsRear: string
+    tpmsNormal: string
+    tpmsLow: string
+    tpmsWorn: string
   }
   /** The driver's profile and lifetime totals, from the game's latest save. */
   driver: {

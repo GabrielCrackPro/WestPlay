@@ -13,6 +13,7 @@
 }
 
 .cluster-dial {
+  position: relative;
   display: grid;
   place-items: center;
   min-width: 0;
@@ -97,6 +98,16 @@
   fill: none;
   stroke: var(--danger);
   stroke-width: 1.6;
+  stroke-linecap: butt;
+}
+
+/* The retarder's intensity: a blue segment on the RPM ring, filling from the start proportional to the retarder level.
+   Mirrors how real Scania Smart Displays show engine brake intensity directly on the tachometer. Thicker than the
+   RPM track so it reads as a distinct layer, not just another mark on the line. */
+.cluster-retarder-arc {
+  fill: none;
+  stroke: var(--cold);
+  stroke-width: 4;
   stroke-linecap: butt;
 }
 
@@ -235,7 +246,7 @@
  */
 .cluster-brand {
   position: absolute;
-  top: 12.5%;
+  top: 10%;
   left: 50%;
   translate: -50% 0;
   /* Flex, not grid: the badge's size is the box's (a percentage of the face), and only a flex item resolves

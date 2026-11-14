@@ -26,7 +26,7 @@ import { type Route, routeKey } from './state/navigation'
 import { HANDOVER_MS, nextPhaseAt } from './state/power'
 import { useHandover } from './state/useHandover'
 import { meterFrames } from './state/frameMeter'
-import { installSounds } from './state/sound'
+import { installSounds, updateAmbientSounds } from './state/sound'
 import { connectHost, useCabin, useLive } from './state/store'
 import { motionEase, seconds, useMotionReduced } from './motion'
 import { languageOf } from './state/strings'
@@ -72,6 +72,11 @@ export function CabinApp() {
   useEffect(() => meterFrames(), [])
   // The cabin's sounds (state/sound.ts): a tick under every press, from one listener for the whole screen.
   useEffect(() => installSounds(), [])
+  // Ambient cabin sounds (Feature 18): wind and road noise that scale with speed.
+  const speed = useLive((state) => state.telemetry?.speed ?? 0)
+  useEffect(() => {
+    updateAmbientSounds(speed)
+  }, [speed])
   useEffect(() => routeClicksDuringTransitions(), [])
   // Lists follow a drag, as on a touch screen (the cab has a mouse).
   useEffect(() => installDragScroll(), [])
