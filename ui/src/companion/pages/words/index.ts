@@ -1,12 +1,10 @@
 /**
  * The companion's own words, past the onboarding: its sections, their pages, the tutorial and the uninstall,
- * in each of the game's 43 languages (by the game's codes, as the onboarding's words), in the game's language
+ * in English and Spanish (by the game's codes, as the onboarding's words), in the game's language
  * as Cabin Play speaks it in the cab; English for a language the game doesn't have. Each language says "you"
  * as its onboarding does (informally or not) and names things as it does (the truck, the game's Mod Manager).
  * What the onboarding already says (the keys, the sign-ins, the map's stages, the game's summary) is the
  * onboarding's words.
- *
- * The translations other than English and Turkish were written without a native speaker's review yet.
  */
 export interface CompanionWords {
   sections: Record<SectionId, string>

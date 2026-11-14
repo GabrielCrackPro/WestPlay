@@ -2,14 +2,12 @@ import type { MapStage } from '../../useHostStatus'
 import type { KeyPreset } from '../../useSettings'
 
 /**
- * The onboarding's words, in each of the game's 43 languages (by the game's own codes: `locale/<code>` in
+ * The onboarding's words, in English and Spanish (by the game's own codes: `locale/<code>` in
  * its archives). It speaks the game's language, as Cabin Play does in the cab; before the game was ever
  * started, Windows' ([`languageOf`]); English for a language the game doesn't have. Where the onboarding
  * names something in the game (its Mod Manager, its question about advanced SDK features, its OK button),
  * it uses the game's own words for it in that language, from the game's `localization.sui`
  * (`mod_browser_t`, `sdk_warning`, `ok`).
- *
- * The translations other than English and Turkish were written without a native speaker's review yet.
  */
 
 /** A note: its first words in bold, then the rest. Also a banner on the screen: its title, then a line. */
@@ -219,46 +217,8 @@ const WORDS: Record<string, Words> = Object.fromEntries(
 /** The game's language codes, for a language Windows shows (BCP 47): its region or script decides between a
  * language's variants, as the game has them. */
 const BY_LANGUAGE: Record<string, string | ((tag: string) => string)> = {
-  bg: 'bg_bg',
-  ca: 'ca_es',
-  cs: 'cs_cz',
-  da: 'da_dk',
-  de: 'de_de',
-  el: 'el_gr',
   en: (tag) => (/-(us|ph|um|as|gu|pr|vi)\b/i.test(tag) || tag.toLowerCase() === 'en' ? 'en_us' : 'en_gb'),
   es: (tag) => (/-(es|ad)\b/i.test(tag) || tag.toLowerCase() === 'es' ? 'es_es' : 'es_la'),
-  et: 'et_ee',
-  eu: 'eu_es',
-  fi: 'fi_fi',
-  fr: (tag) => (/-ca\b/i.test(tag) ? 'fr_ca' : 'fr_fr'),
-  gl: 'gl_es',
-  hr: 'hr_hr',
-  hu: 'hu_hu',
-  it: 'it_it',
-  ja: 'ja_jp',
-  ka: 'ka_ge',
-  ko: 'ko_kr',
-  lt: 'lt_lt',
-  lv: 'lv_lv',
-  mk: 'mk_mk',
-  nl: 'nl_nl',
-  nb: 'no_no',
-  nn: 'no_no',
-  no: 'no_no',
-  pl: 'pl_pl',
-  szl: 'pl_si',
-  pt: (tag) => (/-br\b/i.test(tag) ? 'pt_br' : 'pt_pt'),
-  ro: 'ro_ro',
-  ru: 'ru_ru',
-  sk: 'sk_sk',
-  sl: 'sl_sl',
-  // The game's `sr_sp` is Serbian in Latin letters, `sr_sr` in Cyrillic (Windows' default for Serbian).
-  sr: (tag) => (/-latn\b/i.test(tag) ? 'sr_sp' : 'sr_sr'),
-  sv: 'sv_se',
-  tr: 'tr_tr',
-  uk: 'uk_uk',
-  vi: 'vi_vn',
-  zh: (tag) => (/-(hant|tw|hk|mo)\b/i.test(tag) ? 'zh_tw' : 'zh_cn'),
 }
 
 /** The game's code for the first of `tags` (Windows' languages, most preferred first) it has; `en_us`

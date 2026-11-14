@@ -67,9 +67,9 @@ type Tone = 'good' | 'bad' | 'busy' | 'idle'
 type Link = 'engine' | 'game' | 'screen'
 
 /**
- * The connection to the game's screen as a signal chain: three stations — Cabin Play's engine, the game, and the
- * screen in the truck — on one dark board. A station lights when it is reached, and the rail between two stations
- * only carries the moving signal while both ends are talking, so a quiet rail is where to look.
+ * The connection to the game's screen: three stations — Cabin Play's engine, the game, and the screen
+ * in the truck — linked by a continuous rail. Each station has a status dot, and the rail segments
+ * between them light up when both ends are connected.
  */
 function ConnectionPath({
   status,
@@ -125,7 +125,6 @@ function ConnectionPath({
   const battery = device?.battery === undefined ? null : Math.max(0, Math.min(100, Math.round(device.battery)))
   const phoneDetail = [device?.model, device?.appVersion && `Bridge ${device.appVersion}`].filter(Boolean).join(' · ')
   const dropped = status?.droppedTotal ?? 0
-  const screenStep = steps[2]
   return (
     <section className="cp-link ob-in" data-tone={overall} style={n(place)} aria-live="polite">
       <header className="cp-link-head">
@@ -133,87 +132,70 @@ function ConnectionPath({
           <i aria-hidden />
           {w.connection}
         </span>
-        <span className="cp-link-meter" aria-hidden>
-          {steps.map((step) => (
-            <i key={step.key} data-on={step.tone === 'good' || step.tone === 'busy' || undefined} />
-          ))}
-        </span>
-      </header>
-      {/* The live story first: a miniature of the truck's screen, the screen's state, and its frame health. */}
-      <div className="cp-link-hero">
-        <span className="cp-link-preview" data-tone={overall} aria-hidden>
-          <span className="cp-link-preview-route" />
-          <span className="cp-link-preview-puck" />
-        </span>
-        <span className="cp-link-hero-copy">
-          <b>{cw.state[state]}</b>
+        <span className="cp-link-status" data-tone={overall}>
           {state === 'live' ? (
-            <span className="cp-link-hero-stats">
-              <span>{w.screenLive.replace('{fps}', new Intl.NumberFormat(navigator.language).format(fps))}</span>
-              {dropped > 0 && (
-                <span>
-                  {dropped} {cw.about.dropped}
-                </span>
-              )}
-            </span>
+            <>
+              {new Intl.NumberFormat(navigator.language).format(fps)} fps
+              {dropped > 0 && <span className="cp-link-dropped">{dropped} {cw.about.dropped}</span>}
+            </>
           ) : (
-            <span className="cp-link-hero-detail">{screenStep.value}</span>
+            <>{cw.state[state]}</>
           )}
         </span>
+      </header>
+      <div className="cp-link-chain">
+        <div className="cp-link-rail" aria-hidden>
+          {steps.map((step, at) => {
+            const next = steps[at + 1]
+            const connected = step.tone === 'good' && next?.tone === 'good'
+            return (
+              <>
+                <div key={step.key} className="cp-link-node" data-tone={step.tone}>
+                  <span className="cp-link-dot">
+                    <i />
+                  </span>
+                  <span className="cp-link-body">
+                    <b>{step.label}</b>
+                    <span>{step.value}</span>
+                  </span>
+                </div>
+                {next && <span className="cp-link-connector" data-connected={connected || undefined} />}
+              </>
+            )
+          })}
+        </div>
       </div>
-      <ol className="cp-link-chain" aria-label={w.connection}>
-        {steps.map((step, at) => {
-          const next = steps[at + 1]
-          const flowing = step.tone === 'good' && next?.tone === 'good'
-          return (
-            <li key={step.key} className="cp-link-node" data-tone={step.tone}>
-              <span className="cp-link-port">
-                <LinkGlyph kind={step.key} />
-              </span>
-              <span className="cp-link-body">
-                <b>{step.label}</b>
-                <span>{step.value}</span>
-              </span>
-              {next && (
-                <span className="cp-link-wire" data-flow={flowing || undefined} aria-hidden>
-                  <i />
-                </span>
-              )}
-            </li>
-          )
-        })}
-      </ol>
-      {/* The phone is the other live device in the cab: its link, its name, and its charge, at a glance. */}
-      <div
-        className="cp-phone-strip"
-        data-connected={phoneConnected || undefined}
-        role="group"
-        aria-label={[
-          cw.phone.phone,
-          phoneConnected ? phoneName : cw.phone.waiting,
-          battery === null ? null : `${battery}%`,
-        ]
-          .filter(Boolean)
-          .join(', ')}
-      >
-        <span className="cp-phone-strip-icon">
-          <SectionGlyph id="phone" />
-        </span>
-        <span className="cp-phone-strip-copy">
-          <span className="cp-phone-strip-label">{cw.phone.phone}</span>
-          <b>{phoneConnected ? phoneName : cw.phone.waiting}</b>
-          {phoneConnected && phoneDetail && <span className="cp-phone-strip-model">{phoneDetail}</span>}
-        </span>
-        {phoneConnected && battery !== null && (
-          <span className="cp-phone-strip-battery" data-charging={device?.charging || undefined}>
-            {device?.charging && <BoltGlyph />}
-            <span className="cp-phone-strip-charge" data-low={battery <= 20 || undefined} aria-hidden>
-              <i style={{ width: `${battery}%` }} />
-            </span>
-            <b>{battery}%</b>
+      {phoneConnected || phone ? (
+        <div
+          className="cp-phone-strip"
+          data-connected={phoneConnected || undefined}
+          role="group"
+          aria-label={[
+            cw.phone.phone,
+            phoneConnected ? phoneName : cw.phone.waiting,
+            battery === null ? null : `${battery}%`,
+          ]
+            .filter(Boolean)
+            .join(', ')}
+        >
+          <span className="cp-phone-strip-icon">
+            <SectionGlyph id="phone" />
           </span>
-        )}
-      </div>
+          <span className="cp-phone-strip-copy">
+            <b>{phoneConnected ? phoneName : cw.phone.waiting}</b>
+            {phoneConnected && phoneDetail && <span className="cp-phone-strip-model">{phoneDetail}</span>}
+          </span>
+          {phoneConnected && battery !== null && (
+            <span className="cp-phone-strip-battery" data-charging={device?.charging || undefined}>
+              {device?.charging && <BoltGlyph />}
+              <span className="cp-phone-strip-charge" data-low={battery <= 20 || undefined} aria-hidden>
+                <i style={{ width: `${battery}%` }} />
+              </span>
+              <b>{battery}%</b>
+            </span>
+          )}
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -223,38 +205,6 @@ function BoltGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M13.4 2 5.8 13.2h5L10.6 22 18.2 10.8h-5z" />
-    </svg>
-  )
-}
-
-/** A small line mark for each station in the connection chain. */
-function LinkGlyph({ kind }: { kind: Link }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {kind === 'engine' ? (
-        <>
-          <rect x="6" y="6" width="12" height="12" rx="2.5" />
-          <path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5" />
-        </>
-      ) : kind === 'game' ? (
-        <>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor" stroke="none" />
-        </>
-      ) : (
-        <>
-          <rect x="3" y="4.5" width="18" height="13" rx="2.5" />
-          <path d="M8.5 21h7M12 17.5V21" />
-        </>
-      )}
     </svg>
   )
 }
