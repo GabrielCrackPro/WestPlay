@@ -1,0 +1,428 @@
+/* The cluster's page: transparent where it draws nothing, so the game's own cluster shows through. */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+/*
+ * The same motion curve the cabin's shell moves on (shell/shell.css): the boot is the cabin's own screen, so it
+ * has to settle at the same speed here as it does there. Kept in step by hand because this page doesn't load the
+ * shell's stylesheet.
+ */
+:root {
+  --motion-ease: linear(
+    0,
+    0.0575,
+    0.1803,
+    0.3208,
+    0.4551,
+    0.5729,
+    0.6711,
+    0.7501,
+    0.8122,
+    0.8601,
+    0.8966,
+    0.924,
+    0.9445,
+    0.9596,
+    0.9708,
+    0.9789,
+    0.9848,
+    0.9891,
+    0.9922,
+    0.9944,
+    0.996,
+    0.9972,
+    0.998,
+    0.9986,
+    1
+  );
+}
+
+/*
+ * The look's colours, registered so the browser can carry them from one look to the other: a custom property it hasn't
+ * been told the shape of is a token it swaps out, not a value it can move through. Registered, each is a colour, and
+ * because every reading, hairline, bar, telltale, glow and gradient in this sheet is built on these few handles, one
+ * transition on the panel (`.cluster[data-appearing]`, below) carries the whole display at once. The initial values
+ * are the dark look's â€” the look the panel opens in â€” and only stand where a rule reads one of these outside the
+ * panel, which none does. A browser without `@property` drops these rules and keeps the panel snapping between looks
+ * as it did before; nothing reads the registration itself.
+ */
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #05090e;
+}
+
+@property --surface-top {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0a0f16;
+}
+
+@property --glow-warm {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(40 92 112 / 0.22);
+}
+
+@property --glow-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(90 215 198 / 0.045);
+}
+
+@property --ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f1f6f9;
+}
+
+@property --dim {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8b9ba8;
+}
+
+@property --line {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.09);
+}
+
+@property --track {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.11);
+}
+
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5ad7c6;
+}
+
+@property --accent-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5b9dff;
+}
+
+@property --ok {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #66d69b;
+}
+
+@property --warn {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff9f1a;
+}
+
+@property --danger {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ff6a61;
+}
+
+@property --urea {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #62a8ff;
+}
+
+@property --cold {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6fb6ff;
+}
+
+@property --bar {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(232 242 247 / 0.66);
+}
+
+/* The panel's brightness, a number rather than a colour: the looks set a different floor under the dimmer (a lit
+   panel reads darker on a dark look, dimmer on a light one), so it is carried with the rest. */
+@property --panel-dim {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+/*
+ * The instrument cluster, laid out at 1280 x 480 as the Scania Smart Dash: the lights on the left of the top line,
+ * the route in the space between them, the warnings on its right and the clock at its end; the trip, the engine and
+ * the driver's clocks on the left; the newest cab message on a line of its own over the dial, the dial, and one
+ * line of what plays under it; the truck's gauges on the right.
+ *
+ * The readings sit directly on the panel rather than in cards: the dash is one surface, so the trip, the clocks
+ * and the gauges are separated by space and a hairline where they need it, not by boxes. The appearance follows
+ * the cabin's (Settings â€º Appearance): `auto` is dark at night or under the headlights, so the display dims with
+ * the cab instead of glaring out of it.
+ */
+.cluster {
+  --bg: #05090e;
+  --ink: #f1f6f9;
+  --dim: #8b9ba8;
+  --line: rgb(255 255 255 / 0.09);
+  --track: rgb(255 255 255 / 0.11);
+  /* The live colour: the map's route colour, the one the driver chose for the way (set from the page, and the
+     route's own values below are only what the panel falls back to before it does). */
+  --accent: #5ad7c6;
+  --accent-2: #5b9dff;
+  --ok: #66d69b;
+  --warn: #ff9f1a;
+  --danger: #ff6a61;
+  --urea: #62a8ff;
+  --cold: #6fb6ff;
+  /* The road's own red: the sign's ring and its figure, the mark across the ring, and the speed figure while the
+     truck is over the limit. One colour, so the whole "over the limit" state reads as one thing. */
+  --limit: #e3141b;
+  /* The panel's own lighting, as the truck's dimmer leaves it (--cluster-backlight is set from the dashboard's own
+     reading, cluster/ClusterScreen.tsx): one pull on the brightness of everything the panel lights, never below a
+     readable floor. The telltales and the notice line are deliberately not part of it â€” see the rule below. */
+  --panel-dim: calc(0.35 + 0.65 * var(--cluster-backlight, 1));
+  /* A gauge's fill, before any state gives it a colour: the dash's bars are white, not the accent. */
+  --bar: rgb(232 242 247 / 0.66);
+  /* The panel's own surface, in three parts: the top of the glass, and the two washes over it â€” the warm one it
+     lifts from at the bottom and the accent's own faint tint in the middle. They are properties rather than a
+     gradient written into each look, because a change of look has to be able to carry them: a gradient can't be
+     animated, but the colours it is built from can, so the panel's whole surface comes across with the rest. The
+     shape stays the same in both looks for that reason. */
+  --surface-top: #0a0f16;
+  --glow-warm: rgb(40 92 112 / 0.22);
+  --glow-accent: rgb(90 215 198 / 0.045);
+
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  zoom: var(--cluster-scale, 1);
+  margin: 0;
+  padding: 6px 18px 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(65% 120% at 50% 120%, var(--glow-warm), transparent 65%),
+    radial-gradient(45% 65% at 50% 45%, var(--glow-accent), transparent 65%),
+    linear-gradient(180deg, var(--surface-top), var(--bg));
+  color: var(--ink);
+  font-family: 'Instrument Sans Variable', 'Inter Variable', sans-serif;
+  font-variant-numeric: tabular-nums;
+  --type-xl: 46px;
+  --type-lg: 31px;
+  --type-md: 22px;
+  --type-sm: 16.5px;
+  --type-unit: 14px;
+  --type-gap: 6px;
+}
+
+/* While the game's GPS voice talks, the panel's own edge answers it (Settings â€º GPS Voice, Glow), as the
+   cabin's screens do to theirs (shell.css): a ring and a bloom inward from all four sides, in the dash's accent, so
+   the driver reads the voice's moment on the glass they are already watching, turning or not. On the already dark
+   edge of the panel and under nothing that is read: the ring sits on the glass rather than over the readings.
+
+   The same two layers as the cabin's frame, and for the same reason: the element fades in and out on the voice's own
+   window â€” the one the music's dip keeps (maps/voice.ts) â€” while the light inside it keeps speech's rhythm. */
+.cluster-voice-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  /* As the cabin's frame: the fade out, and the box only gone once it is over. */
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s;
+}
+
+.cluster-voice-glow[data-on] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.32s ease-in;
+}
+
+.cluster-voice-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 3px var(--accent),
+    inset 0 0 40px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* As the cabin's frame: the ring talks with the voice â€” speech's uneven accents, beginning on the first word â€” and is
+   still whenever the voice is. */
+.cluster-voice-glow[data-on]::after {
+  animation: cluster-voice-glow 1.1s ease-in-out infinite;
+}
+
+/* The light panel washes the glow out as the cabin's light look does: a band inside the ring and a stronger bloom. */
+.cluster[data-appearance='light'] .cluster-voice-glow::after {
+  box-shadow:
+    inset 0 0 0 3px var(--accent),
+    inset 0 0 0 12px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 56px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+@keyframes cluster-voice-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  30% {
+    opacity: 0.72;
+  }
+
+  52% {
+    opacity: 0.94;
+  }
+
+  76% {
+    opacity: 0.78;
+  }
+}
+
+.cluster[data-appearance='light'] {
+  --bg: #eef2f6;
+  --ink: #12202c;
+  --dim: #5d707e;
+  --line: rgb(14 25 33 / 0.08);
+  --track: rgb(14 25 33 / 0.1);
+  --accent: #067a6e;
+  --accent-2: #1d5fc0;
+  --ok: #167a48;
+  --warn: #b35a00;
+  --danger: #b3251e;
+  --urea: #1a5fbf;
+  --cold: #1a5fbf;
+  --panel-dim: calc(0.55 + 0.45 * var(--cluster-backlight, 1));
+  --bar: rgb(14 25 33 / 0.55);
+  --surface-top: #fafcfe;
+  /* The light glass lifts from a white glow and carries no tint of the accent: the same two washes, one of them
+     taken out rather than the layer dropped, so the panel keeps one shape as the look changes. */
+  --glow-warm: rgb(255 255 255 / 0.98);
+  --glow-accent: transparent;
+}
+
+/*
+ * The change of look, as the cabin makes it (shell/transitions.css, `.shell.appearing`): the panel's surfaces come
+ * to their new colour first, then its lines, then its ink, each over 420ms on the cabin's own curve â€” so the display
+ * the driver is looking at changes on the same beat as the screen beside it instead of flipping between looks while
+ * the cabin fades. The page puts `data-appearing` on the panel for that one breath (useShownAppearance): it is on
+ * before the look changes and taken off after, so the accent's own changes (a new route colour) stay instant the rest
+ * of the time, and the driver's dimmer keeps moving the panel as directly as it always has.
+ */
+.cluster[data-appearing] {
+  transition:
+    --surface-top 420ms var(--motion-ease) 40ms,
+    --glow-warm 420ms var(--motion-ease) 40ms,
+    --glow-accent 420ms var(--motion-ease) 40ms,
+    --bg 420ms var(--motion-ease) 40ms,
+    --bar 420ms var(--motion-ease) 40ms,
+    --panel-dim 420ms var(--motion-ease) 40ms,
+    --line 420ms var(--motion-ease) 80ms,
+    --track 420ms var(--motion-ease) 80ms,
+    --accent 420ms var(--motion-ease) 120ms,
+    --accent-2 420ms var(--motion-ease) 120ms,
+    --ok 420ms var(--motion-ease) 120ms,
+    --warn 420ms var(--motion-ease) 120ms,
+    --danger 420ms var(--motion-ease) 120ms,
+    --urea 420ms var(--motion-ease) 120ms,
+    --cold 420ms var(--motion-ease) 120ms,
+    --ink 420ms var(--motion-ease) 160ms,
+    --dim 420ms var(--motion-ease) 160ms;
+}
+
+/* The brand's mark flips with the look â€” white line art on the dark panel, black on the light one â€” so it breathes
+   with the rest. It is a filter rather than a colour, so it needs a transition of its own. */
+.cluster[data-appearing] .cluster-brand img {
+  transition: filter 420ms var(--motion-ease) 60ms;
+}
+
+/* --- The icons' weight --------------------------------------------------------------------------- */
+
+/*
+ * One painted weight per rendered size. The marks are drawn in a 24 grid with a 1.9 stroke, and that stroke is only
+ * right at 24px: drawn at 16 it paints 1.27px and reads lighter than the words beside it, drawn at 28 it paints
+ * 2.22px and reads heavier than the figure above it. So each size the panel draws a mark at is given the stroke
+ * that lands its line at ~1.55px while it is small and ~2.0px while it is large. The telltales and the rows' glyphs
+ * are read at 24 and keep the drawing's own 1.9.
+ */
+.cluster-media svg,
+.cluster-route-eta svg {
+  stroke-width: 2.35;
+}
+
+.cluster-odo svg,
+.cluster-pair svg {
+  stroke-width: 2.1;
+}
+
+.cluster-gauge-foot svg {
+  stroke-width: 2;
+}
+
+.cluster-notice-mark svg,
+.cluster-phone svg,
+.cluster-pill svg,
+.cluster-readout .cluster-glyph svg,
+.cluster-retarder svg {
+  stroke-width: 1.95;
+}
+
+/* The route's arrow, drawn one step larger than the row's marks (22px): the same hairline at its new size. */
+.cluster-route > svg {
+  stroke-width: 2.15;
+}
+
+.cluster-brake-head .cluster-glyph svg {
+  stroke-width: 1.85;
+}
+
+.cluster-trip-top .cluster-glyph svg {
+  stroke-width: 1.75;
+}
+
+/* The fuel gauge glyph is 24px, matching all other card glyphs — the stroke weight for 24px icons. */
+.cluster-gauge-row .cluster-glyph svg {
+  stroke-width: 1.9;
+}
+
+.cluster-shell {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 2px 0;
+}
+
+/*
+ * The truck's dash dimmer (telemetry.dashboardBacklight, 0..1, set on the panel as --cluster-backlight) dims the
+ * instruments the way the real panel's lighting dims: a pull on their brightness rather than a veil over the glass, so
+ * the marks stay readable at every setting. The telltales, the route, the notice line and the clock are deliberately
+ * left out â€” a warning lamp and what the cab has to say are never dimmed by the driver's lighting setting.
+ */
+.cluster-dial-ring,
+.cluster-speed,
+.cluster-brand,
+.cluster-gear,
+.cluster-retarder,
+.cluster-side {
+  filter: brightness(var(--panel-dim, 1));
+  transition: filter 220ms var(--motion-ease);
+}

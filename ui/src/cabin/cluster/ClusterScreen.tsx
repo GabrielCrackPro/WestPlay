@@ -299,6 +299,7 @@ export function ClusterScreen() {
   if (running === false) return null
 
   const t = telemetry
+  const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
   const speed = t ? units.speed(t.speed) : 0
   const gear = formatGear(t?.displayedGear ?? 0)
   const rpm = t ? Math.max(0, Math.min(1, t.engineRpm / RPM_MAX)) : 0
@@ -322,7 +323,6 @@ export function ClusterScreen() {
   const instantReading = instant === null ? null : consumptionReading(instant)
   // A cold diesel reads blue on the dash until it is up to working temperature, not only red when it is too hot.
   const coldCoolant = (t?.coolantTemperature ?? 0) > 0 && (t?.coolantTemperature ?? 0) < COLD_C
-  const time = t ? formatGameTime(cabClock(t, clockShift)) : '--:--'
   const adblueFigure = units.volumeFigure(t?.adblue ?? 0, text.decimal)
   // The figures the two level gauges print. A level is a share of what its tank holds, which is what the bar beside
   // it draws, so the settings can read it as that share — the one reading a driver can put against the bar without
@@ -391,43 +391,6 @@ export function ClusterScreen() {
     '--cluster-backlight': backlight,
   } as CSSProperties
 
-  // The truck's ignition is off: the electrics are down and the engine with them, so nothing the panel shows is live.
-  // A real cluster goes quiet here rather than holding the last drive up as if it were still running — the panel keeps
-  // its glass, the maker's mark and one line saying why it is dark. An engine stopped with the electrics on is not
-  // this state: that is the dash a driver reads before starting, warning lamps and all, so it stays up.
-  const ignitionOff = t ? !t.electricEnabled && !t.engineEnabled : false
-  if (ignitionOff) {
-    return (
-      <main
-        className="cluster cluster-off"
-        data-appearance={appearance}
-        data-appearing={appearing ? '' : undefined}
-        aria-label={text.settings.clusterScreen}
-        style={panelStyle}
-      >
-        <div className="cluster-standby">
-          {/* The mark is not a second badge here: it keeps the one the dial drew and slides from the face to the
-              centre of the dark glass (TruckMark's layoutId). The hairline and the line under it follow it in. */}
-          <ClusterBrand reduced={reduceMotion} />
-          <motion.span
-            className="cluster-standby-rule"
-            aria-hidden
-            initial={reduceMotion ? false : { opacity: 0, scaleX: 0.4 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.45, delay: 0.16, ease: motionEase }}
-          />
-          <motion.p
-            className="cluster-standby-label"
-            initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={reduceMotion ? { duration: 0 } : { duration: 0.4, delay: 0.24, ease: motionEase }}
-          >
-            {words.engineOff}
-          </motion.p>
-        </div>
-      </main>
-    )
-  }
 
   // Each side card's panel, as the dash draws it: the two columns are filled from the player's layout (Settings ›
   // Instrument Cluster), so a card moved to the other side is drawn there with the same face and the same entrance,
@@ -528,7 +491,7 @@ export function ClusterScreen() {
               <>
                 {step ? <ManeuverGlyph step={step} size={22} /> : <RangeIcon />}
                 {turnDistance !== null && <b className="cluster-route-turn">{turnDistance}</b>}
-                {destination && <b className="cluster-route-dest">{destination}</b>}
+                {destination && <b className="cluster-route-dest" title={destination}>{destination}</b>}
                 {routeDistance !== null && (
                   <span className="cluster-route-left">{units.distance(routeDistance, text.decimal)}</span>
                 )}
@@ -944,15 +907,14 @@ function ClusterPhone() {
       <PhoneIcon />
       {!phone.connected && <span className="cluster-phone-words">{words.noPhone}</span>}
       {level !== undefined && (
-        <span
-          className="cluster-phone-charge"
+        <b
+          className="cluster-phone-level"
           data-low={level <= 20 && !charging ? '' : undefined}
           data-charging={charging ? '' : undefined}
         >
-          <span className="cluster-phone-fill" style={{ '--battery': String(level) } as CSSProperties} />
-        </span>
+          {charge}
+        </b>
       )}
-      {charge && <b className="cluster-phone-level">{charge}</b>}
     </span>
   )
 }
@@ -965,8 +927,7 @@ function ClusterPhone() {
  * It sits in the band of air above the speed figure, where the scale's numbers used to be: the face has no printed
  * scale for a mark to sit among any more, so the mark takes the place the scale left, over the reading it belongs to.
  * Its size is set against that band rather than against the panel's type (cluster.css), because a lone logo in a wide
- * band of air reads as a speck unless it is sized to fill it. The standby screen shows the same mark alone, centred
- * on the glass.
+ * band of air reads as a speck unless it is sized to fill it.
  */
 function ClusterBrand({ reduced }: { reduced: boolean }) {
   const truck = useLive((state) => state.truck)
@@ -986,9 +947,8 @@ function TruckMark({ brandId, brand, reduced }: { brandId: string; brand: string
     <motion.div
       className="cluster-brand"
       aria-hidden
-      // One maker's mark on the panel, in both the dial's air and the standby glass: the same layoutId lets Motion
-      // carry it from the face to the centre when the ignition goes off, and back when it comes on.
-      layoutId={reduced ? undefined : 'cluster-brand'}
+      // The brand mark sits in the dial's air above the speed figure. No layout animation needed since the standby
+      // screen was removed — the mark stays in one place.
       initial={reduced ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={

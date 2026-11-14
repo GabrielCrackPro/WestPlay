@@ -1,0 +1,336 @@
+/* --- The middle column: the message line, the dial, what plays --------------------------------- */
+
+/* The column's two tiers: one line for the cab (its newest message, or what plays), and the dial. The line's slot is
+   held empty when there is nothing to say, so the dial and the route above never move â€” and one line rather than two
+   is what the face grew out of: at two, it lost the height of a line out of the only height it can have. */
+.cluster-centre {
+  display: grid;
+  grid-template-rows: 30px minmax(0, 1fr);
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 6px;
+}
+
+.cluster-dial {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cluster-dial-wrap {
+  position: relative;
+  height: 100%;
+  max-height: 384px;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+.cluster-dial-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The speed's ring: one line, drawn at the panel's own weight. It is the track the speed is measured on and nothing
+   more â€” no groove, no bezel, no glass disc under it â€” so at 3 units on the 300 face it paints a ~3.7px hairline, the
+   same weight the dash's rules and bar tracks use instead of a ring that owned the panel. Round-capped, so the scale's
+   two ends (7:30 and 4:30) are lenses rather than cut ends. */
+.cluster-dial-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 14%, transparent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* The part of the face past the limit: a field three times the ring's width along the same radius, from the limit to the
+   scale's end, a shade fainter than the ring so the ring's own line still runs through it â€” the way a tach prints its
+   red zone on the dial and the scale's line over it. It is a field, not a second arc: it adds no reading of its own, it
+   only says which end of the scale is no longer the driver's. Its leading edge is the limit's mark, so the mark stops
+   being a lone tick on a line and becomes the edge of something; and the arc running into the field loses a little of
+   its colour there, which is what "past the road's limit" looks like from across the cab. Square-cut at both ends: the
+   field starts exactly where the limit falls, not half a stroke past it. */
+.cluster-limit-band {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
+  stroke-width: 9;
+  stroke-linecap: butt;
+}
+
+/* The live arc: how much of the ring the truck has used. One flat accent from the scale's start to the figure â€” no
+   gradient along it and no light around it, because the panel's other colours are flat and the arc is a reading, not
+   a glow. Round-capped, so the head of the arc is a lens at the speed. Its length is the smoothed reading, so it
+   moves a frame's worth at a time (useSmoothed, in the page) and a CSS transition here would only lag behind it. */
+.cluster-dial-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* The tacho, outside the speed's ring and a hairline thinner, so the speed stays the line that reads first: its track,
+   the engine's arc in the ink, and the redline printed on the end of it. It is the panel's own grey, not a second
+   colour â€” the red field is the only place the tacho leaves the ink, as a tach's red zone is the only printed mark it
+   needs. Scania's auxiliary-brake zone (2,000 to 2,400 rpm) is not drawn: a blue field at the rim pulled the eye off
+   the speed, and the retarder's step beside the gear already says when the brake is working. */
+.cluster-dial-rpm-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 9%, transparent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.cluster-dial-rpm {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 45%, transparent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* The redline: the tacho's last 100 rpm, printed on the line itself â€” the same weight, square-cut at both ends â€” so
+   it reads as the end of the tacho's scale and not as a second red mark on the face. (The limit's mark is the other
+   red thing the face can show, and it cuts across the speed's ring rather than running along a line.) */
+.cluster-rpm-redline {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1.6;
+  stroke-linecap: butt;
+}
+
+/* The limit: the road sign's own red (dashboard/glance.css), a short mark across the speed's ring where the limit
+   falls, so the driver sees both how fast they are going and where the limit lies on the same line. It is a mark
+   across a scale rather than a scale of its own, as a bar prints its threshold line across itself; no glow, so it
+   stays a mark rather than a lamp â€” the sign under the figure says what the limit is, this says where it is. */
+.cluster-limit-mark {
+  stroke: var(--limit);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* The mark's own group, which carries the two movements it has: it fades in with the sign and, when the route stops
+   knowing a limit, out over the same 420 ms (Motion, ClusterScreen.tsx); and its angle is a transition, so a limit
+   that changes on the road (90 to 80 for a town) slides round the face instead of jumping between the two. */
+.cluster-limit {
+  transform-box: view-box;
+  transition: transform 360ms var(--motion-ease);
+}
+
+/*
+ * The speed the cruise is holding: a notch inside the speed's ring where that speed falls, in the accent the cruise
+ * pill's own mark wears, so the two are one reading. It points in from the ring and never crosses it â€” the crossing
+ * mark is the road's limit â€” so the face says both "held at" and "not above" without a second scale printed on it.
+ * The group carries the notch's angle as a transition, so a set speed that changes slides round the face as a limit's
+ * mark does, and Motion gives it the one fade it has (in at once, out over 320 ms).
+ */
+.cluster-dial-cruise {
+  transform-box: view-box;
+  transition: transform 360ms var(--motion-ease);
+}
+
+.cluster-dial-cruise-mark {
+  stroke: var(--accent);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+/* The figure, at the ring's centre, with its unit and the road's limit under it: the one number the dash always
+   shows. The three are one centred block, and the sign's place is in it at every moment â€” the sign is always in the
+   stack, drawn or not (`.cluster-limitsign[data-empty]`) â€” so the figure keeps its height on the face as a limit
+   comes and goes, instead of stepping up the dial when a sign arrives and back down when it leaves. The block is
+   centred as it is, with no nudge of its own: what stands above the ring's middle is the room the unit and the sign
+   below it take, and the figure is read against the middle of the face with them. */
+.cluster-speed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.cluster-speed strong {
+  display: block;
+  /* The figure is the face. With no scale printed round it, the ring is a frame for this one number rather than a
+     dial it has to stay clear of, so it fills it the way a modern cluster's does: at this size it is what the ring
+     is drawn around, and three digits ("120") still clear the ring's inner edge with air to spare. The divisor keeps
+     it inside the face at every Text Size: the ring is drawn in the same SVG, so a figure left in plain pixels would
+     climb out through it as the panel zooms. Slightly larger and tighter to reinforce it as the sole focal point. */
+  font-size: min(148px, calc(152px / var(--cluster-scale, 1)));
+  font-weight: 450;
+  line-height: 0.84;
+  letter-spacing: -0.07em;
+  /* One digit's width for every digit, as the cabin's own speed reads (glance.css): the figure holds still as it
+     changes instead of shuffling sideways with each kilometre. */
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The figure as a row of places rather than one run of digits, so that a change of speed moves only the places that
+ * changed: each is its own wheel on the counter (SpeedPlace, ClusterScreen), and the row still reads as one number â€”
+ * the digits are tabular and tracked as they were, and the row is centred as a block in the reading.
+ * The selector carries the element's own name because `.cluster-speed strong` above is the more specific of the two,
+ * so a bare class here would lose to its `display: block` and the digits would stack.
+ */
+.cluster-speed strong.cluster-speed-value {
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * One place of the figure. Both digits of a roll are drawn in the same cell of the grid, so the one arriving takes
+ * the place of the one leaving without the figure ever being a digit short, and the cell is only ever as wide as one
+ * digit: the number does not shuffle sideways as its wheels turn.
+ */
+.cluster-speed-place {
+  display: grid;
+  place-items: center;
+}
+
+.cluster-speed-place > span {
+  grid-area: 1 / 1;
+}
+
+/*
+ * Over the road's limit the figure takes the limit's red: the number the driver is already reading says what the sign
+ * below states, so being over is seen without a second glance at the sign. It comes over rather than snapping â€” the
+ * same number changing its colour â€” whether the road's limit has dropped under a steady speed or the figure has
+ * rolled past it.
+ */
+.cluster-speed strong[data-over] {
+  color: var(--limit);
+}
+
+.cluster-speed-value {
+  transition: color 200ms var(--motion-ease);
+}
+
+/* The unit, in the panel's own unit type: the readings down both sides print "720 L" and "1420 km" with a unit at
+   this size and weight, and the speed's should be the same voice â€” the figure beside it is what makes it the loudest
+   number on the panel, not a heavier unit. Tracked, because it is set in caps where the sides' units are lower-case. */
+.cluster-speed > span {
+  color: var(--dim);
+  font-size: var(--type-unit);
+  font-weight: 550;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/*
+ * The truck's brand on the dial's face: the maker's mark where the scale's printed numbers used to sit, in the band
+ * of air above the figure.
+ *
+ * It is sized to that band rather than to the panel's type. The box is wide and tall enough to carry both kinds of
+ * mark at the same weight: a wordmark (Volvo's, Iveco's) runs nearly the box's width, a square one (Scania's griffin,
+ * the star) stands the box's height. That is what keeps a lone logo from reading as a speck in the air above a
+ * 136px figure. Fractions of the face, not pixels, so it keeps its place as Text Size grows the readings around it;
+ * the box stops short of the figure, and the figure keeps its height whatever the road's limit is doing (the sign's
+ * slot is always held, `.cluster-speed`), so nothing ever closes the gap between the mark and the reading under it.
+ * The logo files are line art in white (the boot screen's AMOLED marks), so the dark panel keeps them white
+ * and the light one turns them black; the opacity is what sets them back into the panel as grey ink — low enough that
+ * the figure stays what the eye finds first. A brand with no logo shows its name in small caps in the same place.
+ */
+.cluster-brand {
+  position: absolute;
+  top: 12.5%;
+  left: 50%;
+  translate: -50% 0;
+  /* Flex, not grid: the badge's size is the box's (a percentage of the face), and only a flex item resolves
+     `max-height: 100%` against a definite height â€” in a grid's auto row it fell back to the image's own size and the
+     mark grew three times its badge, running behind the figure. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38%;
+  height: 9%;
+}
+
+.cluster-brand img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.4;
+}
+
+.cluster[data-appearance='light'] .cluster-brand img {
+  filter: brightness(0);
+  /* The light theme logo at full black opacity was significantly louder than the dark theme's 40% white.
+     Adding the same opacity keeps the brand mark at consistent visual weight across both appearances. */
+  opacity: 0.4;
+}
+
+/* The name, for a brand with no logo: centred in the box and tracked as the panel's caps labels are. */
+.cluster-brand-wordmark {
+  overflow: hidden;
+  color: var(--dim);
+  font-size: var(--type-sm);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  opacity: 0.55;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The gear sits under the dial as a mark of its own, not another badge. Smaller than before to let the speed figure
+   dominate the center — the gear is secondary information read after the speed. */
+.cluster-gear {
+  position: absolute;
+  bottom: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 32px;
+  /* Dimmed ink, not full ink: the gear is a reading, but it is the dial's quietest reading. The accent on the glass
+     means the arc and the block it has reached — the figure stays what the eye finds first. */
+  color: var(--dim);
+  font-size: var(--type-md);
+  font-weight: 500;
+}
+
+/* Each change of gear lands with a small drop, as the speed figure settles on every kilometre: a lever has moved,
+   and the letter says so without the driver having to watch for it. The letter is keyed by the gear in the page, so
+   this plays once per change and not on a reading. */
+.cluster-gear span {
+  display: block;
+  animation: gear-shift 220ms var(--motion-ease) both;
+}
+
+@keyframes gear-shift {
+  from {
+    opacity: 0.4;
+    transform: translateY(-3px);
+  }
+}
+
+/* The retarder's step, beside the gear while a step is held: the mark for it (the status bar's telltale) and how
+   much of it the hand has taken. It now matches the gear's visual weight — same dim color, same size — so the two
+   read as secondary dial information together, neither competing with the speed figure. The accent on the glass
+   means the arc and the block it has reached; the retarder and gear are the dial's quietest readings.
+   Position uses calc with --cluster-scale so the offset grows proportionally when Text Size increases, preventing
+   the retarder from overlapping the gear at larger scales. */
+.cluster-retarder {
+  position: absolute;
+  bottom: 10%;
+  left: calc(50% + 54px * var(--cluster-scale, 1));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  color: var(--dim);
+  font-size: var(--type-md);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cluster-retarder svg {
+  width: 18px;
+  height: 18px;
+}

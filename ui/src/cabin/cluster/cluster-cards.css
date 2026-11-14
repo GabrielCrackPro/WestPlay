@@ -1,0 +1,290 @@
+/* --- The three columns ------------------------------------------------------------------------ */
+
+/* The three columns share the panel's whole height between them. The row is pinned to that height rather than sized
+   to what the columns hold: a column whose readings are taller than the panel (a language with longer words, a step
+   of Text Size) would otherwise stretch the row past the panel and have its foot cut off â€” the room it has is the
+   panel's, and what is past its foot is a reading the dash should not have drawn (see `.cluster-hours`, whose foot
+   margin is what sits at the bottom). */
+.cluster-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 20px;
+  padding: 0 4px;
+}
+
+.cluster-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 2px 2px 4px;
+  overflow: hidden;
+  gap: 6px;
+}
+
+/*
+ * The readings are not cards: they are groups on the same glass, aligned to the column and separated by a
+ * hairline only where one group ends and the next begins.
+ */
+.cluster-panel {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+
+/* The readings' entrance is Motion's (ClusterScreen.tsx): each column's groups rise one after the other. */
+
+/*
+ * A reading's mark. It is drawn in the same ink as the reading: on the dash a gauge's symbol is part of the gauge,
+ * and colour is kept for states, so a column of readings doesn't read as a column of warnings. Hot is amber, a
+ * warning or a low tank is red, and a cold engine is blue until it is up to temperature.
+ */
+.cluster-glyph {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--dim);
+}
+
+.cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-glyph[data-hot] {
+  color: var(--warn);
+}
+
+.cluster-glyph[data-cold] {
+  color: var(--cold);
+}
+
+/* A reading in alarm blinks like the lamp beside it would, on a stepped clock rather than a soft fade: a warning
+   mark that dims smoothly reads as a UI pulse, where a dash's warning is a lamp being switched. It never goes fully
+   dark, so the reading it belongs to can still be found while it blinks. */
+.cluster-glyph[data-warn] {
+  color: var(--danger);
+  animation: glyph-warn 1.2s steps(1, end) infinite;
+}
+
+@keyframes glyph-warn {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.35;
+  }
+}
+
+/* Every unit on the panel, in one place: the one size and colour a unit has, whichever figure it hangs off. */
+.cluster-pairs small,
+.cluster-readout small,
+.cluster-odo small,
+.cluster-gauge-value small,
+.cluster-gauge-foot small,
+.cluster-mini small,
+.cluster-trip-value small {
+  color: var(--dim);
+  font-size: var(--type-unit);
+  font-weight: 550;
+}
+
+/* --- The trip, left --------------------------------------------------------------------------- */
+
+.cluster-trip {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 4px;
+}
+
+.cluster-trip-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cluster-trip-top .cluster-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-trip-top .cluster-glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cluster-trip-value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--type-gap);
+  font-size: var(--type-xl);
+  font-weight: 500;
+  line-height: 0.88;
+  letter-spacing: -0.06em;
+}
+
+.cluster-pairs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-pair {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 15px auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 6px;
+}
+
+.cluster-pair svg {
+  grid-row: 1 / 3;
+  width: 15px;
+  height: 15px;
+  color: var(--dim);
+  stroke-width: 2;
+}
+
+.cluster-pair b {
+  font-size: var(--type-md);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.cluster-pair small {
+  line-height: 1.05;
+}
+
+.cluster-odo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: var(--type-unit);
+}
+
+.cluster-odo svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* The truck's total distance — the most permanent reading on the panel. It sits at the trip card's base,
+   matching the engine readouts in size and weight, so the odometer is noticed without competing with the
+   trip distance above it. */
+.cluster-odo b {
+  color: var(--ink);
+  font-size: var(--type-md);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* --- The engine, left ------------------------------------------------------------------------- */
+
+/* Three readings on two rows, side by side: each is a mark, a figure and its unit, short enough for half the column,
+   and the row it saves is the room the panel's zoom needed (see `.cluster`: the whole dash grows as one). The glyph
+   sits closer to its value for a more compact feel, and the tighter row-gap keeps the engine card from competing with
+   the trip card's height. */
+.cluster-engine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 26px;
+}
+
+.cluster-readout .cluster-glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--dim);
+}
+
+.cluster-readout .cluster-glyph svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cluster-readout b {
+  font-size: var(--type-md);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cluster-readout[data-warn] .cluster-glyph,
+.cluster-readout[data-warn] b {
+  color: var(--danger);
+}
+
+.cluster-readout[data-cold] .cluster-glyph {
+  color: var(--cold);
+}
+
+/* --- The driver's clocks, left ---------------------------------------------------------------- */
+
+.cluster-hours {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: auto;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.cluster-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+}
+
+.cluster-hours-row + .cluster-hours-row {
+  border-top: 1px solid var(--line);
+}
+
+.cluster-hours-row strong {
+  font-size: var(--type-lg);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* Due within the hour: the clock takes the warning's colour, with a dot to catch the eye. */
+.cluster-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.cluster-hours-row[data-due] strong,
+.cluster-hours-row[data-due] .cluster-glyph {
+  color: var(--warn);
+}
+
+.cluster-hours-row[data-due] .cluster-dot {
+  background: var(--warn);
+}

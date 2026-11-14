@@ -1,0 +1,77 @@
+/* One line of what plays: where it comes from, and the name and byline as one run of text, on the cab's own line
+   above the dial (the message's slot), with how far into it under the words. The title is the loudest element on
+   this line — slightly larger than the status bar's base — so it is read before the byline or the progress bar. */
+.cluster-media {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  /* Wide enough for the progress line under it to have a length of its own: a bar that grew and shrank with each
+     track's title would read as a different thing every time. */
+  min-width: 180px;
+  padding-bottom: 4px;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: var(--type-md);
+  font-weight: 500;
+}
+
+.cluster-media svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+/* The name and its byline are one run of text, cut once at the end of the line rather than twice: cut apart, they
+   split the room between them whatever each of them needed, so a long station took half the line from the song it
+   was playing and both were read as fragments (measured in the frame's own width: 145px of 320 for each, a 352px
+   station and a 349px song). One run keeps the name whole while it fits, gives the byline every pixel the name
+   leaves, and gives up the byline first when even that isn't enough. */
+.cluster-media-words {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The name in the dash's ink, the byline in the line's own dim: the ink says what plays, the dim says behind whom.
+   The title uses the same weight as the status bar's turn distance — it is the line's primary reading. */
+.cluster-media b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The app the track plays from, as the screen's own Home grid draws it: the same icon at the line's size, so a glance
+   says where the sound is coming from without a word of label. */
+.cluster-media-app {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+/* How far into the track: two pixels under its words, the part played in the accent, the rest the groove's own grey.
+   The bar's end is the track's length, so no time is written on it â€” the dash counts to the end by looking, the way
+   a scrubber on the screen does. Its fill steps once a second (the page reads the position from the host), eased so
+   the bar creeps rather than jumps; cut with every other movement by the reduced-motion setting. */
+.cluster-media-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.cluster-media-progress > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 1s linear;
+}

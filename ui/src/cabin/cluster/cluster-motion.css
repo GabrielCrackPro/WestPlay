@@ -1,0 +1,47 @@
+/* Reduced motion (Settings â€º Appearance, or the PC's own): the cluster's own movement is cut, and its boot's is
+   cut by boot.css. */
+html[data-motion='reduced'] .cluster *,
+html[data-motion='reduced'] .cluster *::before,
+html[data-motion='reduced'] .cluster *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* The frame's glow is an exception of its own, cut above with everything else: a full-screen light switched on and
+   off in one step is a flash, which is the thing less motion is asking away from â€” so it still arrives and leaves as
+   a fade, and only stops breathing. */
+html[data-motion='reduced'] .cluster-voice-glow {
+  transition:
+    opacity 0.6s ease-out,
+    visibility 0s linear 0.6s !important;
+}
+
+html[data-motion='reduced'] .cluster-voice-glow[data-on] {
+  transition: opacity 0.32s ease-in !important;
+}
+
+/* The bulb check is the one exception: it holds a state rather than moving anything â€” the lamps appear, stay, and go
+   â€” so a driver who has cut the cabin's motion still sees the panel prove its lamps. */
+html[data-motion='reduced'] .cluster-telltales[data-check] .cluster-telltale {
+  animation: cluster-bulb-check 1500ms linear !important;
+}
+
+/* The blinker is the other: a lamp that holds steady reads as one stuck on, and which way the truck is about to go is
+   the one thing on this glass its motion says that nothing else does. It is held as a step between lit and a third â€”
+   nothing travels, and the row never goes dark â€” and a shade slower than the truck's relay, so a cabin that asked for
+   less movement isn't given the same flicker. The bulb check above still outranks it: while the panel is proving its
+   lamps, they hold. */
+html[data-motion='reduced'] .cluster-telltale[data-blink] {
+  animation: telltale-steady 1.2s steps(1, end) infinite !important;
+}
+
+@keyframes telltale-steady {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.35;
+  }
+}

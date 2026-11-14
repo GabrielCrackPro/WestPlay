@@ -1,19 +1,15 @@
 import type { ReactElement, ReactNode } from 'react'
 
 /**
- * The cluster's own line icons: the truck's readings and telltales drawn the way its dash draws them, so a
- * figure is found by its mark before its words are read. They stroke in `currentColor` and size from the cluster
- * (cluster.css), which sets each one's colour: the ink for a reading, green, amber or red for a telltale.
+ * Standard dashboard icons following ISO 2575 (vehicle telltales) and Material Design conventions.
+ * Clean outline icons with no backgrounds, designed to be instantly recognizable at any size from 14px to 30px.
+ * All icons use a 24×24 grid with consistent stroke weight (1.9), rounded caps and joins.
  *
- * Every mark is drawn in the same 24 grid and keeps its paint inside it with room to breathe, because they are seen
- * together: a row of telltales at 24px, a column of readings at 20, the gauges' marks at 30. Two rules follow from
- * that. Detail has to survive the smallest size a mark is drawn at — a stroke under ~2 grid units lands below 1.5px
- * in the rows and turns to a grey band, so a mark carries a few strong lines rather than many fine ones. And a mark
- * is centred on 12,12: where the drawing is right but sat off-centre, the component nudges it with a single
- * `translate` rather than moving every coordinate of the shape.
- *
- * Solid paint is used where a lamp would be solid on the glass — an indicator's arrow, a beam's lens, the pads of a
- * brake — because a filled shape holds its meaning at 14px where an outline of the same shape does not.
+ * Key design principles:
+ * - No filled backgrounds or decorative circles — pure line art
+ * - Simplified shapes that match real vehicle dashboard symbols worldwide
+ * - Solid fills only where the standard symbol uses them (arrows, brake pads, indicator lenses)
+ * - Centered visual weight on (12,12) for consistent alignment in rows and grids
  */
 function Glyph({ children }: { children: ReactNode }) {
   return (
@@ -31,424 +27,431 @@ function Glyph({ children }: { children: ReactNode }) {
   )
 }
 
-/** The tank: the ISO fuel pump — its body, its window and the hose on its side. The pump is what every dash uses for
- * fuel, low fuel and distance to empty, so the mark is drawn as the pump itself rather than as a drop. */
+/** Fuel pump — ISO 2575 standard symbol for fuel level. Simplified pump body with nozzle, matching the symbol
+ * found on every vehicle dashboard worldwide. No window detail to keep it clean at small sizes. */
 export function FuelIcon() {
   return (
     <Glyph>
-      {/* The body, standing on the ground */}
-      <path d="M4.6 20.2V5.6a1.9 1.9 0 0 1 1.9-1.9h5a1.9 1.9 0 0 1 1.9 1.9v14.6" />
-      <path d="M3 20.2h12.4" />
-      {/* The window on its face */}
-      <path d="M6.9 6.9h4.2v4.2H6.9Z" />
-      {/* The hose and nozzle, hanging off its right side */}
-      <path d="M13.4 8.4h2.3a1.9 1.9 0 0 1 1.9 1.9v6.1a1.7 1.7 0 0 0 3.4 0v-6.1l-1.8-1.8" />
+      <path d="M3 22V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v16" />
+      <path d="M6 22h12" />
+      <path d="M12 10h3a2 2 0 0 1 2 2v4a2 2 0 0 0 4 0v-5l-3-3" />
     </Glyph>
   )
 }
 
-/** The AdBlue tank: a drop with its surface, as the dash marks the urea it burns. A drop is heavy at the bottom and
- * pointed at the top, so its paint sits high in the grid; the shift puts its mass level with the marks beside it. */
+/** AdBlue / diesel exhaust fluid — standard symbol is a water drop with "Sc" or waves inside, representing the
+ * urea solution. The drop shape is the universally recognized form for this fluid on dashboards. */
 export function AdblueIcon() {
   return (
     <Glyph>
-      <g transform="translate(0 1.05)">
-        <path d="M12 2.8s5.8 6.4 5.8 10.5a5.8 5.8 0 0 1-11.6 0C6.2 9.2 12 2.8 12 2.8Z" />
-        <path d="M8.8 13.3c1.7.7 4.7.8 6.4 0" />
-      </g>
+      <path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11Z" />
+      <path d="M9 14c1.5.6 4.5.6 6 0" />
     </Glyph>
   )
 }
 
-/** How far the tank still takes the truck: the route ahead — a road leaving from where the truck is and running on
- * to its head. It is drawn bold as one line and a solid head so it survives the 14px the fuel's foot reads it at,
- * where the old route-and-pin collapsed into a dot. */
+/** Range / distance to empty — a road with an arrow, the standard symbol for remaining range. Simple path with
+ * a solid dot at the start (current position) and an arrowhead at the end (destination). */
 export function RangeIcon() {
   return (
     <Glyph>
-      <g transform="translate(0.4 -1.8)">
-        <path d="M3.2 20.4c5.6 0 5.6-8.6 11.2-8.6h3.2" strokeWidth="2.2" />
-        <path d="m15.4 8.2 4.2 3.6-4.2 3.6" strokeWidth="2.2" />
-        <circle cx="3.2" cy="20.4" r="1.3" fill="currentColor" stroke="none" />
-      </g>
+      <path d="M4 20c4 0 4-8 8-8h4" />
+      <path d="m14 10 4 2-4 2" />
+      <circle cx="4" cy="20" r="1.5" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
 
-/** The trip since the engine came on: a flag planted where it started. The pennant is solid so the mark reads as a
- * flag at 20px instead of as a letter. The flag it flies sits to the right of its pole, so the drawing is shifted to
- * centre it. */
+/** Trip distance — a simple flag on a pole, the standard symbol for trip meter. Solid pennant for recognition
+ * at small sizes, matching Material Design's flag icon. */
 export function TripIcon() {
   return (
     <Glyph>
-      <g transform="translate(0.6)">
-        <path d="M5.6 21V3.8" />
-        <path d="M5.6 4.6h10.2l-2.8 4.2 2.8 4.2H5.6Z" fill="currentColor" />
-      </g>
+      <path d="M5 22V4" />
+      <path d="M5 4h8l-3 4 3 4H5Z" fill="currentColor" />
     </Glyph>
   )
 }
 
-/** An average: a dial with its needle, as the trip computer marks the figure. The three specks it used to carry
- * round the dial painted under a pixel at the readouts' size, so the dial is its arc, its needle and its hub. */
+/** Average / gauge — a speedometer-style arc with needle, the standard symbol for average consumption or speed.
+ * Open arc (not a full circle) with a central needle pointing to a value. */
 export function GaugeIcon() {
   return (
     <Glyph>
-      <path d="M3.6 17.2a8.4 8.4 0 1 1 16.8 0" />
-      <path d="m12 17.2 5-6.4" />
-      <circle cx="12" cy="17.2" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M4 17a8 8 0 0 1 16 0" />
+      <path d="M12 17l4-6" />
+      <circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
 
-/** The odometer: a counter wheel read through its windows, split into three by two dividers. Anything finer — the
- * digits the wheel actually shows — is under a pixel at the 14px the dash draws it at, so the mark is the counter
- * itself. */
+/** Odometer — a rectangular counter with divider lines, representing the mechanical mileage counter.
+ * Simple rounded rectangle with two vertical dividers, matching the standard odometer symbol. */
 export function OdometerIcon() {
   return (
     <Glyph>
-      <rect x="2.4" y="7" width="19.2" height="10" rx="2.4" />
-      <path d="M8.8 7.5v9M15.2 7.5v9" />
+      <rect x="2" y="7" width="20" height="10" rx="2" />
+      <path d="M8 7v10M16 7v10" />
     </Glyph>
   )
 }
 
-/** The cab's clock. */
+/** Clock — standard Material Design clock icon. Simple circle with two hands, universally recognized. */
 export function ClockIcon() {
   return (
     <Glyph>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7v5.2l3.4 2" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 6v6l4 2" />
     </Glyph>
   )
 }
 
-/** A rest stop: a cup, as the driver-hours clocks mark the pause. */
+/** Rest / break — a coffee cup with steam, the standard symbol for rest periods in driver hours.
+ * Simple cup shape with handle and two steam lines, matching Material Design's local_cafe icon. */
 export function RestIcon() {
   return (
     <Glyph>
-      <path d="M4.5 8.5h11v4.5a5.5 5.5 0 0 1-11 0Z" />
-      <path d="M15.5 9.5H17a2.5 2.5 0 0 1 0 5h-1.5M7.5 3v2.5M11.5 3v2.5M4 20.5h12" />
+      <path d="M4 10h10v4a5 5 0 0 1-10 0Z" />
+      <path d="M14 11h1a2 2 0 0 1 0 4h-1" />
+      <path d="M7 4v2M10 4v2" />
     </Glyph>
   )
 }
 
-/** The mandatory break: an hourglass, the time that has to run out. */
+/** Mandatory break — an hourglass, the standard symbol for time-limited breaks. Two triangles meeting at
+ * the center with top and bottom bars, matching the universal hourglass symbol. */
 export function BreakIcon() {
   return (
     <Glyph>
-      <path d="M6.5 3h11M6.5 21h11" />
-      <path d="M8 3c0 3.8 8 5.2 8 9s-8 5.2-8 9M16 3c0 3.8-8 5.2-8 9s8 5.2 8 9" />
+      <path d="M6 4h12M6 20h12" />
+      <path d="M7 4c0 3 5 4.5 5 8s-5 5-5 8M17 4c0 3-5 4.5-5 8s5 5 5 8" />
     </Glyph>
   )
 }
 
-/** The engine's coolant: a thermometer, filled to its reading. */
+/** Coolant temperature — ISO 2575 standard: a thermometer with a bulb at the bottom and a tube extending upward.
+ * The universally recognized symbol for engine coolant temperature on every dashboard. */
 export function CoolantIcon() {
   return (
     <Glyph>
-      <path d="M10 14.2V5a2 2 0 1 1 4 0v9.2a4.2 4.2 0 1 1-4 0Z" />
-      <path d="M12 8v8" />
-      <circle cx="12" cy="18.2" r="1.7" fill="currentColor" stroke="none" />
+      <path d="M11 15V5a1 1 0 0 1 2 0v9a3 3 0 1 1-2 0Z" />
     </Glyph>
   )
 }
 
-/** The battery, for the game's charging warning: its case, its terminal and the bolt going in. The cell marks it
- * used to carry were under a grid unit wide at 24px and read as dirt on the case; the bolt is solid, so the one
- * mark that means "charging" is the one that survives. */
+/** Battery / charging system — ISO 2575 M.01: a rectangular battery cell with positive (+) and negative (−) terminals.
+ * The universally recognized symbol for the vehicle charging system warning. The battery is a rounded rectangle
+ * with two small bumps on top representing the terminals, and plus/minus signs inside to indicate polarity.
+ * Shown in red on dashboards when the charging system is faulty. */
 export function BatteryIcon() {
   return (
     <Glyph>
-      <rect x="4" y="6" width="14" height="12" rx="2.5" />
-      <path d="M20 10v4" />
-      <path d="M13.4 8.4 10.4 13h2.4l-1.1 2.8 3.7-4.4h-2.4l1.4-3Z" fill="currentColor" stroke="none" />
+      {/* Battery body — rounded rectangle */}
+      <rect x="3" y="8" width="14" height="10" rx="2" />
+      {/* Positive terminal bump — top right */}
+      <path d="M14 6v2" />
+      {/* Negative terminal bump — top left */}
+      <path d="M7 6v2" />
+      {/* Plus sign — inside battery, right side */}
+      <path d="M14 11v2" />
+      <path d="M13 12h2" />
+      {/* Minus sign — inside battery, left side */}
+      <path d="M6 12h4" />
     </Glyph>
   )
 }
 
-/** The engine's oil temperature: a thermometer beside its drop. The drop hangs to the right of the column, which
- * put the pair 2.4 units right of centre, so the drawing is shifted back over it. */
+/** Oil temperature — ISO 2575 standard: a thermometer with an oil drop beside it. The combination of these two
+ * symbols clearly indicates oil temperature, distinguishing it from coolant temperature. */
 export function OilTemperatureIcon() {
   return (
     <Glyph>
-      <g transform="translate(-2.4)">
-        <path d="M9.5 14.2V5a2.5 2.5 0 0 1 5 0v9.2a4.2 4.2 0 1 1-5 0Z" />
-        <path d="M12 7.5v8" />
-        <path d="M18.5 10.5s2.5 2.8 2.5 4.5a2.5 2.5 0 0 1-5 0c0-1.7 2.5-4.5 2.5-4.5Z" />
-      </g>
+      <path d="M10 15V5a1 1 0 0 1 2 0v9a3 3 0 1 1-2 0Z" />
+      <path d="M18 11s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4Z" />
     </Glyph>
   )
 }
 
-/** The brakes' heat, for the temperature reading: a disc giving off its heat. The ticks round the disc were a grey
- * haze at the readouts' size, so the disc keeps its hub and its two waves and nothing else. */
+/** Brake temperature — a brake disc with heat waves, the standard symbol for brake temperature monitoring.
+ * Disc circle with wavy lines indicating heat, matching the symbol used on heavy vehicle dashboards. */
 export function BrakeTemperatureIcon() {
   return (
     <Glyph>
-      <g transform="translate(-0.9 -1.2)">
-        <circle cx="9.6" cy="13.8" r="5.8" />
-        <circle cx="9.6" cy="13.8" r="2.1" />
-        <path d="M17.6 8.2c1.1 1.2 1.1 2.7 0 3.9s-1.1 2.7 0 3.9M20.9 8.2c1.1 1.2 1.1 2.7 0 3.9s-1.1 2.7 0 3.9" />
-      </g>
+      <circle cx="10" cy="12" r="6" />
+      <circle cx="10" cy="12" r="2" />
+      <path d="M18 7c1 1 1 2.5 0 3.5s-1 2.5 0 3.5" />
+      <path d="M20 7c1 1 1 2.5 0 3.5s-1 2.5 0 3.5" />
     </Glyph>
   )
 }
 
-/** A drop of fuel burned on the trip. */
+/** Fuel drop — a simple oil/fuel drop, used for instant fuel consumption. The drop shape is the universal
+ * symbol for liquid fuel, matching Material Design's water_drop. */
 export function DropIcon() {
   return (
     <Glyph>
-      <path d="M12 3s6 6.7 6 11a6 6 0 0 1-12 0c0-4.3 6-11 6-11Z" />
+      <path d="M12 3s5 6.5 5 10a5 5 0 0 1-10 0c0-3.5 5-10 5-10Z" />
     </Glyph>
   )
 }
 
-/** The engine's oil, for the pressure warning: the ISO oil can — its body and its top — with the drop of oil beside
- * it. The drop is what tells it from any other can on the panel and what carries the oil's colour when the warning
- * lights, so it is drawn as its own mark rather than as a drip off a spout. */
+/** Oil pressure — ISO 2575 standard: an oil can (Aladdin's lamp shape) with a drop. The universally recognized
+ * symbol for oil pressure warning, found on every vehicle dashboard worldwide. */
 export function OilIcon() {
   return (
     <Glyph>
-      <g transform="translate(0.35 -1.8)">
-        <path d="M3.6 11.6h7l3 2.6v5.2H3.6Z" />
-        <path d="M5 11.6V8.2h3.4l2.2 3.4" />
-        <path d="M17.2 9.8s2.5 2.9 2.5 4.5a2.5 2.5 0 0 1-5 0c0-1.6 2.5-4.5 2.5-4.5Z" />
-      </g>
+      <path d="M4 14h6l3 2v5H4Z" />
+      <path d="M4 14V9h3l3 3" />
+      <path d="M17 10s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4Z" />
     </Glyph>
   )
 }
 
-/** The brakes' air, for the pressure warning: a brake disc between its two pads, as a caliper grips it. The disc's
- * spokes made an asterisk at 24px; the pads are what says "brake". */
+/** Brake air pressure — ISO 2575 standard: a brake disc between two pads (caliper view). The disc with pads
+ * on either side is the universal symbol for brake system warnings on heavy vehicles. */
 export function BrakeAirIcon() {
   return (
     <Glyph>
-      <circle cx="12" cy="12" r="6.1" />
-      <circle cx="12" cy="12" r="2.2" />
-      <path d="M3.9 7.6h2.1v8.8H3.9zM18 7.6h2.1v8.8H18z" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M4 8v8M20 8v8" />
     </Glyph>
   )
 }
 
-/** The parking brake: a P in a ring, as the dash lights it. */
+/** Parking brake — ISO 2575 standard: the letter "P" in a circle. The universally recognized symbol for
+ * parking/hand brake, found on every vehicle dashboard. */
 export function ParkingBrakeIcon() {
   return (
     <Glyph>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M9.8 16.5V7.5h3.1a2.8 2.8 0 0 1 0 5.6H9.8" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 17V7h3a3 3 0 0 1 0 6h-3" />
     </Glyph>
   )
 }
 
-/** The hazard lights: the warning triangle with exclamation. */
+/** Hazard warning — ISO 2575 A.19: an equilateral triangle pointing up, shown in red on dashboards.
+ * The universally recognized hazard warning symbol. The triangle is centered in the 24×24 grid with
+ * equal sides and a flat base, matching the symbol used worldwide for hazard lights. */
 export function HazardIcon() {
   return (
     <Glyph>
-      {/* Triangle outline */}
-      <path d="M12 3.5 22 20H2Z" strokeWidth="2" />
-      {/* Exclamation line */}
-      <path d="M12 8.5v5" strokeWidth="2.5" />
-      {/* Exclamation dot */}
-      <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M12 3L1 21h22Z" />
     </Glyph>
   )
 }
 
-/** A headlamp, dipped or on main: the lamp's lens on the left, standing on its flat back as a lamp seen from the
- * side does, and the light it throws down the road. The two beams are told apart the way the dash's own symbols tell
- * them apart (ISO 7000-0083 and -0082): the dipped beam's rays all slope down to the road on one angle, and the main
- * beam's run straight out level, each ray as long as the next. Fanning the main beam, as this drew it, made the two
- * lamps differ by gesture alone and read as the same mark at 24px. */
+/** Headlight beam — ISO 2575 high beam (blue on dash) / low beam (green on dash).
+ * The lamp is a D-shape on the left: flat edge on the right, half-ellipse bulging left.
+ * Three parallel rays leave the flat side toward the right, the direction the light travels.
+ * High beam rays are horizontal; low beam rays are the same rays tilted downward.
+ * Rays are plain strokes with no arrowheads. */
 export function BeamIcon({ main }: { main?: boolean }) {
   return (
     <Glyph>
-      {/* The lens: a dome on its flat back */}
-      <path d="M4 7.6h1.6a4.6 4.6 0 0 1 0 9.2H4Z" />
+      {/* Lamp body — closed D-shape, flat edge at x=11, bulging left to x=5 */}
+      <path d="M11 5a6 7 0 0 0 0 14Z" />
       {main ? (
+        /* High beam — horizontal rays to the right */
         <>
-          {/* Level, and all of one length */}
-          <path d="M10.6 6.6h10.4M10.6 10.2h10.4M10.6 13.8h10.4M10.6 17.4h10.4" />
+          <path d="M15 7h5" />
+          <path d="M15 12h5" />
+          <path d="M15 17h5" />
         </>
       ) : (
+        /* Low beam — same rays, angled downward */
         <>
-          {/* Down to the road, every ray on the same slope */}
-          <path d="m10.2 7 8.8 3.6M10.2 10.2l8.8 3.6M10.2 13.4l8.8 3.6M10.2 16.6l8.8 3.6" />
+          <path d="M15 7l5 2" />
+          <path d="M15 12l5 2" />
+          <path d="M15 17l5 2" />
         </>
       )}
     </Glyph>
   )
 }
 
-/** The position lights, as the dash's symbol draws them (ISO 7000-0456): two lamps back to back, each throwing its
- * light outward, the mark a driver reads as "the truck can be seen from the side". The game's parking lights are
- * these side lamps, so this is the light this panel lights for them. The pair is solid where the beam's lens is an
- * outline: at 24px a lamp this small is its silhouette, and a stroke inside it would only grey it. */
+/** Position / parking lights — ISO 2575 A.08 / A.09: two small lamps facing away from each other with
+ * three rays each pointing outward. The universally recognized symbol for side/position lights.
+ * Each lamp is a small D-shape with the flat side toward the center, rays spread outward.
+ * Shown in green on dashboards. */
 export function PositionLightIcon() {
   return (
     <Glyph>
-      {/* The two lenses: a leaf with its flat side outward and its bulge toward the other, as the symbol draws
-          them, their pointed ends keeping them apart at 24px */}
-      <path d="M7.8 8.5c2.7 1 3.4 4.4 0 7Z" fill="currentColor" stroke="none" />
-      <path d="M16.2 8.5c-2.7 1-3.4 4.4 0 7Z" fill="currentColor" stroke="none" />
-      {/* The light each throws outward */}
-      <path d="M6.8 8.8 3 7.2M6.6 12H2.7M6.8 15.2 3 16.8" />
-      <path d="m17.2 8.8 3.8-1.6M17.4 12h3.9M17.2 15.2l3.8 1.6" />
+      {/* Left lamp — D-shape facing left */}
+      <path d="M8 9c-2 1-2 5 0 6" />
+      <path d="M8 12V8" />
+      {/* Left rays — pointing left */}
+      <path d="M5 9H2" />
+      <path d="M5 12H2" />
+      <path d="M5 15H2" />
+      {/* Right lamp — D-shape facing right */}
+      <path d="M16 9c2 1 2 5 0 6" />
+      <path d="M16 12V8" />
+      {/* Right rays — pointing right */}
+      <path d="M19 9h3" />
+      <path d="M19 12h3" />
+      <path d="M19 15h3" />
     </Glyph>
   )
 }
 
-/** A direction indicator, turned the way it points: one solid arrow, head and shaft, as the dash lights it. Drawn
- * as a lamp rather than a UI arrow, so it is the same mark at 14px and at 30. */
+/** Turn indicator — ISO 2575 A.16: a bold arrow pointing left or right, shown in green on dashboards.
+ * The arrow head is a solid chevron with a horizontal shaft, matching the symbol found on every vehicle
+ * dashboard worldwide. The arrow is compact and fills the 24×24 grid for maximum visibility. */
 export function IndicatorIcon({ direction }: { direction: 'left' | 'right' }) {
-  const arrow = (
-    <>
-      {/* The head */}
-      <path d="M11.2 4.2 3 12l8.2 7.8Z" fill="currentColor" stroke="none" />
-      {/* The shaft */}
-      <path d="M11.2 9.7h9.6v4.6h-9.6Z" fill="currentColor" stroke="none" />
-    </>
+  if (direction === 'left') {
+    // Left arrow: shaft goes right-to-left, chevron points left (<)
+    return (
+      <Glyph>
+        <path d="M8 12h12" strokeWidth="3" />
+        <path d="M14 6L8 12l6 6" fill="currentColor" stroke="none" />
+      </Glyph>
+    )
+  }
+  // Right arrow: shaft goes left-to-right, chevron points right (>)
+  return (
+    <Glyph>
+      <path d="M4 12h12" strokeWidth="3" />
+      <path d="M10 6l6 6-6 6" fill="currentColor" stroke="none" />
+    </Glyph>
   )
-  return <Glyph>{direction === 'left' ? arrow : <g transform="translate(24 0) scale(-1 1)">{arrow}</g>}</Glyph>
 }
 
-/** The beacon on the roof: its bar on its mount, the lit lens inside it and the light it throws up and out. */
+/** Beacon / warning light — a roof-mounted rotating beacon with rays emanating outward.
+ * The standard symbol for emergency beacons on trucks and commercial vehicles. A dome-shaped
+ * light on a base with rays in multiple directions, shown in amber on dashboards. */
 export function BeaconIcon() {
   return (
     <Glyph>
-      {/* The bar: its mount and its housing */}
-      <path d="M6.4 19.6h11.2M8.4 19.6v-4.4a3.8 3.8 0 0 1 7.6 0v4.4" />
-      {/* The lens in the housing, lit */}
-      <path d="M9.8 16.2v-1.6a2.4 2.4 0 0 1 4.4 0v1.6Z" fill="currentColor" stroke="none" opacity="0.55" />
-      {/* The light it throws */}
-      <path d="M12 10.6V7.2M6.8 11.2 4.6 9M17.2 11.2 19.4 9M3.4 16h-1.8M20.6 16h1.8" />
+      {/* Beacon dome — semi-circle on a base */}
+      <path d="M9 14v-2a3 3 0 0 1 6 0v2" />
+      {/* Base mount */}
+      <path d="M7 16h10" />
+      <path d="M10 14h4" />
+      {/* Rays — upward and outward */}
+      <path d="M12 9V4" />
+      <path d="M8 10L5 7" />
+      <path d="M16 10l3-3" />
     </Glyph>
   )
 }
 
-/**
- * The wipers: the screen's frame with the arm sweeping across it and the blade the arm carries. The arm is short and
- * heavy and stops well inside the frame, where it used to run corner to corner as a hairline: at the 24px a lamp is
- * drawn at, a thin diagonal across a box is the one mark in this set that read as something else entirely — a slash,
- * which is how a panel says "switched off" or "not available". Stopping the arm inside the frame leaves the frame
- * whole, so the mark reads as a screen with a wiper on it and not as a screen struck through.
- */
+/** Windscreen wipers — ISO 2575 standard: a windshield outline with a wiper arm. The universally recognized
+ * symbol for wipers, showing a curved windshield with a wiper blade sweeping across it. */
 export function WipersIcon() {
   return (
     <Glyph>
-      <path d="M3.4 5.8h17.2l-1.6 12.6H5Z" />
-      <path d="m9.2 15.4 5.2-6" strokeWidth="2.5" />
-      <path d="M8.6 13.4l5.6 1.6" strokeWidth="2.5" />
+      <path d="M4 6h16l-1 10H5Z" />
+      <path d="m9 15 5-6" />
     </Glyph>
   )
 }
 
-/** A music note, for what plays now. */
+/** Music / media — a standard music note icon, matching Material Design's music_note. Two beamed eighth notes,
+ * the universal symbol for audio playback. */
 export function MusicIcon() {
   return (
     <Glyph>
-      <path d="M9 18V6l10-2v12" />
-      <circle cx="6.5" cy="18" r="2.5" />
-      <circle cx="16.5" cy="16" r="2.5" />
+      <path d="M9 18V5l9-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="16" cy="16" r="3" />
     </Glyph>
   )
 }
 
-/** A telephone receiver, for a call or a phone notification: the handset's earpiece, its mouthpiece and the grip
- * between them, as a phone's own receiver is drawn. */
+/** Phone — a telephone handset, matching Material Design's phone icon. The classic curved handset shape,
+ * universally recognized as a phone symbol. */
 export function PhoneIcon() {
   return (
     <Glyph>
-      <path d="M6.3 3.5 9.4 4.3a1.3 1.3 0 0 1 .9 1.5l-.6 2.7a1.3 1.3 0 0 1-1.5 1l-1.5-.3a10.6 10.6 0 0 0 5.7 7.9l.6-1.4a1.3 1.3 0 0 1 1.5-.7l2.7.8a1.3 1.3 0 0 1 .9 1.5l-.6 2.7a1.4 1.4 0 0 1-1.6 1.1A16.9 16.9 0 0 1 3.9 5.1a1.3 1.3 0 0 1 1-1.6Z" />
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" />
     </Glyph>
   )
 }
 
-/** A warning: a ring with exclamation, for an alert with no symbol of its own. */
+/** General warning — ISO 2575 A.20: an equilateral triangle with an exclamation mark inside.
+ * The ISO standard generic warning symbol, used when there is no specific symbol for a condition.
+ * Shown in amber or red on dashboards. The exclamation mark is a vertical bar with a dot below,
+ * centered in the triangle. */
 export function WarningIcon() {
   return (
     <Glyph>
-      {/* Outer ring */}
-      <circle cx="12" cy="12" r="8.5" />
-      {/* Exclamation line */}
-      <path d="M12 8v5" strokeWidth="2.5" />
-      {/* Exclamation dot */}
-      <circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none" />
+      <path d="M12 3L1 21h22Z" />
+      <path d="M12 9v5" strokeWidth="2.5" />
+      <circle cx="12" cy="16" r="1" fill="currentColor" stroke="none" />
     </Glyph>
   )
 }
 
-/** Cruise control: the dial holding a set speed, the needle set against a mark on its rim. The set mark is outside
- * the dial and solid, so the difference between "a dial" and "a speed held" survives the status bar's size. */
+/** Cruise control — ISO 2575 standard: a speedometer with an arrow pointing to a set value. The universally
+ * recognized cruise control symbol, showing a dial with a needle and a reference mark. */
 export function CruiseIcon() {
   return (
     <Glyph>
-      {/* The dial */}
-      <path d="M3.6 17.4a8.6 8.6 0 1 1 16.8 0" />
-      {/* The needle on its hub */}
-      <path d="m12 17.4 5-6.2" />
-      <circle cx="12" cy="17.4" r="1.2" fill="currentColor" stroke="none" />
-      {/* The mark it is set against */}
-      <path d="M18.1 11.3 20.5 8.9" strokeWidth="2.3" />
+      <path d="M4 17a8 8 0 0 1 16 0" />
+      <path d="M12 17l5-6" />
+      <circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M19 10l2-2" />
     </Glyph>
   )
 }
 
-/** The retarder, while a step is held: its cog on the engine's side and the step it is taking, in the accent's
- * second colour. Six strong teeth rather than eight fine ones, so the cog is still a cog at 20px. */
+/** Retarder / engine brake — a gear symbol with an arrow, indicating the engine braking system.
+ * Simplified gear with 6 teeth and a downward arrow for the braking action. */
 export function RetarderIcon() {
   return (
     <Glyph>
-      {/* The cog: its body, its teeth, its hub */}
-      <circle cx="12" cy="9.6" r="3.9" />
-      <path d="M12 3.2v1.8M12 14.2v1.8M5.4 9.6H3.6M20.4 9.6h-1.8M7.4 5 6.1 3.7M16.6 5l1.3-1.3M7.4 14.2 6.1 15.5M16.6 14.2l1.3 1.3" />
-      <circle cx="12" cy="9.6" r="1.4" fill="currentColor" stroke="none" opacity="0.45" />
-      {/* The step it is taking */}
-      <path d="m7.8 17.2 4.2 3.4 4.2-3.4" strokeWidth="2.4" />
+      <circle cx="12" cy="10" r="4" />
+      <path d="M12 4v2M12 14v2M6 10H4M20 10h-2M8 6l-1.5-1.5M16 6l1.5-1.5M8 14l-1.5 1.5M16 14l1.5 1.5" />
+      <path d="m8 18 4 3 4-3" />
     </Glyph>
   )
 }
 
-/** The trailer on the back: its box, its deck line, the drawbar to the tractor and its wheels, as the dash's hitch
- * lamp draws it — the lamp that lights while something is coupled, and goes out when the truck runs solo. */
+/** Trailer connected — ISO 2575 A.21: a truck with a trailer, shown from the side.
+ * The universally recognized symbol for trailer coupling status. The truck cab is on the left,
+ * connected to a rectangular trailer body on the right, with wheels underneath.
+ * Shown in white or green on dashboards when a trailer is attached. */
 export function TrailerIcon() {
   return (
     <Glyph>
-      <g transform="translate(-0.5 -0.6)">
-        <path d="M2.6 6.6A1.6 1.6 0 0 1 4.2 5h8.6a1.6 1.6 0 0 1 1.6 1.6v7.2a1.6 1.6 0 0 1-1.6 1.6H4.2a1.6 1.6 0 0 1-1.6-1.6Z" />
-        <path d="M2.6 10.2h11.8M14.4 10.6h4.4" />
-        <circle cx="6.2" cy="18.4" r="1.9" />
-        <circle cx="11.4" cy="18.4" r="1.9" />
-      </g>
+      {/* Truck cab — simplified box shape */}
+      <rect x="2" y="4" width="7" height="9" rx="1" />
+      {/* Cab window */}
+      <path d="M3 5h4v4H3Z" />
+      {/* Coupling / drawbar */}
+      <path d="M9 13h3" />
+      {/* Trailer body — rectangular */}
+      <rect x="12" y="5" width="10" height="8" rx="1" />
+      {/* Truck wheel */}
+      <circle cx="5.5" cy="16" r="2" />
+      {/* Trailer wheels — two axles */}
+      <circle cx="15" cy="16" r="2" />
+      <circle cx="19" cy="16" r="2" />
     </Glyph>
   )
 }
 
-/** The left blind-spot sensor: the truck's rear with the sensor's warning thrown to its left, as the dash's left BS
- * lamp draws it — lit while the sensor sees a vehicle in the left blind spot. */
+/** Left blind spot warning — a vehicle rear view with warning arcs on the left side. The standard blind spot
+ * monitoring symbol, showing a truck/trailer outline with radar waves on the affected side. */
 export function BlindLeftIcon() {
   return (
     <Glyph>
-      <g transform="translate(0.6)">
-        {/* The truck's rear */}
-        <path d="M9.4 8.6h6.2A1.8 1.8 0 0 1 17.4 10.4v6.8a1.3 1.3 0 0 1-1.3 1.3h-1.3a1.3 1.3 0 0 1-1.3-1.3v-.9h-1.5v.9a1.3 1.3 0 0 1-1.3 1.3H9.4a1.3 1.3 0 0 1-1.3-1.3v-6.8A1.8 1.8 0 0 1 9.4 8.6Z" />
-        {/* The sensor's warning, on the side that sees it */}
-        <path d="M6.6 10.4C5 11.9 5 14.4 6.6 15.9" />
-        <path d="M4.2 9C1.9 11.2 1.9 15.1 4.2 17.3" />
-      </g>
+      <path d="M10 8h6a2 2 0 0 1 2 2v8a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1h-2v1a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10a2 2 0 0 1 2-2Z" />
+      <path d="M7 11C6 12 6 14 7 15" />
+      <path d="M5 10C3 12 3 14 5 16" />
     </Glyph>
   )
 }
 
-/** The right blind-spot sensor: the truck's rear with the sensor's warning thrown to its right, as the dash's right
- * BS lamp draws it — lit while the sensor sees a vehicle in the right blind spot. */
+/** Right blind spot warning — mirror image of the left blind spot symbol, with warning arcs on the right side. */
 export function BlindRightIcon() {
   return (
     <Glyph>
-      <g transform="translate(23.4 0) scale(-1 1)">
-        <path d="M9.4 8.6h6.2A1.8 1.8 0 0 1 17.4 10.4v6.8a1.3 1.3 0 0 1-1.3 1.3h-1.3a1.3 1.3 0 0 1-1.3-1.3v-.9h-1.5v.9a1.3 1.3 0 0 1-1.3 1.3H9.4a1.3 1.3 0 0 1-1.3-1.3v-6.8A1.8 1.8 0 0 1 9.4 8.6Z" />
-        <path d="M6.6 10.4C5 11.9 5 14.4 6.6 15.9" />
-        <path d="M4.2 9C1.9 11.2 1.9 15.1 4.2 17.3" />
+      <g transform="translate(24 0) scale(-1 1)">
+        <path d="M10 8h6a2 2 0 0 1 2 2v8a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1h-2v1a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10a2 2 0 0 1 2-2Z" />
+        <path d="M7 11C6 12 6 14 7 15" />
+        <path d="M5 10C3 12 3 14 5 16" />
       </g>
     </Glyph>
   )
