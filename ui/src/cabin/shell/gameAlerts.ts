@@ -30,8 +30,8 @@ export interface GameAlert {
 export function gameAlerts(telemetry: Telemetry, text: Strings, units: Units = activeUnits()): GameAlert[] {
   const words = text.diagnostics
   const n = text.number
-  const psi = (value: number) => units.pressure(value, text.decimal)
-  const litres = (value: number) => units.volume(value, text.decimal)
+  const psi = (value: number) => units.pressure(value, text.decimal, text.number)
+  const litres = (value: number) => units.volume(value, text.decimal, text.number)
   // Minutes as the cab writes them: "1 h 30", or "12 min".
   const minutes = (value: number) =>
     value >= 60

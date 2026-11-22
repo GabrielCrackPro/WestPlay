@@ -45,3 +45,34 @@ html[data-motion='reduced'] .cluster-telltale[data-blink] {
     opacity: 0.35;
   }
 }
+
+/* Feature 19: Frame-rate aware animations — when the browser detects low FPS (< 30fps sustained),
+   the cluster automatically reduces animation quality: shorter durations, fewer keyframes.
+   This keeps the UI responsive when the game is under heavy load. */
+:root[data-fps-quality='reduced'] .cluster-meter > span {
+  transition:
+    width 240ms var(--motion-spring),
+    background-color 160ms linear;
+}
+
+:root[data-fps-quality='reduced'] .cluster-meter > span {
+  animation-duration: 480ms !important;
+}
+
+:root[data-fps-quality='reduced'] .cluster[data-alarm] .cluster-dial-wrap::after,
+:root[data-fps-quality='reduced'] .cluster[data-alarm] .cluster-shell::before {
+  animation-duration: 2.4s;
+}
+
+:root[data-fps-quality='reduced'] .cluster-voice-glow[data-on]::after {
+  animation: none;
+}
+
+:root[data-fps-quality='reduced'] .cluster-adas,
+:root[data-fps-quality='reduced'] .cluster-camera {
+  animation: none;
+}
+
+:root[data-fps-quality='reduced'] .cluster-boot-dot {
+  animation-duration: 1.8s;
+}

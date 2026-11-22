@@ -145,10 +145,11 @@ export function useClusterCardViews(): ClusterCardViews {
   const burning = instant === null ? null : consumptionReading(instant)
   const coldCoolant = (t?.coolantTemperature ?? 0) > 0 && (t?.coolantTemperature ?? 0) < COLD_C
   const coldOil = (t?.oilTemperature ?? 0) > 0 && (t?.oilTemperature ?? 0) < COLD_C
+  const number = text.number
   const adblueFigure: Figure =
     gaugePercent && adblue !== null
       ? { value: String(Math.round(adblue.percent * 100)), unit: '%' }
-      : units.volumeFigure(t?.adblue ?? 0, text.decimal)
+      : units.volumeFigure(t?.adblue ?? 0, text.decimal, number)
 
   const reading = (
     label: string,
@@ -170,10 +171,10 @@ export function useClusterCardViews(): ClusterCardViews {
     live: t !== null,
     instant,
     trip: {
-      distance: units.distanceFigure(trip.distance, text.decimal),
+      distance: units.distanceFigure(trip.distance, text.decimal, number),
       average: units.consumptionFigure(average, text.decimal),
       driving: driveTime(trip.moving, words),
-      odometer: units.longFigure(t?.odometer ?? 0, text.decimal),
+      odometer: units.longFigure(t?.odometer ?? 0, text.decimal, number),
     },
     fuel: {
       share,
@@ -181,9 +182,9 @@ export function useClusterCardViews(): ClusterCardViews {
       figure:
         gaugePercent && share !== null
           ? { value: String(Math.round(share * 100)), unit: '%' }
-          : units.volumeFigure(t?.fuel ?? 0, text.decimal),
-      range: units.longFigure(t?.fuelRange ?? 0, text.decimal),
-      used: units.volumeFigure(trip.fuel, text.decimal),
+          : units.volumeFigure(t?.fuel ?? 0, text.decimal, number),
+      range: units.longFigure(t?.fuelRange ?? 0, text.decimal, number),
+      used: units.volumeFigure(trip.fuel, text.decimal, number),
     },
     hours: {
       rest: rest >= 0 ? clockText(rest, words) : null,
@@ -209,7 +210,7 @@ export function useClusterCardViews(): ClusterCardViews {
       brakeAir: reading(
         words.brakeAir,
         <BrakeAirIcon />,
-        units.pressureFigure(t?.brakeAirPressure ?? 0, text.decimal),
+        units.pressureFigure(t?.brakeAirPressure ?? 0, text.decimal, number),
         air,
       ),
       battery: reading(

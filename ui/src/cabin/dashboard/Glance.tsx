@@ -215,8 +215,8 @@ export function Glance() {
         <div className="glance-kicker">{words.fuel}</div>
         <div className="glance-fuel-line">
           <div className="glance-fuel-value">
-            <b>{units.volumeFigure(fuel, text.decimal).value}</b> {units.volumeFigure(fuel, text.decimal).unit}
-            {room > 0 && <span className="glance-fuel-room"> / {units.volumeFigure(room, text.decimal).value}</span>}
+            <b>{units.volumeFigure(fuel, text.decimal, text.number).value}</b> {units.volumeFigure(fuel, text.decimal, text.number).unit}
+            {room > 0 && <span className="glance-fuel-room"> / {units.volumeFigure(room, text.decimal, text.number).value}</span>}
           </div>
           <div className="glance-fuel-range">{text.range(formatTripDistance(range, text.decimal))}</div>
         </div>

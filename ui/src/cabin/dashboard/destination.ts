@@ -78,7 +78,7 @@ export function destinationView(
     const distance =
       routeLeft !== null
         ? formatTripDistance(routeLeft, text.decimal)
-        : activeUnits().longDistance(job.plannedDistanceKm, text.decimal)
+        : activeUnits().longDistance(job.plannedDistanceKm, text.decimal, text.number)
     const late = job.deliveryTime > 0 && now > job.deliveryTime
     const deadline =
       job.deliveryTime > 0

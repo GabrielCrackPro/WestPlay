@@ -184,15 +184,6 @@ export function ClusterScreen() {
   const notice = useClusterNotice()
   // The chime as a notice is recorded on the dash: soft for a warning, firmer for an alarm.
   useNoticeCue(notice)
-  // Haptic pulse: the panel flashes briefly when an alarm notice appears (Feature 19).
-  const [hapticPulse, setHapticPulse] = useState(false)
-  useEffect(() => {
-    if (notice?.tone === 'alarm') {
-      setHapticPulse(true)
-      const id = setTimeout(() => setHapticPulse(false), 500)
-      return () => clearTimeout(id)
-    }
-  }, [notice?.key])
   // Pre-trip checklist: runs once after boot clears (Feature 5).
   // The page's telemetry and truck come from the host (it posts them to this WebView too); the page asks to be
   // told again when it loads.
@@ -351,7 +342,7 @@ export function ClusterScreen() {
   const instantReading = instant === null ? null : consumptionReading(instant)
   // A cold diesel reads blue on the dash until it is up to working temperature, not only red when it is too hot.
   const coldCoolant = (t?.coolantTemperature ?? 0) > 0 && (t?.coolantTemperature ?? 0) < COLD_C
-  const adblueFigure = units.volumeFigure(t?.adblue ?? 0, text.decimal)
+  const adblueFigure = units.volumeFigure(t?.adblue ?? 0, text.decimal, text.number)
   // The figures the two level gauges print. A level is a share of what its tank holds, which is what the bar beside
   // it draws, so the settings can read it as that share — the one reading a driver can put against the bar without
   // working out the tank's capacity. Only the two quantities have a share to give: a temperature or a rate is a
@@ -396,6 +387,7 @@ export function ClusterScreen() {
   const laneDeparture = t && t.speed > 5
     ? Math.abs(t.steering) > 0.3 && Math.abs(t.roll) > 0.02
     : false
+
   // How far to that turn, so the arrow has a scale and not only a shape: the arrow alone says which way, never
   // whether the road there is 20 m or two kilometres off. It is "Now" inside the junction (the same 30 m the map's
   // own card counts it at, guidance.ts) and the driver's units until then. Arriving is the one step whose distance
@@ -406,14 +398,14 @@ export function ClusterScreen() {
       ? null
       : guidance.distance < NOW_WITHIN
         ? text.now
-        : units.distance(guidance.distance, text.decimal)
+        : units.distance(guidance.distance, text.decimal, text.number)
   // What a reader hears of the line, in the order a driver reads it: the step and how far, the destination, the
   // distance left, and when the route gets there. The arrow itself is a drawing with no name, so the words of the
   // step are said here rather than left to the glyph.
   const routeLabel = [
     step ? [stepWords(step, text), turnDistance].filter(Boolean).join(' · ') : '',
     destination,
-    routeDistance !== null ? units.distance(routeDistance, text.decimal) : '',
+    routeDistance !== null ? units.distance(routeDistance, text.decimal, text.number) : '',
     routeArrival !== null ? `${text.arrival} ${formatGameTime(routeArrival)}` : '',
   ]
     .filter(Boolean)
@@ -486,7 +478,6 @@ export function ClusterScreen() {
       data-appearance={appearance}
       data-appearing={appearing ? '' : undefined}
       data-alarm={notice?.tone === 'alarm' ? '' : undefined}
-      data-haptic={hapticPulse ? '' : undefined}
       aria-label={text.settings.clusterScreen}
       style={panelStyle}
     >
@@ -542,7 +533,7 @@ export function ClusterScreen() {
                 {turnDistance !== null && <b className="cluster-route-turn">{turnDistance}</b>}
                 {destination && <b className="cluster-route-dest" title={destination}>{destination}</b>}
                 {routeDistance !== null && (
-                  <span className="cluster-route-left">{units.distance(routeDistance, text.decimal)}</span>
+                  <span className="cluster-route-left">{units.distance(routeDistance, text.decimal, text.number)}</span>
                 )}
                 {routeArrival !== null && (
                   <span className="cluster-route-eta">
@@ -652,6 +643,7 @@ export function ClusterScreen() {
                 className="cluster-dial-wrap"
                 data-pretrip={preTripShown ? '' : undefined}
                 data-booting={bootPhase && !preTripShown ? '' : undefined}
+                data-over-limit={speedCameraWarning ? '' : undefined}
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={reduceMotion ? { duration: 0 } : { duration: 0.38, delay: 0.02, ease: motionEase }}

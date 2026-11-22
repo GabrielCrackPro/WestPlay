@@ -72,6 +72,28 @@
   stroke-linecap: round;
 }
 
+/* Feature 3: Speed-over-limit visual feedback — when over the limit, the dial arc pulses red briefly,
+   a haptic-like flash that catches the eye without changing the arc's permanent colour. */
+.cluster-dial-wrap[data-over-limit] .cluster-dial-fill {
+  stroke: var(--limit);
+  animation: speed-over-flash 0.6s ease-out;
+}
+
+@keyframes speed-over-flash {
+  0% {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  30% {
+    stroke-width: 5;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--limit) 50%, transparent));
+  }
+  100% {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 0px transparent);
+  }
+}
+
 /* The tacho, outside the speed's ring and a hairline thinner, so the speed stays the line that reads first: its track,
    the engine's arc in the ink, and the redline printed on the end of it. It is the panel's own grey, not a second
    colour â€” the red field is the only place the tacho leaves the ink, as a tach's red zone is the only printed mark it
@@ -170,7 +192,8 @@
      is drawn around, and three digits ("120") still clear the ring's inner edge with air to spare. The divisor keeps
      it inside the face at every Text Size: the ring is drawn in the same SVG, so a figure left in plain pixels would
      climb out through it as the panel zooms. Slightly larger and tighter to reinforce it as the sole focal point. */
-  font-size: min(148px, calc(152px / var(--cluster-scale, 1)));
+  /* Feature 13: Per-component scaling — speed can be scaled independently via --type-scale-speed */
+  font-size: min(148px, calc(152px / var(--cluster-scale, 1) * var(--type-scale-speed, 1)));
   font-weight: 450;
   line-height: 0.84;
   letter-spacing: -0.07em;

@@ -48,20 +48,12 @@
 }
 
 .cluster-meter {
-  /* The gauge's warning line, printed on the bar by `::before` below: the zone the reading is heading into, in the
-     colour of the state it will be in when it gets there. Set here so every bar shares one look, and overridden by
-     `data-zone` for the end of the bar the trouble is at. */
-  --zone: none;
-  --zone-tint: color-mix(in srgb, var(--danger) 18%, transparent);
-  --zone-mark: color-mix(in srgb, var(--danger) 72%, transparent);
-
   position: relative;
   flex: 1;
   height: 14px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--track);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.16);
 }
 
 /*
@@ -79,61 +71,6 @@
  * colour where the two overlap; the line itself is `::after`, over the fill, because a gauge prints its red line
  * across the bar â€” a tank two thirds full still has to show where its reserve begins.
  */
-.cluster-meter::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/* Too little is the problem: the zone runs from empty up to the line (fuel, AdBlue). */
-.cluster-meter[data-zone='low']::before {
-  background: linear-gradient(90deg, var(--zone-tint) 0 var(--zone), transparent var(--zone));
-}
-
-/* Too much is: the zone runs from the line to the top of the range (the temperatures, consumption, wear). */
-.cluster-meter[data-zone='high'] {
-  --zone-tint: color-mix(in srgb, var(--warn) 16%, transparent);
-  --zone-mark: color-mix(in srgb, var(--warn) 62%, transparent);
-}
-
-.cluster-meter[data-zone='high']::before {
-  background: linear-gradient(90deg, transparent var(--zone), var(--zone-tint) var(--zone));
-}
-
-/*
- * The line itself, across the bar and over the fill, in the colour of the state the reading is heading into: two
- * pixels rather than a hairline, centred on the threshold's own place. A gauge read at arm's length through the
- * game's glass had a 1px line the eye could pass over, which left a bar's reserve a tint and nothing to cross.
- */
-.cluster-meter[data-zone]::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--zone);
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 2px;
-  background: var(--zone-mark);
-  pointer-events: none;
-  z-index: 2;
-}
-
-/*
- * A level gauge's own scale: the quarter marks printed on the track, under the reading. A fill says how much is
- * left; the marks say how much that is without a figure to work out â€” the part already used covers its own marks,
- * as the pointer over a printed scale does. They belong to the two level gauges only (fuel and AdBlue): a
- * temperature or a rate is a point on its scale, not a quantity of something, and quartering it would say nothing.
- */
-.cluster-meter[data-scale='level'] {
-  background-image: repeating-linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--ink) 20%, transparent) 0 1px,
-    transparent 1px 25%
-  );
-}
 
 /*
  * The reading itself, drawn from the bar's left end to where it stands: a level, not a lozenge. Its head is square so a
@@ -141,23 +78,21 @@
  * nearly empty tank a red dot floating in its track. The track clips the head at the top of the range, so a full bar is
  * still round.
  */
+/* Minimal bar fill - solid color, pill shape, smooth ease-out transition. */
 .cluster-meter > span {
   display: block;
   height: 100%;
-  border-radius: 999px 3px 3px 999px;
+  border-radius: 999px;
   background: var(--bar);
   transform-origin: left;
-  animation: meter-grow 760ms var(--motion-ease) both;
-  transition:
-    width 320ms var(--motion-ease),
-    background-color 220ms linear;
-  position: relative;
-  z-index: 1;
+  animation: meter-grow 300ms ease-out both;
+  transition: width 240ms ease-out, background-color 200ms ease-out;
 }
 
 /* The same three states as the glyphs and the figures beside them: cold is blue, worth watching is amber, a problem
    is red. One colour for the reading, not a gradient across the bar â€” the fill's length is the quantity, and painting
-   a gradient along it said the wrong thing about its left end (a hot brake's bar started amber at 0 Â°C). */
+   a gradient along it said the wrong thing about its left end (a hot brake's bar started amber at 0 Â°C).
+   Feature 2: each state also gets a subtle gradient for depth. */
 .cluster-meter[data-cold] > span {
   background: var(--cold);
 }
@@ -179,8 +114,8 @@
 .cluster-meter[data-low] > span {
   background: var(--danger);
   animation:
-    meter-grow 760ms var(--motion-ease) both,
-    meter-low 1.4s ease-in-out 760ms infinite;
+    meter-grow 300ms ease-out both,
+    meter-low 1.4s ease-in-out 300ms infinite;
 }
 
 @keyframes meter-low {
@@ -189,13 +124,14 @@
   }
 }
 
+/* Feature 13: Per-component scaling — gauge values can be scaled independently via --type-scale-gauge */
 .cluster-gauge-value {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
   gap: var(--type-gap);
   min-width: 80px;
-  font-size: var(--type-lg);
+  font-size: calc(var(--type-lg) * var(--type-scale-gauge, 1));
   font-weight: 500;
   line-height: 1;
 }
@@ -274,6 +210,18 @@
   font-weight: 500;
 }
 
+/* Wear danger state - subtle pulse only, no pattern. */
+.cluster-wear .cluster-meter[data-warn] > span {
+  animation:
+    meter-grow 300ms ease-out both,
+    wear-danger-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wear-danger-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
 .cluster-brake-head {
   display: flex;
   align-items: center;
@@ -338,7 +286,7 @@
   height: 10px;
 }
 
-/* AdBlue keeps its own blue, as the fluid's filler cap and the dash's own gauge do. */
+/* AdBlue keeps its own blue. */
 .cluster-mini .cluster-meter > span {
   background: var(--urea);
 }
@@ -347,8 +295,6 @@
   background: var(--bar);
 }
 
-/* The coolant's own fill colour is a rule of the same weight as the cold state's, so a cold engine's bar has to be
-   named too: it reads blue like the dial's scale and the thermometer beside it, not as a healthy grey one. */
 .cluster-mini.cluster-coolant .cluster-meter[data-cold] > span {
   background: var(--cold);
 }
@@ -365,8 +311,6 @@
   background: var(--warn);
 }
 
-/* The mini meters have to name every state themselves: the coolant's own fill colour is a rule of the same weight as
-   the state colours above it, so without this one a coolant at its alarm temperature drew as a healthy grey bar. */
 .cluster-mini .cluster-meter[data-warn] > span {
   background: var(--danger);
 }
@@ -680,12 +624,16 @@
   gap: 8px;
 }
 
-/* Truck brand logo inside the ring */
+/* Truck brand logo inside the ring: white on dark, black on light */
 .cluster-boot-brand {
   width: 80px;
   height: 80px;
   object-fit: contain;
   filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgb(255 255 255 / 0.1));
+}
+
+.cluster[data-appearance='light'] .cluster-boot-brand {
+  filter: brightness(0) drop-shadow(0 2px 8px rgb(0 0 0 / 0.1));
 }
 
 /* Fallback wordmark for brands without logos */

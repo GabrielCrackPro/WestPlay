@@ -42,6 +42,33 @@ body,
     0.9986,
     1
   );
+  /* Feature 5: Spring physics easing — overshoots slightly then settles, mimicking a real mechanical gauge needle.
+     Simulates spring stiffness ~180 and damping ~12, mapped to a CSS linear() spline. */
+  --motion-spring: linear(
+    0,
+    0.06,
+    0.18,
+    0.34,
+    0.52,
+    0.70,
+    0.86,
+    0.98,
+    1.06,
+    1.10,
+    1.11,
+    1.09,
+    1.06,
+    1.03,
+    1.01,
+    1.00,
+    0.99,
+    0.99,
+    1.00,
+    1.00
+  );
+  /* Feature 19: Frame-rate aware animation quality — set by JS when low FPS is detected.
+     When --framerate-quality is 'reduced', animations use shorter durations. */
+  --framerate-quality: normal;
 }
 
 /*
@@ -224,6 +251,12 @@ body,
   --type-sm: 16.5px;
   --type-unit: 14px;
   --type-gap: 6px;
+  /* Feature 13: Per-component text scaling — each component can override its own scale factor
+     independently of the overall --cluster-scale. Defaults to 1 (no override). */
+  --type-scale-speed: 1;
+  --type-scale-gauge: 1;
+  --type-scale-card: 1;
+  --type-scale-status: 1;
 }
 
 /* While the game's GPS voice talks, the panel's own edge answers it (Settings â€º GPS Voice, Glow), as the
